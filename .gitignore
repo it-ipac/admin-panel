@@ -19,3 +19,5 @@ inspect_db.ts
 .vercel
 EXAMPLE_SECURE_ROUTE.tsx
 vercel.json
+
+.vercel
