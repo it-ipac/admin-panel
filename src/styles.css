@@ -3,331 +3,360 @@
 
 /* IPAC Color Palette - Custom Theme */
 @theme {
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
+	--color-primary-50: #eff6ff;
+	--color-primary-100: #dbeafe;
+	--color-primary-200: #bfdbfe;
+	--color-primary-300: #93c5fd;
+	--color-primary-400: #60a5fa;
+	--color-primary-500: #3b82f6;
+	--color-primary-600: #2563eb;
+	--color-primary-700: #1d4ed8;
+	--color-primary-800: #1e40af;
+	--color-primary-900: #1e3a8a;
 
-  --color-success: #10b981;
-  --color-error: #ef4444;
-  --color-warning: #f59e0b;
-  --color-info: #3b82f6;
+	--color-success: #10b981;
+	--color-error: #ef4444;
+	--color-warning: #f59e0b;
+	--color-info: #3b82f6;
 }
 
 :root {
-  --app-text: #111827;
-  --app-text-muted: #6b7280;
-  --app-text-subtle: #4b5563;
-  --app-text-strong: #111827;
-  --app-bg: #f9fafb;
-  --app-surface: #ffffff;
-  --app-surface-muted: #f3f4f6;
-  --app-border: #e5e7eb;
-  --app-border-muted: #f3f4f6;
-  --app-input-bg: #ffffff;
-  --app-input-disabled-bg: #f9fafb;
-  --app-scrollbar-track: #f1f5f9;
-  --app-scrollbar-thumb: #cbd5e1;
-  --app-scrollbar-thumb-hover: #94a3b8;
+	--app-text: #111827;
+	--app-text-muted: #6b7280;
+	--app-text-subtle: #4b5563;
+	--app-text-strong: #111827;
+	--app-bg: #f9fafb;
+	--app-surface: #ffffff;
+	--app-surface-muted: #f3f4f6;
+	--app-border: #e5e7eb;
+	--app-border-muted: #f3f4f6;
+	--app-input-bg: #ffffff;
+	--app-input-disabled-bg: #f9fafb;
+	--app-scrollbar-track: #f1f5f9;
+	--app-scrollbar-thumb: #cbd5e1;
+	--app-scrollbar-thumb-hover: #94a3b8;
 }
 
-[data-theme='dark'] {
-  --app-text: #e5e7eb;
-  --app-text-muted: #9ca3af;
-  --app-text-subtle: #cbd5e1;
-  --app-text-strong: #f9fafb;
-  --app-bg: #0f172a;
-  --app-surface: #111827;
-  --app-surface-muted: #1f2937;
-  --app-border: #334155;
-  --app-border-muted: #1f2937;
-  --app-input-bg: #0b1220;
-  --app-input-disabled-bg: #0b1220;
-  --app-scrollbar-track: #0b1220;
-  --app-scrollbar-thumb: #334155;
-  --app-scrollbar-thumb-hover: #475569;
+[data-theme="dark"] {
+	--app-text: #e5e7eb;
+	--app-text-muted: #9ca3af;
+	--app-text-subtle: #cbd5e1;
+	--app-text-strong: #f9fafb;
+	--app-bg: #0f172a;
+	--app-surface: #111827;
+	--app-surface-muted: #1f2937;
+	--app-border: #334155;
+	--app-border-muted: #1f2937;
+	--app-input-bg: #0b1220;
+	--app-input-disabled-bg: #0b1220;
+	--app-scrollbar-track: #0b1220;
+	--app-scrollbar-thumb: #334155;
+	--app-scrollbar-thumb-hover: #475569;
 }
 
 /* Base styles */
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  color: var(--app-text);
-  background-color: var(--app-bg);
+	font-family:
+		"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+		"Helvetica Neue", Arial, sans-serif;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	color: var(--app-text);
+	background-color: var(--app-bg);
 }
 
 /* Global text color - make all text dark by default */
 * {
-  color: var(--app-text);
+	color: var(--app-text);
 }
 
 /* Headings */
-h1, h2, h3, h4, h5, h6 {
-  color: var(--app-text-strong) !important;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	color: var(--app-text-strong) !important;
 }
 
 /* Paragraphs and spans */
-p, span, div, label {
-  color: var(--app-text) !important;
+p,
+span,
+div,
+label {
+	color: var(--app-text) !important;
 }
 
 /* Gray text variations */
 .text-gray-500 {
-  color: var(--app-text-muted) !important;
+	color: var(--app-text-muted) !important;
 }
 
 .text-gray-600 {
-  color: var(--app-text-subtle) !important;
+	color: var(--app-text-subtle) !important;
 }
 
 .text-gray-700 {
-  color: var(--app-text) !important;
+	color: var(--app-text) !important;
 }
 
 .text-gray-900 {
-  color: var(--app-text-strong) !important;
+	color: var(--app-text-strong) !important;
 }
 
 /* Fix input text color - make it black/dark */
-input, textarea, select {
-  color: var(--app-text) !important;
-  background-color: var(--app-input-bg);
+input,
+textarea,
+select {
+	color: var(--app-text) !important;
+	background-color: var(--app-input-bg);
 }
 
-input::placeholder, textarea::placeholder {
-  color: var(--app-text-muted) !important;
+input::placeholder,
+textarea::placeholder {
+	color: var(--app-text-muted) !important;
 }
 
-input:disabled, textarea:disabled, select:disabled {
-  color: var(--app-text-muted) !important;
-  background-color: var(--app-input-disabled-bg) !important;
+input:disabled,
+textarea:disabled,
+select:disabled {
+	color: var(--app-text-muted) !important;
+	background-color: var(--app-input-disabled-bg) !important;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+	width: 8px;
+	height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--app-scrollbar-track);
+	background: var(--app-scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--app-scrollbar-thumb);
-  border-radius: 4px;
+	background: var(--app-scrollbar-thumb);
+	border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--app-scrollbar-thumb-hover);
+	background: var(--app-scrollbar-thumb-hover);
 }
 
 /* Animation utilities */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+	animation: fadeIn 0.3s ease-out;
 }
 
 /* Card hover effects */
 .card-hover {
-  transition: all 0.2s ease;
+	transition: all 0.2s ease;
 }
 
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+	transform: translateY(-2px);
+	box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 /* Chart container */
 .chart-container {
-  min-height: 300px;
+	min-height: 300px;
 }
 
 /* Excel-like table styles */
 .excel-table {
-  border-collapse: collapse;
-  width: 100%;
+	border-collapse: collapse;
+	width: 100%;
 }
 
 .excel-table th,
 .excel-table td {
-  border: 1px solid var(--app-border);
-  padding: 8px 12px;
-  text-align: left;
-  font-size: 14px;
-  color: var(--app-text) !important;
+	border: 1px solid var(--app-border);
+	padding: 8px 12px;
+	text-align: left;
+	font-size: 14px;
+	color: var(--app-text) !important;
 }
 
 .excel-table th {
-  background-color: var(--app-surface-muted);
-  font-weight: 600;
-  color: var(--app-text-strong) !important;
-  position: sticky;
-  top: 0;
-  z-index: 10;
+	background-color: var(--app-surface-muted);
+	font-weight: 600;
+	color: var(--app-text-strong) !important;
+	position: sticky;
+	top: 0;
+	z-index: 10;
 }
 
 .excel-table tr:hover {
-  background-color: var(--app-surface-muted);
+	background-color: var(--app-surface-muted);
 }
 
 .excel-table tr:nth-child(even) {
-  background-color: var(--app-surface);
+	background-color: var(--app-surface);
 }
 
 .excel-table input {
-  width: 100%;
-  border: none;
-  background: transparent;
-  padding: 4px;
-  font-size: 14px;
-  color: var(--app-text) !important;
+	width: 100%;
+	border: none;
+	background: transparent;
+	padding: 4px;
+	font-size: 14px;
+	color: var(--app-text) !important;
 }
 
 .excel-table input:focus {
-  outline: 2px solid #3b82f6;
-  outline-offset: -2px;
-  background: var(--app-surface);
+	outline: 2px solid #3b82f6;
+	outline-offset: -2px;
+	background: var(--app-surface);
 }
 
 /* Expandable row styles */
 .excel-table tr.expanded {
-  background-color: rgba(59, 130, 246, 0.12);
+	background-color: rgba(59, 130, 246, 0.12);
 }
 
 .excel-table tr.variant-row {
-  background-color: var(--app-surface);
+	background-color: var(--app-surface);
 }
 
 .excel-table tr.variant-row:hover {
-  background-color: var(--app-surface-muted);
+	background-color: var(--app-surface-muted);
 }
 
 /* Nested table styles */
 .excel-table .nested-table {
-  width: 100%;
-  border-collapse: collapse;
+	width: 100%;
+	border-collapse: collapse;
 }
 
 .excel-table .nested-table th {
-  background-color: var(--app-surface-muted);
-  font-weight: 500;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--app-text-strong) !important;
+	background-color: var(--app-surface-muted);
+	font-weight: 500;
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--app-text-strong) !important;
 }
 
 .excel-table .nested-table td {
-  border: none;
-  border-bottom: 1px solid var(--app-border);
-  color: var(--app-text) !important;
+	border: none;
+	border-bottom: 1px solid var(--app-border);
+	color: var(--app-text) !important;
 }
 
 /* Make all borders lighter globally */
-.border, [class*="border-"] {
-  border-color: var(--app-border) !important;
+.border,
+[class*="border-"] {
+	border-color: var(--app-border) !important;
 }
 
 .border-gray-300 {
-  border-color: var(--app-border) !important;
+	border-color: var(--app-border) !important;
 }
 
 .border-gray-200 {
-  border-color: var(--app-border-muted) !important;
+	border-color: var(--app-border-muted) !important;
 }
 
 .border-gray-100 {
-  border-color: var(--app-border-muted) !important;
+	border-color: var(--app-border-muted) !important;
 }
 
 /* Rounded elements with borders */
-.rounded, .rounded-lg, .rounded-md {
-  border-color: var(--app-border);
+.rounded,
+.rounded-lg,
+.rounded-md {
+	border-color: var(--app-border);
 }
 
 /* Divide utilities */
 .divide-y > * {
-  border-color: var(--app-border);
+	border-color: var(--app-border);
 }
 
 /* Force dark text colors for better readability */
 .excel-table td {
-  color: var(--app-text) !important;
+	color: var(--app-text) !important;
 }
 
 .excel-table td.text-gray-600,
 .excel-table td.text-gray-700,
 .excel-table span.text-gray-600,
 .excel-table span.text-gray-700 {
-  color: var(--app-text) !important;
+	color: var(--app-text) !important;
 }
 
 /* Override DaisyUI link colors in tables */
 .excel-table a {
-  color: #2563eb;
+	color: #2563eb;
 }
 
 /* Ensure all table text is readable */
-table td, table th {
-  color: var(--app-text) !important;
+table td,
+table th {
+	color: var(--app-text) !important;
 }
 
 /* Buttons - ensure text is readable */
 button {
-  color: inherit;
+	color: inherit;
 }
 
 button.text-white {
-  color: #ffffff !important;
+	color: #ffffff !important;
 }
 
 /* Override any light text in cards */
-.card, .bg-white, .bg-gray-50 {
-  color: var(--app-text) !important;
+.card,
+.bg-white,
+.bg-gray-50 {
+	color: var(--app-text) !important;
 }
 
 /* Make sure all child elements inherit dark text */
-.card *, .bg-white *, .bg-gray-50 * {
-  color: inherit;
+.card *,
+.bg-white *,
+.bg-gray-50 * {
+	color: inherit;
 }
 
 /* Login input borders: enforce dark borders regardless of global border overrides */
 .login-input {
-  border-color: #111827 !important;
+	border-color: #111827 !important;
 }
 
 .login-input:focus {
-  border-color: #111827 !important;
+	border-color: #111827 !important;
 }
 
-[data-theme='dark'] .bg-white {
-  background-color: var(--app-surface) !important;
+[data-theme="dark"] .bg-white {
+	background-color: var(--app-surface) !important;
 }
 
-[data-theme='dark'] .bg-gray-50 {
-  background-color: var(--app-bg) !important;
+[data-theme="dark"] .bg-gray-50 {
+	background-color: var(--app-bg) !important;
 }
 
-[data-theme='dark'] .bg-gray-100 {
-  background-color: var(--app-surface-muted) !important;
+[data-theme="dark"] .bg-gray-100 {
+	background-color: var(--app-surface-muted) !important;
 }
 
-[data-theme='dark'] .bg-gray-200 {
-  background-color: #1f2937 !important;
+[data-theme="dark"] .bg-gray-200 {
+	background-color: #1f2937 !important;
 }
 
-[data-theme='dark'] .bg-blue-50 {
-  background-color: rgba(37, 99, 235, 0.12) !important;
+[data-theme="dark"] .bg-blue-50 {
+	background-color: rgba(37, 99, 235, 0.12) !important;
 }
