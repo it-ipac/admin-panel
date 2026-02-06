@@ -11,7 +11,7 @@ on:
       - master
 
 env:
-  NODE_VERSION: '22.x'
+  NODE_VERSION: '24.x'
 
 jobs:
   # Job 1: Run all checks (lint, typecheck, build)
