@@ -78,4 +78,3 @@ npm run build
 ```
 
 The app can be deployed to Vercel, Netlify, or any Node.js hosting platform.
-
