@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vinxi dev --port 3000",
-    "build": "vinxi build",
-    "serve": "vinxi start",
+    "dev": "npx vinxi dev --port 3000",
+    "build": "npx vinxi build",
+    "serve": "npx vinxi start",
     "test": "vitest run",
     "lint": "biome check --write ./src",
     "typecheck": "tsc --noEmit",
