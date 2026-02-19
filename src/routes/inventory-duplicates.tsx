@@ -16,6 +16,7 @@ import type {
 } from "../components/inventory/types";
 import { Sidebar } from "../components/Sidebar";
 import { useAuth } from "../hooks/useAuth";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { supabase } from "../lib/supabase";
 
 export const Route = createFileRoute("/inventory-duplicates")({
@@ -97,6 +98,7 @@ function InventoryDuplicatesPage() {
 	const queryClient = useQueryClient();
 	const { user, loading: authLoading } = useAuth();
 	const [search, setSearch] = useState("");
+	const debouncedSearch = useDebouncedValue(search, 200);
 	const [selectionByGroup, setSelectionByGroup] = useState<
 		Record<string, string>
 	>({});
@@ -275,14 +277,14 @@ function InventoryDuplicatesPage() {
 			.filter((group) => group.variants.length > 1)
 			.sort((a, b) => a.variantName.localeCompare(b.variantName));
 
-		if (!search.trim()) return groups;
-		const searchLower = search.trim().toLowerCase();
+		if (!debouncedSearch.trim()) return groups;
+		const searchLower = debouncedSearch.trim().toLowerCase();
 		return groups.filter(
 			(group) =>
 				group.variantName.toLowerCase().includes(searchLower) ||
 				group.materialName.toLowerCase().includes(searchLower),
 		);
-	}, [variants, search]);
+	}, [variants, debouncedSearch]);
 
 	useEffect(() => {
 		if (!duplicateGroups.length) return;

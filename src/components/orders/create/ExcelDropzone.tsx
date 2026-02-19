@@ -103,7 +103,10 @@ export function ExcelDropzone({
 						{file ? (
 							<button
 								type="button"
-								onClick={onClear}
+								onClick={(event) => {
+									event.stopPropagation();
+									onClear();
+								}}
 								className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-white"
 							>
 								<X className="w-3 h-3" />
@@ -112,7 +115,10 @@ export function ExcelDropzone({
 						) : (
 							<button
 								type="button"
-								onClick={() => inputRef.current?.click()}
+								onClick={(event) => {
+									event.stopPropagation();
+									inputRef.current?.click();
+								}}
 								className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100"
 							>
 								<Upload className="w-3 h-3" />

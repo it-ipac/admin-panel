@@ -335,9 +335,10 @@ function OrderDetailPage() {
           )
         `)
 				.eq("id", orderId)
-				.single();
+				.maybeSingle();
 
-			if (error) throw error;
+			if (error && error.code !== "PGRST116") throw error;
+			if (!data) return null;
 
 			// Unwrap single relations
 			const unwrapped = {
@@ -362,6 +363,12 @@ function OrderDetailPage() {
 		},
 		enabled: !!user,
 	});
+
+	useEffect(() => {
+		if (!orderLoading && user && !order) {
+			navigate({ to: "/orders" });
+		}
+	}, [orderLoading, order, user, navigate]);
 
 	const deleteOrderTargets = [
 		"attendance_logs",
@@ -456,12 +463,26 @@ function OrderDetailPage() {
 					),
 				);
 
+				let beamIds: string[] = [];
 				if (templateIds.length > 0) {
-					const { error: beamError } = await supabase
-						.from("beam")
-						.delete()
-						.in("securing_template_id", templateIds);
-					if (beamError) throw beamError;
+					const { data: templateRows, error: templateRowsError } =
+						await supabase
+							.from("securing_template")
+							.select("id, horizontal_bar, vertical_bar, skids")
+							.in("id", templateIds);
+					if (templateRowsError) throw templateRowsError;
+
+					beamIds = Array.from(
+						new Set(
+							(templateRows || [])
+								.flatMap((row: any) => [
+										row.horizontal_bar,
+										row.vertical_bar,
+										row.skids,
+									])
+								.filter(Boolean),
+						),
+					) as string[];
 				}
 
 				const { error: securingDeleteError } = await supabase
@@ -476,6 +497,14 @@ function OrderDetailPage() {
 						.delete()
 						.in("id", templateIds);
 					if (templateDeleteError) throw templateDeleteError;
+				}
+
+				if (beamIds.length > 0) {
+					const { error: beamError } = await supabase
+						.from("beam")
+						.delete()
+						.in("id", beamIds);
+					if (beamError) throw beamError;
 				}
 
 				const { data: taskPackages, error: taskPackagesError } = await supabase

@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { OrderCreateDialog } from "../../components/orders/create/OrderCreateDialog";
 import { Sidebar } from "../../components/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { db } from "../../lib/supabase";
 
 export const Route = createFileRoute("/orders/")({
@@ -24,6 +25,7 @@ function OrdersPage() {
 	const navigate = useNavigate();
 	const { user, loading: authLoading } = useAuth();
 	const [search, setSearch] = useState("");
+	const debouncedSearch = useDebouncedValue(search, 200);
 	const [statusFilter, setStatusFilter] = useState("all");
 	const [page, setPage] = useState(1);
 	const perPage = 10;
@@ -48,9 +50,10 @@ function OrdersPage() {
 
 	const filteredOrders =
 		orders?.filter((order: any) => {
+			const searchLower = debouncedSearch.toLowerCase();
 			const matchesSearch =
-				order.order_name?.toLowerCase().includes(search.toLowerCase()) ||
-				order.client_name?.toLowerCase().includes(search.toLowerCase());
+				order.order_name?.toLowerCase().includes(searchLower) ||
+				order.client_name?.toLowerCase().includes(searchLower);
 			const matchesStatus =
 				statusFilter === "all" || order.production_status === statusFilter;
 			return matchesSearch && matchesStatus;

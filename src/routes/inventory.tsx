@@ -29,6 +29,7 @@ import type {
 import { VariantsTable } from "../components/inventory/VariantsTable";
 import { Sidebar } from "../components/Sidebar";
 import { useAuth } from "../hooks/useAuth";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { supabase } from "../lib/supabase";
 
 export const Route = createFileRoute("/inventory")({
@@ -41,6 +42,7 @@ function InventoryPage() {
 	const queryClient = useQueryClient();
 	const [activeTab, setActiveTab] = useState<TabType>("materials");
 	const [search, setSearch] = useState("");
+	const debouncedSearch = useDebouncedValue(search, 200);
 	const [page, setPage] = useState(1);
 	const [editData, setEditData] = useState<any>({});
 	const [modalOpen, setModalOpen] = useState(false);
@@ -309,18 +311,19 @@ function InventoryPage() {
 	// Filter materials based on search (also search in variants)
 	const filteredMaterials = useMemo(() => {
 		if (!materialsData) return [];
+		const searchLower = debouncedSearch.toLowerCase();
 		return materialsData.filter((m) => {
 			const matchesMaterial =
-				m.name.toLowerCase().includes(search.toLowerCase()) ||
-				m.description?.toLowerCase().includes(search.toLowerCase());
+				m.name.toLowerCase().includes(searchLower) ||
+				m.description?.toLowerCase().includes(searchLower);
 			const matchesVariant = m.material_variants?.some(
 				(v) =>
-					v.variant_name.toLowerCase().includes(search.toLowerCase()) ||
-					v.description?.toLowerCase().includes(search.toLowerCase()),
+					v.variant_name.toLowerCase().includes(searchLower) ||
+					v.description?.toLowerCase().includes(searchLower),
 			);
 			return matchesMaterial || matchesVariant;
 		});
-	}, [materialsData, search]);
+	}, [materialsData, debouncedSearch]);
 
 	// Flatten all variants for the Variants tab with material info attached
 	const allVariants = useMemo(() => {
@@ -347,26 +350,28 @@ function InventoryPage() {
 	// Filter variants for the Variants tab
 	const filteredVariants = useMemo(() => {
 		if (!allVariants) return [];
+		const searchLower = debouncedSearch.toLowerCase();
 		return allVariants.filter(
 			(v) =>
-				v.variant_name.toLowerCase().includes(search.toLowerCase()) ||
-				v.description?.toLowerCase().includes(search.toLowerCase()) ||
-				v.material?.name.toLowerCase().includes(search.toLowerCase()) ||
+				v.variant_name.toLowerCase().includes(searchLower) ||
+				v.description?.toLowerCase().includes(searchLower) ||
+				v.material?.name.toLowerCase().includes(searchLower) ||
 				v.material_variant_tags?.some((t) =>
-					t.tags?.name.toLowerCase().includes(search.toLowerCase()),
+					t.tags?.name.toLowerCase().includes(searchLower),
 				),
 		);
-	}, [allVariants, search]);
+	}, [allVariants, debouncedSearch]);
 
 	const filteredSuppliers = useMemo(() => {
 		if (!suppliers) return [];
+		const searchLower = debouncedSearch.toLowerCase();
 		return suppliers.filter(
 			(s) =>
-				s.name.toLowerCase().includes(search.toLowerCase()) ||
-				s.contact_person?.toLowerCase().includes(search.toLowerCase()) ||
-				s.email?.toLowerCase().includes(search.toLowerCase()),
+				s.name.toLowerCase().includes(searchLower) ||
+				s.contact_person?.toLowerCase().includes(searchLower) ||
+				s.email?.toLowerCase().includes(searchLower),
 		);
-	}, [suppliers, search]);
+	}, [suppliers, debouncedSearch]);
 
 	// Pagination helpers
 	const getCurrentData = () => {

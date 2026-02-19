@@ -13,6 +13,7 @@ import {
 import { useEffect, useState } from "react";
 import { Sidebar } from "../components/Sidebar";
 import { useAuth } from "../hooks/useAuth";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { db } from "../lib/supabase";
 
 export const Route = createFileRoute("/users")({
@@ -24,6 +25,7 @@ function UsersPage() {
 	const { user, loading: authLoading } = useAuth();
 	const queryClient = useQueryClient();
 	const [search, setSearch] = useState("");
+	const debouncedSearch = useDebouncedValue(search, 200);
 	const [roleFilter, setRoleFilter] = useState("all");
 	const [showAddUser, setShowAddUser] = useState(false);
 	const [formError, setFormError] = useState<string | null>(null);
@@ -103,9 +105,10 @@ function UsersPage() {
 
 	const filteredUsers =
 		users?.filter((u: any) => {
+			const searchLower = debouncedSearch.toLowerCase();
 			const matchesSearch =
-				u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-				u.username?.toLowerCase().includes(search.toLowerCase());
+				u.full_name?.toLowerCase().includes(searchLower) ||
+				u.username?.toLowerCase().includes(searchLower);
 			const matchesRole = roleFilter === "all" || u.roles?.name === roleFilter;
 			return matchesSearch && matchesRole;
 		}) || [];
