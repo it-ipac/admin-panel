@@ -1,5 +1,5 @@
-import { useToastContext } from "../components/ui/ToastProvider";
 import type { ToastVariant } from "../components/ui/ToastProvider";
+import { useToastContext } from "../components/ui/ToastProvider";
 
 interface ToastOptions {
 	title: string;

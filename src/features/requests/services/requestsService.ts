@@ -46,7 +46,9 @@ export async function fetchMaterialRequests(): Promise<MaterialRequest[]> {
 	return (data ?? []) as unknown as MaterialRequest[];
 }
 
-export async function fetchVariantRequests(): Promise<MaterialVariantRequest[]> {
+export async function fetchVariantRequests(): Promise<
+	MaterialVariantRequest[]
+> {
 	const { data, error } = await supabase
 		.from("material_variant_requests")
 		.select(
@@ -67,7 +69,9 @@ export async function fetchVariantRequests(): Promise<MaterialVariantRequest[]> 
 	return (data ?? []) as unknown as MaterialVariantRequest[];
 }
 
-export async function fetchPricingRequests(): Promise<SupplierPricingRequest[]> {
+export async function fetchPricingRequests(): Promise<
+	SupplierPricingRequest[]
+> {
 	const { data, error } = await supabase
 		.from("supplier_pricing_requests")
 		.select(
@@ -194,11 +198,14 @@ export async function rejectVariantRequest(
 export async function approvePricingRequest(
 	params: ReviewRequestParams,
 ): Promise<string> {
-	const { data, error } = await supabase.rpc("approve_supplier_pricing_request", {
-		p_request_id: params.requestId,
-		p_reviewed_by: params.reviewedBy,
-		p_admin_notes: params.adminNotes,
-	});
+	const { data, error } = await supabase.rpc(
+		"approve_supplier_pricing_request",
+		{
+			p_request_id: params.requestId,
+			p_reviewed_by: params.reviewedBy,
+			p_admin_notes: params.adminNotes,
+		},
+	);
 	if (error) throw new Error(normalizeRpcError(error.message));
 	return data as string;
 }

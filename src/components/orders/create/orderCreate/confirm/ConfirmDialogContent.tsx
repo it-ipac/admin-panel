@@ -71,7 +71,9 @@ export function ConfirmDialogContent({
 								<div className="space-y-3">
 									<div>
 										<p className="text-xs text-gray-500">Order name</p>
-										<p className="font-medium text-gray-900">{summary.orderName}</p>
+										<p className="font-medium text-gray-900">
+											{summary.orderName}
+										</p>
 									</div>
 									<div>
 										<p className="text-xs text-gray-500">Source file</p>
@@ -80,7 +82,9 @@ export function ConfirmDialogContent({
 										</p>
 									</div>
 									<div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-										<p className="text-xs text-gray-500">Order packages summary</p>
+										<p className="text-xs text-gray-500">
+											Order packages summary
+										</p>
 										<p className="text-sm font-medium text-gray-900">
 											{summary.packageCount || 0} package(s)
 										</p>
@@ -89,11 +93,15 @@ export function ConfirmDialogContent({
 								<div className="space-y-3">
 									<div>
 										<p className="text-xs text-gray-500">Client</p>
-										<p className="font-medium text-gray-900">{summary.clientName}</p>
+										<p className="font-medium text-gray-900">
+											{summary.clientName}
+										</p>
 									</div>
 									{summary.clientMode === "new" && summary.newClientDetails && (
 										<div>
-											<p className="text-xs text-gray-500">New client contact</p>
+											<p className="text-xs text-gray-500">
+												New client contact
+											</p>
 											<p className="font-medium text-gray-900">
 												{summary.newClientDetails.contact_person || "—"}
 											</p>
@@ -121,13 +129,18 @@ export function ConfirmDialogContent({
 						{showDetails && (
 							<div className="space-y-3">
 								{detailTables.map((table) => (
-									<div key={table.tableName} className="rounded-lg border border-gray-200 p-4">
+									<div
+										key={table.tableName}
+										className="rounded-lg border border-gray-200 p-4"
+									>
 										<div className="flex items-center justify-between mb-2">
 											<div>
 												<p className="text-sm font-semibold text-gray-900">
 													{table.tableName}
 												</p>
-												<p className="text-xs text-gray-500">{table.description}</p>
+												<p className="text-xs text-gray-500">
+													{table.description}
+												</p>
 											</div>
 										</div>
 										<div className="space-y-2 text-xs text-gray-700">
@@ -136,7 +149,9 @@ export function ConfirmDialogContent({
 													key={`${table.tableName}-${column.column}`}
 													className="flex flex-col md:flex-row md:items-center md:justify-between gap-1"
 												>
-													<span className="font-medium text-gray-800">{column.column}</span>
+													<span className="font-medium text-gray-800">
+														{column.column}
+													</span>
 													<span className="text-gray-600">{column.value}</span>
 													{column.note && (
 														<span className="text-gray-400">{column.note}</span>
@@ -156,14 +171,16 @@ export function ConfirmDialogContent({
 						</div>
 					)}
 
-					{templateWarningCount !== undefined && templateWarningCount > 0 && !confirmDisabled && (
-						<div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-							{templateWarningCount} securing template
-							{templateWarningCount > 1 ? "s are" : " is"} missing material
-							selections. You can continue to create the order; templates will be
-							saved empty.
-						</div>
-					)}
+					{templateWarningCount !== undefined &&
+						templateWarningCount > 0 &&
+						!confirmDisabled && (
+							<div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+								{templateWarningCount} securing template
+								{templateWarningCount > 1 ? "s are" : " is"} missing material
+								selections. You can continue to create the order; templates will
+								be saved empty.
+							</div>
+						)}
 
 					<div className="flex justify-end gap-2 mt-6">
 						<Dialog.Close asChild>

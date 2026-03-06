@@ -1,7 +1,6 @@
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../../hooks/useAuth";
-import type { MaterialRequest } from "../types";
 import {
 	useApproveMaterialRequest,
 	useRejectMaterialRequest,
@@ -10,6 +9,7 @@ import {
 	useMaterialRejectionImpact,
 	useMaterialRequests,
 } from "../hooks/useRequestsQueries";
+import type { MaterialRequest } from "../types";
 import { buildContextLabel, formatRelativeTime } from "../utils/formatters";
 import { ReviewActionModal } from "./ReviewActionModal";
 import { StatusBadge } from "./StatusBadge";
@@ -22,7 +22,11 @@ interface ModalState {
 	action: "approve" | "reject";
 }
 
-const CLOSED_MODAL: ModalState = { open: false, request: null, action: "approve" };
+const CLOSED_MODAL: ModalState = {
+	open: false,
+	request: null,
+	action: "approve",
+};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -38,10 +42,7 @@ export function MaterialRequestsTab() {
 		modal.open && modal.action === "reject" && modal.request !== null;
 
 	const { data: rejectionImpact, isLoading: isLoadingImpact } =
-		useMaterialRejectionImpact(
-			modal.request?.id ?? null,
-			isRejectOpen,
-		);
+		useMaterialRejectionImpact(modal.request?.id ?? null, isRejectOpen);
 
 	function openModal(request: MaterialRequest, action: "approve" | "reject") {
 		setModal({ open: true, request, action });

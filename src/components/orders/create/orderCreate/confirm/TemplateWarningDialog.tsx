@@ -22,9 +22,9 @@ export function TemplateWarningDialog({
 						Create order with empty templates?
 					</Dialog.Title>
 					<Dialog.Description className="text-sm text-gray-500 mt-2">
-						Some securing templates are missing material selections. If you continue,
-						those templates will be created without a material and can be completed
-						later.
+						Some securing templates are missing material selections. If you
+						continue, those templates will be created without a material and can
+						be completed later.
 					</Dialog.Description>
 					<div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
 						Missing templates: {templateWarningCount || 0}

@@ -95,7 +95,9 @@ export function ManufacturingSectionsPanel({
 				<p className="text-xs font-semibold text-gray-800">{title}</p>
 				{visibleParts.length === 0 ? (
 					<div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
-						<p className="text-[11px] text-gray-500 mb-2">No data detected for this section.</p>
+						<p className="text-[11px] text-gray-500 mb-2">
+							No data detected for this section.
+						</p>
 						<div className="flex flex-wrap gap-2">
 							{parts.map((entry) => (
 								<button
@@ -237,7 +239,8 @@ export function ManufacturingSectionsPanel({
 	return (
 		<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 			{!isBaseOnlyPackage && renderManufacturingSection("Big sides", bigParts)}
-			{!isBaseOnlyPackage && renderManufacturingSection("Small sides", smallParts)}
+			{!isBaseOnlyPackage &&
+				renderManufacturingSection("Small sides", smallParts)}
 			{!isBaseOnlyPackage && renderManufacturingSection("Lid", lidParts)}
 			{renderManufacturingSection("Base", baseParts)}
 		</div>

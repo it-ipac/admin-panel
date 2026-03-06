@@ -28,9 +28,9 @@ import type {
 	VariantTag,
 } from "../components/inventory/types";
 import { VariantsTable } from "../components/inventory/VariantsTable";
+import { Sidebar } from "../components/Sidebar";
 import { InventoryCommunicationsTab } from "../features/inventory-communications/components/InventoryCommunicationsTab";
 import type { VariantCommunicationItem } from "../features/inventory-communications/types";
-import { Sidebar } from "../components/Sidebar";
 import { useAuth } from "../hooks/useAuth";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { supabase } from "../lib/supabase";
@@ -791,8 +791,7 @@ function InventoryPage() {
 						width: editData.width || null,
 						thickness: editData.thickness || null,
 						weight_per_unit: editData.weight_per_unit || null,
-						attributes:
-							Object.keys(attributes).length > 0 ? attributes : null,
+						attributes: Object.keys(attributes).length > 0 ? attributes : null,
 					},
 				});
 
@@ -886,9 +885,9 @@ function InventoryPage() {
 				const { data: newMaterial, error } = await supabase
 					.from("materials")
 					.insert({
-					name: String(editData.name).trim(),
-					description: String(editData.description || "").trim() || null,
-					unit_id: editData.unit_id || null,
+						name: String(editData.name).trim(),
+						description: String(editData.description || "").trim() || null,
+						unit_id: editData.unit_id || null,
 					})
 					.select("id")
 					.single();
@@ -908,7 +907,9 @@ function InventoryPage() {
 					if (tagsError) throw tagsError;
 				}
 
-				queryClient.invalidateQueries({ queryKey: ["materials-with-variants"] });
+				queryClient.invalidateQueries({
+					queryKey: ["materials-with-variants"],
+				});
 				setModalOpen(false);
 				return;
 			}
@@ -968,8 +969,7 @@ function InventoryPage() {
 						width: toNumber(editData.width),
 						thickness: toNumber(editData.thickness),
 						weight_per_unit: toNumber(editData.weight_per_unit),
-						attributes:
-							Object.keys(attributes).length > 0 ? attributes : null,
+						attributes: Object.keys(attributes).length > 0 ? attributes : null,
 					})
 					.select("id")
 					.single();
@@ -994,9 +994,7 @@ function InventoryPage() {
 					const price = toNumber(editData.price);
 					const pricePerUnit = toNumber(editData.price_per_unit);
 
-					if (
-						price === null
-					) {
+					if (price === null) {
 						setModalError(
 							"Price is required when supplier pricing is selected.",
 						);
@@ -1017,7 +1015,9 @@ function InventoryPage() {
 					if (pricingError) throw pricingError;
 				}
 
-				queryClient.invalidateQueries({ queryKey: ["materials-with-variants"] });
+				queryClient.invalidateQueries({
+					queryKey: ["materials-with-variants"],
+				});
 				setModalOpen(false);
 				return;
 			}
@@ -1404,11 +1404,11 @@ function InventoryPage() {
 						} max-h-[88vh] overflow-y-auto bg-white rounded-xl shadow-2xl p-6`}
 					>
 						<Dialog.Title className="text-lg font-semibold text-gray-900">
-								{modalMode === "create"
-									? "Create"
-									: modalMode === "edit"
-										? "Edit"
-										: "Delete"}{" "}
+							{modalMode === "create"
+								? "Create"
+								: modalMode === "edit"
+									? "Edit"
+									: "Delete"}{" "}
 							{modalEntity === "materials"
 								? "Material"
 								: modalEntity === "variants"
@@ -1416,689 +1416,65 @@ function InventoryPage() {
 									: "Supplier"}
 						</Dialog.Title>
 						<Dialog.Description className="text-sm text-gray-500 mb-4">
-								{modalMode === "create"
-									? "Add a new record with the required details below."
-									: modalMode === "edit"
-								? "Update the fields below and save your changes."
-								: "Review what will be deleted before confirming."}
+							{modalMode === "create"
+								? "Add a new record with the required details below."
+								: modalMode === "edit"
+									? "Update the fields below and save your changes."
+									: "Review what will be deleted before confirming."}
 						</Dialog.Description>
 
-							{(modalMode === "create" || modalMode === "edit") &&
-								modalEntity &&
-								(modalMode === "create" || modalItem) && (
-							<div className="space-y-4">
-								{modalEntity === "materials" && (
-									<>
-										<div>
-											<label
-												htmlFor="edit-material-name"
-												className="text-xs text-gray-500"
-											>
-												Name
-											</label>
-											<input
-												id="edit-material-name"
-												type="text"
-												value={editData.name || ""}
-												onChange={(e) =>
-													setEditData({ ...editData, name: e.target.value })
-												}
-												className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-											/>
-										</div>
-										<div>
-											<label
-												htmlFor="edit-material-description"
-												className="text-xs text-gray-500"
-											>
-												Description
-											</label>
-											<textarea
-												id="edit-material-description"
-												value={editData.description || ""}
-												onChange={(e) =>
-													setEditData({
-														...editData,
-														description: e.target.value,
-													})
-												}
-												className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-												rows={3}
-											/>
-										</div>
-										<div>
-											<label
-												htmlFor="edit-material-unit"
-												className="text-xs text-gray-500"
-											>
-												Unit
-											</label>
-											<select
-												id="edit-material-unit"
-												value={editData.unit_id || ""}
-												onChange={(e) =>
-													setEditData({ ...editData, unit_id: e.target.value })
-												}
-												className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-											>
-												<option value="">No unit</option>
-												{units.map((unit) => (
-													<option key={unit.id} value={unit.id}>
-														{unit.name}
-													</option>
-												))}
-											</select>
-										</div>
-										{modalMode === "create" && (
-											<div>
-												<p className="text-xs text-gray-500">Tags</p>
-												<div className="mt-2 flex gap-2">
-													<input
-														type="text"
-														value={newTagName}
-														onChange={(e) => setNewTagName(e.target.value)}
-														placeholder="New tag name"
-														className="flex-1 px-3 py-2 border rounded-lg text-sm"
-													/>
-													<button
-														type="button"
-														onClick={handleAddTagToForm}
-														className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-													>
-														Add
-													</button>
-												</div>
-												<div className="mt-2 flex flex-wrap gap-2">
-													{tags.map((tag) => {
-														const selected = (editData.tag_ids || []).includes(tag.id);
-														return (
-															<button
-																type="button"
-																key={tag.id}
-																onClick={() => toggleTagSelection(tag.id)}
-																className={`px-3 py-1.5 rounded-full text-sm border ${
-																	selected
-																		? "bg-blue-100 border-blue-300 text-blue-800"
-																		: "bg-gray-50 border-gray-200 text-gray-700"
-																}`}
-															>
-																{tag.name}
-															</button>
-														);
-													})}
-												</div>
-											</div>
-										)}
-									</>
-								)}
-
-								{modalEntity === "variants" && (
-									modalMode === "create" ? (
+						{(modalMode === "create" || modalMode === "edit") &&
+							modalEntity &&
+							(modalMode === "create" || modalItem) && (
+								<div className="space-y-4">
+									{modalEntity === "materials" && (
 										<>
-											<div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-												<div className="grid grid-cols-3 gap-2">
-													{[
-														{
-															key: "variant",
-															label: "1) Variant",
-															complete: isVariantStepComplete,
-														},
-														{
-															key: "material",
-															label: "2) Material",
-															complete: isMaterialStepComplete,
-														},
-														{
-															key: "pricing",
-															label: "3) Pricing",
-															complete: isPricingStepComplete,
-														},
-													].map((step) => {
-														const active = variantCreateStep === step.key;
-														return (
-															<button
-																type="button"
-																key={step.key}
-																onClick={() =>
-																	(() => {
-																		const nextStep = step.key as
-																			| "variant"
-																			| "material"
-																			| "pricing";
-																		setVisitedVariantSteps((previous) => ({
-																			...previous,
-																			[nextStep]: true,
-																		}));
-																		setVariantCreateStep(nextStep);
-																	})()
-																}
-																className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${
-																	active
-																		? "border-blue-400 bg-blue-50 text-blue-800"
-																		: "border-gray-200 bg-white text-gray-700"
-																}`}
-															>
-																<span>{step.label}</span>
-																{step.complete ? (
-																	<span className="text-green-600 font-semibold">✓</span>
-																) : (
-																	<span className="text-gray-300">○</span>
-																)}
-															</button>
-														);
-													})}
-												</div>
-											</div>
-
-											{variantCreateStep === "variant" && (
-												<>
-													<div>
-														<label
-															htmlFor="create-variant-material"
-															className="text-xs text-gray-500"
-														>
-															Material *
-														</label>
-														<select
-															id="create-variant-material"
-															value={editData.material_id || ""}
-															onChange={(e) =>
-																setEditData({ ...editData, material_id: e.target.value })
-															}
-															className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-														>
-															<option value="">Select material</option>
-															{(materialsData || []).map((material) => (
-																<option key={material.id} value={material.id}>
-																	{material.name}
-																</option>
-															))}
-														</select>
-														<p className="mt-1 text-xs text-gray-500">
-															If you can’t find the material, continue to step 2 and create it inline.
-														</p>
-														<button
-															type="button"
-															onClick={() => {
-																setEditData({ ...editData, material_id: "__new__" });
-																setVariantCreateStep("material");
-															}}
-															className="mt-2 text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100"
-														>
-															I need to create a material
-														</button>
-													</div>
-													<div>
-														<label
-															htmlFor="edit-variant-name"
-															className="text-xs text-gray-500"
-														>
-															Variant name *
-														</label>
-														<input
-															id="edit-variant-name"
-															type="text"
-															value={editData.variant_name || ""}
-															onChange={(e) =>
-																setEditData({
-																	...editData,
-																	variant_name: e.target.value,
-																})
-															}
-															className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-														/>
-													</div>
-													<div>
-														<label className="text-xs text-gray-500">Unit *</label>
-														<select
-															value={editData.unit_id || ""}
-															onChange={(e) =>
-																setEditData({ ...editData, unit_id: e.target.value })
-															}
-															className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-														>
-															<option value="">Select unit</option>
-															{units.map((unit) => (
-																<option key={unit.id} value={unit.id}>
-																	{unit.name}
-																</option>
-															))}
-														</select>
-													</div>
-													<div>
-														<label
-															htmlFor="edit-variant-description"
-															className="text-xs text-gray-500"
-														>
-															Description
-														</label>
-														<textarea
-															id="edit-variant-description"
-															value={editData.description || ""}
-															onChange={(e) =>
-																setEditData({
-																	...editData,
-																	description: e.target.value,
-																})
-															}
-															className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-															rows={2}
-														/>
-													</div>
-													<p className="text-xs text-gray-500">
-														Optional dimensions, attributes, and tags are in step 3.
-													</p>
-												</>
-											)}
-
-											{variantCreateStep === "material" && (
-												<div className="rounded-lg border border-gray-200 p-4 space-y-3">
-													{isInlineMaterialRequested ? (
-														<>
-															<p className="text-xs font-medium text-gray-600">Create material inline</p>
-															<input
-																type="text"
-																value={editData.new_material_name || ""}
-																onChange={(e) =>
-																	setEditData({ ...editData, new_material_name: e.target.value })
-																}
-																placeholder="Material name *"
-																className="w-full px-3 py-2 border rounded-lg text-sm"
-															/>
-															<textarea
-																value={editData.new_material_description || ""}
-																onChange={(e) =>
-																	setEditData({
-																		...editData,
-																		new_material_description: e.target.value,
-																	})
-																}
-																placeholder="Material description (optional)"
-																className="w-full px-3 py-2 border rounded-lg text-sm"
-																rows={2}
-															/>
-															<select
-																value={editData.new_material_unit_id || ""}
-																onChange={(e) =>
-																	setEditData({
-																		...editData,
-																		new_material_unit_id: e.target.value,
-																	})
-																}
-																className="w-full px-3 py-2 border rounded-lg text-sm"
-															>
-																<option value="">No unit</option>
-																{units.map((unit) => (
-																	<option key={unit.id} value={unit.id}>
-																		{unit.name}
-																	</option>
-																))}
-															</select>
-														</>
-													) : (
-														<div className="space-y-3">
-															<p className="text-sm text-gray-600">
-																You selected an existing material. Step 2 is optional.
-															</p>
-															<button
-																type="button"
-																onClick={() =>
-																	(() => {
-																		setVisitedVariantSteps((previous) => ({
-																			...previous,
-																			material: true,
-																		}));
-																		setEditData({ ...editData, material_id: "__new__" });
-																	})()
-																}
-																className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-															>
-																Switch to create new material
-															</button>
-														</div>
-													)}
-												</div>
-											)}
-
-											{variantCreateStep === "pricing" && (
-												<div>
-													<p className="text-xs text-gray-500">Supplier pricing (optional)</p>
-													<div className="mt-2 space-y-3">
-														<div>
-															<label className="text-xs text-gray-500">Supplier</label>
-															<select
-																value={editData.supplier_id || ""}
-																onChange={(e) =>
-																	setEditData({ ...editData, supplier_id: e.target.value })
-																}
-																className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-															>
-																<option value="">No supplier</option>
-																{(suppliers || []).map((supplier) => (
-																	<option key={supplier.id} value={supplier.id}>
-																		{supplier.name}
-																	</option>
-																))}
-															</select>
-														</div>
-														<div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-															<div>
-																<label className="text-xs text-gray-500">Supplier Qty</label>
-																<input
-																	type="number"
-																	value={editData.supplier_quantity ?? ""}
-																	onChange={(e) =>
-																		setEditData({ ...editData, supplier_quantity: e.target.value })
-																	}
-																	className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-																/>
-															</div>
-															<div>
-																<label className="text-xs text-gray-500">Price *</label>
-																<input
-																	type="number"
-																	value={editData.price ?? ""}
-																	onChange={(e) => setEditData({ ...editData, price: e.target.value })}
-																	className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-																/>
-															</div>
-															<div>
-																<label className="text-xs text-gray-500">Price / Unit</label>
-																<input
-																	type="number"
-																	value={editData.price_per_unit ?? ""}
-																	onChange={(e) =>
-																		setEditData({ ...editData, price_per_unit: e.target.value })
-																	}
-																	className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-																/>
-															</div>
-															<div>
-																<label className="text-xs text-gray-500">Supplier Reference</label>
-																<input
-																	type="text"
-																	value={editData.suppliers_reference ?? ""}
-																	onChange={(e) =>
-																		setEditData({
-																			...editData,
-																			suppliers_reference: e.target.value,
-																		})
-																	}
-																	className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-																/>
-															</div>
-														</div>
-														<p className="text-xs text-gray-400">
-															Price is required only if you select a supplier. Otherwise this step can be skipped.
-														</p>
-														<div className="pt-2 border-t border-gray-200" />
-														<p className="text-xs text-gray-500">Optional variant details</p>
-														<div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-															<div>
-																<label className="text-xs text-gray-500">Length</label>
-																<input
-																	type="number"
-																	value={editData.length ?? ""}
-																	onChange={(e) =>
-																		setEditData({ ...editData, length: e.target.value })
-																	}
-																	className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-																/>
-															</div>
-															<div>
-																<label className="text-xs text-gray-500">Width</label>
-																<input
-																	type="number"
-																	value={editData.width ?? ""}
-																	onChange={(e) =>
-																		setEditData({ ...editData, width: e.target.value })
-																	}
-																	className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-																/>
-															</div>
-															<div>
-																<label className="text-xs text-gray-500">Thickness</label>
-																<input
-																	type="number"
-																	value={editData.thickness ?? ""}
-																	onChange={(e) =>
-																		setEditData({ ...editData, thickness: e.target.value })
-																	}
-																	className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-																/>
-															</div>
-															<div>
-																<label className="text-xs text-gray-500">Weight per unit</label>
-																<input
-																	type="number"
-																	value={editData.weight_per_unit ?? ""}
-																	onChange={(e) =>
-																		setEditData({
-																			...editData,
-																			weight_per_unit: e.target.value,
-																		})
-																	}
-																	className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-																/>
-															</div>
-														</div>
-														<div>
-															<div className="flex items-center justify-between">
-																<p className="text-xs text-gray-500">Attributes</p>
-																<button
-																	type="button"
-																	onClick={addAttributeRow}
-																	className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100"
-																>
-																	+ Add
-																</button>
-															</div>
-															<div className="mt-2 space-y-2">
-																{(editData.attribute_rows || []).length === 0 && (
-																	<p className="text-xs text-gray-400">No attributes added</p>
-																)}
-																{(editData.attribute_rows || []).map((row: any, index: number) => (
-																	<div
-																		key={`${index}-${row.property || "attr"}`}
-																		className="grid grid-cols-[1fr_1fr_auto] gap-2"
-																	>
-																		<input
-																			type="text"
-																			value={row.property || ""}
-																			onChange={(e) =>
-																				updateAttributeRow(index, "property", e.target.value)
-																			}
-																			placeholder="Property"
-																			className="px-3 py-2 border rounded-lg text-sm"
-																		/>
-																		<input
-																			type="text"
-																			value={row.value || ""}
-																			onChange={(e) =>
-																				updateAttributeRow(index, "value", e.target.value)
-																			}
-																			placeholder="Value"
-																			className="px-3 py-2 border rounded-lg text-sm"
-																		/>
-																		<button
-																			type="button"
-																			onClick={() => removeAttributeRow(index)}
-																			className="px-2 py-2 text-xs rounded bg-red-50 text-red-700 hover:bg-red-100"
-																		>
-																			Remove
-																		</button>
-																	</div>
-																))}
-															</div>
-														</div>
-														<div>
-															<p className="text-xs text-gray-500">Tags</p>
-															<div className="mt-2 flex gap-2">
-																<input
-																	type="text"
-																	value={newTagName}
-																	onChange={(e) => setNewTagName(e.target.value)}
-																	placeholder="New tag name"
-																	className="flex-1 px-3 py-2 border rounded-lg text-sm"
-																/>
-																<button
-																	type="button"
-																	onClick={handleAddTagToForm}
-																	className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
-																>
-																	Add
-																</button>
-															</div>
-															<div className="mt-2 grid grid-cols-2 gap-2">
-																{tags.map((tag) => {
-																	const selected = (editData.tag_ids || []).includes(tag.id);
-																	return (
-																		<label
-																			key={tag.id}
-																			className="flex items-center gap-2 text-sm text-gray-700"
-																		>
-																			<input
-																				type="checkbox"
-																				checked={selected}
-																				onChange={() => toggleTagSelection(tag.id)}
-																				className="rounded border-gray-300"
-																			/>
-																			{tag.name}
-																		</label>
-																	);
-																})}
-															</div>
-														</div>
-													</div>
-												</div>
-											)}
-										</>
-									) : (
-									<>
-										<div>
-											<label
-												htmlFor="edit-variant-name"
-												className="text-xs text-gray-500"
-											>
-												Variant name
-											</label>
-											<input
-												id="edit-variant-name"
-												type="text"
-												value={editData.variant_name || ""}
-												onChange={(e) =>
-													setEditData({
-														...editData,
-														variant_name: e.target.value,
-													})
-												}
-												className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-											/>
-										</div>
-										<div>
-											<label
-												htmlFor="edit-variant-description"
-												className="text-xs text-gray-500"
-											>
-												Description
-											</label>
-											<textarea
-												id="edit-variant-description"
-												value={editData.description || ""}
-												onChange={(e) =>
-													setEditData({
-														...editData,
-														description: e.target.value,
-													})
-												}
-												className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-												rows={3}
-											/>
-										</div>
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 											<div>
 												<label
-													htmlFor="edit-variant-length"
+													htmlFor="edit-material-name"
 													className="text-xs text-gray-500"
 												>
-													Length
+													Name
 												</label>
 												<input
-													id="edit-variant-length"
-													type="number"
-													value={editData.length ?? ""}
+													id="edit-material-name"
+													type="text"
+													value={editData.name || ""}
 													onChange={(e) =>
-														setEditData({ ...editData, length: e.target.value })
+														setEditData({ ...editData, name: e.target.value })
 													}
 													className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
 												/>
 											</div>
 											<div>
 												<label
-													htmlFor="edit-variant-width"
+													htmlFor="edit-material-description"
 													className="text-xs text-gray-500"
 												>
-													Width
+													Description
 												</label>
-												<input
-													id="edit-variant-width"
-													type="number"
-													value={editData.width ?? ""}
-													onChange={(e) =>
-														setEditData({ ...editData, width: e.target.value })
-													}
-													className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-												/>
-											</div>
-											<div>
-												<label
-													htmlFor="edit-variant-thickness"
-													className="text-xs text-gray-500"
-												>
-													Thickness
-												</label>
-												<input
-													id="edit-variant-thickness"
-													type="number"
-													value={editData.thickness ?? ""}
+												<textarea
+													id="edit-material-description"
+													value={editData.description || ""}
 													onChange={(e) =>
 														setEditData({
 															...editData,
-															thickness: e.target.value,
+															description: e.target.value,
 														})
 													}
 													className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+													rows={3}
 												/>
 											</div>
 											<div>
 												<label
-													htmlFor="edit-variant-weight-per-unit"
-													className="text-xs text-gray-500"
-												>
-													Weight per unit
-												</label>
-												<input
-													id="edit-variant-weight-per-unit"
-													type="number"
-													value={editData.weight_per_unit ?? ""}
-													onChange={(e) =>
-														setEditData({
-															...editData,
-															weight_per_unit: e.target.value,
-														})
-													}
-													className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-												/>
-											</div>
-											<div>
-												<label
-													htmlFor="edit-variant-unit"
+													htmlFor="edit-material-unit"
 													className="text-xs text-gray-500"
 												>
 													Unit
 												</label>
 												<select
-													id="edit-variant-unit"
+													id="edit-material-unit"
 													value={editData.unit_id || ""}
 													onChange={(e) =>
 														setEditData({
@@ -2116,127 +1492,688 @@ function InventoryPage() {
 													))}
 												</select>
 											</div>
-										</div>
-										<div>
-											<div className="flex items-center justify-between">
-												<p className="text-xs text-gray-500">Attributes</p>
-												<button
-													type="button"
-													onClick={addAttributeRow}
-													className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100"
-												>
-													+ Add
-												</button>
-											</div>
-											<div className="mt-2 space-y-2">
-												{(editData.attribute_rows || []).length === 0 && (
-													<p className="text-xs text-gray-400">No attributes added</p>
-												)}
-												{(editData.attribute_rows || []).map((row: any, index: number) => (
-													<div key={`${index}-${row.property || "attr"}`} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+											{modalMode === "create" && (
+												<div>
+													<p className="text-xs text-gray-500">Tags</p>
+													<div className="mt-2 flex gap-2">
 														<input
 															type="text"
-																value={row.property || ""}
-																onChange={(e) =>
-																	updateAttributeRow(index, "property", e.target.value)
-																}
-																placeholder="Property"
-																className="px-3 py-2 border rounded-lg text-sm"
-														/>
-														<input
-															type="text"
-																value={row.value || ""}
-																onChange={(e) =>
-																	updateAttributeRow(index, "value", e.target.value)
-																}
-																placeholder="Value"
-																className="px-3 py-2 border rounded-lg text-sm"
+															value={newTagName}
+															onChange={(e) => setNewTagName(e.target.value)}
+															placeholder="New tag name"
+															className="flex-1 px-3 py-2 border rounded-lg text-sm"
 														/>
 														<button
 															type="button"
-															onClick={() => removeAttributeRow(index)}
-															className="px-2 py-2 text-xs rounded bg-red-50 text-red-700 hover:bg-red-100"
+															onClick={handleAddTagToForm}
+															className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
 														>
-															Remove
+															Add
 														</button>
 													</div>
-												))}
-											</div>
-										</div>
-										<div>
-											<p className="text-xs text-gray-500">Tags</p>
-											<div className="mt-2 grid grid-cols-2 gap-2">
-												{tags.length === 0 && (
-													<p className="text-xs text-gray-400">
-														No tags available
-													</p>
-												)}
-												{tags.map((tag) => {
-													const selected = (editData.tag_ids || []).includes(
-														tag.id,
-													);
-													return (
-														<label
-															key={tag.id}
-															className="flex items-center gap-2 text-sm text-gray-700"
-														>
+													<div className="mt-2 flex flex-wrap gap-2">
+														{tags.map((tag) => {
+															const selected = (
+																editData.tag_ids || []
+															).includes(tag.id);
+															return (
+																<button
+																	type="button"
+																	key={tag.id}
+																	onClick={() => toggleTagSelection(tag.id)}
+																	className={`px-3 py-1.5 rounded-full text-sm border ${
+																		selected
+																			? "bg-blue-100 border-blue-300 text-blue-800"
+																			: "bg-gray-50 border-gray-200 text-gray-700"
+																	}`}
+																>
+																	{tag.name}
+																</button>
+															);
+														})}
+													</div>
+												</div>
+											)}
+										</>
+									)}
+
+									{modalEntity === "variants" &&
+										(modalMode === "create" ? (
+											<>
+												<div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+													<div className="grid grid-cols-3 gap-2">
+														{[
+															{
+																key: "variant",
+																label: "1) Variant",
+																complete: isVariantStepComplete,
+															},
+															{
+																key: "material",
+																label: "2) Material",
+																complete: isMaterialStepComplete,
+															},
+															{
+																key: "pricing",
+																label: "3) Pricing",
+																complete: isPricingStepComplete,
+															},
+														].map((step) => {
+															const active = variantCreateStep === step.key;
+															return (
+																<button
+																	type="button"
+																	key={step.key}
+																	onClick={() =>
+																		(() => {
+																			const nextStep = step.key as
+																				| "variant"
+																				| "material"
+																				| "pricing";
+																			setVisitedVariantSteps((previous) => ({
+																				...previous,
+																				[nextStep]: true,
+																			}));
+																			setVariantCreateStep(nextStep);
+																		})()
+																	}
+																	className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${
+																		active
+																			? "border-blue-400 bg-blue-50 text-blue-800"
+																			: "border-gray-200 bg-white text-gray-700"
+																	}`}
+																>
+																	<span>{step.label}</span>
+																	{step.complete ? (
+																		<span className="text-green-600 font-semibold">
+																			✓
+																		</span>
+																	) : (
+																		<span className="text-gray-300">○</span>
+																	)}
+																</button>
+															);
+														})}
+													</div>
+												</div>
+
+												{variantCreateStep === "variant" && (
+													<>
+														<div>
+															<label
+																htmlFor="create-variant-material"
+																className="text-xs text-gray-500"
+															>
+																Material *
+															</label>
+															<select
+																id="create-variant-material"
+																value={editData.material_id || ""}
+																onChange={(e) =>
+																	setEditData({
+																		...editData,
+																		material_id: e.target.value,
+																	})
+																}
+																className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+															>
+																<option value="">Select material</option>
+																{(materialsData || []).map((material) => (
+																	<option key={material.id} value={material.id}>
+																		{material.name}
+																	</option>
+																))}
+															</select>
+															<p className="mt-1 text-xs text-gray-500">
+																If you can’t find the material, continue to step
+																2 and create it inline.
+															</p>
+															<button
+																type="button"
+																onClick={() => {
+																	setEditData({
+																		...editData,
+																		material_id: "__new__",
+																	});
+																	setVariantCreateStep("material");
+																}}
+																className="mt-2 text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100"
+															>
+																I need to create a material
+															</button>
+														</div>
+														<div>
+															<label
+																htmlFor="edit-variant-name"
+																className="text-xs text-gray-500"
+															>
+																Variant name *
+															</label>
 															<input
-																type="checkbox"
-																checked={selected}
-																onChange={() => toggleTagSelection(tag.id)}
-																className="rounded border-gray-300"
+																id="edit-variant-name"
+																type="text"
+																value={editData.variant_name || ""}
+																onChange={(e) =>
+																	setEditData({
+																		...editData,
+																		variant_name: e.target.value,
+																	})
+																}
+																className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
 															/>
-															{tag.name}
-														</label>
-													);
-												})}
-											</div>
-										</div>
-										<div>
-											<p className="text-xs text-gray-500">Supplier pricing</p>
-											<div className="mt-2 space-y-3">
+														</div>
+														<div>
+															<label
+																htmlFor="create-variant-unit"
+																className="text-xs text-gray-500"
+															>
+																Unit *
+															</label>
+															<select
+																id="create-variant-unit"
+																value={editData.unit_id || ""}
+																onChange={(e) =>
+																	setEditData({
+																		...editData,
+																		unit_id: e.target.value,
+																	})
+																}
+																className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+															>
+																<option value="">Select unit</option>
+																{units.map((unit) => (
+																	<option key={unit.id} value={unit.id}>
+																		{unit.name}
+																	</option>
+																))}
+															</select>
+														</div>
+														<div>
+															<label
+																htmlFor="edit-variant-description"
+																className="text-xs text-gray-500"
+															>
+																Description
+															</label>
+															<textarea
+																id="edit-variant-description"
+																value={editData.description || ""}
+																onChange={(e) =>
+																	setEditData({
+																		...editData,
+																		description: e.target.value,
+																	})
+																}
+																className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+																rows={2}
+															/>
+														</div>
+														<p className="text-xs text-gray-500">
+															Optional dimensions, attributes, and tags are in
+															step 3.
+														</p>
+													</>
+												)}
+
+												{variantCreateStep === "material" && (
+													<div className="rounded-lg border border-gray-200 p-4 space-y-3">
+														{isInlineMaterialRequested ? (
+															<>
+																<p className="text-xs font-medium text-gray-600">
+																	Create material inline
+																</p>
+																<input
+																	type="text"
+																	value={editData.new_material_name || ""}
+																	onChange={(e) =>
+																		setEditData({
+																			...editData,
+																			new_material_name: e.target.value,
+																		})
+																	}
+																	placeholder="Material name *"
+																	className="w-full px-3 py-2 border rounded-lg text-sm"
+																/>
+																<textarea
+																	value={
+																		editData.new_material_description || ""
+																	}
+																	onChange={(e) =>
+																		setEditData({
+																			...editData,
+																			new_material_description: e.target.value,
+																		})
+																	}
+																	placeholder="Material description (optional)"
+																	className="w-full px-3 py-2 border rounded-lg text-sm"
+																	rows={2}
+																/>
+																<select
+																	value={editData.new_material_unit_id || ""}
+																	onChange={(e) =>
+																		setEditData({
+																			...editData,
+																			new_material_unit_id: e.target.value,
+																		})
+																	}
+																	className="w-full px-3 py-2 border rounded-lg text-sm"
+																>
+																	<option value="">No unit</option>
+																	{units.map((unit) => (
+																		<option key={unit.id} value={unit.id}>
+																			{unit.name}
+																		</option>
+																	))}
+																</select>
+															</>
+														) : (
+															<div className="space-y-3">
+																<p className="text-sm text-gray-600">
+																	You selected an existing material. Step 2 is
+																	optional.
+																</p>
+																<button
+																	type="button"
+																	onClick={() =>
+																		(() => {
+																			setVisitedVariantSteps((previous) => ({
+																				...previous,
+																				material: true,
+																			}));
+																			setEditData({
+																				...editData,
+																				material_id: "__new__",
+																			});
+																		})()
+																	}
+																	className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+																>
+																	Switch to create new material
+																</button>
+															</div>
+														)}
+													</div>
+												)}
+
+												{variantCreateStep === "pricing" && (
+													<div>
+														<p className="text-xs text-gray-500">
+															Supplier pricing (optional)
+														</p>
+														<div className="mt-2 space-y-3">
+															<div>
+																<label
+																	htmlFor="create-variant-supplier"
+																	className="text-xs text-gray-500"
+																>
+																	Supplier
+																</label>
+																<select
+																	id="create-variant-supplier"
+																	value={editData.supplier_id || ""}
+																	onChange={(e) =>
+																		setEditData({
+																			...editData,
+																			supplier_id: e.target.value,
+																		})
+																	}
+																	className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+																>
+																	<option value="">No supplier</option>
+																	{(suppliers || []).map((supplier) => (
+																		<option
+																			key={supplier.id}
+																			value={supplier.id}
+																		>
+																			{supplier.name}
+																		</option>
+																	))}
+																</select>
+															</div>
+															<div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+																<div>
+																	<label
+																		htmlFor="create-variant-supplier-qty"
+																		className="text-xs text-gray-500"
+																	>
+																		Supplier Qty
+																	</label>
+																	<input
+																		id="create-variant-supplier-qty"
+																		type="number"
+																		value={editData.supplier_quantity ?? ""}
+																		onChange={(e) =>
+																			setEditData({
+																				...editData,
+																				supplier_quantity: e.target.value,
+																			})
+																		}
+																		className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+																	/>
+																</div>
+																<div>
+																	<label
+																		htmlFor="create-variant-price"
+																		className="text-xs text-gray-500"
+																	>
+																		Price *
+																	</label>
+																	<input
+																		id="create-variant-price"
+																		type="number"
+																		value={editData.price ?? ""}
+																		onChange={(e) =>
+																			setEditData({
+																				...editData,
+																				price: e.target.value,
+																			})
+																		}
+																		className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+																	/>
+																</div>
+																<div>
+																	<label
+																		htmlFor="create-variant-price-per-unit"
+																		className="text-xs text-gray-500"
+																	>
+																		Price / Unit
+																	</label>
+																	<input
+																		id="create-variant-price-per-unit"
+																		type="number"
+																		value={editData.price_per_unit ?? ""}
+																		onChange={(e) =>
+																			setEditData({
+																				...editData,
+																				price_per_unit: e.target.value,
+																			})
+																		}
+																		className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+																	/>
+																</div>
+																<div>
+																	<label
+																		htmlFor="create-variant-supplier-reference"
+																		className="text-xs text-gray-500"
+																	>
+																		Supplier Reference
+																	</label>
+																	<input
+																		id="create-variant-supplier-reference"
+																		type="text"
+																		value={editData.suppliers_reference ?? ""}
+																		onChange={(e) =>
+																			setEditData({
+																				...editData,
+																				suppliers_reference: e.target.value,
+																			})
+																		}
+																		className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+																	/>
+																</div>
+															</div>
+															<p className="text-xs text-gray-400">
+																Price is required only if you select a supplier.
+																Otherwise this step can be skipped.
+															</p>
+															<div className="pt-2 border-t border-gray-200" />
+															<p className="text-xs text-gray-500">
+																Optional variant details
+															</p>
+															<div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+																<div>
+																	<label
+																		htmlFor="create-variant-length"
+																		className="text-xs text-gray-500"
+																	>
+																		Length
+																	</label>
+																	<input
+																		id="create-variant-length"
+																		type="number"
+																		value={editData.length ?? ""}
+																		onChange={(e) =>
+																			setEditData({
+																				...editData,
+																				length: e.target.value,
+																			})
+																		}
+																		className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+																	/>
+																</div>
+																<div>
+																	<label
+																		htmlFor="create-variant-width"
+																		className="text-xs text-gray-500"
+																	>
+																		Width
+																	</label>
+																	<input
+																		id="create-variant-width"
+																		type="number"
+																		value={editData.width ?? ""}
+																		onChange={(e) =>
+																			setEditData({
+																				...editData,
+																				width: e.target.value,
+																			})
+																		}
+																		className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+																	/>
+																</div>
+																<div>
+																	<label
+																		htmlFor="create-variant-thickness"
+																		className="text-xs text-gray-500"
+																	>
+																		Thickness
+																	</label>
+																	<input
+																		id="create-variant-thickness"
+																		type="number"
+																		value={editData.thickness ?? ""}
+																		onChange={(e) =>
+																			setEditData({
+																				...editData,
+																				thickness: e.target.value,
+																			})
+																		}
+																		className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+																	/>
+																</div>
+																<div>
+																	<label
+																		htmlFor="create-variant-weight-per-unit"
+																		className="text-xs text-gray-500"
+																	>
+																		Weight per unit
+																	</label>
+																	<input
+																		id="create-variant-weight-per-unit"
+																		type="number"
+																		value={editData.weight_per_unit ?? ""}
+																		onChange={(e) =>
+																			setEditData({
+																				...editData,
+																				weight_per_unit: e.target.value,
+																			})
+																		}
+																		className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+																	/>
+																</div>
+															</div>
+															<div>
+																<div className="flex items-center justify-between">
+																	<p className="text-xs text-gray-500">
+																		Attributes
+																	</p>
+																	<button
+																		type="button"
+																		onClick={addAttributeRow}
+																		className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100"
+																	>
+																		+ Add
+																	</button>
+																</div>
+																<div className="mt-2 space-y-2">
+																	{(editData.attribute_rows || []).length ===
+																		0 && (
+																		<p className="text-xs text-gray-400">
+																			No attributes added
+																		</p>
+																	)}
+																	{(editData.attribute_rows || []).map(
+																		(row: any, index: number) => (
+																			<div
+																				key={`${index}-${row.property || "attr"}`}
+																				className="grid grid-cols-[1fr_1fr_auto] gap-2"
+																			>
+																				<input
+																					type="text"
+																					value={row.property || ""}
+																					onChange={(e) =>
+																						updateAttributeRow(
+																							index,
+																							"property",
+																							e.target.value,
+																						)
+																					}
+																					placeholder="Property"
+																					className="px-3 py-2 border rounded-lg text-sm"
+																				/>
+																				<input
+																					type="text"
+																					value={row.value || ""}
+																					onChange={(e) =>
+																						updateAttributeRow(
+																							index,
+																							"value",
+																							e.target.value,
+																						)
+																					}
+																					placeholder="Value"
+																					className="px-3 py-2 border rounded-lg text-sm"
+																				/>
+																				<button
+																					type="button"
+																					onClick={() =>
+																						removeAttributeRow(index)
+																					}
+																					className="px-2 py-2 text-xs rounded bg-red-50 text-red-700 hover:bg-red-100"
+																				>
+																					Remove
+																				</button>
+																			</div>
+																		),
+																	)}
+																</div>
+															</div>
+															<div>
+																<p className="text-xs text-gray-500">Tags</p>
+																<div className="mt-2 flex gap-2">
+																	<input
+																		type="text"
+																		value={newTagName}
+																		onChange={(e) =>
+																			setNewTagName(e.target.value)
+																		}
+																		placeholder="New tag name"
+																		className="flex-1 px-3 py-2 border rounded-lg text-sm"
+																	/>
+																	<button
+																		type="button"
+																		onClick={handleAddTagToForm}
+																		className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+																	>
+																		Add
+																	</button>
+																</div>
+																<div className="mt-2 grid grid-cols-2 gap-2">
+																	{tags.map((tag) => {
+																		const selected = (
+																			editData.tag_ids || []
+																		).includes(tag.id);
+																		return (
+																			<label
+																				key={tag.id}
+																				className="flex items-center gap-2 text-sm text-gray-700"
+																			>
+																				<input
+																					type="checkbox"
+																					checked={selected}
+																					onChange={() =>
+																						toggleTagSelection(tag.id)
+																					}
+																					className="rounded border-gray-300"
+																				/>
+																				{tag.name}
+																			</label>
+																		);
+																	})}
+																</div>
+															</div>
+														</div>
+													</div>
+												)}
+											</>
+										) : (
+											<>
 												<div>
 													<label
-														htmlFor="edit-variant-supplier"
+														htmlFor="edit-variant-name"
 														className="text-xs text-gray-500"
 													>
-														Supplier
+														Variant name
 													</label>
-													<select
-														id="edit-variant-supplier"
-														value={editData.supplier_id || ""}
+													<input
+														id="edit-variant-name"
+														type="text"
+														value={editData.variant_name || ""}
 														onChange={(e) =>
 															setEditData({
 																...editData,
-																supplier_id: e.target.value,
+																variant_name: e.target.value,
 															})
 														}
 														className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+													/>
+												</div>
+												<div>
+													<label
+														htmlFor="edit-variant-description"
+														className="text-xs text-gray-500"
 													>
-														<option value="">No supplier</option>
-														{(suppliers || []).map((supplier) => (
-															<option key={supplier.id} value={supplier.id}>
-																{supplier.name}
-															</option>
-														))}
-													</select>
+														Description
+													</label>
+													<textarea
+														id="edit-variant-description"
+														value={editData.description || ""}
+														onChange={(e) =>
+															setEditData({
+																...editData,
+																description: e.target.value,
+															})
+														}
+														className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+														rows={3}
+													/>
 												</div>
-												<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+												<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 													<div>
 														<label
-															htmlFor="edit-variant-supplier-qty"
+															htmlFor="edit-variant-length"
 															className="text-xs text-gray-500"
 														>
-															Supplier Qty
+															Length
 														</label>
 														<input
-															id="edit-variant-supplier-qty"
+															id="edit-variant-length"
 															type="number"
-															value={editData.supplier_quantity ?? ""}
+															value={editData.length ?? ""}
 															onChange={(e) =>
 																setEditData({
 																	...editData,
-																	supplier_quantity: e.target.value,
+																	length: e.target.value,
 																})
 															}
 															className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
@@ -2244,19 +2181,19 @@ function InventoryPage() {
 													</div>
 													<div>
 														<label
-															htmlFor="edit-variant-price"
+															htmlFor="edit-variant-width"
 															className="text-xs text-gray-500"
 														>
-															Price
+															Width
 														</label>
 														<input
-															id="edit-variant-price"
+															id="edit-variant-width"
 															type="number"
-															value={editData.price ?? ""}
+															value={editData.width ?? ""}
 															onChange={(e) =>
 																setEditData({
 																	...editData,
-																	price: e.target.value,
+																	width: e.target.value,
 																})
 															}
 															className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
@@ -2264,19 +2201,19 @@ function InventoryPage() {
 													</div>
 													<div>
 														<label
-															htmlFor="edit-variant-price-per-unit"
+															htmlFor="edit-variant-thickness"
 															className="text-xs text-gray-500"
 														>
-															Price / Unit
+															Thickness
 														</label>
 														<input
-															id="edit-variant-price-per-unit"
+															id="edit-variant-thickness"
 															type="number"
-															value={editData.price_per_unit ?? ""}
+															value={editData.thickness ?? ""}
 															onChange={(e) =>
 																setEditData({
 																	...editData,
-																	price_per_unit: e.target.value,
+																	thickness: e.target.value,
 																})
 															}
 															className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
@@ -2284,152 +2221,387 @@ function InventoryPage() {
 													</div>
 													<div>
 														<label
-															htmlFor="edit-variant-supplier-reference"
+															htmlFor="edit-variant-weight-per-unit"
 															className="text-xs text-gray-500"
 														>
-															Supplier Reference
+															Weight per unit
 														</label>
 														<input
-															id="edit-variant-supplier-reference"
-															type="text"
-															value={editData.suppliers_reference ?? ""}
+															id="edit-variant-weight-per-unit"
+															type="number"
+															value={editData.weight_per_unit ?? ""}
 															onChange={(e) =>
 																setEditData({
 																	...editData,
-																	suppliers_reference: e.target.value,
+																	weight_per_unit: e.target.value,
 																})
 															}
 															className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-															placeholder="Optional supplier reference"
 														/>
+													</div>
+													<div>
+														<label
+															htmlFor="edit-variant-unit"
+															className="text-xs text-gray-500"
+														>
+															Unit
+														</label>
+														<select
+															id="edit-variant-unit"
+															value={editData.unit_id || ""}
+															onChange={(e) =>
+																setEditData({
+																	...editData,
+																	unit_id: e.target.value,
+																})
+															}
+															className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+														>
+															<option value="">No unit</option>
+															{units.map((unit) => (
+																<option key={unit.id} value={unit.id}>
+																	{unit.name}
+																</option>
+															))}
+														</select>
 													</div>
 												</div>
-												<p className="text-xs text-gray-400">
-													Save to update the first supplier pricing entry for this variant.
-												</p>
-											</div>
-										</div>
-									</>
-									)
-								)}
+												<div>
+													<div className="flex items-center justify-between">
+														<p className="text-xs text-gray-500">Attributes</p>
+														<button
+															type="button"
+															onClick={addAttributeRow}
+															className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100"
+														>
+															+ Add
+														</button>
+													</div>
+													<div className="mt-2 space-y-2">
+														{(editData.attribute_rows || []).length === 0 && (
+															<p className="text-xs text-gray-400">
+																No attributes added
+															</p>
+														)}
+														{(editData.attribute_rows || []).map(
+															(row: any, index: number) => (
+																<div
+																	key={`${index}-${row.property || "attr"}`}
+																	className="grid grid-cols-[1fr_1fr_auto] gap-2"
+																>
+																	<input
+																		type="text"
+																		value={row.property || ""}
+																		onChange={(e) =>
+																			updateAttributeRow(
+																				index,
+																				"property",
+																				e.target.value,
+																			)
+																		}
+																		placeholder="Property"
+																		className="px-3 py-2 border rounded-lg text-sm"
+																	/>
+																	<input
+																		type="text"
+																		value={row.value || ""}
+																		onChange={(e) =>
+																			updateAttributeRow(
+																				index,
+																				"value",
+																				e.target.value,
+																			)
+																		}
+																		placeholder="Value"
+																		className="px-3 py-2 border rounded-lg text-sm"
+																	/>
+																	<button
+																		type="button"
+																		onClick={() => removeAttributeRow(index)}
+																		className="px-2 py-2 text-xs rounded bg-red-50 text-red-700 hover:bg-red-100"
+																	>
+																		Remove
+																	</button>
+																</div>
+															),
+														)}
+													</div>
+												</div>
+												<div>
+													<p className="text-xs text-gray-500">Tags</p>
+													<div className="mt-2 grid grid-cols-2 gap-2">
+														{tags.length === 0 && (
+															<p className="text-xs text-gray-400">
+																No tags available
+															</p>
+														)}
+														{tags.map((tag) => {
+															const selected = (
+																editData.tag_ids || []
+															).includes(tag.id);
+															return (
+																<label
+																	key={tag.id}
+																	className="flex items-center gap-2 text-sm text-gray-700"
+																>
+																	<input
+																		type="checkbox"
+																		checked={selected}
+																		onChange={() => toggleTagSelection(tag.id)}
+																		className="rounded border-gray-300"
+																	/>
+																	{tag.name}
+																</label>
+															);
+														})}
+													</div>
+												</div>
+												<div>
+													<p className="text-xs text-gray-500">
+														Supplier pricing
+													</p>
+													<div className="mt-2 space-y-3">
+														<div>
+															<label
+																htmlFor="edit-variant-supplier"
+																className="text-xs text-gray-500"
+															>
+																Supplier
+															</label>
+															<select
+																id="edit-variant-supplier"
+																value={editData.supplier_id || ""}
+																onChange={(e) =>
+																	setEditData({
+																		...editData,
+																		supplier_id: e.target.value,
+																	})
+																}
+																className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+															>
+																<option value="">No supplier</option>
+																{(suppliers || []).map((supplier) => (
+																	<option key={supplier.id} value={supplier.id}>
+																		{supplier.name}
+																	</option>
+																))}
+															</select>
+														</div>
+														<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+															<div>
+																<label
+																	htmlFor="edit-variant-supplier-qty"
+																	className="text-xs text-gray-500"
+																>
+																	Supplier Qty
+																</label>
+																<input
+																	id="edit-variant-supplier-qty"
+																	type="number"
+																	value={editData.supplier_quantity ?? ""}
+																	onChange={(e) =>
+																		setEditData({
+																			...editData,
+																			supplier_quantity: e.target.value,
+																		})
+																	}
+																	className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+																/>
+															</div>
+															<div>
+																<label
+																	htmlFor="edit-variant-price"
+																	className="text-xs text-gray-500"
+																>
+																	Price
+																</label>
+																<input
+																	id="edit-variant-price"
+																	type="number"
+																	value={editData.price ?? ""}
+																	onChange={(e) =>
+																		setEditData({
+																			...editData,
+																			price: e.target.value,
+																		})
+																	}
+																	className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+																/>
+															</div>
+															<div>
+																<label
+																	htmlFor="edit-variant-price-per-unit"
+																	className="text-xs text-gray-500"
+																>
+																	Price / Unit
+																</label>
+																<input
+																	id="edit-variant-price-per-unit"
+																	type="number"
+																	value={editData.price_per_unit ?? ""}
+																	onChange={(e) =>
+																		setEditData({
+																			...editData,
+																			price_per_unit: e.target.value,
+																		})
+																	}
+																	className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+																/>
+															</div>
+															<div>
+																<label
+																	htmlFor="edit-variant-supplier-reference"
+																	className="text-xs text-gray-500"
+																>
+																	Supplier Reference
+																</label>
+																<input
+																	id="edit-variant-supplier-reference"
+																	type="text"
+																	value={editData.suppliers_reference ?? ""}
+																	onChange={(e) =>
+																		setEditData({
+																			...editData,
+																			suppliers_reference: e.target.value,
+																		})
+																	}
+																	className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+																	placeholder="Optional supplier reference"
+																/>
+															</div>
+														</div>
+														<p className="text-xs text-gray-400">
+															Save to update the first supplier pricing entry
+															for this variant.
+														</p>
+													</div>
+												</div>
+											</>
+										))}
 
-								{modalEntity === "suppliers" && (
-									<>
-										<div>
-											<label
-												htmlFor="edit-supplier-name"
-												className="text-xs text-gray-500"
-											>
-												Name
-											</label>
-											<input
-												id="edit-supplier-name"
-												type="text"
-												value={editData.name || ""}
-												onChange={(e) =>
-													setEditData({ ...editData, name: e.target.value })
-												}
-												className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-											/>
-										</div>
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+									{modalEntity === "suppliers" && (
+										<>
 											<div>
 												<label
-													htmlFor="edit-supplier-contact"
+													htmlFor="edit-supplier-name"
 													className="text-xs text-gray-500"
 												>
-													Contact person
+													Name
 												</label>
 												<input
-													id="edit-supplier-contact"
+													id="edit-supplier-name"
 													type="text"
-													value={editData.contact_person || ""}
+													value={editData.name || ""}
+													onChange={(e) =>
+														setEditData({ ...editData, name: e.target.value })
+													}
+													className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+												/>
+											</div>
+											<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+												<div>
+													<label
+														htmlFor="edit-supplier-contact"
+														className="text-xs text-gray-500"
+													>
+														Contact person
+													</label>
+													<input
+														id="edit-supplier-contact"
+														type="text"
+														value={editData.contact_person || ""}
+														onChange={(e) =>
+															setEditData({
+																...editData,
+																contact_person: e.target.value,
+															})
+														}
+														className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+													/>
+												</div>
+												<div>
+													<label
+														htmlFor="edit-supplier-email"
+														className="text-xs text-gray-500"
+													>
+														Email
+													</label>
+													<input
+														id="edit-supplier-email"
+														type="email"
+														value={editData.email || ""}
+														onChange={(e) =>
+															setEditData({
+																...editData,
+																email: e.target.value,
+															})
+														}
+														className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+													/>
+												</div>
+												<div>
+													<label
+														htmlFor="edit-supplier-phone"
+														className="text-xs text-gray-500"
+													>
+														Phone
+													</label>
+													<input
+														id="edit-supplier-phone"
+														type="text"
+														value={editData.phone || ""}
+														onChange={(e) =>
+															setEditData({
+																...editData,
+																phone: e.target.value,
+															})
+														}
+														className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+													/>
+												</div>
+												<div>
+													<label
+														htmlFor="edit-supplier-address"
+														className="text-xs text-gray-500"
+													>
+														Address
+													</label>
+													<input
+														id="edit-supplier-address"
+														type="text"
+														value={editData.address || ""}
+														onChange={(e) =>
+															setEditData({
+																...editData,
+																address: e.target.value,
+															})
+														}
+														className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+													/>
+												</div>
+											</div>
+											<div>
+												<label
+													htmlFor="edit-supplier-other-info"
+													className="text-xs text-gray-500"
+												>
+													Other info
+												</label>
+												<textarea
+													id="edit-supplier-other-info"
+													value={editData.other_info || ""}
 													onChange={(e) =>
 														setEditData({
 															...editData,
-															contact_person: e.target.value,
+															other_info: e.target.value,
 														})
 													}
 													className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+													rows={3}
 												/>
 											</div>
-											<div>
-												<label
-													htmlFor="edit-supplier-email"
-													className="text-xs text-gray-500"
-												>
-													Email
-												</label>
-												<input
-													id="edit-supplier-email"
-													type="email"
-													value={editData.email || ""}
-													onChange={(e) =>
-														setEditData({ ...editData, email: e.target.value })
-													}
-													className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-												/>
-											</div>
-											<div>
-												<label
-													htmlFor="edit-supplier-phone"
-													className="text-xs text-gray-500"
-												>
-													Phone
-												</label>
-												<input
-													id="edit-supplier-phone"
-													type="text"
-													value={editData.phone || ""}
-													onChange={(e) =>
-														setEditData({ ...editData, phone: e.target.value })
-													}
-													className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-												/>
-											</div>
-											<div>
-												<label
-													htmlFor="edit-supplier-address"
-													className="text-xs text-gray-500"
-												>
-													Address
-												</label>
-												<input
-													id="edit-supplier-address"
-													type="text"
-													value={editData.address || ""}
-													onChange={(e) =>
-														setEditData({
-															...editData,
-															address: e.target.value,
-														})
-													}
-													className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-												/>
-											</div>
-										</div>
-										<div>
-											<label
-												htmlFor="edit-supplier-other-info"
-												className="text-xs text-gray-500"
-											>
-												Other info
-											</label>
-											<textarea
-												id="edit-supplier-other-info"
-												value={editData.other_info || ""}
-												onChange={(e) =>
-													setEditData({
-														...editData,
-														other_info: e.target.value,
-													})
-												}
-												className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
-												rows={3}
-											/>
-										</div>
-									</>
-								)}
+										</>
+									)}
 								</div>
 							)}
 

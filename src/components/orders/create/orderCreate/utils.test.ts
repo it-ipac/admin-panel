@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	detectExcelTemplateVersion,
-	resolveExcelTemplateMode,
-} from "./utils";
+import { detectExcelTemplateVersion, resolveExcelTemplateMode } from "./utils";
 
 describe("detectExcelTemplateVersion", () => {
 	it("extracts version from the 3rd order name segment", () => {

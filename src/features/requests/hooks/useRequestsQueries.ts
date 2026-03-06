@@ -1,9 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import type {
-	MaterialVariantRequestWithBlockedState,
-	SupplierPricingRequestWithBlockedState,
-} from "../types";
 import { requestQueryKeys } from "../services/queryKeys";
 import {
 	fetchAuditLog,
@@ -12,6 +8,10 @@ import {
 	fetchPricingRequests,
 	fetchVariantRequests,
 } from "../services/requestsService";
+import type {
+	MaterialVariantRequestWithBlockedState,
+	SupplierPricingRequestWithBlockedState,
+} from "../types";
 
 const STALE_30S = 30_000;
 

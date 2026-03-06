@@ -1,7 +1,4 @@
-import type {
-	PackageEditableField,
-	RawPackageRow,
-} from "./types";
+import type { PackageEditableField, RawPackageRow } from "./types";
 import { normalizePackingTypeCode, updateRawPackageByNumber } from "./utils";
 
 export const applyPackageFieldChange = (
@@ -23,12 +20,18 @@ export const applyPackageFieldChange = (
 		if (field === "item.length") next.item_length = value as number | null;
 		if (field === "item.width") next.item_width = value as number | null;
 		if (field === "item.height") next.item_height = value as number | null;
-		if (field === "internal.length") next.internal_length = value as number | null;
-		if (field === "internal.width") next.internal_width = value as number | null;
-		if (field === "internal.height") next.internal_height = value as number | null;
-		if (field === "external.length") next.external_length = value as number | null;
-		if (field === "external.width") next.external_width = value as number | null;
-		if (field === "external.height") next.external_height = value as number | null;
+		if (field === "internal.length")
+			next.internal_length = value as number | null;
+		if (field === "internal.width")
+			next.internal_width = value as number | null;
+		if (field === "internal.height")
+			next.internal_height = value as number | null;
+		if (field === "external.length")
+			next.external_length = value as number | null;
+		if (field === "external.width")
+			next.external_width = value as number | null;
+		if (field === "external.height")
+			next.external_height = value as number | null;
 		if (field === "netWeight") next.net_weight = value as number | null;
 		if (field === "tare") next.tare = value as number | null;
 		next.gross_weight =
@@ -136,10 +139,7 @@ export const applyManufacturingPartTypeLabelChange = (
 	});
 };
 
-export const clearManufacturingPart = (
-	rows: RawPackageRow[],
-	key: string,
-) => {
+export const clearManufacturingPart = (rows: RawPackageRow[], key: string) => {
 	const [, pkgRaw, group, section] = key.split(":");
 	const packageNumber = Number(pkgRaw);
 	if (!Number.isFinite(packageNumber) || !group) return rows;

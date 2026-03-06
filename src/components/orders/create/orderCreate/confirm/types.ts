@@ -1,5 +1,4 @@
-import type { PackageEditableField } from "../types";
-import type { AppliedExcelTemplateMode } from "../types";
+import type { AppliedExcelTemplateMode, PackageEditableField } from "../types";
 
 export interface OrderCreateSummary {
 	orderName: string;

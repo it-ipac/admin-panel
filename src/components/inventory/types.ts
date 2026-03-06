@@ -1,8 +1,4 @@
-export type TabType =
-	| "materials"
-	| "variants"
-	| "suppliers"
-	| "communications";
+export type TabType = "materials" | "variants" | "suppliers" | "communications";
 
 export interface Unit {
 	id: string;

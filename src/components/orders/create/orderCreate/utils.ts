@@ -1,9 +1,9 @@
 import {
-	WOOD_OUT_OF_RANGE_ID,
 	type AppliedExcelTemplateMode,
 	type ExcelTemplateMode,
 	type MaterialVariantOption,
 	type RawPackageRow,
+	WOOD_OUT_OF_RANGE_ID,
 } from "./types";
 
 export const stripExtension = (filename: string) =>
@@ -27,7 +27,9 @@ export const detectExcelTemplateVersion = (
 		if (Number.isFinite(parsed)) return parsed;
 	}
 
-	const fallbackMatch = normalized.match(/(?:^|[^A-Z0-9])V(\d+)(?:[^A-Z0-9]|$)/i);
+	const fallbackMatch = normalized.match(
+		/(?:^|[^A-Z0-9])V(\d+)(?:[^A-Z0-9]|$)/i,
+	);
 	if (!fallbackMatch) return null;
 	const version = Number(fallbackMatch[1]);
 	return Number.isFinite(version) ? version : null;
@@ -100,6 +102,4 @@ export const updateRawPackageByNumber = (
 	packageNumber: number,
 	updater: (pkg: RawPackageRow) => RawPackageRow,
 ) =>
-	rows.map((pkg) =>
-		pkg.packageNumber === packageNumber ? updater(pkg) : pkg,
-	);
+	rows.map((pkg) => (pkg.packageNumber === packageNumber ? updater(pkg) : pkg));

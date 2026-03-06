@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { RequestsPage } from "../features/requests/components/RequestsPage";
 import { Sidebar } from "../components/Sidebar";
+import { RequestsPage } from "../features/requests/components/RequestsPage";
 import { useAuth } from "../hooks/useAuth";
 
 export const Route = createFileRoute("/requests")({

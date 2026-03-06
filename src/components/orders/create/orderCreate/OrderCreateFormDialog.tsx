@@ -2,12 +2,12 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { FileSpreadsheet, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDebouncedValue } from "../../../../hooks/useDebouncedValue";
+import { ExcelDropzone } from "../ExcelDropzone";
 import type {
 	AppliedExcelTemplateMode,
 	ClientOption,
 	ExcelTemplateMode,
 } from "./types";
-import { ExcelDropzone } from "../ExcelDropzone";
 
 interface Props {
 	open: boolean;
@@ -37,7 +37,9 @@ interface Props {
 	clients: ClientOption[];
 	clientsLoading: boolean;
 	validationErrors: Record<string, string>;
-	setValidationErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+	setValidationErrors: React.Dispatch<
+		React.SetStateAction<Record<string, string>>
+	>;
 	excelFile: File | null;
 	worksheetNames: string[];
 	packageCount: number;
@@ -99,9 +101,7 @@ export function OrderCreateFormDialog({
 			const contact = (client.contact_person || "").toLowerCase();
 			const email = (client.email || "").toLowerCase();
 			return (
-				name.includes(query) ||
-				contact.includes(query) ||
-				email.includes(query)
+				name.includes(query) || contact.includes(query) || email.includes(query)
 			);
 		});
 	}, [debouncedClientSearchQuery, clients]);
@@ -128,7 +128,9 @@ export function OrderCreateFormDialog({
 			return;
 		}
 		if (!selectedClientId) return;
-		const selectedClient = clients.find((client) => client.id === selectedClientId);
+		const selectedClient = clients.find(
+			(client) => client.id === selectedClientId,
+		);
 		if (!selectedClient) return;
 		setClientSearchQuery(selectedClient.name);
 	}, [open, clientMode, selectedClientId, clients]);
@@ -146,9 +148,7 @@ export function OrderCreateFormDialog({
 		setIsClientDropdownOpen(false);
 	};
 
-	const handleClientPickerBlur = (
-		event: React.FocusEvent<HTMLDivElement>,
-	) => {
+	const handleClientPickerBlur = (event: React.FocusEvent<HTMLDivElement>) => {
 		const nextFocusedElement = event.relatedTarget;
 		if (
 			nextFocusedElement &&
@@ -173,7 +173,9 @@ export function OrderCreateFormDialog({
 
 	const isV54Applied = appliedTemplateMode === "v54plus";
 	const appliedVersionLabel = isV54Applied ? "54+" : "53-";
-	const versionTextClassName = isV54Applied ? "text-blue-700" : "text-amber-600";
+	const versionTextClassName = isV54Applied
+		? "text-blue-700"
+		: "text-amber-600";
 	const versionBadgeClassName = isV54Applied
 		? "border-blue-200 bg-blue-50 text-blue-700"
 		: "border-amber-200 bg-amber-50 text-amber-600";
@@ -189,11 +191,14 @@ export function OrderCreateFormDialog({
 								Create order from Excel
 							</Dialog.Title>
 							<Dialog.Description className="text-sm text-gray-500">
-								Upload a spreadsheet, confirm the details, and generate the base order.
+								Upload a spreadsheet, confirm the details, and generate the base
+								order.
 							</Dialog.Description>
 						</div>
 						<div className="flex items-center gap-2 pt-1">
-							<span className={`text-sm font-semibold ${versionTextClassName}`}>V</span>
+							<span className={`text-sm font-semibold ${versionTextClassName}`}>
+								V
+							</span>
 							<button
 								type="button"
 								onClick={() => {
@@ -225,10 +230,18 @@ export function OrderCreateFormDialog({
 						<div className="space-y-2">
 							<p className="text-sm font-medium text-gray-900">Client</p>
 							<div className="flex flex-wrap gap-2">
-								<button type="button" onClick={() => setClientMode("existing")} className={`px-3 py-1.5 text-xs rounded-full border ${clientMode === "existing" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-600"}`}>
+								<button
+									type="button"
+									onClick={() => setClientMode("existing")}
+									className={`px-3 py-1.5 text-xs rounded-full border ${clientMode === "existing" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-600"}`}
+								>
 									Existing client
 								</button>
-								<button type="button" onClick={() => setClientMode("new")} className={`px-3 py-1.5 text-xs rounded-full border ${clientMode === "new" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-600"}`}>
+								<button
+									type="button"
+									onClick={() => setClientMode("new")}
+									className={`px-3 py-1.5 text-xs rounded-full border ${clientMode === "new" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-600"}`}
+								>
 									Create new client
 								</button>
 							</div>
@@ -267,10 +280,14 @@ export function OrderCreateFormDialog({
 									{isClientDropdownOpen && (
 										<div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg">
 											{clientsLoading ? (
-												<p className="px-3 py-2 text-xs text-gray-500">Loading clients...</p>
+												<p className="px-3 py-2 text-xs text-gray-500">
+													Loading clients...
+												</p>
 											) : filteredClients.length === 0 ? (
 												<div className="px-3 py-2">
-													<p className="text-xs text-gray-500">No clients match your search</p>
+													<p className="text-xs text-gray-500">
+														No clients match your search
+													</p>
 													{shouldShowCreateClientAction && (
 														<button
 															type="button"
@@ -289,7 +306,10 @@ export function OrderCreateFormDialog({
 														onClick={() => {
 															setSelectedClientId(client.id);
 															setClientSearchQuery(client.name);
-															setValidationErrors((prev) => ({ ...prev, client: "" }));
+															setValidationErrors((prev) => ({
+																...prev,
+																client: "",
+															}));
 															setIsClientDropdownOpen(false);
 														}}
 														className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
@@ -303,26 +323,62 @@ export function OrderCreateFormDialog({
 								</div>
 							) : (
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-									{(["name", "contact_person", "email", "phone", "address"] as const).map((field) => (
+									{(
+										[
+											"name",
+											"contact_person",
+											"email",
+											"phone",
+											"address",
+										] as const
+									).map((field) => (
 										<input
 											key={field}
-											type={field === "email" ? "email" : field === "phone" ? "tel" : "text"}
+											type={
+												field === "email"
+													? "email"
+													: field === "phone"
+														? "tel"
+														: "text"
+											}
 											value={newClient[field]}
 											onChange={(event) => {
-												setNewClient((prev) => ({ ...prev, [field]: event.target.value }));
-												if (field === "name") setValidationErrors((prev) => ({ ...prev, client: "" }));
+												setNewClient((prev) => ({
+													...prev,
+													[field]: event.target.value,
+												}));
+												if (field === "name")
+													setValidationErrors((prev) => ({
+														...prev,
+														client: "",
+													}));
 											}}
-											placeholder={field === "name" ? "Client name *" : field === "contact_person" ? "Contact person" : field === "address" ? "Address" : field[0].toUpperCase() + field.slice(1)}
+											placeholder={
+												field === "name"
+													? "Client name *"
+													: field === "contact_person"
+														? "Contact person"
+														: field === "address"
+															? "Address"
+															: field[0].toUpperCase() + field.slice(1)
+											}
 											className={`px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${field === "address" ? "md:col-span-2" : ""}`}
 										/>
 									))}
 								</div>
 							)}
-							{validationErrors.client && <p className="text-xs text-red-600 mt-1">{validationErrors.client}</p>}
+							{validationErrors.client && (
+								<p className="text-xs text-red-600 mt-1">
+									{validationErrors.client}
+								</p>
+							)}
 						</div>
 
 						<div>
-							<label htmlFor="order-name" className="block text-sm font-medium text-gray-900 mb-1">
+							<label
+								htmlFor="order-name"
+								className="block text-sm font-medium text-gray-900 mb-1"
+							>
 								Order name
 							</label>
 							<input
@@ -336,7 +392,11 @@ export function OrderCreateFormDialog({
 								placeholder="Order name (defaults to Excel filename)"
 								className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
 							/>
-							{validationErrors.orderName && <p className="text-xs text-red-600 mt-1">{validationErrors.orderName}</p>}
+							{validationErrors.orderName && (
+								<p className="text-xs text-red-600 mt-1">
+									{validationErrors.orderName}
+								</p>
+							)}
 						</div>
 
 						{excelVersionMode === "auto" && (
@@ -349,11 +409,20 @@ export function OrderCreateFormDialog({
 
 						<div>
 							<div className="flex items-center justify-between mb-2">
-								<p className="text-sm font-medium text-gray-900">Excel upload</p>
+								<p className="text-sm font-medium text-gray-900">
+									Excel upload
+								</p>
 								{isParsing ? (
-									<span className="inline-flex items-center gap-2 text-xs text-gray-500"><Loader2 className="w-3.5 h-3.5 animate-spin" />Processing...</span>
+									<span className="inline-flex items-center gap-2 text-xs text-gray-500">
+										<Loader2 className="w-3.5 h-3.5 animate-spin" />
+										Processing...
+									</span>
 								) : (
-									worksheetNames.length > 0 && <span className="text-xs text-gray-500">{worksheetNames.length} sheet(s) detected</span>
+									worksheetNames.length > 0 && (
+										<span className="text-xs text-gray-500">
+											{worksheetNames.length} sheet(s) detected
+										</span>
+									)
 								)}
 							</div>
 							<ExcelDropzone
@@ -361,43 +430,69 @@ export function OrderCreateFormDialog({
 								onFileSelected={onFileSelected}
 								onClear={onClearFile}
 								onInvalidFile={(file) =>
-									setFileError(`Unsupported file type: ${file.name}. Please upload .xlsx, .xls, or .xlsm.`)
+									setFileError(
+										`Unsupported file type: ${file.name}. Please upload .xlsx, .xls, or .xlsm.`,
+									)
 								}
 								error={fileError || validationErrors.file}
 								helperText="We parse the Calculation sheet and detect package rows."
 							/>
-							{packageCount > 0 && <p className="mt-2 text-xs text-gray-600">Detected {packageCount} package row(s) in column B starting at row 4.</p>}
-							{hasUnresolvedMappings && <p className="mt-1 text-xs text-amber-600">Some rows need box type, packing type, or manufacturing material selections. Review in the confirmation step.</p>}
+							{packageCount > 0 && (
+								<p className="mt-2 text-xs text-gray-600">
+									Detected {packageCount} package row(s) in column B starting at
+									row 4.
+								</p>
+							)}
+							{hasUnresolvedMappings && (
+								<p className="mt-1 text-xs text-amber-600">
+									Some rows need box type, packing type, or manufacturing
+									material selections. Review in the confirmation step.
+								</p>
+							)}
 						</div>
 
 						<div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-xs text-blue-700">
 							<div className="flex items-center gap-2">
 								<FileSpreadsheet className="w-4 h-4" />
-								<p>We create the order and its package rows now. Package info will be added next.</p>
+								<p>
+									We create the order and its package rows now. Package info
+									will be added next.
+								</p>
 							</div>
 						</div>
 					</div>
 
 					<div className="flex justify-end gap-2 mt-6">
 						<Dialog.Close asChild>
-							<button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">Cancel</button>
+							<button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
+								Cancel
+							</button>
 						</Dialog.Close>
-						<button type="button" onClick={() => {
-							const resolvedClientId = resolveExistingClientIdFromSearch();
-							if (resolvedClientId && resolvedClientId !== selectedClientId) {
-								setSelectedClientId(resolvedClientId);
-								const resolvedClient = clients.find(
-									(client) => client.id === resolvedClientId,
-								);
-								if (resolvedClient) {
-									setClientSearchQuery(resolvedClient.name);
+						<button
+							type="button"
+							onClick={() => {
+								const resolvedClientId = resolveExistingClientIdFromSearch();
+								if (resolvedClientId && resolvedClientId !== selectedClientId) {
+									setSelectedClientId(resolvedClientId);
+									const resolvedClient = clients.find(
+										(client) => client.id === resolvedClientId,
+									);
+									if (resolvedClient) {
+										setClientSearchQuery(resolvedClient.name);
+									}
 								}
-							}
-							void onReview(
-								resolvedClientId ? { selectedClientId: resolvedClientId } : undefined,
-							);
-						}} disabled={isParsing} className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg text-white transition-colors ${isParsing ? "bg-blue-300" : "bg-blue-600 hover:bg-blue-700"}`}>
-							{(isParsing || isSubmitting) && <Loader2 className="w-4 h-4 animate-spin" />}
+								void onReview(
+									resolvedClientId
+										? { selectedClientId: resolvedClientId }
+										: undefined,
+								);
+							}}
+							disabled={isParsing}
+							className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg text-white transition-colors ${isParsing ? "bg-blue-300" : "bg-blue-600 hover:bg-blue-700"}`}
+						>
+							{(isParsing || isSubmitting) && (
+								<Loader2 className="w-4 h-4 animate-spin" />
+							)}
 							Review & confirm
 						</button>
 					</div>

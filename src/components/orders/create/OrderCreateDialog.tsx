@@ -6,7 +6,6 @@ import {
 	OrderCreateConfirmDialog,
 	type OrderCreateSummary,
 } from "./OrderCreateConfirmDialog.tsx";
-import { OrderCreateFormDialog } from "./orderCreate/OrderCreateFormDialog.tsx";
 import { buildDetailTables } from "./orderCreate/buildDetailTables";
 import {
 	applyManufacturingFieldChange,
@@ -14,21 +13,22 @@ import {
 	applyPackageFieldChange,
 	clearManufacturingPart,
 } from "./orderCreate/editRawPackages";
+import { OrderCreateFormDialog } from "./orderCreate/OrderCreateFormDialog.tsx";
 import { parseExcelFile } from "./orderCreate/parseExcelFile";
 import { resolvePackages } from "./orderCreate/resolvePackages";
 import { submitOrderCreate } from "./orderCreate/submitOrderCreate";
 import {
-	INITIAL_CLIENT,
-	WOOD_OUT_OF_RANGE_ID,
 	type AppliedExcelTemplateMode,
 	type BoxTypeOption,
 	type ClientOption,
 	type ExcelTemplateMode,
+	INITIAL_CLIENT,
 	type MaterialVariantOption,
 	type OrderCreateDialogProps,
 	type PackageEditableField,
 	type PackingTypeOption,
 	type RawPackageRow,
+	WOOD_OUT_OF_RANGE_ID,
 } from "./orderCreate/types";
 import {
 	detectExcelTemplateVersion,
@@ -50,21 +50,31 @@ export function OrderCreateDialog({
 	const [excelFile, setExcelFile] = useState<File | null>(null);
 	const [excelVersionMode, setExcelVersionMode] =
 		useState<ExcelTemplateMode>("auto");
-	const [detectedExcelVersion, setDetectedExcelVersion] = useState<number | null>(
-		null,
-	);
+	const [detectedExcelVersion, setDetectedExcelVersion] = useState<
+		number | null
+	>(null);
 	const [appliedTemplateMode, setAppliedTemplateMode] =
 		useState<AppliedExcelTemplateMode>("legacy");
 	const [worksheetNames, setWorksheetNames] = useState<string[]>([]);
 	const [packageCount, setPackageCount] = useState(0);
 	const [rawPackages, setRawPackages] = useState<RawPackageRow[]>([]);
-	const [packingTypeOverrides, setPackingTypeOverrides] = useState<Record<number, string>>({});
-	const [packingTypeShowAll, setPackingTypeShowAll] = useState<Record<number, boolean>>({});
-	const [manufacturingTypeOverrides, setManufacturingTypeOverrides] = useState<Record<string, string>>({});
-	const [manufacturingShowAll, setManufacturingShowAll] = useState<Record<string, boolean>>({});
+	const [packingTypeOverrides, setPackingTypeOverrides] = useState<
+		Record<number, string>
+	>({});
+	const [packingTypeShowAll, setPackingTypeShowAll] = useState<
+		Record<number, boolean>
+	>({});
+	const [manufacturingTypeOverrides, setManufacturingTypeOverrides] = useState<
+		Record<string, string>
+	>({});
+	const [manufacturingShowAll, setManufacturingShowAll] = useState<
+		Record<string, boolean>
+	>({});
 	const [isParsing, setIsParsing] = useState(false);
 	const [fileError, setFileError] = useState<string | null>(null);
-	const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+	const [validationErrors, setValidationErrors] = useState<
+		Record<string, string>
+	>({});
 	const [showConfirm, setShowConfirm] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -210,7 +220,15 @@ export function OrderCreateDialog({
 			newClientDetails: clientMode === "new" ? newClient : undefined,
 			worksheetNames,
 		}),
-		[clientMode, excelFile, newClient, orderName, packageCount, selectedClient, worksheetNames],
+		[
+			clientMode,
+			excelFile,
+			newClient,
+			orderName,
+			packageCount,
+			selectedClient,
+			worksheetNames,
+		],
 	);
 
 	const detailTables = useMemo(
@@ -281,7 +299,7 @@ export function OrderCreateDialog({
 
 				if (!preview.boxTypeResolved) {
 					const label = preview.boxTypeLabel?.trim() || "(empty)";
-					missingFields.push(`box type \"${label}\"`);
+					missingFields.push(`box type "${label}"`);
 				}
 
 				if (!preview.packingTypeResolved) {
@@ -293,7 +311,7 @@ export function OrderCreateDialog({
 							preview.manufacturing.base.horizontal,
 							preview.manufacturing.base.vertical,
 							preview.manufacturing.base.skids,
-					  ]
+						]
 					: [
 							preview.manufacturing.big.horizontal,
 							preview.manufacturing.big.vertical,
@@ -304,7 +322,7 @@ export function OrderCreateDialog({
 							preview.manufacturing.base.horizontal,
 							preview.manufacturing.base.vertical,
 							preview.manufacturing.base.skids,
-					  ];
+						];
 
 				const unresolvedManufacturingCount = barParts.filter(
 					(part) => part.typeLabel && !part.typeResolved,
@@ -337,16 +355,24 @@ export function OrderCreateDialog({
 		packageNumber: number,
 		field: PackageEditableField,
 		value: string | number | null,
-	) => setRawPackages((prev) => applyPackageFieldChange(prev, packageNumber, field, value));
+	) =>
+		setRawPackages((prev) =>
+			applyPackageFieldChange(prev, packageNumber, field, value),
+		);
 
 	const handleManufacturingFieldChange = (
 		key: string,
 		field: "quantity" | "width" | "thickness" | "space",
 		value: number | null,
-	) => setRawPackages((prev) => applyManufacturingFieldChange(prev, key, field, value));
+	) =>
+		setRawPackages((prev) =>
+			applyManufacturingFieldChange(prev, key, field, value),
+		);
 
 	const handleManufacturingPartAdd = (key: string) => {
-		setRawPackages((prev) => applyManufacturingPartTypeLabelChange(prev, key, ""));
+		setRawPackages((prev) =>
+			applyManufacturingPartTypeLabelChange(prev, key, ""),
+		);
 		setManufacturingTypeOverrides((prev) => {
 			if (!(key in prev)) return prev;
 			const next = { ...prev };
@@ -526,10 +552,16 @@ export function OrderCreateDialog({
 				packagePreviews={packagePreviews}
 				onPackageFieldChange={handlePackageFieldChange}
 				onPackingTypeChange={(packageNumber, packingTypeId) =>
-					setPackingTypeOverrides((prev) => ({ ...prev, [packageNumber]: packingTypeId }))
+					setPackingTypeOverrides((prev) => ({
+						...prev,
+						[packageNumber]: packingTypeId,
+					}))
 				}
 				onPackingTypeOptionsToggle={(packageNumber) =>
-					setPackingTypeShowAll((prev) => ({ ...prev, [packageNumber]: !prev[packageNumber] }))
+					setPackingTypeShowAll((prev) => ({
+						...prev,
+						[packageNumber]: !prev[packageNumber],
+					}))
 				}
 				onManufacturingTypeChange={(key, typeId) =>
 					setManufacturingTypeOverrides((prev) => {
@@ -552,7 +584,9 @@ export function OrderCreateDialog({
 				confirmDisabledReason={unresolvedMappingReason}
 				templateWarningCount={missingTemplateCount}
 				onConfirm={handleConfirmCreate}
-				isSubmitting={createClientMutation.isPending || createOrderMutation.isPending}
+				isSubmitting={
+					createClientMutation.isPending || createOrderMutation.isPending
+				}
 				submitError={submitError}
 			/>
 		</>

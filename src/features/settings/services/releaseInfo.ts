@@ -6,9 +6,7 @@ export interface ReleaseInfo {
 	features: string[];
 }
 
-function normalizeReleaseType(
-	value: string,
-): "major" | "minor" | "patch" {
+function normalizeReleaseType(value: string): "major" | "minor" | "patch" {
 	if (value === "major" || value === "minor" || value === "patch") {
 		return value;
 	}
@@ -39,7 +37,9 @@ export const releaseInfo: ReleaseInfo = {
 	updatedAt: normalizeIsoDate(__APP_DEPLOYED_AT__),
 	commitSha: __APP_COMMIT_SHA__ || "",
 	releaseType: normalizeReleaseType(__APP_RELEASE_TYPE__ || "patch"),
-	features: splitFeatures(__APP_RELEASE_FEATURES__ || __APP_COMMIT_MESSAGE__ || ""),
+	features: splitFeatures(
+		__APP_RELEASE_FEATURES__ || __APP_COMMIT_MESSAGE__ || "",
+	),
 };
 
 export function formatReleaseDate(iso: string): string {

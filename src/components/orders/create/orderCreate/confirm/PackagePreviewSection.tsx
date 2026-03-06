@@ -1,6 +1,6 @@
-import { ManufacturingSectionsPanel } from "./ManufacturingSectionsPanel";
 import { ManufacturingPartCard } from "./ManufacturingPartCard";
-import { NumberInput, formatNumber } from "./NumberInput";
+import { ManufacturingSectionsPanel } from "./ManufacturingSectionsPanel";
+import { formatNumber, NumberInput } from "./NumberInput";
 import type { OrderCreateConfirmDialogProps, PackagePreview } from "./types";
 
 interface PackagePreviewSectionProps {
@@ -152,7 +152,9 @@ export function PackagePreviewSection({
 						/>
 					</div>
 					<div>
-						<p className="text-xs text-gray-500">Box type (col {boxTypeColumn})</p>
+						<p className="text-xs text-gray-500">
+							Box type (col {boxTypeColumn})
+						</p>
 						<input
 							type="text"
 							value={pkg.boxTypeLabel || ""}
@@ -166,11 +168,15 @@ export function PackagePreviewSection({
 							className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
 						{!pkg.boxTypeResolved && (
-							<p className="mt-1 text-xs text-amber-600">Not found in box types.</p>
+							<p className="mt-1 text-xs text-amber-600">
+								Not found in box types.
+							</p>
 						)}
 					</div>
 					<div>
-						<p className="text-xs text-gray-500">Packing type (col {packingTypeColumn})</p>
+						<p className="text-xs text-gray-500">
+							Packing type (col {packingTypeColumn})
+						</p>
 						<select
 							value={pkg.packingTypeId || ""}
 							onChange={(event) =>
@@ -236,22 +242,30 @@ export function PackagePreviewSection({
 						/>
 					</div>
 					<div>
-						<p className="text-xs text-gray-500">Item dimensions ({itemDimColumns})</p>
+						<p className="text-xs text-gray-500">
+							Item dimensions ({itemDimColumns})
+						</p>
 						{renderDimensionInputs(pkg, "item", onPackageFieldChange)}
 					</div>
 					<div>
-						<p className="text-xs text-gray-500">Internal dimensions ({internalDimColumns})</p>
+						<p className="text-xs text-gray-500">
+							Internal dimensions ({internalDimColumns})
+						</p>
 						{renderDimensionInputs(pkg, "internal", onPackageFieldChange)}
 					</div>
 					<div>
-						<p className="text-xs text-gray-500">External dimensions ({externalDimColumns})</p>
+						<p className="text-xs text-gray-500">
+							External dimensions ({externalDimColumns})
+						</p>
 						{renderDimensionInputs(pkg, "external", onPackageFieldChange)}
 					</div>
 				</div>
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 					<div>
-						<p className="text-xs text-gray-500">Net weight ({netWeightColumn})</p>
+						<p className="text-xs text-gray-500">
+							Net weight ({netWeightColumn})
+						</p>
 						<NumberInput
 							value={pkg.netWeight}
 							onChange={(value) =>
@@ -292,27 +306,47 @@ export function PackagePreviewSection({
 				</div>
 
 				<div className="pt-3 border-t border-gray-100">
-					<p className="text-xs font-semibold text-gray-700 mb-2">Securing materials</p>
+					<p className="text-xs font-semibold text-gray-700 mb-2">
+						Securing materials
+					</p>
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 						{pkg.securing?.length ? (
 							pkg.securing.map((part, index) => (
 								<div key={part.key} className="space-y-2">
-									<ManufacturingPartCard label={`Securing ${index + 1}`} part={part} showFields={["quantity", "width", "thickness"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
+									<ManufacturingPartCard
+										label={`Securing ${index + 1}`}
+										part={part}
+										showFields={["quantity", "width", "thickness"]}
+										onManufacturingTypeChange={onManufacturingTypeChange}
+										onManufacturingFieldChange={onManufacturingFieldChange}
+										onManufacturingOptionsToggle={onManufacturingOptionsToggle}
+									/>
 								</div>
 							))
 						) : (
-							<p className="text-xs text-gray-500">No securing materials detected.</p>
+							<p className="text-xs text-gray-500">
+								No securing materials detected.
+							</p>
 						)}
 					</div>
 				</div>
 
 				<div className="pt-3 border-t border-gray-100">
-					<p className="text-xs font-semibold text-gray-700 mb-2">Accessories</p>
+					<p className="text-xs font-semibold text-gray-700 mb-2">
+						Accessories
+					</p>
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 						{pkg.accessories?.length ? (
 							pkg.accessories.map((part, index) => (
 								<div key={part.key} className="space-y-2">
-									<ManufacturingPartCard label={`Accessory ${index + 1}`} part={part} showFields={["quantity"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
+									<ManufacturingPartCard
+										label={`Accessory ${index + 1}`}
+										part={part}
+										showFields={["quantity"]}
+										onManufacturingTypeChange={onManufacturingTypeChange}
+										onManufacturingFieldChange={onManufacturingFieldChange}
+										onManufacturingOptionsToggle={onManufacturingOptionsToggle}
+									/>
 								</div>
 							))
 						) : (

@@ -11,8 +11,8 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
-import { AuthContext, useAuthState } from "../hooks/useAuth";
 import { ToastProvider } from "../components/ui/ToastProvider";
+import { AuthContext, useAuthState } from "../hooks/useAuth";
 import {
 	applyThemePreference,
 	getThemePreference,

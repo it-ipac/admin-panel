@@ -38,9 +38,8 @@ export function useInventoryCommunications({
 	const [selectedVariantIds, setSelectedVariantIds] = useState<Set<string>>(
 		new Set(),
 	);
-	const [selectedSupplierByVariantId, setSelectedSupplierByVariantId] = useState<
-		Record<string, string>
-	>({});
+	const [selectedSupplierByVariantId, setSelectedSupplierByVariantId] =
+		useState<Record<string, string>>({});
 	const [replyToBySupplierId, setReplyToBySupplierId] = useState<
 		Record<string, string>
 	>({});

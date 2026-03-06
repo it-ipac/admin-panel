@@ -476,10 +476,10 @@ function OrderDetailPage() {
 						new Set(
 							(templateRows || [])
 								.flatMap((row: any) => [
-										row.horizontal_bar,
-										row.vertical_bar,
-										row.skids,
-									])
+									row.horizontal_bar,
+									row.vertical_bar,
+									row.skids,
+								])
 								.filter(Boolean),
 						),
 					) as string[];

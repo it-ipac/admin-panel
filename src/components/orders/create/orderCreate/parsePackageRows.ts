@@ -1,6 +1,6 @@
-import ExcelJS from "exceljs";
-import { parseNumberText, normalizePackingTypeCode } from "./utils";
+import type ExcelJS from "exceljs";
 import type { RawPackageRow } from "./types";
+import { normalizePackingTypeCode, parseNumberText } from "./utils";
 
 /**
  * Safely extracts a plain string from any ExcelJS cell value type.
@@ -10,8 +10,11 @@ import type { RawPackageRow } from "./types";
  */
 function extractCellText(cell: ExcelJS.Cell): string {
 	const extractRichText = (value: unknown): string => {
-		if (!value || typeof value !== "object" || !("richText" in value)) return "";
-		const richTextValue = (value as { richText?: Array<{ text?: string | null }> }).richText;
+		if (!value || typeof value !== "object" || !("richText" in value))
+			return "";
+		const richTextValue = (
+			value as { richText?: Array<{ text?: string | null }> }
+		).richText;
 		if (!Array.isArray(richTextValue)) return "";
 		return richTextValue
 			.map((part) => part.text ?? "")
@@ -26,14 +29,18 @@ function extractCellText(cell: ExcelJS.Cell): string {
 	if (v instanceof Date) return "";
 	if (typeof v === "object") {
 		// CellRichTextValue: { richText: [{text, font, ...}] }
-		if ("richText" in v && Array.isArray((v as ExcelJS.CellRichTextValue).richText)) {
+		if (
+			"richText" in v &&
+			Array.isArray((v as ExcelJS.CellRichTextValue).richText)
+		) {
 			return extractRichText(v);
 		}
 		// CellFormulaValue: { formula, result }
 		if ("result" in v) {
 			const r = (v as ExcelJS.CellFormulaValue).result;
 			if (typeof r === "string") return r.trim();
-			if (typeof r === "number" || typeof r === "boolean") return String(r).trim();
+			if (typeof r === "number" || typeof r === "boolean")
+				return String(r).trim();
 			// formula result can itself be a rich text object
 			if (r && typeof r === "object" && "richText" in r) {
 				return extractRichText(r);
@@ -45,7 +52,11 @@ function extractCellText(cell: ExcelJS.Cell): string {
 			const linked = v as ExcelJS.CellHyperlinkValue;
 			if (typeof linked.text === "string") return linked.text.trim();
 			// text can also be a rich text object
-			if (linked.text && typeof linked.text === "object" && "richText" in linked.text) {
+			if (
+				linked.text &&
+				typeof linked.text === "object" &&
+				"richText" in linked.text
+			) {
 				return extractRichText(linked.text);
 			}
 		}
@@ -69,7 +80,9 @@ export const parsePackageRows = (
 		normalizeLabel(value).includes("gaspkgonly");
 	const hasTypeLabel = (value: string | null | undefined) =>
 		(value || "").trim().length > 0;
-	const clearBar = (bar: RawPackageRow["manufacturing"]["base"]["horizontal"]) => ({
+	const clearBar = (
+		bar: RawPackageRow["manufacturing"]["base"]["horizontal"],
+	) => ({
 		...bar,
 		typeLabel: null,
 		quantity: null,
@@ -85,11 +98,18 @@ export const parsePackageRows = (
 		horizontal: clearBar(template.horizontal),
 		vertical: clearBar(template.vertical),
 	});
-	const sanitizeGasBar = (bar: RawPackageRow["manufacturing"]["base"]["horizontal"]) => {
-		const shouldKeep = hasTypeLabel(bar.typeLabel) && bar.width !== null && bar.thickness !== null;
+	const sanitizeGasBar = (
+		bar: RawPackageRow["manufacturing"]["base"]["horizontal"],
+	) => {
+		const shouldKeep =
+			hasTypeLabel(bar.typeLabel) &&
+			bar.width !== null &&
+			bar.thickness !== null;
 		return shouldKeep ? bar : clearBar(bar);
 	};
-	const sanitizeGasTemplate = (template: RawPackageRow["manufacturing"]["big"]) => {
+	const sanitizeGasTemplate = (
+		template: RawPackageRow["manufacturing"]["big"],
+	) => {
 		if (!hasTypeLabel(template.typeLabel)) return clearTemplate(template);
 		return {
 			...template,
@@ -119,8 +139,7 @@ export const parsePackageRows = (
 		if (numeric <= 2) return label;
 		if (columnOffset === 2) {
 			const equipmentDimensionsStart = columnToNumber("M");
-			const effectiveOffset =
-				numeric >= equipmentDimensionsStart ? -1 : 2;
+			const effectiveOffset = numeric >= equipmentDimensionsStart ? -1 : 2;
 			return numberToColumn(numeric + effectiveOffset);
 		}
 		return numberToColumn(numeric + columnOffset);
@@ -219,7 +238,8 @@ export const parsePackageRows = (
 		// Skip quantity/metadata sub-header columns that aren't material names.
 		// "Qty …" / "Quantity …" prefixes are sub-quantity columns.
 		// Bare "Total" (alone) is a summary column.  "Total screws" is a valid material name.
-		const SUB_HEADER_PATTERN = /^(?:qty\b|quantity\b|space\b|per loop)|^total$/i;
+		const SUB_HEADER_PATTERN =
+			/^(?:qty\b|quantity\b|space\b|per loop)|^total$/i;
 		for (let col = accessoryStart; col <= accessoryEnd; col += 1) {
 			const typeLabel = getAccessoryHeader(col);
 			const amount = parseNumberText(extractCellText(sheet.getCell(row, col)));
@@ -229,13 +249,48 @@ export const parsePackageRows = (
 		}
 
 		const securingCandidates: RawPackageRow["securing"] = [
-			{ typeLabel: getText("WT", row) || null, quantity: parseNumberText(getText("WV", row)), width: parseNumberText(getText("WX", row)), thickness: parseNumberText(getText("WY", row)) },
-			{ typeLabel: getText("AAM", row) || null, quantity: parseNumberText(getText("AAO", row)), width: parseNumberText(getText("AAQ", row)), thickness: parseNumberText(getText("AAR", row)) },
-			{ typeLabel: getText("AEF", row) || null, quantity: parseNumberText(getText("AEH", row)), width: parseNumberText(getText("AEJ", row)), thickness: parseNumberText(getText("AEK", row)) },
-			{ typeLabel: getText("AHY", row) || null, quantity: parseNumberText(getText("AIA", row)), width: parseNumberText(getText("AIC", row)), thickness: parseNumberText(getText("AID", row)) },
-			{ typeLabel: getText("ALR", row) || null, quantity: parseNumberText(getText("ALT", row)), width: parseNumberText(getText("ALV", row)), thickness: parseNumberText(getText("ALW", row)) },
-			{ typeLabel: getText("APK", row) || null, quantity: parseNumberText(getText("APM", row)), width: parseNumberText(getText("APO", row)), thickness: parseNumberText(getText("APP", row)) },
-			{ typeLabel: getText("ATD", row) || null, quantity: parseNumberText(getText("ATF", row)), width: parseNumberText(getText("ATH", row)), thickness: parseNumberText(getText("ATI", row)) },
+			{
+				typeLabel: getText("WT", row) || null,
+				quantity: parseNumberText(getText("WV", row)),
+				width: parseNumberText(getText("WX", row)),
+				thickness: parseNumberText(getText("WY", row)),
+			},
+			{
+				typeLabel: getText("AAM", row) || null,
+				quantity: parseNumberText(getText("AAO", row)),
+				width: parseNumberText(getText("AAQ", row)),
+				thickness: parseNumberText(getText("AAR", row)),
+			},
+			{
+				typeLabel: getText("AEF", row) || null,
+				quantity: parseNumberText(getText("AEH", row)),
+				width: parseNumberText(getText("AEJ", row)),
+				thickness: parseNumberText(getText("AEK", row)),
+			},
+			{
+				typeLabel: getText("AHY", row) || null,
+				quantity: parseNumberText(getText("AIA", row)),
+				width: parseNumberText(getText("AIC", row)),
+				thickness: parseNumberText(getText("AID", row)),
+			},
+			{
+				typeLabel: getText("ALR", row) || null,
+				quantity: parseNumberText(getText("ALT", row)),
+				width: parseNumberText(getText("ALV", row)),
+				thickness: parseNumberText(getText("ALW", row)),
+			},
+			{
+				typeLabel: getText("APK", row) || null,
+				quantity: parseNumberText(getText("APM", row)),
+				width: parseNumberText(getText("APO", row)),
+				thickness: parseNumberText(getText("APP", row)),
+			},
+			{
+				typeLabel: getText("ATD", row) || null,
+				quantity: parseNumberText(getText("ATF", row)),
+				width: parseNumberText(getText("ATH", row)),
+				thickness: parseNumberText(getText("ATI", row)),
+			},
 		];
 
 		const securing = securingCandidates.filter(
@@ -250,30 +305,84 @@ export const parsePackageRows = (
 				quantity: bigQuantity,
 				typeLabel: bigTypeLabel,
 				thickness: bigThickness !== null ? bigThickness * 10 : null,
-				horizontal: { quantity: bigHorizQty, typeLabel: bigHorizType, width: bigHorizWidth, thickness: bigHorizThickness, space: bigHorizSpace },
-				vertical: { quantity: bigVertQty, typeLabel: bigHorizType, width: bigVertWidth, thickness: bigVertThickness, space: bigVertSpace },
+				horizontal: {
+					quantity: bigHorizQty,
+					typeLabel: bigHorizType,
+					width: bigHorizWidth,
+					thickness: bigHorizThickness,
+					space: bigHorizSpace,
+				},
+				vertical: {
+					quantity: bigVertQty,
+					typeLabel: bigHorizType,
+					width: bigVertWidth,
+					thickness: bigVertThickness,
+					space: bigVertSpace,
+				},
 			},
 			small: {
 				quantity: smallQuantity,
 				typeLabel: smallTypeLabel,
 				thickness: smallThickness !== null ? smallThickness * 10 : null,
-				horizontal: { quantity: smallHorizQty, typeLabel: smallHorizType, width: smallHorizWidth, thickness: smallHorizThickness, space: smallHorizSpace },
-				vertical: { quantity: smallVertQty, typeLabel: smallHorizType, width: smallVertWidth, thickness: smallVertThickness, space: smallVertSpace },
+				horizontal: {
+					quantity: smallHorizQty,
+					typeLabel: smallHorizType,
+					width: smallHorizWidth,
+					thickness: smallHorizThickness,
+					space: smallHorizSpace,
+				},
+				vertical: {
+					quantity: smallVertQty,
+					typeLabel: smallHorizType,
+					width: smallVertWidth,
+					thickness: smallVertThickness,
+					space: smallVertSpace,
+				},
 			},
 			lid: {
 				quantity: lidQuantity,
 				typeLabel: lidTypeLabel,
 				thickness: lidThickness !== null ? lidThickness * 10 : null,
-				horizontal: { quantity: lidHorizQty, typeLabel: lidHorizType, width: lidHorizWidth, thickness: lidHorizThickness, space: lidHorizSpace },
-				vertical: { quantity: lidVertQty, typeLabel: lidHorizType, width: lidVertWidth, thickness: lidVertThickness, space: lidVertSpace },
+				horizontal: {
+					quantity: lidHorizQty,
+					typeLabel: lidHorizType,
+					width: lidHorizWidth,
+					thickness: lidHorizThickness,
+					space: lidHorizSpace,
+				},
+				vertical: {
+					quantity: lidVertQty,
+					typeLabel: lidHorizType,
+					width: lidVertWidth,
+					thickness: lidVertThickness,
+					space: lidVertSpace,
+				},
 			},
 			base: {
 				quantity: baseQuantity,
 				typeLabel: baseTypeLabel,
 				thickness: baseThickness !== null ? baseThickness * 10 : null,
-				horizontal: { quantity: baseHorizQty, typeLabel: baseHorizType, width: baseHorizWidth, thickness: baseHorizThickness, space: baseHorizSpace },
-				vertical: { quantity: baseVertQty, typeLabel: baseHorizType, width: baseVertWidth, thickness: baseVertThickness, space: baseVertSpace },
-				skids: { quantity: baseSkidQty, typeLabel: baseSkidType, width: baseSkidWidth, thickness: baseSkidThickness, space: baseSkidSpace },
+				horizontal: {
+					quantity: baseHorizQty,
+					typeLabel: baseHorizType,
+					width: baseHorizWidth,
+					thickness: baseHorizThickness,
+					space: baseHorizSpace,
+				},
+				vertical: {
+					quantity: baseVertQty,
+					typeLabel: baseHorizType,
+					width: baseVertWidth,
+					thickness: baseVertThickness,
+					space: baseVertSpace,
+				},
+				skids: {
+					quantity: baseSkidQty,
+					typeLabel: baseSkidType,
+					width: baseSkidWidth,
+					thickness: baseSkidThickness,
+					space: baseSkidSpace,
+				},
 			},
 		};
 

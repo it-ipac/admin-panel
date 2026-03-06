@@ -1,13 +1,8 @@
 import { Loader2, Mail, Send } from "lucide-react";
 import { useMemo } from "react";
 import { useInventoryCommunications } from "../hooks/useInventoryCommunications";
-import {
-	EMAIL_REASON_LABELS,
-} from "../services/emailTemplates";
-import type {
-	SupplierEmailReason,
-	VariantCommunicationItem,
-} from "../types";
+import { EMAIL_REASON_LABELS } from "../services/emailTemplates";
+import type { SupplierEmailReason, VariantCommunicationItem } from "../types";
 
 interface InventoryCommunicationsTabProps {
 	variants: VariantCommunicationItem[];
@@ -30,7 +25,11 @@ export function InventoryCommunicationsTab({
 	const supplierInboundCandidates = useMemo(() => {
 		const map = new Map<string, string[]>();
 		for (const msg of vm.history) {
-			if (msg.direction !== "inbound" || !msg.resendEmailId || !msg.supplierId) {
+			if (
+				msg.direction !== "inbound" ||
+				!msg.resendEmailId ||
+				!msg.supplierId
+			) {
 				continue;
 			}
 			const arr = map.get(msg.supplierId) ?? [];
@@ -48,14 +47,19 @@ export function InventoryCommunicationsTab({
 						Supplier Communication
 					</h3>
 					<p className="mt-1 text-sm text-gray-500">
-						Select variants, choose supplier per variant, and send grouped emails.
+						Select variants, choose supplier per variant, and send grouped
+						emails.
 					</p>
 				</div>
 				<div className="rounded-lg border border-gray-200 bg-white p-4">
-					<label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
+					<label
+						htmlFor="supplier-email-reason-template"
+						className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500"
+					>
 						Reason template
 					</label>
 					<select
+						id="supplier-email-reason-template"
 						value={vm.reason}
 						onChange={(event) =>
 							vm.setReason(event.target.value as SupplierEmailReason)
@@ -125,7 +129,10 @@ export function InventoryCommunicationsTab({
 											<select
 												value={selectedSupplierId}
 												onChange={(event) =>
-													vm.setVariantSupplier(variant.variantId, event.target.value)
+													vm.setVariantSupplier(
+														variant.variantId,
+														event.target.value,
+													)
 												}
 												className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
 											>
@@ -184,7 +191,9 @@ export function InventoryCommunicationsTab({
 						>
 							<div className="mb-2 flex flex-wrap items-center justify-between gap-2">
 								<div>
-									<p className="font-medium text-gray-900">{draft.supplierName}</p>
+									<p className="font-medium text-gray-900">
+										{draft.supplierName}
+									</p>
 									<p className="text-xs text-gray-500">{draft.supplierEmail}</p>
 								</div>
 								<span className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600">
@@ -206,11 +215,7 @@ export function InventoryCommunicationsTab({
 							<textarea
 								value={draft.body}
 								onChange={(event) =>
-									vm.updateDraft(
-										draft.supplierId,
-										"body",
-										event.target.value,
-									)
+									vm.updateDraft(draft.supplierId, "body", event.target.value)
 								}
 								rows={7}
 								className="mb-2 w-full rounded border border-gray-300 px-3 py-2 text-sm"

@@ -1,7 +1,4 @@
-import type {
-	SupplierEmailReason,
-	VariantCommunicationItem,
-} from "../types";
+import type { SupplierEmailReason, VariantCommunicationItem } from "../types";
 
 export const EMAIL_REASON_LABELS: Record<SupplierEmailReason, string> = {
 	price_update: "Price update",

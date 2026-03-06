@@ -6,6 +6,7 @@ import type {
 	RawPackageRow,
 	ResolvedPackageRow,
 } from "./types";
+import { WOOD_OUT_OF_RANGE_ID } from "./types";
 import {
 	isGenericWood,
 	isWoodVariantOption,
@@ -13,7 +14,6 @@ import {
 	normalizePackingTypeValue,
 	normalizeVariantName,
 } from "./utils";
-import { WOOD_OUT_OF_RANGE_ID } from "./types";
 
 interface ResolveParams {
 	rawPackages: RawPackageRow[];
@@ -47,7 +47,9 @@ export const resolvePackages = ({
 			.replace(/\bpackage\b/g, "pkg")
 			.replace(/[^a-z0-9]/g, "");
 
-	const isBaseOnlyPackage = (boxTypeLabel: string | null | undefined): boolean => {
+	const isBaseOnlyPackage = (
+		boxTypeLabel: string | null | undefined,
+	): boolean => {
 		const normalizedLabel = normalizeBoxTypeValue(boxTypeLabel);
 		return normalizedLabel.includes("baseonly");
 	};
@@ -88,7 +90,7 @@ export const resolvePackages = ({
 						return normalized.startsWith(rawPackingNormalized);
 					}
 					return false;
-			  })
+				})
 			: [];
 
 		const shouldShowAll = !!packingTypeShowAll[pkg.packageNumber];
@@ -109,46 +111,71 @@ export const resolvePackages = ({
 			label: string | null,
 			key: string,
 			options: MaterialVariantOption[],
-			extra?: { quantity?: number | null; thickness?: number | null; width?: number | null; space?: number | null },
+			extra?: {
+				quantity?: number | null;
+				thickness?: number | null;
+				width?: number | null;
+				space?: number | null;
+			},
 		) => {
 			const showAll = !!manufacturingShowAll[key];
 			const normalizedLabel = normalizeVariantName(label);
 			const isWood = isGenericWood(label);
 			const hasDims = extra?.width != null && extra?.thickness != null;
-			const scopedOptions = isWood ? options.filter(isWoodVariantOption) : options;
+			const scopedOptions = isWood
+				? options.filter(isWoodVariantOption)
+				: options;
 			const matchedByNameExact = scopedOptions.filter(
-				(variant) => normalizeVariantName(variant.variant_name) === normalizedLabel,
+				(variant) =>
+					normalizeVariantName(variant.variant_name) === normalizedLabel,
 			);
 			const matchedByNameFuzzy =
 				matchedByNameExact.length === 0
 					? scopedOptions.filter((variant) => {
-							const normalizedVariant = normalizeVariantName(variant.variant_name);
+							const normalizedVariant = normalizeVariantName(
+								variant.variant_name,
+							);
 							return (
 								normalizedVariant.includes(normalizedLabel) ||
 								normalizedLabel.includes(normalizedVariant)
 							);
-					  })
+						})
 					: [];
 
-			if (key.includes("accessory") && label && matchedByNameExact.length === 0 && matchedByNameFuzzy.length === 0) {
-				console.log(`[Match Fail] Label: "${label}" Normalized: "${normalizedLabel}"`);
-				console.log(`[Match Fail] Options Available: ${options.length}, Scoped: ${scopedOptions.length}`);
+			if (
+				key.includes("accessory") &&
+				label &&
+				matchedByNameExact.length === 0 &&
+				matchedByNameFuzzy.length === 0
+			) {
+				console.log(
+					`[Match Fail] Label: "${label}" Normalized: "${normalizedLabel}"`,
+				);
+				console.log(
+					`[Match Fail] Options Available: ${options.length}, Scoped: ${scopedOptions.length}`,
+				);
 				if (options.length > 0) {
 					console.log(
 						"[Match Fail] Sample DB Variants (Normalized):",
-						options.slice(0, 5).map((v) => normalizeVariantName(v.variant_name)),
+						options
+							.slice(0, 5)
+							.map((v) => normalizeVariantName(v.variant_name)),
 					);
 				}
 			}
 
-			const matchedByName = matchedByNameExact.length > 0 ? matchedByNameExact : matchedByNameFuzzy;
+			const matchedByName =
+				matchedByNameExact.length > 0 ? matchedByNameExact : matchedByNameFuzzy;
 			const matchedByDims =
 				isWood && hasDims
 					? scopedOptions.filter(
 							(variant) =>
 								nearlyEqual(variant.width ?? null, extra?.width ?? null) &&
-								nearlyEqual(variant.thickness ?? null, extra?.thickness ?? null),
-					  )
+								nearlyEqual(
+									variant.thickness ?? null,
+									extra?.thickness ?? null,
+								),
+						)
 					: [];
 			const matchedByDimsSwap =
 				isWood && hasDims
@@ -156,7 +183,7 @@ export const resolvePackages = ({
 							(variant) =>
 								nearlyEqual(variant.width ?? null, extra?.thickness ?? null) &&
 								nearlyEqual(variant.thickness ?? null, extra?.width ?? null),
-					  )
+						)
 					: [];
 			const matched = isWood
 				? matchedByDims.length > 0
@@ -164,11 +191,21 @@ export const resolvePackages = ({
 					: matchedByDimsSwap
 				: matchedByName;
 
-			const baseOptions = showAll ? scopedOptions : matched.length > 0 ? matched : scopedOptions;
+			const baseOptions = showAll
+				? scopedOptions
+				: matched.length > 0
+					? matched
+					: scopedOptions;
 			const selected = manufacturingTypeOverrides[key]
-				? scopedOptions.find((variant) => variant.id === manufacturingTypeOverrides[key])
+				? scopedOptions.find(
+						(variant) => variant.id === manufacturingTypeOverrides[key],
+					)
 				: isWood
-					? matched[0] || scopedOptions.find((variant) => variant.id === WOOD_OUT_OF_RANGE_ID) || null
+					? matched[0] ||
+						scopedOptions.find(
+							(variant) => variant.id === WOOD_OUT_OF_RANGE_ID,
+						) ||
+						null
 					: matched.length === 1
 						? matched[0]
 						: null;
@@ -178,7 +215,10 @@ export const resolvePackages = ({
 				typeLabel: label,
 				typeId: selected?.id || null,
 				typeResolved: !!selected,
-				typeOptions: baseOptions.map((variant) => ({ id: variant.id, label: variant.variant_name || "Unnamed" })),
+				typeOptions: baseOptions.map((variant) => ({
+					id: variant.id,
+					label: variant.variant_name || "Unnamed",
+				})),
 				hasMatchedOptions: matched.length > 0,
 				showAllOptions: showAll,
 				quantity: extra?.quantity ?? null,
@@ -189,16 +229,26 @@ export const resolvePackages = ({
 		};
 
 		const securing = pkg.securing.map((part, index) =>
-			buildTypePreview(part.typeLabel, `pkg:${pkg.packageNumber}:securing:${index}`, woodVariants, {
-				quantity: part.quantity,
-				width: part.width,
-				thickness: part.thickness,
-			}),
+			buildTypePreview(
+				part.typeLabel,
+				`pkg:${pkg.packageNumber}:securing:${index}`,
+				woodVariants,
+				{
+					quantity: part.quantity,
+					width: part.width,
+					thickness: part.thickness,
+				},
+			),
 		);
 		const accessories = pkg.accessories.map((part, index) =>
-			buildTypePreview(part.typeLabel, `pkg:${pkg.packageNumber}:accessory:${index}`, materialVariants, {
-				quantity: part.amount,
-			}),
+			buildTypePreview(
+				part.typeLabel,
+				`pkg:${pkg.packageNumber}:accessory:${index}`,
+				materialVariants,
+				{
+					quantity: part.amount,
+				},
+			),
 		);
 
 		return {
@@ -211,7 +261,12 @@ export const resolvePackages = ({
 			boxTypeId: boxType?.id || null,
 			packingTypeRaw: pkg.packingTypeRaw,
 			packingTypeCode: pkg.packingTypeCode,
-			packingTypeLabel: selectedPacking?.name || selectedPacking?.code || pkg.packingTypeCode || pkg.packingTypeRaw || "—",
+			packingTypeLabel:
+				selectedPacking?.name ||
+				selectedPacking?.code ||
+				pkg.packingTypeCode ||
+				pkg.packingTypeRaw ||
+				"—",
 			packingTypeResolved: !!selectedPacking,
 			packingTypeId: selectedPacking?.id || null,
 			packingTypeOptions: packingOptions.map((option) => ({
@@ -220,33 +275,122 @@ export const resolvePackages = ({
 			})),
 			hasMatchedPackingOptions: matchedPackingOptions.length > 0,
 			showAllPackingOptions: shouldShowAll,
-			internal: { length: pkg.internal_length, width: pkg.internal_width, height: pkg.internal_height },
-			item: { length: pkg.item_length, width: pkg.item_width, height: pkg.item_height },
-			external: { length: pkg.external_length, width: pkg.external_width, height: pkg.external_height },
+			internal: {
+				length: pkg.internal_length,
+				width: pkg.internal_width,
+				height: pkg.internal_height,
+			},
+			item: {
+				length: pkg.item_length,
+				width: pkg.item_width,
+				height: pkg.item_height,
+			},
+			external: {
+				length: pkg.external_length,
+				width: pkg.external_width,
+				height: pkg.external_height,
+			},
 			netWeight: pkg.net_weight,
 			tare: pkg.tare,
 			grossWeight: pkg.gross_weight,
 			manufacturing: {
 				big: {
-					template: buildTypePreview(pkg.manufacturing.big.typeLabel, `pkg:${pkg.packageNumber}:big:template`, bodyVariants, { quantity: pkg.manufacturing.big.quantity, thickness: pkg.manufacturing.big.thickness }),
-					horizontal: buildTypePreview(pkg.manufacturing.big.horizontal.typeLabel, `pkg:${pkg.packageNumber}:big:horizontal`, woodVariants, pkg.manufacturing.big.horizontal),
-					vertical: buildTypePreview(pkg.manufacturing.big.vertical.typeLabel, `pkg:${pkg.packageNumber}:big:vertical`, woodVariants, pkg.manufacturing.big.vertical),
+					template: buildTypePreview(
+						pkg.manufacturing.big.typeLabel,
+						`pkg:${pkg.packageNumber}:big:template`,
+						bodyVariants,
+						{
+							quantity: pkg.manufacturing.big.quantity,
+							thickness: pkg.manufacturing.big.thickness,
+						},
+					),
+					horizontal: buildTypePreview(
+						pkg.manufacturing.big.horizontal.typeLabel,
+						`pkg:${pkg.packageNumber}:big:horizontal`,
+						woodVariants,
+						pkg.manufacturing.big.horizontal,
+					),
+					vertical: buildTypePreview(
+						pkg.manufacturing.big.vertical.typeLabel,
+						`pkg:${pkg.packageNumber}:big:vertical`,
+						woodVariants,
+						pkg.manufacturing.big.vertical,
+					),
 				},
 				small: {
-					template: buildTypePreview(pkg.manufacturing.small.typeLabel, `pkg:${pkg.packageNumber}:small:template`, bodyVariants, { quantity: pkg.manufacturing.small.quantity, thickness: pkg.manufacturing.small.thickness }),
-					horizontal: buildTypePreview(pkg.manufacturing.small.horizontal.typeLabel, `pkg:${pkg.packageNumber}:small:horizontal`, woodVariants, pkg.manufacturing.small.horizontal),
-					vertical: buildTypePreview(pkg.manufacturing.small.vertical.typeLabel, `pkg:${pkg.packageNumber}:small:vertical`, woodVariants, pkg.manufacturing.small.vertical),
+					template: buildTypePreview(
+						pkg.manufacturing.small.typeLabel,
+						`pkg:${pkg.packageNumber}:small:template`,
+						bodyVariants,
+						{
+							quantity: pkg.manufacturing.small.quantity,
+							thickness: pkg.manufacturing.small.thickness,
+						},
+					),
+					horizontal: buildTypePreview(
+						pkg.manufacturing.small.horizontal.typeLabel,
+						`pkg:${pkg.packageNumber}:small:horizontal`,
+						woodVariants,
+						pkg.manufacturing.small.horizontal,
+					),
+					vertical: buildTypePreview(
+						pkg.manufacturing.small.vertical.typeLabel,
+						`pkg:${pkg.packageNumber}:small:vertical`,
+						woodVariants,
+						pkg.manufacturing.small.vertical,
+					),
 				},
 				lid: {
-					template: buildTypePreview(pkg.manufacturing.lid.typeLabel, `pkg:${pkg.packageNumber}:lid:template`, bodyVariants, { quantity: pkg.manufacturing.lid.quantity, thickness: pkg.manufacturing.lid.thickness }),
-					horizontal: buildTypePreview(pkg.manufacturing.lid.horizontal.typeLabel, `pkg:${pkg.packageNumber}:lid:horizontal`, woodVariants, pkg.manufacturing.lid.horizontal),
-					vertical: buildTypePreview(pkg.manufacturing.lid.vertical.typeLabel, `pkg:${pkg.packageNumber}:lid:vertical`, woodVariants, pkg.manufacturing.lid.vertical),
+					template: buildTypePreview(
+						pkg.manufacturing.lid.typeLabel,
+						`pkg:${pkg.packageNumber}:lid:template`,
+						bodyVariants,
+						{
+							quantity: pkg.manufacturing.lid.quantity,
+							thickness: pkg.manufacturing.lid.thickness,
+						},
+					),
+					horizontal: buildTypePreview(
+						pkg.manufacturing.lid.horizontal.typeLabel,
+						`pkg:${pkg.packageNumber}:lid:horizontal`,
+						woodVariants,
+						pkg.manufacturing.lid.horizontal,
+					),
+					vertical: buildTypePreview(
+						pkg.manufacturing.lid.vertical.typeLabel,
+						`pkg:${pkg.packageNumber}:lid:vertical`,
+						woodVariants,
+						pkg.manufacturing.lid.vertical,
+					),
 				},
 				base: {
-					template: buildTypePreview(pkg.manufacturing.base.typeLabel, `pkg:${pkg.packageNumber}:base:template`, bodyVariants, { quantity: pkg.manufacturing.base.quantity, thickness: pkg.manufacturing.base.thickness }),
-					horizontal: buildTypePreview(pkg.manufacturing.base.horizontal.typeLabel, `pkg:${pkg.packageNumber}:base:horizontal`, woodVariants, pkg.manufacturing.base.horizontal),
-					vertical: buildTypePreview(pkg.manufacturing.base.vertical.typeLabel, `pkg:${pkg.packageNumber}:base:vertical`, woodVariants, pkg.manufacturing.base.vertical),
-					skids: buildTypePreview(pkg.manufacturing.base.skids.typeLabel, `pkg:${pkg.packageNumber}:base:skids`, woodVariants, pkg.manufacturing.base.skids),
+					template: buildTypePreview(
+						pkg.manufacturing.base.typeLabel,
+						`pkg:${pkg.packageNumber}:base:template`,
+						bodyVariants,
+						{
+							quantity: pkg.manufacturing.base.quantity,
+							thickness: pkg.manufacturing.base.thickness,
+						},
+					),
+					horizontal: buildTypePreview(
+						pkg.manufacturing.base.horizontal.typeLabel,
+						`pkg:${pkg.packageNumber}:base:horizontal`,
+						woodVariants,
+						pkg.manufacturing.base.horizontal,
+					),
+					vertical: buildTypePreview(
+						pkg.manufacturing.base.vertical.typeLabel,
+						`pkg:${pkg.packageNumber}:base:vertical`,
+						woodVariants,
+						pkg.manufacturing.base.vertical,
+					),
+					skids: buildTypePreview(
+						pkg.manufacturing.base.skids.typeLabel,
+						`pkg:${pkg.packageNumber}:base:skids`,
+						woodVariants,
+						pkg.manufacturing.base.skids,
+					),
 				},
 			},
 			securing,
@@ -273,12 +417,26 @@ export const resolvePackages = ({
 		tare: preview.tare,
 		gross_weight: preview.grossWeight,
 		manufacturing: preview.manufacturing,
-		securing: preview.securing.map((part) => ({ typeId: part.typeId, quantity: part.quantity, width: part.width, thickness: part.thickness, typeLabel: part.typeLabel })),
-		accessories: preview.accessories.map((part) => ({ typeId: part.typeId, amount: part.quantity, typeLabel: part.typeLabel })),
+		securing: preview.securing.map((part) => ({
+			typeId: part.typeId,
+			quantity: part.quantity,
+			width: part.width,
+			thickness: part.thickness,
+			typeLabel: part.typeLabel,
+		})),
+		accessories: preview.accessories.map((part) => ({
+			typeId: part.typeId,
+			amount: part.quantity,
+			typeLabel: part.typeLabel,
+		})),
 	}));
 
-	const missingBoxTypeCount = previews.filter((preview) => !preview.boxTypeResolved).length;
-	const missingPackingTypeCount = previews.filter((preview) => !preview.packingTypeResolved).length;
+	const missingBoxTypeCount = previews.filter(
+		(preview) => !preview.boxTypeResolved,
+	).length;
+	const missingPackingTypeCount = previews.filter(
+		(preview) => !preview.packingTypeResolved,
+	).length;
 	const barParts = previews.flatMap((preview) => {
 		if (isBaseOnlyPackage(preview.boxTypeLabel)) {
 			return [
@@ -312,11 +470,16 @@ export const resolvePackages = ({
 			preview.manufacturing.base.template,
 		];
 	});
-	const missingManufacturingCount = barParts.filter((part) => part.typeLabel && !part.typeResolved).length;
-	const missingTemplateCount = templateParts.filter((part) => part.typeLabel && !part.typeResolved).length;
+	const missingManufacturingCount = barParts.filter(
+		(part) => part.typeLabel && !part.typeResolved,
+	).length;
+	const missingTemplateCount = templateParts.filter(
+		(part) => part.typeLabel && !part.typeResolved,
+	).length;
 	const hasUnresolvedMappings =
-		previews.some((preview) => !preview.boxTypeResolved || !preview.packingTypeResolved) ||
-		missingManufacturingCount > 0;
+		previews.some(
+			(preview) => !preview.boxTypeResolved || !preview.packingTypeResolved,
+		) || missingManufacturingCount > 0;
 
 	return {
 		packagePreviews: previews,

@@ -1,11 +1,11 @@
-import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
+import { createServerFn } from "@tanstack/react-start";
+import { supabase } from "../../../lib/supabase";
 import {
-	sendSupplierEmailsInputSchema,
 	type SendSupplierEmailsInput,
+	sendSupplierEmailsInputSchema,
 } from "../schemas/emailSchemas";
 import type { SendGroupedEmailsResult, SupplierEmailMessage } from "../types";
-import { supabase } from "../../../lib/supabase";
 
 interface ResendResponse {
 	id?: string;
@@ -15,8 +15,7 @@ interface ResendResponse {
 function getServerSupabaseAdmin() {
 	const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 	const serviceRoleKey =
-		process.env.SUPABASE_SECRET_KEY ||
-		process.env.SUPABASE_SERVICE_ROLE_KEY;
+		process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 	if (!supabaseUrl || !serviceRoleKey) {
 		throw new Error(
@@ -71,8 +70,8 @@ async function sendWithResend(params: {
 			html: textToHtml(params.body),
 			headers: params.inReplyToResendEmailId
 				? {
-					"In-Reply-To": params.inReplyToResendEmailId,
-				}
+						"In-Reply-To": params.inReplyToResendEmailId,
+					}
 				: undefined,
 		}),
 	});
@@ -120,8 +119,7 @@ export const sendSupplierEmails = createServerFn({ method: "POST" })
 						subject: draft.subject,
 						body_text: draft.body,
 						resend_email_id: resendEmailId,
-						in_reply_to_resend_email_id:
-							draft.inReplyToResendEmailId ?? null,
+						in_reply_to_resend_email_id: draft.inReplyToResendEmailId ?? null,
 						related_variant_ids: draft.variantIds,
 						status: "sent",
 						created_by: input.requesterUserId,
@@ -164,7 +162,9 @@ interface SupplierEmailMessageRow {
 	created_by: string | null;
 }
 
-export async function fetchSupplierEmailMessages(): Promise<SupplierEmailMessage[]> {
+export async function fetchSupplierEmailMessages(): Promise<
+	SupplierEmailMessage[]
+> {
 	const { data, error } = await supabase
 		.from("supplier_email_messages")
 		.select(

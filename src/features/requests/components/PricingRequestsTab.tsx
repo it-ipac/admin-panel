@@ -1,12 +1,12 @@
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../../hooks/useAuth";
-import type { SupplierPricingRequestWithBlockedState } from "../types";
 import {
 	useApprovePricingRequest,
 	useRejectPricingRequest,
 } from "../hooks/useRequestActions";
 import { usePricingRequests } from "../hooks/useRequestsQueries";
+import type { SupplierPricingRequestWithBlockedState } from "../types";
 import { buildContextLabel, formatRelativeTime } from "../utils/formatters";
 import { ReviewActionModal } from "./ReviewActionModal";
 import { StatusBadge } from "./StatusBadge";
@@ -30,7 +30,10 @@ const CLOSED_MODAL: ModalState = {
 function buildPricingSummary(
 	req: SupplierPricingRequestWithBlockedState,
 ): string {
-	const variantName = req.variant?.variant_name ?? req.parent_variant_request?.variant_name ?? "Pending variant";
+	const variantName =
+		req.variant?.variant_name ??
+		req.parent_variant_request?.variant_name ??
+		"Pending variant";
 	const materialName = req.variant?.material?.name ?? "New material";
 	const supplierName = req.supplier?.name ?? "Unknown supplier";
 	return `${variantName} (${materialName}) — ${supplierName}`;

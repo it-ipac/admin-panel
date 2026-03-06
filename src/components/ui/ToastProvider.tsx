@@ -1,5 +1,6 @@
 import * as RadixToast from "@radix-ui/react-toast";
 import { X } from "lucide-react";
+import type { ReactNode } from "react";
 import {
 	createContext,
 	useCallback,
@@ -8,7 +9,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import type { ReactNode } from "react";
 import { cn } from "../../lib/cn";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -32,7 +32,8 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function useToastContext(): ToastContextValue {
 	const ctx = useContext(ToastContext);
-	if (!ctx) throw new Error("useToastContext must be used within ToastProvider");
+	if (!ctx)
+		throw new Error("useToastContext must be used within ToastProvider");
 	return ctx;
 }
 

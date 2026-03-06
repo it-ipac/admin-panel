@@ -1,12 +1,12 @@
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../../hooks/useAuth";
-import type { MaterialVariantRequestWithBlockedState } from "../types";
 import {
 	useApproveVariantRequest,
 	useRejectVariantRequest,
 } from "../hooks/useRequestActions";
 import { useVariantRequests } from "../hooks/useRequestsQueries";
+import type { MaterialVariantRequestWithBlockedState } from "../types";
 import { buildContextLabel, formatRelativeTime } from "../utils/formatters";
 import { ReviewActionModal } from "./ReviewActionModal";
 import { StatusBadge } from "./StatusBadge";
@@ -135,9 +135,7 @@ export function VariantRequestsTab() {
 								<td className="py-3 px-4">
 									<StatusBadge
 										isBlocked={req.isBlocked}
-										parentLabel={
-											req.parent_material_request?.name ?? undefined
-										}
+										parentLabel={req.parent_material_request?.name ?? undefined}
 									/>
 								</td>
 								<td className="py-3 px-4">

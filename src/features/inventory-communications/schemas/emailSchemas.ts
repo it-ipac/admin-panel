@@ -24,4 +24,6 @@ export const sendSupplierEmailsInputSchema = z.object({
 	drafts: z.array(sendSupplierEmailDraftSchema).min(1),
 });
 
-export type SendSupplierEmailsInput = z.infer<typeof sendSupplierEmailsInputSchema>;
+export type SendSupplierEmailsInput = z.infer<
+	typeof sendSupplierEmailsInputSchema
+>;

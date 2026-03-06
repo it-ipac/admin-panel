@@ -1,4 +1,3 @@
-export { OrderCreateConfirmDialog } from "./orderCreate/confirm";
 export type {
 	ManufacturingPartPreview,
 	OrderCreateConfirmDialogProps,
@@ -6,3 +5,4 @@ export type {
 	OrderCreateSummary,
 	PackagePreview,
 } from "./orderCreate/confirm";
+export { OrderCreateConfirmDialog } from "./orderCreate/confirm";

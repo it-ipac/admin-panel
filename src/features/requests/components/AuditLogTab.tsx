@@ -1,9 +1,9 @@
 import { ExternalLink, Loader2 } from "lucide-react";
 import { cn } from "../../../lib/cn";
 import { useAuditLog } from "../hooks/useRequestsQueries";
+import type { RequestAuditLog, RequestType } from "../types";
 import { buildContextLabel, formatDateTime } from "../utils/formatters";
 import { ActionBadge, RequestTypeBadge } from "./StatusBadge";
-import type { RequestAuditLog, RequestType } from "../types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -23,7 +23,9 @@ function extractSnapshotLabel(
 		const variant =
 			typeof snapshot.variant_name === "string" ? snapshot.variant_name : null;
 		const supplier =
-			typeof snapshot.supplier_name === "string" ? snapshot.supplier_name : null;
+			typeof snapshot.supplier_name === "string"
+				? snapshot.supplier_name
+				: null;
 		if (variant && supplier) return `${variant} — ${supplier}`;
 		if (variant) return variant;
 		return "Pricing entry";
@@ -47,8 +49,12 @@ function buildResultingLink(
 // ─── Row component (extracted for readability) ────────────────────────────────
 
 function AuditLogRow({ row }: { row: RequestAuditLog }) {
-	const snapshotLabel = extractSnapshotLabel(row.request_type, row.request_snapshot);
-	const hasResultingLink = row.action === "approved" && row.resulting_id !== null;
+	const snapshotLabel = extractSnapshotLabel(
+		row.request_type,
+		row.request_snapshot,
+	);
+	const hasResultingLink =
+		row.action === "approved" && row.resulting_id !== null;
 
 	return (
 		<tr className="hover:bg-gray-50 transition-colors">
@@ -59,7 +65,9 @@ function AuditLogRow({ row }: { row: RequestAuditLog }) {
 				<ActionBadge action={row.action} />
 			</td>
 			<td className="py-3 px-4">
-				<span className="font-medium text-gray-900 text-sm">{snapshotLabel}</span>
+				<span className="font-medium text-gray-900 text-sm">
+					{snapshotLabel}
+				</span>
 			</td>
 			<td className="py-3 px-4 text-gray-600 text-sm">
 				{row.requested_by_profile?.full_name ?? "—"}

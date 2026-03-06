@@ -69,7 +69,9 @@ export function ManufacturingPartCard({
 				))}
 			</select>
 			{!part.typeResolved && part.typeLabel && (
-				<p className="text-[11px] text-amber-600">Not matched. Choose a material.</p>
+				<p className="text-[11px] text-amber-600">
+					Not matched. Choose a material.
+				</p>
 			)}
 			<div className="grid grid-cols-2 gap-2 text-[11px] text-gray-600">
 				{showFields.includes("quantity") && (
