@@ -39,6 +39,12 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_APP_VERSION: pr-${{ github.event.pull_request.number }}-${{ github.run_number }}
+          VITE_RELEASE_TYPE: patch
+          VITE_RELEASE_FEATURES: ${{ github.event.pull_request.title }}
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          VERCEL_GIT_COMMIT_MESSAGE: ${{ github.event.pull_request.title }}
+          VERCEL_GIT_COMMIT_DATE: ${{ github.event.pull_request.updated_at }}
 
       - name: Check bundle size
         run: |

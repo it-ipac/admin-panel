@@ -90,3 +90,106 @@ export const applyManufacturingFieldChange = (
 		return next;
 	});
 };
+
+export const applyManufacturingPartTypeLabelChange = (
+	rows: RawPackageRow[],
+	key: string,
+	typeLabel: string | null,
+) => {
+	const [, pkgRaw, group, section] = key.split(":");
+	const packageNumber = Number(pkgRaw);
+	if (!Number.isFinite(packageNumber) || !group) return rows;
+
+	return updateRawPackageByNumber(rows, packageNumber, (pkg) => {
+		const next = structuredClone(pkg);
+		const normalizedLabel = typeLabel === null ? null : typeLabel;
+
+		if (group === "securing" || group === "accessory") {
+			const index = Number(section);
+			if (!Number.isFinite(index)) return next;
+			if (group === "securing" && next.securing[index]) {
+				next.securing[index].typeLabel = normalizedLabel;
+			}
+			if (group === "accessory" && next.accessories[index]) {
+				next.accessories[index].typeLabel = normalizedLabel;
+			}
+			return next;
+		}
+
+		const side = next.manufacturing[
+			group as keyof RawPackageRow["manufacturing"]
+		] as any;
+		if (!side) return next;
+
+		if (section === "template") {
+			side.typeLabel = normalizedLabel;
+			return next;
+		}
+
+		const bar =
+			section === "skids"
+				? next.manufacturing.base.skids
+				: side[section as "horizontal" | "vertical"];
+		if (!bar) return next;
+		bar.typeLabel = normalizedLabel;
+		return next;
+	});
+};
+
+export const clearManufacturingPart = (
+	rows: RawPackageRow[],
+	key: string,
+) => {
+	const [, pkgRaw, group, section] = key.split(":");
+	const packageNumber = Number(pkgRaw);
+	if (!Number.isFinite(packageNumber) || !group) return rows;
+
+	return updateRawPackageByNumber(rows, packageNumber, (pkg) => {
+		const next = structuredClone(pkg);
+
+		if (group === "securing" || group === "accessory") {
+			const index = Number(section);
+			if (!Number.isFinite(index)) return next;
+			if (group === "securing" && next.securing[index]) {
+				next.securing[index] = {
+					typeLabel: null,
+					quantity: null,
+					width: null,
+					thickness: null,
+				};
+			}
+			if (group === "accessory" && next.accessories[index]) {
+				next.accessories[index] = {
+					typeLabel: null,
+					amount: null,
+				};
+			}
+			return next;
+		}
+
+		const side = next.manufacturing[
+			group as keyof RawPackageRow["manufacturing"]
+		] as any;
+		if (!side) return next;
+
+		if (section === "template") {
+			side.typeLabel = null;
+			side.quantity = null;
+			side.thickness = null;
+			return next;
+		}
+
+		const bar =
+			section === "skids"
+				? next.manufacturing.base.skids
+				: side[section as "horizontal" | "vertical"];
+		if (!bar) return next;
+
+		bar.typeLabel = null;
+		bar.quantity = null;
+		bar.width = null;
+		bar.thickness = null;
+		bar.space = null;
+		return next;
+	});
+};

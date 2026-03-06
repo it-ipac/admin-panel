@@ -177,3 +177,55 @@ If there are multiple possible implementations, always choose:
 5. The least coupled
 
 Short-term speed must never compromise long-term architecture.
+
+---
+
+# 14. Commit Message + Worklog Protocol
+
+Use this protocol for every implementation task:
+
+## Commit message standard (Conventional Commits)
+
+- Always generate commit messages in this format:
+  - `<type>(<scope>): <summary>`
+- Allowed `type` values:
+  - `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`, `ci`, `build`, `revert`
+- `scope` should be feature-oriented (examples: `inventory`, `settings`, `requests`, `auth`, `infra`).
+- Keep summary <= 72 characters and imperative (example: `add supplier email grouping`).
+- Add a commit body when useful:
+  - What changed
+  - Why it changed
+  - Any migration or env impact
+- Release type hinting:
+  - `feat` => minor
+  - `fix` => patch
+  - breaking change (`!` or `BREAKING CHANGE:`) => major
+
+## Required engineering worklog in `.docs`
+
+- Maintain a single source-of-truth file at:
+  - `.docs/engineering-worklog.md`
+- Every completed task must be appended as a new entry with:
+  - `id`
+  - `date`
+  - `status` (`pending_commit`, `committed`, `pushed`)
+  - `summary`
+  - `files`
+  - `release_type` (`major|minor|patch`)
+  - `notes` (optional: migrations/env/tests)
+
+## Commit preparation flow
+
+When preparing a commit:
+
+1. Read all `pending_commit` entries from `.docs/engineering-worklog.md`.
+2. Generate one consolidated conventional commit message from those entries.
+3. After commit succeeds, update those entries to `committed` and add commit SHA.
+4. After push succeeds, update those same entries to `pushed`.
+5. Never include already `pushed` entries in future commit summaries.
+
+## Safety rules
+
+- Never fabricate completion status.
+- Never mark an entry `committed`/`pushed` unless the git operation actually succeeded.
+- If commit/push is not requested or not possible, keep status as `pending_commit`.

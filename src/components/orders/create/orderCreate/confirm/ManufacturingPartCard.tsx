@@ -5,6 +5,8 @@ interface ManufacturingPartCardProps {
 	label: string;
 	part: ManufacturingPartPreview;
 	showFields: Array<"quantity" | "width" | "thickness" | "space">;
+	removable?: boolean;
+	onRemove?: () => void;
 	onManufacturingTypeChange: (key: string, typeId: string) => void;
 	onManufacturingFieldChange: (
 		key: string,
@@ -18,6 +20,8 @@ export function ManufacturingPartCard({
 	label,
 	part,
 	showFields,
+	removable,
+	onRemove,
 	onManufacturingTypeChange,
 	onManufacturingFieldChange,
 	onManufacturingOptionsToggle,
@@ -26,17 +30,29 @@ export function ManufacturingPartCard({
 		<div className="space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
 			<div className="flex items-center justify-between">
 				<p className="text-xs font-semibold text-gray-700">{label}</p>
-				{part.hasMatchedOptions && (
-					<button
-						type="button"
-						onClick={() => onManufacturingOptionsToggle(part.key)}
-						className="text-[11px] text-blue-600 hover:text-blue-700"
-					>
-						{part.showAllOptions
-							? "Show matched options"
-							: "Show all options"}
-					</button>
-				)}
+				<div className="flex items-center gap-2">
+					{part.hasMatchedOptions && (
+						<button
+							type="button"
+							onClick={() => onManufacturingOptionsToggle(part.key)}
+							className="text-[11px] text-blue-600 hover:text-blue-700"
+						>
+							{part.showAllOptions
+								? "Show matched options"
+								: "Show all options"}
+						</button>
+					)}
+					{removable && onRemove && (
+						<button
+							type="button"
+							onClick={onRemove}
+							className="text-xs text-gray-500 hover:text-red-600"
+							aria-label={`Remove ${label}`}
+						>
+							×
+						</button>
+					)}
+				</div>
 			</div>
 			<select
 				value={part.typeId || ""}

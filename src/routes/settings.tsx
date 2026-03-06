@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
 	Bell,
 	Check,
+	GitBranch,
 	Loader2,
 	Palette,
 	Save,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Sidebar } from "../components/Sidebar";
+import { ReleaseInfoPanel } from "../features/settings/components/ReleaseInfoPanel";
 import { useAuth } from "../hooks/useAuth";
 import {
 	getThemePreference,
@@ -59,6 +61,7 @@ function SettingsPage() {
 		{ id: "notifications", label: "Notifications", icon: Bell },
 		{ id: "security", label: "Security", icon: Shield },
 		{ id: "appearance", label: "Appearance", icon: Palette },
+		{ id: "release", label: "Release", icon: GitBranch },
 	];
 
 	return (
@@ -344,21 +347,29 @@ function SettingsPage() {
 									</div>
 								</div>
 							)}
+
+							{activeTab === "release" && <ReleaseInfoPanel />}
 						</div>
 
 						{/* Footer */}
 						<div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
-							<button
-								onClick={handleSave}
-								className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-							>
-								{saved ? (
-									<Check className="w-5 h-5" />
-								) : (
-									<Save className="w-5 h-5" />
-								)}
-								{saved ? "Saved!" : "Save Changes"}
-							</button>
+							{activeTab !== "release" ? (
+								<button
+									onClick={handleSave}
+									className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+								>
+									{saved ? (
+										<Check className="w-5 h-5" />
+									) : (
+										<Save className="w-5 h-5" />
+									)}
+									{saved ? "Saved!" : "Save Changes"}
+								</button>
+							) : (
+								<span className="text-sm text-gray-500">
+									Release details are generated at build/deploy time.
+								</span>
+							)}
 						</div>
 					</div>
 				</div>

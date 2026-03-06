@@ -1,4 +1,8 @@
-export type TabType = "materials" | "variants" | "suppliers";
+export type TabType =
+	| "materials"
+	| "variants"
+	| "suppliers"
+	| "communications";
 
 export interface Unit {
 	id: string;
@@ -23,6 +27,7 @@ export interface SupplierPricing {
 	price: number;
 	price_per_unit: number;
 	supplier_quantity: number;
+	suppliers_reference?: string | null;
 	updated_at?: string;
 	suppliers?: Supplier;
 }
@@ -33,9 +38,11 @@ export interface MaterialVariant {
 	variant_name: string;
 	description?: string;
 	unit_id?: string;
+	attributes?: Record<string, string> | null;
 	length?: number | null;
 	width?: number | null;
 	thickness?: number | null;
+	weight_per_unit?: number | null;
 	created_at?: string;
 	unit?: Unit;
 	supplier_pricing?: SupplierPricing[];

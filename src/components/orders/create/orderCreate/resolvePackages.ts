@@ -40,14 +40,42 @@ export const resolvePackages = ({
 	manufacturingTypeOverrides,
 	manufacturingShowAll,
 }: ResolveParams) => {
+	const normalizeBoxTypeValue = (value: string | null | undefined): string =>
+		(value || "")
+			.toLowerCase()
+			.replace(/\bpacking\b/g, "pkg")
+			.replace(/\bpackage\b/g, "pkg")
+			.replace(/[^a-z0-9]/g, "");
+
+	const isBaseOnlyPackage = (boxTypeLabel: string | null | undefined): boolean => {
+		const normalizedLabel = normalizeBoxTypeValue(boxTypeLabel);
+		return normalizedLabel.includes("baseonly");
+	};
+
 	const boxTypeMap = new Map<string, BoxTypeOption>();
+	const boxTypeNormalizedMap = new Map<string, BoxTypeOption>();
 	boxTypes.forEach((box) => {
-		if (box.name) boxTypeMap.set(box.name.trim().toLowerCase(), box);
+		if (!box.name) return;
+		const rawName = box.name.trim();
+		boxTypeMap.set(rawName.toLowerCase(), box);
+		boxTypeNormalizedMap.set(normalizeBoxTypeValue(rawName), box);
 	});
 
 	const previews: PackagePreview[] = rawPackages.map((pkg) => {
-		const boxType = pkg.boxTypeLabel
-			? boxTypeMap.get(pkg.boxTypeLabel.trim().toLowerCase()) || null
+		const rawBoxTypeLabel = pkg.boxTypeLabel?.trim() || "";
+		const normalizedBoxTypeLabel = normalizeBoxTypeValue(rawBoxTypeLabel);
+		const boxType = rawBoxTypeLabel
+			? boxTypeMap.get(rawBoxTypeLabel.toLowerCase()) ||
+				boxTypeNormalizedMap.get(normalizedBoxTypeLabel) ||
+				boxTypes.find((option) => {
+					if (!option.name) return false;
+					const normalizedOption = normalizeBoxTypeValue(option.name);
+					return (
+						normalizedOption.includes(normalizedBoxTypeLabel) ||
+						normalizedBoxTypeLabel.includes(normalizedOption)
+					);
+				}) ||
+				null
 			: null;
 
 		const rawPackingNormalized = normalizePackingTypeValue(pkg.packingTypeRaw);
@@ -251,23 +279,39 @@ export const resolvePackages = ({
 
 	const missingBoxTypeCount = previews.filter((preview) => !preview.boxTypeResolved).length;
 	const missingPackingTypeCount = previews.filter((preview) => !preview.packingTypeResolved).length;
-	const barParts = previews.flatMap((preview) => [
-		preview.manufacturing.big.horizontal,
-		preview.manufacturing.big.vertical,
-		preview.manufacturing.small.horizontal,
-		preview.manufacturing.small.vertical,
-		preview.manufacturing.lid.horizontal,
-		preview.manufacturing.lid.vertical,
-		preview.manufacturing.base.horizontal,
-		preview.manufacturing.base.vertical,
-		preview.manufacturing.base.skids,
-	]);
-	const templateParts = previews.flatMap((preview) => [
-		preview.manufacturing.big.template,
-		preview.manufacturing.small.template,
-		preview.manufacturing.lid.template,
-		preview.manufacturing.base.template,
-	]);
+	const barParts = previews.flatMap((preview) => {
+		if (isBaseOnlyPackage(preview.boxTypeLabel)) {
+			return [
+				preview.manufacturing.base.horizontal,
+				preview.manufacturing.base.vertical,
+				preview.manufacturing.base.skids,
+			];
+		}
+
+		return [
+			preview.manufacturing.big.horizontal,
+			preview.manufacturing.big.vertical,
+			preview.manufacturing.small.horizontal,
+			preview.manufacturing.small.vertical,
+			preview.manufacturing.lid.horizontal,
+			preview.manufacturing.lid.vertical,
+			preview.manufacturing.base.horizontal,
+			preview.manufacturing.base.vertical,
+			preview.manufacturing.base.skids,
+		];
+	});
+	const templateParts = previews.flatMap((preview) => {
+		if (isBaseOnlyPackage(preview.boxTypeLabel)) {
+			return [preview.manufacturing.base.template];
+		}
+
+		return [
+			preview.manufacturing.big.template,
+			preview.manufacturing.small.template,
+			preview.manufacturing.lid.template,
+			preview.manufacturing.base.template,
+		];
+	});
 	const missingManufacturingCount = barParts.filter((part) => part.typeLabel && !part.typeResolved).length;
 	const missingTemplateCount = templateParts.filter((part) => part.typeLabel && !part.typeResolved).length;
 	const hasUnresolvedMappings =

@@ -47,6 +47,11 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_APP_VERSION: ${{ github.ref_name }}-${{ github.run_number }}
+          VITE_RELEASE_FEATURES: ${{ github.event.head_commit.message }}
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          VERCEL_GIT_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          VERCEL_GIT_COMMIT_DATE: ${{ github.event.head_commit.timestamp }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -81,6 +86,36 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
+      - name: Compute release metadata
+        id: release_meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          COMMIT_MESSAGE='${{ github.event.head_commit.message }}'
+          BASE_VERSION=$(node -p "require('./package.json').version || '0.0.0'")
+
+          RELEASE_TYPE="patch"
+          if echo "$COMMIT_MESSAGE" | grep -qE "BREAKING CHANGE|!:"; then
+            RELEASE_TYPE="major"
+          elif echo "$COMMIT_MESSAGE" | grep -qE "^feat(\(.+\))?:"; then
+            RELEASE_TYPE="minor"
+          elif echo "$COMMIT_MESSAGE" | grep -qE "^fix(\(.+\))?:"; then
+            RELEASE_TYPE="patch"
+          fi
+
+          NEXT_VERSION=$(node -e "
+            const [major, minor, patch] = (process.argv[1] || '0.0.0').split('.').map((n) => Number(n) || 0);
+            const type = process.argv[2] || 'patch';
+            let next = [major, minor, patch];
+            if (type === 'major') next = [major + 1, 0, 0];
+            else if (type === 'minor') next = [major, minor + 1, 0];
+            else next = [major, minor, patch + 1];
+            process.stdout.write(next.join('.'));
+          " "$BASE_VERSION" "$RELEASE_TYPE")
+
+          echo "release_type=$RELEASE_TYPE" >> "$GITHUB_OUTPUT"
+          echo "release_version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Build Vercel output
         run: npx vercel build --prod --token ${{ secrets.VERCEL_TOKEN }}
         env:
@@ -88,6 +123,12 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_APP_VERSION: ${{ steps.release_meta.outputs.release_version }}
+          VITE_RELEASE_TYPE: ${{ steps.release_meta.outputs.release_type }}
+          VITE_RELEASE_FEATURES: ${{ github.event.head_commit.message }}
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          VERCEL_GIT_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          VERCEL_GIT_COMMIT_DATE: ${{ github.event.head_commit.timestamp }}
 
       - name: Deploy to Vercel
         run: npx vercel deploy --prebuilt --prod --token ${{ secrets.VERCEL_TOKEN }}

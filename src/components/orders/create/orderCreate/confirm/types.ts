@@ -113,6 +113,8 @@ export interface OrderCreateConfirmDialogProps {
 		value: number | null,
 	) => void;
 	onManufacturingOptionsToggle: (key: string) => void;
+	onManufacturingPartAdd: (key: string) => void;
+	onManufacturingPartRemove: (key: string) => void;
 	confirmDisabled?: boolean;
 	confirmDisabledReason?: string;
 	templateWarningCount?: number;

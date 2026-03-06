@@ -1,3 +1,4 @@
+import { ManufacturingSectionsPanel } from "./ManufacturingSectionsPanel";
 import { ManufacturingPartCard } from "./ManufacturingPartCard";
 import { NumberInput, formatNumber } from "./NumberInput";
 import type { OrderCreateConfirmDialogProps, PackagePreview } from "./types";
@@ -13,6 +14,8 @@ interface PackagePreviewSectionProps {
 	onManufacturingTypeChange: OrderCreateConfirmDialogProps["onManufacturingTypeChange"];
 	onManufacturingFieldChange: OrderCreateConfirmDialogProps["onManufacturingFieldChange"];
 	onManufacturingOptionsToggle: OrderCreateConfirmDialogProps["onManufacturingOptionsToggle"];
+	onManufacturingPartAdd: OrderCreateConfirmDialogProps["onManufacturingPartAdd"];
+	onManufacturingPartRemove: OrderCreateConfirmDialogProps["onManufacturingPartRemove"];
 }
 
 const columnToNumber = (label: string) => {
@@ -73,6 +76,9 @@ const renderDimensionInputs = (
 	</div>
 );
 
+const normalizeLabel = (value: string | null | undefined): string =>
+	(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
 export function PackagePreviewSection({
 	packagePreviews,
 	activePackage,
@@ -84,13 +90,13 @@ export function PackagePreviewSection({
 	onManufacturingTypeChange,
 	onManufacturingFieldChange,
 	onManufacturingOptionsToggle,
+	onManufacturingPartAdd,
+	onManufacturingPartRemove,
 }: PackagePreviewSectionProps) {
 	if (!packagePreviews.length) return null;
 	const pkg = packagePreviews[activePackage];
 	if (!pkg) return null;
-	const normalizedBoxTypeLabel = (pkg.boxTypeLabel || "")
-		.toLowerCase()
-		.replace(/[^a-z0-9]/g, "");
+	const normalizedBoxTypeLabel = normalizeLabel(pkg.boxTypeLabel);
 	const isBaseOnlyPackage = normalizedBoxTypeLabel.includes("baseonly");
 
 	const boxTypeColumn = shiftColumn("C", templateMode);
@@ -274,37 +280,15 @@ export function PackagePreviewSection({
 					<p className="text-xs font-semibold text-gray-700 mb-2">
 						Manufacturing (securing)
 					</p>
-					<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-						{!isBaseOnlyPackage && (
-							<>
-								<div className="space-y-3">
-									<p className="text-xs font-semibold text-gray-800">Big sides</p>
-									<ManufacturingPartCard label="Template" part={pkg.manufacturing.big.template} showFields={["quantity", "thickness"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
-									<ManufacturingPartCard label="Horizontal bar" part={pkg.manufacturing.big.horizontal} showFields={["quantity", "width", "thickness", "space"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
-									<ManufacturingPartCard label="Vertical bar" part={pkg.manufacturing.big.vertical} showFields={["quantity", "width", "thickness", "space"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
-								</div>
-								<div className="space-y-3">
-									<p className="text-xs font-semibold text-gray-800">Small sides</p>
-									<ManufacturingPartCard label="Template" part={pkg.manufacturing.small.template} showFields={["quantity", "thickness"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
-									<ManufacturingPartCard label="Horizontal bar" part={pkg.manufacturing.small.horizontal} showFields={["quantity", "width", "thickness", "space"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
-									<ManufacturingPartCard label="Vertical bar" part={pkg.manufacturing.small.vertical} showFields={["quantity", "width", "thickness", "space"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
-								</div>
-								<div className="space-y-3">
-									<p className="text-xs font-semibold text-gray-800">Lid</p>
-									<ManufacturingPartCard label="Template" part={pkg.manufacturing.lid.template} showFields={["quantity", "thickness"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
-									<ManufacturingPartCard label="Horizontal bar" part={pkg.manufacturing.lid.horizontal} showFields={["quantity", "width", "thickness", "space"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
-									<ManufacturingPartCard label="Vertical bar" part={pkg.manufacturing.lid.vertical} showFields={["quantity", "width", "thickness", "space"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
-								</div>
-							</>
-						)}
-						<div className="space-y-3">
-							<p className="text-xs font-semibold text-gray-800">Base</p>
-							<ManufacturingPartCard label="Template" part={pkg.manufacturing.base.template} showFields={["quantity", "thickness"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
-							<ManufacturingPartCard label="Horizontal bar" part={pkg.manufacturing.base.horizontal} showFields={["quantity", "width", "thickness", "space"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
-							<ManufacturingPartCard label="Vertical bar" part={pkg.manufacturing.base.vertical} showFields={["quantity", "width", "thickness", "space"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
-							<ManufacturingPartCard label="Skids" part={pkg.manufacturing.base.skids} showFields={["quantity", "width", "thickness", "space"]} onManufacturingTypeChange={onManufacturingTypeChange} onManufacturingFieldChange={onManufacturingFieldChange} onManufacturingOptionsToggle={onManufacturingOptionsToggle} />
-						</div>
-					</div>
+					<ManufacturingSectionsPanel
+						pkg={pkg}
+						isBaseOnlyPackage={isBaseOnlyPackage}
+						onManufacturingTypeChange={onManufacturingTypeChange}
+						onManufacturingFieldChange={onManufacturingFieldChange}
+						onManufacturingOptionsToggle={onManufacturingOptionsToggle}
+						onManufacturingPartAdd={onManufacturingPartAdd}
+						onManufacturingPartRemove={onManufacturingPartRemove}
+					/>
 				</div>
 
 				<div className="pt-3 border-t border-gray-100">

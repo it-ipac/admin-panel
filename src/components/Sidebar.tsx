@@ -1,5 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
+	ClipboardList,
 	Copy,
 	FileText,
 	LayoutDashboard,
@@ -18,6 +19,7 @@ const navItems = [
 	{ to: "/users", label: "Users", icon: Users },
 	{ to: "/inventory", label: "Inventory", icon: Package },
 	{ to: "/inventory-duplicates", label: "Variant Duplicates", icon: Copy },
+	{ to: "/requests", label: "Requests", icon: ClipboardList },
 	{ to: "/reports", label: "Reports", icon: FileText },
 	{ to: "/settings", label: "Settings", icon: Settings },
 ];

@@ -24,6 +24,8 @@ export function ConfirmDialogContent({
 	onManufacturingTypeChange,
 	onManufacturingFieldChange,
 	onManufacturingOptionsToggle,
+	onManufacturingPartAdd,
+	onManufacturingPartRemove,
 	confirmDisabled,
 	confirmDisabledReason,
 	templateWarningCount,
@@ -112,6 +114,8 @@ export function ConfirmDialogContent({
 							onManufacturingTypeChange={onManufacturingTypeChange}
 							onManufacturingFieldChange={onManufacturingFieldChange}
 							onManufacturingOptionsToggle={onManufacturingOptionsToggle}
+							onManufacturingPartAdd={onManufacturingPartAdd}
+							onManufacturingPartRemove={onManufacturingPartRemove}
 						/>
 
 						{showDetails && (
@@ -152,7 +156,7 @@ export function ConfirmDialogContent({
 						</div>
 					)}
 
-					{templateWarningCount && templateWarningCount > 0 && !confirmDisabled && (
+					{templateWarningCount !== undefined && templateWarningCount > 0 && !confirmDisabled && (
 						<div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
 							{templateWarningCount} securing template
 							{templateWarningCount > 1 ? "s are" : " is"} missing material

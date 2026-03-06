@@ -51,6 +51,56 @@ export const submitOrderCreate = async ({
 		);
 	}
 
+	const getVariantUnitId = (variantId: string | null | undefined): string | null => {
+		if (!variantId) return null;
+		const variant = materialVariantMap.get(variantId);
+		const unitValue = Array.isArray(variant?.unit) ? variant.unit[0] : variant?.unit;
+		return unitValue?.id || null;
+	};
+
+	const missingUnitPackages = resolvedPackages
+		.map((pkg) => {
+			const missingSecuringUnits = pkg.securing.filter((part) => {
+				const hasData =
+					part.quantity !== null ||
+					part.width !== null ||
+					part.thickness !== null;
+				return (
+					hasData &&
+					!!part.typeId &&
+					part.quantity !== null &&
+					part.quantity !== undefined &&
+					!getVariantUnitId(part.typeId)
+				);
+			});
+
+			const missingAccessoryUnits = pkg.accessories.filter((part) => {
+				const hasData = part.typeLabel || part.amount !== null;
+				return (
+					hasData &&
+					!!part.typeId &&
+					part.amount !== null &&
+					part.amount !== undefined &&
+					!getVariantUnitId(part.typeId)
+				);
+			});
+
+			return {
+				packageNumber: pkg.packageNumber,
+				missingUnitsCount: missingSecuringUnits.length + missingAccessoryUnits.length,
+			};
+		})
+		.filter((pkg) => pkg.missingUnitsCount > 0);
+
+	if (missingUnitPackages.length > 0) {
+		const packageList = missingUnitPackages
+			.map((pkg) => `#${pkg.packageNumber}`)
+			.join(", ");
+		throw new Error(
+			`Missing unit mapping for selected material(s) in package(s): ${packageList}. Please assign a unit to those variants in inventory before creating the order.`,
+		);
+	}
+
 	let clientId = selectedClientId;
 	if (clientMode === "new") {
 		const createdClient = await createClient();
@@ -194,7 +244,7 @@ export const submitOrderCreate = async ({
 				material_type: "Securing",
 				is_final: false,
 				quantity: part.quantity ?? 0,
-				unit_id: null,
+				unit_id: getVariantUnitId(part.typeId),
 				length: null,
 				width: part.width ?? null,
 				height: part.thickness ?? null,
@@ -216,15 +266,13 @@ export const submitOrderCreate = async ({
 				);
 			})
 			.map((part) => {
-				const variant = materialVariantMap.get(part.typeId as string);
-				const unitValue = Array.isArray(variant?.unit) ? variant?.unit[0] : variant?.unit;
 				return {
 					order_package_id: orderPackage.id,
 					material_variant_id: part.typeId as string,
 					material_type: "Accessories",
 					is_final: false,
 					quantity: part.amount ?? 0,
-					unit_id: unitValue?.id || null,
+					unit_id: getVariantUnitId(part.typeId),
 					length: null,
 					width: null,
 					height: null,

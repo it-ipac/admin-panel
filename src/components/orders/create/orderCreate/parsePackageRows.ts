@@ -2,12 +2,101 @@ import ExcelJS from "exceljs";
 import { parseNumberText, normalizePackingTypeCode } from "./utils";
 import type { RawPackageRow } from "./types";
 
+/**
+ * Safely extracts a plain string from any ExcelJS cell value type.
+ * Handles rich text objects, formula results, hyperlinks, and primitives.
+ * Prevents the "[object Object]" issue caused by cells with bold/coloured
+ * header text being stored as RichText rather than plain strings.
+ */
+function extractCellText(cell: ExcelJS.Cell): string {
+	const extractRichText = (value: unknown): string => {
+		if (!value || typeof value !== "object" || !("richText" in value)) return "";
+		const richTextValue = (value as { richText?: Array<{ text?: string | null }> }).richText;
+		if (!Array.isArray(richTextValue)) return "";
+		return richTextValue
+			.map((part) => part.text ?? "")
+			.join("")
+			.trim();
+	};
+
+	const v = cell.value;
+	if (v === null || v === undefined) return "";
+	if (typeof v === "string") return v.trim();
+	if (typeof v === "number" || typeof v === "boolean") return String(v).trim();
+	if (v instanceof Date) return "";
+	if (typeof v === "object") {
+		// CellRichTextValue: { richText: [{text, font, ...}] }
+		if ("richText" in v && Array.isArray((v as ExcelJS.CellRichTextValue).richText)) {
+			return extractRichText(v);
+		}
+		// CellFormulaValue: { formula, result }
+		if ("result" in v) {
+			const r = (v as ExcelJS.CellFormulaValue).result;
+			if (typeof r === "string") return r.trim();
+			if (typeof r === "number" || typeof r === "boolean") return String(r).trim();
+			// formula result can itself be a rich text object
+			if (r && typeof r === "object" && "richText" in r) {
+				return extractRichText(r);
+			}
+			return "";
+		}
+		// CellHyperlinkValue: { text, hyperlink }
+		if ("hyperlink" in v) {
+			const linked = v as ExcelJS.CellHyperlinkValue;
+			if (typeof linked.text === "string") return linked.text.trim();
+			// text can also be a rich text object
+			if (linked.text && typeof linked.text === "object" && "richText" in linked.text) {
+				return extractRichText(linked.text);
+			}
+		}
+	}
+	return "";
+}
+
 export const parsePackageRows = (
 	sheet: ExcelJS.Worksheet,
 	columnOffset = 0,
 ) => {
 	const rows: RawPackageRow[] = [];
 	let packageNumber = 1;
+	const normalizeLabel = (value: string | null | undefined) =>
+		(value || "")
+			.toLowerCase()
+			.replace(/\bpacking\b/g, "pkg")
+			.replace(/\bpackage\b/g, "pkg")
+			.replace(/[^a-z0-9]/g, "");
+	const isGasPackingOnly = (value: string | null | undefined) =>
+		normalizeLabel(value).includes("gaspkgonly");
+	const hasTypeLabel = (value: string | null | undefined) =>
+		(value || "").trim().length > 0;
+	const clearBar = (bar: RawPackageRow["manufacturing"]["base"]["horizontal"]) => ({
+		...bar,
+		typeLabel: null,
+		quantity: null,
+		width: null,
+		thickness: null,
+		space: null,
+	});
+	const clearTemplate = (template: RawPackageRow["manufacturing"]["big"]) => ({
+		...template,
+		typeLabel: null,
+		quantity: null,
+		thickness: null,
+		horizontal: clearBar(template.horizontal),
+		vertical: clearBar(template.vertical),
+	});
+	const sanitizeGasBar = (bar: RawPackageRow["manufacturing"]["base"]["horizontal"]) => {
+		const shouldKeep = hasTypeLabel(bar.typeLabel) && bar.width !== null && bar.thickness !== null;
+		return shouldKeep ? bar : clearBar(bar);
+	};
+	const sanitizeGasTemplate = (template: RawPackageRow["manufacturing"]["big"]) => {
+		if (!hasTypeLabel(template.typeLabel)) return clearTemplate(template);
+		return {
+			...template,
+			horizontal: sanitizeGasBar(template.horizontal),
+			vertical: sanitizeGasBar(template.vertical),
+		};
+	};
 	const columnToNumber = (label: string) => {
 		let result = 0;
 		for (let i = 0; i < label.length; i += 1) {
@@ -37,7 +126,7 @@ export const parsePackageRows = (
 		return numberToColumn(numeric + columnOffset);
 	};
 	const getText = (column: string, rowNumber: number) =>
-		sheet.getCell(`${shiftColumn(column)}${rowNumber}`).text?.trim() || "";
+		extractCellText(sheet.getCell(`${shiftColumn(column)}${rowNumber}`));
 
 	for (let row = 4; row < 1000; row += 1) {
 		const currentLabel = getText("B", row);
@@ -123,14 +212,20 @@ export const parsePackageRows = (
 		const accessoryStart = columnToNumber(shiftColumn("BAD"));
 		const accessoryEnd = columnToNumber(shiftColumn("BDA"));
 		const getAccessoryHeader = (col: number) => {
-			const headerRow2 = sheet.getCell(2, col).text?.trim() || "";
-			const headerRow3 = sheet.getCell(3, col).text?.trim() || "";
+			const headerRow2 = extractCellText(sheet.getCell(2, col));
+			const headerRow3 = extractCellText(sheet.getCell(3, col));
 			return headerRow3 || headerRow2;
 		};
+		// Skip quantity/metadata sub-header columns that aren't material names.
+		// "Qty …" / "Quantity …" prefixes are sub-quantity columns.
+		// Bare "Total" (alone) is a summary column.  "Total screws" is a valid material name.
+		const SUB_HEADER_PATTERN = /^(?:qty\b|quantity\b|space\b|per loop)|^total$/i;
 		for (let col = accessoryStart; col <= accessoryEnd; col += 1) {
 			const typeLabel = getAccessoryHeader(col);
-			const amount = parseNumberText(sheet.getCell(row, col).text?.trim() || "");
-			if (typeLabel && amount !== null) accessories.push({ typeLabel, amount });
+			const amount = parseNumberText(extractCellText(sheet.getCell(row, col)));
+			if (typeLabel && !SUB_HEADER_PATTERN.test(typeLabel) && amount !== null) {
+				accessories.push({ typeLabel, amount });
+			}
 		}
 
 		const securingCandidates: RawPackageRow["securing"] = [
@@ -149,6 +244,44 @@ export const parsePackageRows = (
 				part.width !== null ||
 				part.thickness !== null,
 		);
+
+		const manufacturing: RawPackageRow["manufacturing"] = {
+			big: {
+				quantity: bigQuantity,
+				typeLabel: bigTypeLabel,
+				thickness: bigThickness !== null ? bigThickness * 10 : null,
+				horizontal: { quantity: bigHorizQty, typeLabel: bigHorizType, width: bigHorizWidth, thickness: bigHorizThickness, space: bigHorizSpace },
+				vertical: { quantity: bigVertQty, typeLabel: bigHorizType, width: bigVertWidth, thickness: bigVertThickness, space: bigVertSpace },
+			},
+			small: {
+				quantity: smallQuantity,
+				typeLabel: smallTypeLabel,
+				thickness: smallThickness !== null ? smallThickness * 10 : null,
+				horizontal: { quantity: smallHorizQty, typeLabel: smallHorizType, width: smallHorizWidth, thickness: smallHorizThickness, space: smallHorizSpace },
+				vertical: { quantity: smallVertQty, typeLabel: smallHorizType, width: smallVertWidth, thickness: smallVertThickness, space: smallVertSpace },
+			},
+			lid: {
+				quantity: lidQuantity,
+				typeLabel: lidTypeLabel,
+				thickness: lidThickness !== null ? lidThickness * 10 : null,
+				horizontal: { quantity: lidHorizQty, typeLabel: lidHorizType, width: lidHorizWidth, thickness: lidHorizThickness, space: lidHorizSpace },
+				vertical: { quantity: lidVertQty, typeLabel: lidHorizType, width: lidVertWidth, thickness: lidVertThickness, space: lidVertSpace },
+			},
+			base: {
+				quantity: baseQuantity,
+				typeLabel: baseTypeLabel,
+				thickness: baseThickness !== null ? baseThickness * 10 : null,
+				horizontal: { quantity: baseHorizQty, typeLabel: baseHorizType, width: baseHorizWidth, thickness: baseHorizThickness, space: baseHorizSpace },
+				vertical: { quantity: baseVertQty, typeLabel: baseHorizType, width: baseVertWidth, thickness: baseVertThickness, space: baseVertSpace },
+				skids: { quantity: baseSkidQty, typeLabel: baseSkidType, width: baseSkidWidth, thickness: baseSkidThickness, space: baseSkidSpace },
+			},
+		};
+
+		if (isGasPackingOnly(boxTypeLabel)) {
+			manufacturing.big = sanitizeGasTemplate(manufacturing.big);
+			manufacturing.small = sanitizeGasTemplate(manufacturing.small);
+			manufacturing.lid = sanitizeGasTemplate(manufacturing.lid);
+		}
 
 		rows.push({
 			rowIndex: row,
@@ -170,37 +303,7 @@ export const parsePackageRows = (
 			boxTypeLabel,
 			packingTypeRaw,
 			packingTypeCode,
-			manufacturing: {
-				big: {
-					quantity: bigQuantity,
-					typeLabel: bigTypeLabel,
-					thickness: bigThickness !== null ? bigThickness * 10 : null,
-					horizontal: { quantity: bigHorizQty, typeLabel: bigHorizType, width: bigHorizWidth, thickness: bigHorizThickness, space: bigHorizSpace },
-					vertical: { quantity: bigVertQty, typeLabel: bigHorizType, width: bigVertWidth, thickness: bigVertThickness, space: bigVertSpace },
-				},
-				small: {
-					quantity: smallQuantity,
-					typeLabel: smallTypeLabel,
-					thickness: smallThickness !== null ? smallThickness * 10 : null,
-					horizontal: { quantity: smallHorizQty, typeLabel: smallHorizType, width: smallHorizWidth, thickness: smallHorizThickness, space: smallHorizSpace },
-					vertical: { quantity: smallVertQty, typeLabel: smallHorizType, width: smallVertWidth, thickness: smallVertThickness, space: smallVertSpace },
-				},
-				lid: {
-					quantity: lidQuantity,
-					typeLabel: lidTypeLabel,
-					thickness: lidThickness !== null ? lidThickness * 10 : null,
-					horizontal: { quantity: lidHorizQty, typeLabel: lidHorizType, width: lidHorizWidth, thickness: lidHorizThickness, space: lidHorizSpace },
-					vertical: { quantity: lidVertQty, typeLabel: lidHorizType, width: lidVertWidth, thickness: lidVertThickness, space: lidVertSpace },
-				},
-				base: {
-					quantity: baseQuantity,
-					typeLabel: baseTypeLabel,
-					thickness: baseThickness !== null ? baseThickness * 10 : null,
-					horizontal: { quantity: baseHorizQty, typeLabel: baseHorizType, width: baseHorizWidth, thickness: baseHorizThickness, space: baseHorizSpace },
-					vertical: { quantity: baseVertQty, typeLabel: baseHorizType, width: baseVertWidth, thickness: baseVertThickness, space: baseVertSpace },
-					skids: { quantity: baseSkidQty, typeLabel: baseSkidType, width: baseSkidWidth, thickness: baseSkidThickness, space: baseSkidSpace },
-				},
-			},
+			manufacturing,
 			securing,
 			accessories,
 		});

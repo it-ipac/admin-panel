@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as LoginRouteImport } from './routes/login'
@@ -29,6 +30,11 @@ const UsersRoute = UsersRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestsRoute = RequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsRoute = ReportsRouteImport.update({
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/orders': typeof OrdersRouteWithChildren
   '/reports': typeof ReportsRoute
+  '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/inventory-duplicates': typeof InventoryDuplicatesRoute
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
+  '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/orders': typeof OrdersRouteWithChildren
   '/reports': typeof ReportsRoute
+  '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/orders'
     | '/reports'
+    | '/requests'
     | '/settings'
     | '/users'
     | '/orders/$orderId'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/inventory-duplicates'
     | '/login'
     | '/reports'
+    | '/requests'
     | '/settings'
     | '/users'
     | '/orders/$orderId'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/orders'
     | '/reports'
+    | '/requests'
     | '/settings'
     | '/users'
     | '/orders/$orderId'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   OrdersRoute: typeof OrdersRouteWithChildren
   ReportsRoute: typeof ReportsRoute
+  RequestsRoute: typeof RequestsRoute
   SettingsRoute: typeof SettingsRoute
   UsersRoute: typeof UsersRoute
 }
@@ -183,6 +196,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/requests': {
+      id: '/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof RequestsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports': {
@@ -272,6 +292,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   OrdersRoute: OrdersRouteWithChildren,
   ReportsRoute: ReportsRoute,
+  RequestsRoute: RequestsRoute,
   SettingsRoute: SettingsRoute,
   UsersRoute: UsersRoute,
 }

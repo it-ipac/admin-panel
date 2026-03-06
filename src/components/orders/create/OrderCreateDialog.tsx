@@ -10,7 +10,9 @@ import { OrderCreateFormDialog } from "./orderCreate/OrderCreateFormDialog.tsx";
 import { buildDetailTables } from "./orderCreate/buildDetailTables";
 import {
 	applyManufacturingFieldChange,
+	applyManufacturingPartTypeLabelChange,
 	applyPackageFieldChange,
+	clearManufacturingPart,
 } from "./orderCreate/editRawPackages";
 import { parseExcelFile } from "./orderCreate/parseExcelFile";
 import { resolvePackages } from "./orderCreate/resolvePackages";
@@ -232,9 +234,6 @@ export function OrderCreateDialog({
 		packagePreviews,
 		resolvedPackages,
 		hasUnresolvedMappings,
-		missingBoxTypeCount,
-		missingPackingTypeCount,
-		missingManufacturingCount,
 		missingTemplateCount,
 	} = useMemo(
 		() =>
@@ -264,6 +263,76 @@ export function OrderCreateDialog({
 		],
 	);
 
+	const unresolvedMappingReason = useMemo(() => {
+		if (!hasUnresolvedMappings) return undefined;
+
+		const normalizeBoxTypeLabel = (value: string | null | undefined) =>
+			(value || "")
+				.toLowerCase()
+				.replace(/\bpacking\b/g, "pkg")
+				.replace(/\bpackage\b/g, "pkg")
+				.replace(/[^a-z0-9]/g, "");
+		const isBaseOnlyPackage = (value: string | null | undefined) =>
+			normalizeBoxTypeLabel(value).includes("baseonly");
+
+		const unresolvedByPackage = packagePreviews
+			.map((preview) => {
+				const missingFields: string[] = [];
+
+				if (!preview.boxTypeResolved) {
+					const label = preview.boxTypeLabel?.trim() || "(empty)";
+					missingFields.push(`box type \"${label}\"`);
+				}
+
+				if (!preview.packingTypeResolved) {
+					missingFields.push("packing type");
+				}
+
+				const barParts = isBaseOnlyPackage(preview.boxTypeLabel)
+					? [
+							preview.manufacturing.base.horizontal,
+							preview.manufacturing.base.vertical,
+							preview.manufacturing.base.skids,
+					  ]
+					: [
+							preview.manufacturing.big.horizontal,
+							preview.manufacturing.big.vertical,
+							preview.manufacturing.small.horizontal,
+							preview.manufacturing.small.vertical,
+							preview.manufacturing.lid.horizontal,
+							preview.manufacturing.lid.vertical,
+							preview.manufacturing.base.horizontal,
+							preview.manufacturing.base.vertical,
+							preview.manufacturing.base.skids,
+					  ];
+
+				const unresolvedManufacturingCount = barParts.filter(
+					(part) => part.typeLabel && !part.typeResolved,
+				).length;
+				if (unresolvedManufacturingCount > 0) {
+					missingFields.push(
+						`${unresolvedManufacturingCount} manufacturing material${unresolvedManufacturingCount > 1 ? "s" : ""}`,
+					);
+				}
+
+				if (missingFields.length === 0) return null;
+				return `Box ${preview.packageNumber}: ${missingFields.join(", ")}`;
+			})
+			.filter((item): item is string => !!item);
+
+		if (unresolvedByPackage.length === 0) {
+			return "Resolve missing mappings before creating the order.";
+		}
+
+		const maxShown = 3;
+		const shownItems = unresolvedByPackage.slice(0, maxShown);
+		const remainingCount = unresolvedByPackage.length - shownItems.length;
+		const details = shownItems.join(" | ");
+		return remainingCount > 0
+			? `Resolve before create: ${details} | +${remainingCount} more.`
+			: `Resolve before create: ${details}.`;
+	}, [hasUnresolvedMappings, packagePreviews]);
+
 	const handlePackageFieldChange = (
 		packageNumber: number,
 		field: PackageEditableField,
@@ -275,6 +344,26 @@ export function OrderCreateDialog({
 		field: "quantity" | "width" | "thickness" | "space",
 		value: number | null,
 	) => setRawPackages((prev) => applyManufacturingFieldChange(prev, key, field, value));
+
+	const handleManufacturingPartAdd = (key: string) => {
+		setRawPackages((prev) => applyManufacturingPartTypeLabelChange(prev, key, ""));
+		setManufacturingTypeOverrides((prev) => {
+			if (!(key in prev)) return prev;
+			const next = { ...prev };
+			delete next[key];
+			return next;
+		});
+	};
+
+	const handleManufacturingPartRemove = (key: string) => {
+		setRawPackages((prev) => clearManufacturingPart(prev, key));
+		setManufacturingTypeOverrides((prev) => {
+			if (!(key in prev)) return prev;
+			const next = { ...prev };
+			delete next[key];
+			return next;
+		});
+	};
 
 	const handleParseExcelFile = async (
 		file: File,
@@ -443,18 +532,24 @@ export function OrderCreateDialog({
 					setPackingTypeShowAll((prev) => ({ ...prev, [packageNumber]: !prev[packageNumber] }))
 				}
 				onManufacturingTypeChange={(key, typeId) =>
-					setManufacturingTypeOverrides((prev) => ({ ...prev, [key]: typeId }))
+					setManufacturingTypeOverrides((prev) => {
+						if (!typeId) {
+							if (!(key in prev)) return prev;
+							const next = { ...prev };
+							delete next[key];
+							return next;
+						}
+						return { ...prev, [key]: typeId };
+					})
 				}
 				onManufacturingFieldChange={handleManufacturingFieldChange}
 				onManufacturingOptionsToggle={(key) =>
 					setManufacturingShowAll((prev) => ({ ...prev, [key]: !prev[key] }))
 				}
+				onManufacturingPartAdd={handleManufacturingPartAdd}
+				onManufacturingPartRemove={handleManufacturingPartRemove}
 				confirmDisabled={hasUnresolvedMappings}
-				confirmDisabledReason={
-					hasUnresolvedMappings
-						? `Resolve missing ${missingBoxTypeCount > 0 ? "box type" : ""}${missingBoxTypeCount > 0 && missingPackingTypeCount > 0 ? " and " : ""}${missingPackingTypeCount > 0 ? "packing type" : ""}${(missingBoxTypeCount > 0 || missingPackingTypeCount > 0) && missingManufacturingCount > 0 ? " and " : ""}${missingManufacturingCount > 0 ? "manufacturing material" : ""} selections before creating the order.`
-						: undefined
-				}
+				confirmDisabledReason={unresolvedMappingReason}
 				templateWarningCount={missingTemplateCount}
 				onConfirm={handleConfirmCreate}
 				isSubmitting={createClientMutation.isPending || createOrderMutation.isPending}
