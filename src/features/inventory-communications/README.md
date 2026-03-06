@@ -6,6 +6,8 @@ This feature sends grouped supplier emails via Resend and tracks messages in Sup
 
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL` (verified sender/domain in Resend)
+- `RESEND_REPLY_TO_EMAIL` (optional; one email or comma-separated list)
+- `RESEND_CC_EMAIL` (optional; one email or comma-separated list)
 - `SUPABASE_URL` (or `VITE_SUPABASE_URL`) 
 - `SUPABASE_SECRET_KEY` (preferred; legacy fallback: `SUPABASE_SERVICE_ROLE_KEY`)
 - `RESEND_INBOUND_WEBHOOK_SECRET`

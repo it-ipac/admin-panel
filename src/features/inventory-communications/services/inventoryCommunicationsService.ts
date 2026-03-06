@@ -42,6 +42,19 @@ function textToHtml(text: string): string {
 	return escaped.replaceAll("\n", "<br />");
 }
 
+function parseEmailList(rawValue: string | undefined): string[] | undefined {
+	if (!rawValue) {
+		return undefined;
+	}
+
+	const parsed = rawValue
+		.split(",")
+		.map((email) => email.trim())
+		.filter((email) => email.length > 0);
+
+	return parsed.length > 0 ? parsed : undefined;
+}
+
 async function sendWithResend(params: {
 	to: string;
 	subject: string;
@@ -50,6 +63,8 @@ async function sendWithResend(params: {
 }): Promise<string> {
 	const resendApiKey = process.env.RESEND_API_KEY;
 	const resendFrom = process.env.RESEND_FROM_EMAIL;
+	const resendReplyTo = parseEmailList(process.env.RESEND_REPLY_TO_EMAIL);
+	const resendCc = parseEmailList(process.env.RESEND_CC_EMAIL);
 
 	if (!resendApiKey || !resendFrom) {
 		throw new Error(
@@ -66,6 +81,8 @@ async function sendWithResend(params: {
 		body: JSON.stringify({
 			from: resendFrom,
 			to: [params.to],
+			reply_to: resendReplyTo,
+			cc: resendCc,
 			subject: params.subject,
 			html: textToHtml(params.body),
 			headers: params.inReplyToResendEmailId
