@@ -64,6 +64,14 @@ function extractCellText(cell: ExcelJS.Cell): string {
 	return "";
 }
 
+function normalizeDefensorText(text: string): string {
+	if (!text) return text;
+	if (/defen[sd][eo]r\s+only/i.test(text)) {
+		return text.replace(/defen[sd][eo]r\s+only/gi, "DFS Only");
+	}
+	return text.replace(/defen[sd][eo]r/gi, "DFS");
+}
+
 export const parsePackageRows = (
 	sheet: ExcelJS.Worksheet,
 	columnOffset = 0,
@@ -145,7 +153,7 @@ export const parsePackageRows = (
 		return numberToColumn(numeric + columnOffset);
 	};
 	const getText = (column: string, rowNumber: number) =>
-		extractCellText(sheet.getCell(`${shiftColumn(column)}${rowNumber}`));
+		normalizeDefensorText(extractCellText(sheet.getCell(`${shiftColumn(column)}${rowNumber}`)));
 
 	for (let row = 4; row < 1000; row += 1) {
 		const currentLabel = getText("B", row);
@@ -231,8 +239,8 @@ export const parsePackageRows = (
 		const accessoryStart = columnToNumber(shiftColumn("BAD"));
 		const accessoryEnd = columnToNumber(shiftColumn("BDA"));
 		const getAccessoryHeader = (col: number) => {
-			const headerRow2 = extractCellText(sheet.getCell(2, col));
-			const headerRow3 = extractCellText(sheet.getCell(3, col));
+			const headerRow2 = normalizeDefensorText(extractCellText(sheet.getCell(2, col)));
+			const headerRow3 = normalizeDefensorText(extractCellText(sheet.getCell(3, col)));
 			return headerRow3 || headerRow2;
 		};
 		// Skip quantity/metadata sub-header columns that aren't material names.

@@ -26,6 +26,12 @@ function UsersPage() {
 	const queryClient = useQueryClient();
 	const [search, setSearch] = useState("");
 	const debouncedSearch = useDebouncedValue(search, 200);
+	const [mounted, setMounted] = useState(false);
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
 	const [roleFilter, setRoleFilter] = useState("all");
 	const [showAddUser, setShowAddUser] = useState(false);
 	const [formError, setFormError] = useState<string | null>(null);
@@ -37,6 +43,7 @@ function UsersPage() {
 		password: "",
 		role_name: "sales",
 		status: "active",
+		client_id: "",
 	});
 
 	useEffect(() => {
@@ -67,6 +74,17 @@ function UsersPage() {
 		staleTime: 60000,
 	});
 
+	const { data: clients = [] } = useQuery({
+		queryKey: ["clients"],
+		queryFn: async () => {
+			const { data, error } = await db.getClients();
+			if (error) throw error;
+			return data || [];
+		},
+		enabled: !!user,
+		staleTime: 60000,
+	});
+
 	const createUserMutation = useMutation({
 		mutationFn: async () => {
 			const payload = {
@@ -77,6 +95,7 @@ function UsersPage() {
 				phone_number: newUser.phone_number.trim() || null,
 				role_name: newUser.role_name,
 				status: newUser.status || "active",
+				client_id: newUser.role_name === 'client' ? (newUser.client_id || null) : null,
 			};
 
 			const { data, error } = await db.createUserWithProfile(payload);
@@ -96,6 +115,7 @@ function UsersPage() {
 				password: "",
 				role_name: "sales",
 				status: "active",
+				client_id: "",
 			});
 		},
 		onError: (error: any) => {
@@ -118,6 +138,7 @@ function UsersPage() {
 		director: "bg-blue-100 text-blue-700",
 		sales: "bg-emerald-100 text-emerald-700",
 		packer: "bg-amber-100 text-amber-700",
+		client: "bg-slate-100 text-slate-700",
 	};
 
 	const statusColors: Record<string, string> = {
@@ -125,6 +146,8 @@ function UsersPage() {
 		inactive: "bg-gray-100 text-gray-700",
 		suspended: "bg-red-100 text-red-700",
 	};
+
+	if (!mounted) return null;
 
 	if (authLoading) {
 		return (
@@ -182,6 +205,7 @@ function UsersPage() {
 								<option value="director">Director</option>
 								<option value="sales">Sales</option>
 								<option value="packer">Packer</option>
+								<option value="client">Client</option>
 							</select>
 						</div>
 					</div>
@@ -396,13 +420,42 @@ function UsersPage() {
 									}
 									className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
 								>
-									{roles.map((role: any) => (
-										<option key={role.id} value={role.name}>
-											{role.name}
-										</option>
-									))}
+									<option value="sales">Sales</option>
+									<option value="packer">Packer</option>
+									<option value="admin">Admin</option>
+									<option value="director">Director</option>
+									<option value="client">Client</option>
 								</select>
 							</div>
+
+							{newUser.role_name === 'client' && (
+								<div className="md:col-span-2 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+									<label
+										htmlFor="new-user-client"
+										className="text-xs font-semibold text-blue-800"
+									>
+										Assign to Client Company
+									</label>
+									<select
+										id="new-user-client"
+										value={newUser.client_id}
+										onChange={(e) =>
+											setNewUser((prev) => ({
+												...prev,
+												client_id: e.target.value,
+											}))
+										}
+										className="mt-1 w-full px-3 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+									>
+										<option value="">-- Select a client --</option>
+										{clients.map((c: any) => (
+											<option key={c.id} value={c.id}>{c.name}</option>
+										))}
+									</select>
+									<p className="text-xs text-blue-600 mt-1">This user will only have access to data belonging to the selected client.</p>
+								</div>
+							)}
+
 							<div>
 								<label
 									htmlFor="new-user-status"

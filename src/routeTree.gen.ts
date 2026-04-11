@@ -17,10 +17,17 @@ import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as InventoryDuplicatesRouteImport } from './routes/inventory-duplicates'
 import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as DataImportRouteImport } from './routes/data-import'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrdersIndexRouteImport } from './routes/orders/index'
+import { Route as PortalLoginRouteImport } from './routes/portal/login'
 import { Route as OrdersOrderIdRouteImport } from './routes/orders/$orderId'
+import { Route as PortalProjectsIndexRouteImport } from './routes/portal/projects/index'
+import { Route as PortalScanTokenRouteImport } from './routes/portal/scan/$token'
+import { Route as PortalPackageIdRouteImport } from './routes/portal/package/$id'
+import { Route as PortalItemIdRouteImport } from './routes/portal/item/$id'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
@@ -62,9 +69,19 @@ const InventoryRoute = InventoryRouteImport.update({
   path: '/inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DataImportRoute = DataImportRouteImport.update({
+  id: '/data-import',
+  path: '/data-import',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientsRoute = ClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -77,15 +94,42 @@ const OrdersIndexRoute = OrdersIndexRouteImport.update({
   path: '/',
   getParentRoute: () => OrdersRoute,
 } as any)
+const PortalLoginRoute = PortalLoginRouteImport.update({
+  id: '/portal/login',
+  path: '/portal/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrdersOrderIdRoute = OrdersOrderIdRouteImport.update({
   id: '/$orderId',
   path: '/$orderId',
   getParentRoute: () => OrdersRoute,
 } as any)
+const PortalProjectsIndexRoute = PortalProjectsIndexRouteImport.update({
+  id: '/portal/projects/',
+  path: '/portal/projects/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalScanTokenRoute = PortalScanTokenRouteImport.update({
+  id: '/portal/scan/$token',
+  path: '/portal/scan/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalPackageIdRoute = PortalPackageIdRouteImport.update({
+  id: '/portal/package/$id',
+  path: '/portal/package/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalItemIdRoute = PortalItemIdRouteImport.update({
+  id: '/portal/item/$id',
+  path: '/portal/item/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
+  '/data-import': typeof DataImportRoute
   '/inventory': typeof InventoryRoute
   '/inventory-duplicates': typeof InventoryDuplicatesRoute
   '/login': typeof LoginRoute
@@ -95,11 +139,18 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/portal/login': typeof PortalLoginRoute
   '/orders/': typeof OrdersIndexRoute
+  '/portal/item/$id': typeof PortalItemIdRoute
+  '/portal/package/$id': typeof PortalPackageIdRoute
+  '/portal/scan/$token': typeof PortalScanTokenRoute
+  '/portal/projects/': typeof PortalProjectsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
+  '/data-import': typeof DataImportRoute
   '/inventory': typeof InventoryRoute
   '/inventory-duplicates': typeof InventoryDuplicatesRoute
   '/login': typeof LoginRoute
@@ -108,12 +159,19 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/portal/login': typeof PortalLoginRoute
   '/orders': typeof OrdersIndexRoute
+  '/portal/item/$id': typeof PortalItemIdRoute
+  '/portal/package/$id': typeof PortalPackageIdRoute
+  '/portal/scan/$token': typeof PortalScanTokenRoute
+  '/portal/projects': typeof PortalProjectsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
+  '/data-import': typeof DataImportRoute
   '/inventory': typeof InventoryRoute
   '/inventory-duplicates': typeof InventoryDuplicatesRoute
   '/login': typeof LoginRoute
@@ -123,13 +181,20 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/portal/login': typeof PortalLoginRoute
   '/orders/': typeof OrdersIndexRoute
+  '/portal/item/$id': typeof PortalItemIdRoute
+  '/portal/package/$id': typeof PortalPackageIdRoute
+  '/portal/scan/$token': typeof PortalScanTokenRoute
+  '/portal/projects/': typeof PortalProjectsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/clients'
     | '/dashboard'
+    | '/data-import'
     | '/inventory'
     | '/inventory-duplicates'
     | '/login'
@@ -139,11 +204,18 @@ export interface FileRouteTypes {
     | '/settings'
     | '/users'
     | '/orders/$orderId'
+    | '/portal/login'
     | '/orders/'
+    | '/portal/item/$id'
+    | '/portal/package/$id'
+    | '/portal/scan/$token'
+    | '/portal/projects/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/clients'
     | '/dashboard'
+    | '/data-import'
     | '/inventory'
     | '/inventory-duplicates'
     | '/login'
@@ -152,11 +224,18 @@ export interface FileRouteTypes {
     | '/settings'
     | '/users'
     | '/orders/$orderId'
+    | '/portal/login'
     | '/orders'
+    | '/portal/item/$id'
+    | '/portal/package/$id'
+    | '/portal/scan/$token'
+    | '/portal/projects'
   id:
     | '__root__'
     | '/'
+    | '/clients'
     | '/dashboard'
+    | '/data-import'
     | '/inventory'
     | '/inventory-duplicates'
     | '/login'
@@ -166,12 +245,19 @@ export interface FileRouteTypes {
     | '/settings'
     | '/users'
     | '/orders/$orderId'
+    | '/portal/login'
     | '/orders/'
+    | '/portal/item/$id'
+    | '/portal/package/$id'
+    | '/portal/scan/$token'
+    | '/portal/projects/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ClientsRoute: typeof ClientsRoute
   DashboardRoute: typeof DashboardRoute
+  DataImportRoute: typeof DataImportRoute
   InventoryRoute: typeof InventoryRoute
   InventoryDuplicatesRoute: typeof InventoryDuplicatesRoute
   LoginRoute: typeof LoginRoute
@@ -180,6 +266,11 @@ export interface RootRouteChildren {
   RequestsRoute: typeof RequestsRoute
   SettingsRoute: typeof SettingsRoute
   UsersRoute: typeof UsersRoute
+  PortalLoginRoute: typeof PortalLoginRoute
+  PortalItemIdRoute: typeof PortalItemIdRoute
+  PortalPackageIdRoute: typeof PortalPackageIdRoute
+  PortalScanTokenRoute: typeof PortalScanTokenRoute
+  PortalProjectsIndexRoute: typeof PortalProjectsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -240,11 +331,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/data-import': {
+      id: '/data-import'
+      path: '/data-import'
+      fullPath: '/data-import'
+      preLoaderRoute: typeof DataImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clients': {
+      id: '/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof ClientsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -261,12 +366,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrdersIndexRouteImport
       parentRoute: typeof OrdersRoute
     }
+    '/portal/login': {
+      id: '/portal/login'
+      path: '/portal/login'
+      fullPath: '/portal/login'
+      preLoaderRoute: typeof PortalLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orders/$orderId': {
       id: '/orders/$orderId'
       path: '/$orderId'
       fullPath: '/orders/$orderId'
       preLoaderRoute: typeof OrdersOrderIdRouteImport
       parentRoute: typeof OrdersRoute
+    }
+    '/portal/projects/': {
+      id: '/portal/projects/'
+      path: '/portal/projects'
+      fullPath: '/portal/projects/'
+      preLoaderRoute: typeof PortalProjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/scan/$token': {
+      id: '/portal/scan/$token'
+      path: '/portal/scan/$token'
+      fullPath: '/portal/scan/$token'
+      preLoaderRoute: typeof PortalScanTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/package/$id': {
+      id: '/portal/package/$id'
+      path: '/portal/package/$id'
+      fullPath: '/portal/package/$id'
+      preLoaderRoute: typeof PortalPackageIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/item/$id': {
+      id: '/portal/item/$id'
+      path: '/portal/item/$id'
+      fullPath: '/portal/item/$id'
+      preLoaderRoute: typeof PortalItemIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -286,7 +426,9 @@ const OrdersRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ClientsRoute: ClientsRoute,
   DashboardRoute: DashboardRoute,
+  DataImportRoute: DataImportRoute,
   InventoryRoute: InventoryRoute,
   InventoryDuplicatesRoute: InventoryDuplicatesRoute,
   LoginRoute: LoginRoute,
@@ -295,6 +437,11 @@ const rootRouteChildren: RootRouteChildren = {
   RequestsRoute: RequestsRoute,
   SettingsRoute: SettingsRoute,
   UsersRoute: UsersRoute,
+  PortalLoginRoute: PortalLoginRoute,
+  PortalItemIdRoute: PortalItemIdRoute,
+  PortalPackageIdRoute: PortalPackageIdRoute,
+  PortalScanTokenRoute: PortalScanTokenRoute,
+  PortalProjectsIndexRoute: PortalProjectsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -142,6 +142,58 @@ export const db = {
 		return supabase.from("clients").insert(payload).select("*").single();
 	},
 
+	updateClient: async (id: string, payload: {
+		name?: string;
+		contact_person?: string | null;
+		email?: string | null;
+		phone?: string | null;
+		address?: string | null;
+		portal_settings_id?: string | null;
+	}) => {
+		return supabase.from("clients").update(payload).eq("id", id).select("*").single();
+	},
+
+	getPortalSettings: async (id: string) => {
+		return supabase.from("client_portal_settings").select("*").eq("id", id).single();
+	},
+
+	upsertPortalSettings: async (payload: {
+		id?: string;
+		slug: string;
+		is_active?: boolean;
+		portal_requires_auth?: boolean;
+		show_qr_logo?: boolean;
+		qr_logo_url?: string | null;
+	}) => {
+		const dbPayload = {
+			id: payload.id,
+			portal_slug: payload.slug,
+			is_active: payload.is_active,
+			requires_auth: payload.portal_requires_auth,
+			show_qr_logo: payload.show_qr_logo,
+			qr_logo_url: payload.qr_logo_url
+		};
+		if (dbPayload.id) {
+			return supabase.from("client_portal_settings")
+				.update(dbPayload)
+				.eq("id", dbPayload.id)
+				.select("*")
+				.single();
+		} else {
+			return supabase.from("client_portal_settings")
+				.insert(dbPayload)
+				.select("*")
+				.single();
+		}
+	},
+
+	uploadLogo: async (file: File, path: string) => {
+		return supabase.storage.from("media").upload(path, file, {
+			upsert: true,
+			contentType: file.type,
+		});
+	},
+
 	// ===== Orders =====
 	// Keep order creation logic here so route components stay focused on UI.
 	createOrder: async (payload: {
@@ -355,6 +407,7 @@ export const db = {
 		phone_number?: string | null;
 		role_name: string;
 		status?: string | null;
+		client_id?: string | null;
 	}) => {
 		const { data: sessionData } = await supabase.auth.getSession();
 		const accessToken = sessionData?.session?.access_token;
