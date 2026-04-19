@@ -5,37 +5,52 @@ import type {
 	PackingTypeOption,
 	RawPackageRow,
 	ResolvedPackageRow,
+	SeiCategoryOption,
+	SeiProtectionOption,
 } from "./types";
 import { WOOD_OUT_OF_RANGE_ID } from "./types";
 import {
+	extractSeiTokensFromCombined,
 	isGenericWood,
 	isWoodVariantOption,
 	nearlyEqual,
 	normalizePackingTypeValue,
+	normalizeSeiCategoryValue,
+	normalizeSeiProtectionValue,
 	normalizeVariantName,
 } from "./utils";
 
 interface ResolveParams {
+	templateMode: "legacy" | "v54plus";
 	rawPackages: RawPackageRow[];
 	boxTypes: BoxTypeOption[];
 	packingTypes: PackingTypeOption[];
+	seiCategories: SeiCategoryOption[];
+	seiProtections: SeiProtectionOption[];
 	woodVariants: MaterialVariantOption[];
 	bodyVariants: MaterialVariantOption[];
 	materialVariants: MaterialVariantOption[];
 	packingTypeOverrides: Record<number, string>;
+	seiCategoryOverrides: Record<number, number>;
+	seiProtectionOverrides: Record<number, number>;
 	packingTypeShowAll: Record<number, boolean>;
 	manufacturingTypeOverrides: Record<string, string>;
 	manufacturingShowAll: Record<string, boolean>;
 }
 
 export const resolvePackages = ({
+	templateMode,
 	rawPackages,
 	boxTypes,
 	packingTypes,
+	seiCategories,
+	seiProtections,
 	woodVariants,
 	bodyVariants,
 	materialVariants,
 	packingTypeOverrides,
+	seiCategoryOverrides,
+	seiProtectionOverrides,
 	packingTypeShowAll,
 	manufacturingTypeOverrides,
 	manufacturingShowAll,
@@ -63,6 +78,56 @@ export const resolvePackages = ({
 		boxTypeNormalizedMap.set(normalizeBoxTypeValue(rawName), box);
 	});
 
+	type ResolvedPackingOption = {
+		id: string;
+		label: string;
+		categoryId: number | null;
+		protectionId: number | null;
+	};
+
+	const toLegacyPackingOption = (
+		packing: PackingTypeOption,
+	): ResolvedPackingOption => ({
+		id: packing.id,
+		label: `${packing.code || "—"}${packing.name ? ` - ${packing.name}` : ""}`,
+		categoryId: null,
+		protectionId: null,
+	});
+
+	const formatSeiCategoryLabel = (category: SeiCategoryOption) => {
+		const codeLabel =
+			category.code === null || category.code === undefined
+				? null
+				: `SEI.${category.code}`;
+		return category.name || codeLabel || `SEI category ${category.id}`;
+	};
+
+	const formatSeiProtectionLabel = (protection: SeiProtectionOption) => {
+		const code = String(protection.code || "").trim();
+		const name = String(protection.name || "").trim();
+		if (code && name) return `${code} - ${name}`;
+		if (code) return code;
+		if (name) return name;
+		return `SEI protection ${protection.id}`;
+	};
+
+	const toSeiOption = (
+		category: SeiCategoryOption,
+		protection: SeiProtectionOption,
+	): ResolvedPackingOption => ({
+		id: `sei:${category.id}:${protection.id}`,
+		label: `${formatSeiCategoryLabel(category)} / ${formatSeiProtectionLabel(protection)}`,
+		categoryId: Number(category.id),
+		protectionId: Number(protection.id),
+	});
+
+	const seiCategoryMap = new Map(
+		seiCategories.map((category) => [Number(category.id), category] as const),
+	);
+	const seiProtectionMap = new Map(
+		seiProtections.map((protection) => [Number(protection.id), protection] as const),
+	);
+
 	const previews: PackagePreview[] = rawPackages.map((pkg) => {
 		const rawBoxTypeLabel = pkg.boxTypeLabel?.trim() || "";
 		const normalizedBoxTypeLabel = normalizeBoxTypeValue(rawBoxTypeLabel);
@@ -80,32 +145,133 @@ export const resolvePackages = ({
 				null
 			: null;
 
-		const rawPackingNormalized = normalizePackingTypeValue(pkg.packingTypeRaw);
-		const matchedPackingOptions = rawPackingNormalized
-			? packingTypes.filter((packing) => {
-					const normalized = normalizePackingTypeValue(packing.code);
-					if (!normalized) return false;
-					if (normalized === rawPackingNormalized) return true;
-					if (/^\d+[A-Z]$/.test(rawPackingNormalized)) {
-						return normalized.startsWith(rawPackingNormalized);
-					}
-					return false;
-				})
-			: [];
-
 		const shouldShowAll = !!packingTypeShowAll[pkg.packageNumber];
-		const packingOptions = shouldShowAll
-			? packingTypes
-			: matchedPackingOptions.length > 0
-				? matchedPackingOptions
-				: packingTypes;
-
 		const overrideId = packingTypeOverrides[pkg.packageNumber];
-		const selectedPacking = overrideId
-			? packingTypes.find((option) => option.id === overrideId)
-			: matchedPackingOptions.length === 1
-				? matchedPackingOptions[0]
-				: null;
+		let matchedOptionCount = 0;
+		let packingOptions: ResolvedPackingOption[] = [];
+		let selectedPacking: ResolvedPackingOption | null = null;
+		let seiCategoryOptions: Array<{ id: number; label: string }> = [];
+		let seiProtectionOptions: Array<{ id: number; label: string }> = [];
+		let hasMatchedSeiCategories = false;
+		let hasMatchedSeiProtections = false;
+
+		if (templateMode === "v54plus") {
+			const combinedSeiTokens = extractSeiTokensFromCombined(pkg.packingTypeRaw);
+			const categoryToken =
+				combinedSeiTokens.categoryToken ||
+				normalizeSeiCategoryValue(pkg.seiCategoryRaw);
+			const protectionToken =
+				combinedSeiTokens.protectionToken ||
+				normalizeSeiProtectionValue(pkg.seiProtectionRaw);
+
+			const matchedSeiCategories = categoryToken
+				? seiCategories.filter((category) => {
+						const codeToken =
+							category.code === null || category.code === undefined
+								? null
+								: String(category.code);
+						const nameToken = normalizeSeiCategoryValue(category.name);
+						return categoryToken === codeToken || categoryToken === nameToken;
+					})
+				: [];
+
+			const matchedSeiProtections = protectionToken
+				? seiProtections.filter((protection) => {
+						const codeToken = normalizeSeiProtectionValue(protection.code);
+						const nameToken = normalizeSeiProtectionValue(protection.name);
+						return protectionToken === codeToken || protectionToken === nameToken;
+					})
+				: [];
+
+			const matchedSeiOptions =
+				matchedSeiCategories.length > 0 && matchedSeiProtections.length > 0
+					? matchedSeiCategories.flatMap((category) =>
+							matchedSeiProtections.map((protection) =>
+								toSeiOption(category, protection),
+							),
+						)
+					: [];
+
+			hasMatchedSeiCategories = matchedSeiCategories.length > 0;
+			hasMatchedSeiProtections = matchedSeiProtections.length > 0;
+			matchedOptionCount = matchedSeiOptions.length;
+
+			const categoryOptionSource = shouldShowAll
+				? seiCategories
+				: matchedSeiCategories.length > 0
+					? matchedSeiCategories
+					: seiCategories;
+			const protectionOptionSource = shouldShowAll
+				? seiProtections
+				: matchedSeiProtections.length > 0
+					? matchedSeiProtections
+					: seiProtections;
+
+			seiCategoryOptions = categoryOptionSource.map((category) => ({
+				id: Number(category.id),
+				label: formatSeiCategoryLabel(category),
+			}));
+			seiProtectionOptions = protectionOptionSource.map((protection) => ({
+				id: Number(protection.id),
+				label: formatSeiProtectionLabel(protection),
+			}));
+
+			const overrideCategoryId = seiCategoryOverrides[pkg.packageNumber];
+			const overrideProtectionId = seiProtectionOverrides[pkg.packageNumber];
+
+			const selectedCategory =
+				overrideCategoryId !== undefined
+					? seiCategoryMap.get(Number(overrideCategoryId)) || null
+					: matchedSeiCategories.length === 1
+						? matchedSeiCategories[0]
+						: null;
+			const selectedProtection =
+				overrideProtectionId !== undefined
+					? seiProtectionMap.get(Number(overrideProtectionId)) || null
+					: matchedSeiProtections.length === 1
+						? matchedSeiProtections[0]
+						: null;
+
+			selectedPacking =
+				selectedCategory && selectedProtection
+					? toSeiOption(selectedCategory, selectedProtection)
+					: null;
+		} else {
+			const rawPackingNormalized = normalizePackingTypeValue(pkg.packingTypeRaw);
+			const matchedPackingOptions = rawPackingNormalized
+				? packingTypes.filter((packing) => {
+						const normalized = normalizePackingTypeValue(packing.code);
+						if (!normalized) return false;
+						if (normalized === rawPackingNormalized) return true;
+						if (/^\d+[A-Z]$/.test(rawPackingNormalized)) {
+							return normalized.startsWith(rawPackingNormalized);
+						}
+						return false;
+					})
+				: [];
+
+			const legacyOptions = shouldShowAll
+				? packingTypes
+				: matchedPackingOptions.length > 0
+					? matchedPackingOptions
+					: packingTypes;
+			packingOptions = legacyOptions.map(toLegacyPackingOption);
+			matchedOptionCount = matchedPackingOptions.length;
+
+			selectedPacking = overrideId
+				? packingOptions.find((option) => option.id === overrideId) || null
+				: matchedPackingOptions.length === 1
+					? toLegacyPackingOption(matchedPackingOptions[0])
+					: null;
+		}
+
+		const fallbackPackingLabel =
+			templateMode === "v54plus"
+				? [pkg.seiCategoryRaw, pkg.seiProtectionRaw, pkg.packingTypeRaw]
+						.filter((value) => !!value)
+						.join(" ")
+						.trim() || "—"
+				: pkg.packingTypeCode || pkg.packingTypeRaw || "—";
 
 		const buildTypePreview = (
 			label: string | null,
@@ -259,22 +425,25 @@ export const resolvePackages = ({
 			boxTypeLabel: pkg.boxTypeLabel,
 			boxTypeResolved: !!boxType,
 			boxTypeId: boxType?.id || null,
+			seiCategoryRaw: pkg.seiCategoryRaw,
+			seiProtectionRaw: pkg.seiProtectionRaw,
 			packingTypeRaw: pkg.packingTypeRaw,
 			packingTypeCode: pkg.packingTypeCode,
-			packingTypeLabel:
-				selectedPacking?.name ||
-				selectedPacking?.code ||
-				pkg.packingTypeCode ||
-				pkg.packingTypeRaw ||
-				"—",
+			packingTypeLabel: selectedPacking?.label || fallbackPackingLabel,
 			packingTypeResolved: !!selectedPacking,
 			packingTypeId: selectedPacking?.id || null,
 			packingTypeOptions: packingOptions.map((option) => ({
 				id: option.id,
-				label: `${option.code || "—"}${option.name ? ` - ${option.name}` : ""}`,
+				label: option.label,
 			})),
-			hasMatchedPackingOptions: matchedPackingOptions.length > 0,
+			hasMatchedPackingOptions: matchedOptionCount > 0,
 			showAllPackingOptions: shouldShowAll,
+			seiCategoryId: selectedPacking?.categoryId ?? null,
+			seiProtectionId: selectedPacking?.protectionId ?? null,
+			seiCategoryOptions,
+			seiProtectionOptions,
+			hasMatchedSeiCategories,
+			hasMatchedSeiProtections,
 			internal: {
 				length: pkg.internal_length,
 				width: pkg.internal_width,
@@ -406,7 +575,10 @@ export const resolvePackages = ({
 		item_width: preview.item.width,
 		item_height: preview.item.height,
 		box_type_id: (preview as any).boxTypeId,
-		packing_type_id: preview.packingTypeId,
+		packing_type_id:
+			templateMode === "v54plus" ? null : preview.packingTypeId,
+		sei_category: preview.seiCategoryId,
+		sei_protection: preview.seiProtectionId,
 		internal_length: preview.internal.length,
 		internal_width: preview.internal.width,
 		internal_height: preview.internal.height,

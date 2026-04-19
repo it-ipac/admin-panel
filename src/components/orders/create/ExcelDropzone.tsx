@@ -10,7 +10,7 @@ interface ExcelDropzoneProps {
 	helperText?: string;
 }
 
-const ACCEPTED_EXTENSIONS = [".xlsx", ".xls", ".xlsm"];
+const ACCEPTED_EXTENSIONS = [".xlsx", ".xls", ".xlsm", ".xlsb"];
 
 function isExcelFile(file: File) {
 	return ACCEPTED_EXTENSIONS.some((ext) =>
@@ -95,7 +95,7 @@ export function ExcelDropzone({
 								{file ? file.name : "Drop Excel file here"}
 							</p>
 							<p className="text-xs text-gray-500">
-								{helperText || "Excel .xlsx or .xls"}
+								{helperText || "Excel .xlsx, .xlsm, .xls, or .xlsb"}
 							</p>
 						</div>
 					</div>

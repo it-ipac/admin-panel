@@ -45,26 +45,58 @@ function TokenResolver() {
 				let targetUrl = '';
 
 				if (qrData.entity_type === 'package') {
-					// We need to look up the order package, then its order, then client
-					const { data: pkg } = await supabase
-						.from('order_packages')
-						.select('order_id')
+					// New flow: package QR represents an order_pkg_instance id.
+					const { data: pkgInstance, error: pkgInstanceError } = await supabase
+						.from('order_pkg_instance')
+						.select(`
+							id,
+							order_pkg_overview (order_id),
+							order_package:order_packages (order_id)
+						`)
 						.eq('id', qrData.entity_id)
-						.single();
-						
-					if (pkg) {
-						const { data: order } = await supabase
-							.from('orders')
-							.select('client_id')
-							.eq('id', pkg.order_id)
-							.single();
-						clientId = order?.client_id;
+						.maybeSingle();
+
+					if (pkgInstanceError && pkgInstanceError.code !== 'PGRST116') {
+						throw pkgInstanceError;
 					}
+
+					if (pkgInstance) {
+						const orderId =
+							pkgInstance.order_pkg_overview?.order_id ||
+							pkgInstance.order_package?.order_id ||
+							null;
+
+						if (orderId) {
+							const { data: order } = await supabase
+								.from('orders')
+								.select('client_id')
+								.eq('id', orderId)
+								.single();
+							clientId = order?.client_id;
+						}
+					} else {
+						// Legacy fallback: token may still target order_packages.id.
+						const { data: pkg } = await supabase
+							.from('order_packages')
+							.select('order_id')
+							.eq('id', qrData.entity_id)
+							.maybeSingle();
+
+						if (pkg?.order_id) {
+							const { data: order } = await supabase
+								.from('orders')
+								.select('client_id')
+								.eq('id', pkg.order_id)
+								.single();
+							clientId = order?.client_id;
+						}
+					}
+
 					targetUrl = `/portal/package/${qrData.entity_id}`;
 				} else if (qrData.entity_type === 'item') {
-					// We need to look up the item in maintenance_db
+					// We need to look up the item in items_db
 					const { data: mDb } = await supabase
-						.from('maintenance_db')
+						.from('items_db')
 						.select('client_id')
 						.eq('id', qrData.entity_id)
 						.single();

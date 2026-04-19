@@ -82,4 +82,42 @@ describe("parsePackageRows", () => {
 			amount: 7,
 		});
 	});
+
+	it("skips heading rows and accepts first valid package row at row 5", () => {
+		const sheet = createSheet();
+
+		// Row 4 mimics heading/noise: designation present but quantity is not a positive whole number.
+		sheet.getCell("A4").value = "Qty";
+		sheet.getCell("B4").value = "Item Designation";
+
+		// First real package starts at row 5.
+		sheet.getCell("A5").value = 2;
+		sheet.getCell("B5").value = "PKG-REAL-1";
+		sheet.getCell("C5").value = "Wooden Box";
+
+		// Row 6 should be ignored because quantity is decimal.
+		sheet.getCell("A6").value = 1.5;
+		sheet.getCell("B6").value = "PKG-INVALID-DECIMAL";
+
+		// Row 7 should be ignored because designation is missing.
+		sheet.getCell("A7").value = 1;
+		sheet.getCell("B7").value = "";
+
+		// Second real package.
+		sheet.getCell("A8").value = 1;
+		sheet.getCell("B8").value = "PKG-REAL-2";
+
+		const rows = parsePackageRows(sheet, 0);
+		expect(rows).toHaveLength(2);
+
+		expect(rows[0].rowIndex).toBe(5);
+		expect(rows[0].packageNumber).toBe(1);
+		expect(rows[0].designation).toBe("PKG-REAL-1");
+		expect(rows[0].quantity).toBe(2);
+
+		expect(rows[1].rowIndex).toBe(8);
+		expect(rows[1].packageNumber).toBe(2);
+		expect(rows[1].designation).toBe("PKG-REAL-2");
+		expect(rows[1].quantity).toBe(1);
+	});
 });

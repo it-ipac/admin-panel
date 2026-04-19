@@ -12,10 +12,30 @@ export interface ClientOption {
 	address: string | null;
 }
 
+export interface OrderCategoryOption {
+	id: string;
+	label: string;
+	tags: string[];
+}
+
 export interface PackingTypeOption {
 	id: string;
 	code: string | null;
 	name: string | null;
+}
+
+export interface SeiCategoryOption {
+	id: number;
+	code: number | null;
+	name: string | null;
+	description?: string | null;
+}
+
+export interface SeiProtectionOption {
+	id: number;
+	code: string | null;
+	name: string | null;
+	description?: string | null;
 }
 
 export interface BoxTypeOption {
@@ -78,6 +98,8 @@ export interface RawPackageRow {
 	boxTypeLabel: string | null;
 	packingTypeRaw: string | null;
 	packingTypeCode: string | null;
+	seiCategoryRaw: string | null;
+	seiProtectionRaw: string | null;
 	manufacturing: {
 		big: RawManufacturingTemplate;
 		small: RawManufacturingTemplate;
@@ -105,6 +127,8 @@ export interface ResolvedPackageRow {
 	item_height: number | null;
 	box_type_id: string | null;
 	packing_type_id: string | null;
+	sei_category: number | null;
+	sei_protection: number | null;
 	internal_length: number | null;
 	internal_width: number | null;
 	internal_height: number | null;

@@ -46,6 +46,30 @@ export function PackageInfoTab({
 		},
 	});
 
+	const { data: seiCategories } = useQuery({
+		queryKey: ["seiCategories"],
+		queryFn: async () => {
+			const { data, error } = await supabase
+				.from("sei_categories")
+				.select("id, code, name")
+				.order("id", { ascending: true });
+			if (error) throw error;
+			return data;
+		},
+	});
+
+	const { data: seiProtections } = useQuery({
+		queryKey: ["seiProtections"],
+		queryFn: async () => {
+			const { data, error } = await supabase
+				.from("sei_protection")
+				.select("id, code, name")
+				.order("id", { ascending: true });
+			if (error) throw error;
+			return data;
+		},
+	});
+
 	const packingTypeOptions =
 		packingTypes?.map((t) => ({
 			label: `${t.code} - ${t.name}`,
@@ -53,6 +77,16 @@ export function PackageInfoTab({
 		})) || [];
 	const boxTypeOptions =
 		boxTypes?.map((t) => ({ label: t.name, value: t.id })) || [];
+	const seiCategoryOptions =
+		seiCategories?.map((entry) => ({
+			label: `${entry.code ?? entry.id} - ${entry.name}`,
+			value: String(entry.id),
+		})) || [];
+	const seiProtectionOptions =
+		seiProtections?.map((entry) => ({
+			label: `${entry.code ?? entry.id} - ${entry.name}`,
+			value: String(entry.id),
+		})) || [];
 
 	const getPackingTypeName = (id: string | null | undefined) => {
 		if (!id) return null;
@@ -64,6 +98,18 @@ export function PackageInfoTab({
 		if (!id) return null;
 		const t = boxTypes?.find((t) => t.id === id);
 		return t ? t.name : id;
+	};
+
+	const getSeiCategoryName = (id: number | null | undefined) => {
+		if (!id) return null;
+		const entry = seiCategories?.find((item) => item.id === id);
+		return entry ? `${entry.code ?? entry.id} - ${entry.name}` : String(id);
+	};
+
+	const getSeiProtectionName = (id: number | null | undefined) => {
+		if (!id) return null;
+		const entry = seiProtections?.find((item) => item.id === id);
+		return entry ? `${entry.code ?? entry.id} - ${entry.name}` : String(id);
 	};
 
 	const handleUpdate = (field: keyof PackageInfo, value: any) => {
@@ -112,6 +158,32 @@ export function PackageInfoTab({
 					type="select"
 					selectItems={packingTypeOptions}
 					onChange={(v) => handleUpdate("packing_type_id", v)}
+					editable={!isPacked}
+				/>
+				<TwoTierCard
+					label="SEI Category"
+					original={getSeiCategoryName(
+						selectedPackage.original_pkg_info?.sei_category,
+					)}
+					final={selectedPackage.final_pkg_info?.sei_category}
+					type="select"
+					selectItems={seiCategoryOptions}
+					onChange={(v) =>
+						handleUpdate("sei_category", v ? Number(v) : null)
+					}
+					editable={!isPacked}
+				/>
+				<TwoTierCard
+					label="SEI Protection"
+					original={getSeiProtectionName(
+						selectedPackage.original_pkg_info?.sei_protection,
+					)}
+					final={selectedPackage.final_pkg_info?.sei_protection}
+					type="select"
+					selectItems={seiProtectionOptions}
+					onChange={(v) =>
+						handleUpdate("sei_protection", v ? Number(v) : null)
+					}
 					editable={!isPacked}
 				/>
 				<TwoTierCard

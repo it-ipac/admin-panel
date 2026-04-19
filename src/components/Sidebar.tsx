@@ -10,7 +10,6 @@ import {
 	ShoppingCart,
 	Users,
 	Building2,
-    Database,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { cn } from "../lib/cn";
@@ -22,7 +21,6 @@ const navItems = [
 	{ to: "/users", label: "Users", icon: Users },
 	{ to: "/inventory", label: "Inventory", icon: Package },
 	{ to: "/inventory-duplicates", label: "Variant Duplicates", icon: Copy },
-    { to: "/data-import", label: "Data Import", icon: Database },
 	{ to: "/requests", label: "Requests", icon: ClipboardList },
 	{ to: "/reports", label: "Reports", icon: FileText },
 	{ to: "/settings", label: "Settings", icon: Settings },

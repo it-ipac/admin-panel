@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ManufacturingPartCard } from "./ManufacturingPartCard";
 import { ManufacturingSectionsPanel } from "./ManufacturingSectionsPanel";
 import { formatNumber, NumberInput } from "./NumberInput";
@@ -5,11 +6,16 @@ import type { OrderCreateConfirmDialogProps, PackagePreview } from "./types";
 
 interface PackagePreviewSectionProps {
 	packagePreviews: PackagePreview[];
+	packageIssueMessages: Record<number, string[]>;
+	partIssueMessages: Record<string, string[]>;
 	activePackage: number;
 	setActivePackage: (index: number) => void;
 	templateMode?: "legacy" | "v54plus";
 	onPackageFieldChange: OrderCreateConfirmDialogProps["onPackageFieldChange"];
+	onPackageRemove: OrderCreateConfirmDialogProps["onPackageRemove"];
 	onPackingTypeChange: OrderCreateConfirmDialogProps["onPackingTypeChange"];
+	onSeiCategoryChange: OrderCreateConfirmDialogProps["onSeiCategoryChange"];
+	onSeiProtectionChange: OrderCreateConfirmDialogProps["onSeiProtectionChange"];
 	onPackingTypeOptionsToggle: OrderCreateConfirmDialogProps["onPackingTypeOptionsToggle"];
 	onManufacturingTypeChange: OrderCreateConfirmDialogProps["onManufacturingTypeChange"];
 	onManufacturingFieldChange: OrderCreateConfirmDialogProps["onManufacturingFieldChange"];
@@ -79,13 +85,44 @@ const renderDimensionInputs = (
 const normalizeLabel = (value: string | null | undefined): string =>
 	(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
+type IssueField = "quantity" | "width" | "thickness" | "space";
+
+interface PackageIssueAction {
+	key: string;
+	packageNumber: number;
+	message: string;
+	targetId?: string;
+	makePositive?: {
+		partKey: string;
+		field: IssueField;
+		value: number;
+	};
+}
+
+const sanitizeForDomId = (value: string) =>
+	value.replace(/[^a-zA-Z0-9_-]/g, "_");
+
+const getPackageInputId = (packageNumber: number, field: string) =>
+	`order-create-package-${packageNumber}-${field}`;
+
+const getPartInputId = (partKey: string, field: IssueField) =>
+	`order-create-part-${sanitizeForDomId(partKey)}-${field}`;
+
+const getPartTypeSelectId = (partKey: string) =>
+	`order-create-part-${sanitizeForDomId(partKey)}-type`;
+
 export function PackagePreviewSection({
 	packagePreviews,
+	packageIssueMessages,
+	partIssueMessages,
 	activePackage,
 	setActivePackage,
 	templateMode,
 	onPackageFieldChange,
+	onPackageRemove,
 	onPackingTypeChange,
+	onSeiCategoryChange,
+	onSeiProtectionChange,
 	onPackingTypeOptionsToggle,
 	onManufacturingTypeChange,
 	onManufacturingFieldChange,
@@ -96,11 +133,19 @@ export function PackagePreviewSection({
 	if (!packagePreviews.length) return null;
 	const pkg = packagePreviews[activePackage];
 	if (!pkg) return null;
+	const numericQuantity = Number(pkg.quantity);
+	const isQuantityValid =
+		Number.isFinite(numericQuantity) &&
+		Number.isInteger(numericQuantity) &&
+		numericQuantity > 0;
 	const normalizedBoxTypeLabel = normalizeLabel(pkg.boxTypeLabel);
 	const isBaseOnlyPackage = normalizedBoxTypeLabel.includes("baseonly");
+	const isV54Template = templateMode === "v54plus";
 
 	const boxTypeColumn = shiftColumn("C", templateMode);
 	const packingTypeColumn = shiftColumn("AB", templateMode);
+	const seiCategoryColumn = shiftColumn("C", templateMode);
+	const seiProtectionColumn = shiftColumn("D", templateMode);
 	const itemDimColumns = ["M", "N", "O"]
 		.map((column) => shiftColumn(column, templateMode))
 		.join(", ");
@@ -112,6 +157,232 @@ export function PackagePreviewSection({
 		.join(", ");
 	const netWeightColumn = shiftColumn("U", templateMode);
 	const tareColumn = shiftColumn("BAB", templateMode);
+	const [issueNavigationQueue, setIssueNavigationQueue] = useState<string[] | null>(
+		null,
+	);
+
+	const orderedIssueActions = useMemo(() => {
+		const negativePattern =
+			/^(Securing|Accessory)\s+(\d+)\s+(quantity|width|thickness)\s+cannot be negative\s+\((-?\d*\.?\d+)\)\.?$/i;
+		const quantityRequiredPattern =
+			/^(Securing|Accessory)\s+(\d+)\s+quantity is required when a material is selected\.$/i;
+		const missingUnitPattern =
+			/^(Securing|Accessory)\s+(\d+)\s+material has no unit mapping in inventory\.$/i;
+
+		const actions: PackageIssueAction[] = [];
+
+		for (const preview of packagePreviews) {
+			const messages = packageIssueMessages[preview.packageNumber] || [];
+			for (const rawMessage of messages) {
+				const message = rawMessage.trim();
+				const action: PackageIssueAction = {
+					key: `${preview.packageNumber}::${message}`,
+					packageNumber: preview.packageNumber,
+					message,
+				};
+
+				if (message === "Box quantity must be a positive whole number.") {
+					action.targetId = getPackageInputId(preview.packageNumber, "quantity");
+					actions.push(action);
+					continue;
+				}
+
+				if (message === "Box type is not mapped.") {
+					action.targetId = getPackageInputId(preview.packageNumber, "boxType");
+					actions.push(action);
+					continue;
+				}
+
+				if (message === "Packing type is not mapped.") {
+					action.targetId = getPackageInputId(preview.packageNumber, "packingType");
+					actions.push(action);
+					continue;
+				}
+
+				if (message === "SEI category/protection is not fully selected.") {
+					action.targetId = getPackageInputId(preview.packageNumber, "seiCategory");
+					actions.push(action);
+					continue;
+				}
+
+				if (message.startsWith("Resolve ")) {
+					action.targetId = getPackageInputId(preview.packageNumber, "manufacturing");
+					actions.push(action);
+					continue;
+				}
+
+				const quantityRequiredMatch = message.match(quantityRequiredPattern);
+				if (quantityRequiredMatch) {
+					const partType = quantityRequiredMatch[1] as "Securing" | "Accessory";
+					const partNumber = Number(quantityRequiredMatch[2]);
+					const partIndex = partNumber - 1;
+					const part =
+						partType === "Securing"
+							? preview.securing[partIndex]
+							: preview.accessories[partIndex];
+					if (part) {
+						action.targetId = getPartInputId(part.key, "quantity");
+					}
+					actions.push(action);
+					continue;
+				}
+
+				const missingUnitMatch = message.match(missingUnitPattern);
+				if (missingUnitMatch) {
+					const partType = missingUnitMatch[1] as "Securing" | "Accessory";
+					const partNumber = Number(missingUnitMatch[2]);
+					const partIndex = partNumber - 1;
+					const part =
+						partType === "Securing"
+							? preview.securing[partIndex]
+							: preview.accessories[partIndex];
+					if (part) {
+						action.targetId = getPartTypeSelectId(part.key);
+					}
+					actions.push(action);
+					continue;
+				}
+
+				const negativeMatch = message.match(negativePattern);
+				if (negativeMatch) {
+					const partType = negativeMatch[1] as "Securing" | "Accessory";
+					const partNumber = Number(negativeMatch[2]);
+					const issueField = negativeMatch[3] as "quantity" | "width" | "thickness";
+					const currentValue = Number(negativeMatch[4]);
+					const partIndex = partNumber - 1;
+					const part =
+						partType === "Securing"
+							? preview.securing[partIndex]
+							: preview.accessories[partIndex];
+					if (part) {
+						action.targetId = getPartInputId(part.key, issueField);
+						action.makePositive = {
+							partKey: part.key,
+							field: issueField,
+							value: currentValue,
+						};
+					}
+					actions.push(action);
+					continue;
+				}
+
+				actions.push(action);
+			}
+		}
+
+		return actions;
+	}, [packageIssueMessages, packagePreviews]);
+
+	const orderedIssueKeys = useMemo(
+		() => orderedIssueActions.map((issue) => issue.key),
+		[orderedIssueActions],
+	);
+
+	const issueActionByKey = useMemo(
+		() => new Map(orderedIssueActions.map((issue) => [issue.key, issue])),
+		[orderedIssueActions],
+	);
+
+	const currentPackageIssueActions = useMemo(
+		() =>
+			orderedIssueActions.filter(
+				(issue) => issue.packageNumber === pkg.packageNumber,
+			),
+		[orderedIssueActions, pkg.packageNumber],
+	);
+
+	const jumpToIssue = useCallback(
+		(issue: PackageIssueAction) => {
+			const packageIndex = packagePreviews.findIndex(
+				(item) => item.packageNumber === issue.packageNumber,
+			);
+			if (packageIndex < 0) return;
+
+			const shouldSwitchPackage = packageIndex !== activePackage;
+			if (shouldSwitchPackage) {
+				setActivePackage(packageIndex);
+			}
+
+			if (!issue.targetId || typeof document === "undefined") return;
+
+			const focusTarget = (attempt = 0) => {
+				const target = document.getElementById(issue.targetId as string);
+				if (!target) {
+					if (attempt < 4) {
+						window.setTimeout(() => focusTarget(attempt + 1), 80);
+					}
+					return;
+				}
+
+				target.scrollIntoView({ behavior: "smooth", block: "center" });
+				if (target instanceof HTMLElement) {
+					target.focus();
+				}
+			};
+
+			window.setTimeout(() => focusTarget(0), shouldSwitchPackage ? 120 : 0);
+		},
+		[activePackage, packagePreviews, setActivePackage],
+	);
+
+	const startIssueNavigationFrom = useCallback(
+		(issueKey: string) => {
+			const startIndex = orderedIssueKeys.findIndex((key) => key === issueKey);
+			if (startIndex < 0) return;
+
+			const nextQueue = orderedIssueKeys.slice(startIndex);
+			setIssueNavigationQueue(nextQueue);
+
+			const firstIssue = issueActionByKey.get(nextQueue[0]);
+			if (firstIssue) {
+				jumpToIssue(firstIssue);
+			}
+		},
+		[issueActionByKey, jumpToIssue, orderedIssueKeys],
+	);
+
+	const handleMakePositive = useCallback(
+		(issueKey: string) => {
+			const issue = issueActionByKey.get(issueKey);
+			if (!issue?.makePositive) return;
+
+			startIssueNavigationFrom(issueKey);
+			onManufacturingFieldChange(
+				issue.makePositive.partKey,
+				issue.makePositive.field,
+				Math.abs(issue.makePositive.value),
+			);
+		},
+		[issueActionByKey, onManufacturingFieldChange, startIssueNavigationFrom],
+	);
+
+	useEffect(() => {
+		if (!issueNavigationQueue || issueNavigationQueue.length === 0) return;
+
+		const remainingQueue = issueNavigationQueue.filter((key) =>
+			issueActionByKey.has(key),
+		);
+
+		if (remainingQueue.length === 0) {
+			setIssueNavigationQueue(null);
+			return;
+		}
+
+		const queueChanged =
+			remainingQueue.length !== issueNavigationQueue.length ||
+			remainingQueue.some((key, index) => key !== issueNavigationQueue[index]);
+
+		if (queueChanged) {
+			setIssueNavigationQueue(remainingQueue);
+		}
+
+		if (remainingQueue[0] !== issueNavigationQueue[0]) {
+			const nextIssue = issueActionByKey.get(remainingQueue[0]);
+			if (nextIssue) {
+				jumpToIssue(nextIssue);
+			}
+		}
+	}, [issueActionByKey, issueNavigationQueue, jumpToIssue]);
 
 	return (
 		<div className="rounded-lg border border-gray-200 p-4">
@@ -122,40 +393,105 @@ export function PackagePreviewSection({
 						Review each package row from the Calculation sheet.
 					</p>
 				</div>
+				<button
+					type="button"
+					onClick={() => onPackageRemove(pkg.packageNumber)}
+					className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+				>
+					Remove Box {pkg.packageNumber}
+				</button>
 			</div>
 			<div className="flex flex-wrap gap-2 mb-4">
-				{packagePreviews.map((item, index) => (
-					<button
-						key={`pkg-tab-${item.packageNumber}`}
-						type="button"
-						onClick={() => setActivePackage(index)}
-						className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
-							activePackage === index
-								? "border-blue-600 bg-blue-50 text-blue-700"
-								: "border-gray-200 text-gray-600"
-						}`}
-					>
-						Box {item.packageNumber}
-					</button>
-				))}
+				{packagePreviews.map((item, index) => {
+					const issueCount = (packageIssueMessages[item.packageNumber] || []).length;
+					const hasIssues = issueCount > 0;
+					const isActive = activePackage === index;
+					const tabClass = hasIssues
+						? isActive
+							? "border-red-600 bg-red-50 text-red-700"
+							: "border-red-200 bg-red-50/50 text-red-700"
+						: isActive
+							? "border-blue-600 bg-blue-50 text-blue-700"
+							: "border-gray-200 text-gray-600";
+
+					return (
+						<button
+							key={`pkg-tab-${item.packageNumber}`}
+							type="button"
+							onClick={() => setActivePackage(index)}
+							className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-full border transition-colors ${tabClass}`}
+						>
+							Box {item.packageNumber}
+							{hasIssues && (
+								<span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] text-white">
+									{issueCount}
+								</span>
+							)}
+						</button>
+					);
+				})}
 			</div>
+
+			{currentPackageIssueActions.length > 0 && (
+				<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+					<p className="font-semibold">Box {pkg.packageNumber} issues</p>
+					<div className="mt-2 space-y-2">
+						{currentPackageIssueActions.map((issue) => (
+							<div
+								key={issue.key}
+								className="flex flex-col gap-2 rounded-md border border-red-200 bg-white p-2 md:flex-row md:items-center md:justify-between"
+							>
+								<p className="text-[12px] text-red-800">{issue.message}</p>
+								<div className="flex items-center gap-1">
+									{issue.targetId && (
+										<button
+											type="button"
+											onClick={() => startIssueNavigationFrom(issue.key)}
+											className="rounded border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100"
+										>
+											Go to issue
+										</button>
+									)}
+									{issue.makePositive && (
+										<button
+											type="button"
+											onClick={() => handleMakePositive(issue.key)}
+											className="rounded border border-green-200 bg-green-50 px-2 py-1 text-[11px] font-medium text-green-700 hover:bg-green-100"
+										>
+											Make positive
+										</button>
+									)}
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
 
 			<div className="space-y-3 text-xs text-gray-700">
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 					<div>
 						<p className="text-xs text-gray-500">Quantity (col A)</p>
 						<NumberInput
+							inputId={getPackageInputId(pkg.packageNumber, "quantity")}
 							value={pkg.quantity}
 							onChange={(value) =>
 								onPackageFieldChange(pkg.packageNumber, "quantity", value)
 							}
 						/>
+						{!isQuantityValid && (
+							<p className="mt-1 text-xs text-red-600">
+								Quantity must be a positive whole number. Update it or remove
+								this package.
+							</p>
+						)}
 					</div>
 					<div>
 						<p className="text-xs text-gray-500">
 							Box type (col {boxTypeColumn})
 						</p>
 						<input
+							id={getPackageInputId(pkg.packageNumber, "boxType")}
 							type="text"
 							value={pkg.boxTypeLabel || ""}
 							onChange={(event) =>
@@ -173,56 +509,134 @@ export function PackagePreviewSection({
 							</p>
 						)}
 					</div>
-					<div>
-						<p className="text-xs text-gray-500">
-							Packing type (col {packingTypeColumn})
-						</p>
-						<select
-							value={pkg.packingTypeId || ""}
-							onChange={(event) =>
-								onPackingTypeChange(pkg.packageNumber, event.target.value)
-							}
-							className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-						>
-							<option value="">Select packing type...</option>
-							{pkg.packingTypeOptions?.map((option) => (
-								<option key={option.id} value={option.id}>
-									{option.label}
-								</option>
-							))}
-						</select>
-						{!pkg.packingTypeResolved && (
-							<p className="mt-1 text-xs text-amber-600">
-								Not matched. Select a packing type.
-							</p>
-						)}
-						{pkg.hasMatchedPackingOptions && (
-							<button
-								type="button"
-								onClick={() => onPackingTypeOptionsToggle(pkg.packageNumber)}
-								className="mt-1 text-[11px] text-blue-600 hover:text-blue-700"
-							>
-								{pkg.showAllPackingOptions
-									? "Show matched options"
-									: "Show all options"}
-							</button>
-						)}
-					</div>
-					<div>
-						<p className="text-xs text-gray-500">Packing type raw</p>
-						<input
-							type="text"
-							value={pkg.packingTypeRaw || ""}
-							onChange={(event) =>
-								onPackageFieldChange(
-									pkg.packageNumber,
-									"packingTypeRaw",
-									event.target.value,
-								)
-							}
-							className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-						/>
-					</div>
+					{isV54Template ? (
+						<>
+							<div>
+								<p className="text-xs text-gray-500">
+									SEI category (col {seiCategoryColumn})
+								</p>
+								<select
+									id={getPackageInputId(pkg.packageNumber, "seiCategory")}
+									value={pkg.seiCategoryId ?? ""}
+									onChange={(event) => {
+										const raw = event.target.value;
+										onSeiCategoryChange(
+											pkg.packageNumber,
+											raw ? Number(raw) : null,
+										);
+									}}
+									className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+								>
+									<option value="">Select SEI category...</option>
+									{pkg.seiCategoryOptions.map((option) => (
+										<option key={option.id} value={option.id}>
+											{option.label}
+										</option>
+									))}
+								</select>
+								<p className="mt-1 text-[11px] text-gray-500">
+									From table: sei_categories
+								</p>
+							</div>
+							<div>
+								<p className="text-xs text-gray-500">
+									SEI protection (col {seiProtectionColumn})
+								</p>
+								<select
+									id={getPackageInputId(pkg.packageNumber, "seiProtection")}
+									value={pkg.seiProtectionId ?? ""}
+									onChange={(event) => {
+										const raw = event.target.value;
+										onSeiProtectionChange(
+											pkg.packageNumber,
+											raw ? Number(raw) : null,
+										);
+									}}
+									className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+								>
+									<option value="">Select SEI protection...</option>
+									{pkg.seiProtectionOptions.map((option) => (
+										<option key={option.id} value={option.id}>
+											{option.label}
+										</option>
+									))}
+								</select>
+								<p className="mt-1 text-[11px] text-gray-500">
+									From table: sei_protection
+								</p>
+								{!pkg.packingTypeResolved && (
+									<p className="mt-1 text-xs text-amber-600">
+										Select both SEI category and SEI protection.
+									</p>
+								)}
+								{pkg.hasMatchedPackingOptions && (
+									<button
+										type="button"
+										onClick={() => onPackingTypeOptionsToggle(pkg.packageNumber)}
+										className="mt-1 text-[11px] text-blue-600 hover:text-blue-700"
+									>
+										{pkg.showAllPackingOptions
+											? "Show matched options"
+											: "Show all options"}
+									</button>
+								)}
+							</div>
+						</>
+					) : (
+						<>
+							<div>
+								<p className="text-xs text-gray-500">
+									Packing type (col {packingTypeColumn})
+								</p>
+								<select
+									id={getPackageInputId(pkg.packageNumber, "packingType")}
+									value={pkg.packingTypeId || ""}
+									onChange={(event) =>
+										onPackingTypeChange(pkg.packageNumber, event.target.value)
+									}
+									className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+								>
+									<option value="">Select packing type...</option>
+									{pkg.packingTypeOptions?.map((option) => (
+										<option key={option.id} value={option.id}>
+											{option.label}
+										</option>
+									))}
+								</select>
+								{!pkg.packingTypeResolved && (
+									<p className="mt-1 text-xs text-amber-600">
+										Not matched. Select a packing type.
+									</p>
+								)}
+								{pkg.hasMatchedPackingOptions && (
+									<button
+										type="button"
+										onClick={() => onPackingTypeOptionsToggle(pkg.packageNumber)}
+										className="mt-1 text-[11px] text-blue-600 hover:text-blue-700"
+									>
+										{pkg.showAllPackingOptions
+											? "Show matched options"
+											: "Show all options"}
+									</button>
+								)}
+							</div>
+							<div>
+								<p className="text-xs text-gray-500">Packing type raw</p>
+								<input
+									type="text"
+									value={pkg.packingTypeRaw || ""}
+									onChange={(event) =>
+										onPackageFieldChange(
+											pkg.packageNumber,
+											"packingTypeRaw",
+											event.target.value,
+										)
+									}
+									className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+								/>
+							</div>
+						</>
+					)}
 				</div>
 
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -290,13 +704,17 @@ export function PackagePreviewSection({
 					</div>
 				</div>
 
-				<div className="pt-3 border-t border-gray-100">
+				<div
+					id={getPackageInputId(pkg.packageNumber, "manufacturing")}
+					className="pt-3 border-t border-gray-100"
+				>
 					<p className="text-xs font-semibold text-gray-700 mb-2">
 						Manufacturing (securing)
 					</p>
 					<ManufacturingSectionsPanel
 						pkg={pkg}
 						isBaseOnlyPackage={isBaseOnlyPackage}
+						partIssueMessages={partIssueMessages}
 						onManufacturingTypeChange={onManufacturingTypeChange}
 						onManufacturingFieldChange={onManufacturingFieldChange}
 						onManufacturingOptionsToggle={onManufacturingOptionsToggle}
@@ -316,6 +734,13 @@ export function PackagePreviewSection({
 									<ManufacturingPartCard
 										label={`Securing ${index + 1}`}
 										part={part}
+										issues={partIssueMessages[part.key] || []}
+										selectId={getPartTypeSelectId(part.key)}
+										fieldInputIds={{
+											quantity: getPartInputId(part.key, "quantity"),
+											width: getPartInputId(part.key, "width"),
+											thickness: getPartInputId(part.key, "thickness"),
+										}}
 										showFields={["quantity", "width", "thickness"]}
 										onManufacturingTypeChange={onManufacturingTypeChange}
 										onManufacturingFieldChange={onManufacturingFieldChange}
@@ -342,6 +767,11 @@ export function PackagePreviewSection({
 									<ManufacturingPartCard
 										label={`Accessory ${index + 1}`}
 										part={part}
+										issues={partIssueMessages[part.key] || []}
+										selectId={getPartTypeSelectId(part.key)}
+										fieldInputIds={{
+											quantity: getPartInputId(part.key, "quantity"),
+										}}
 										showFields={["quantity"]}
 										onManufacturingTypeChange={onManufacturingTypeChange}
 										onManufacturingFieldChange={onManufacturingFieldChange}

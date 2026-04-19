@@ -1,6 +1,7 @@
 interface NumberInputProps {
 	value: number | null;
 	onChange: (value: number | null) => void;
+	inputId?: string;
 	className?: string;
 }
 
@@ -10,9 +11,15 @@ const parseInputNumber = (value: string) => {
 	return Number.isFinite(parsed) ? parsed : null;
 };
 
-export function NumberInput({ value, onChange, className }: NumberInputProps) {
+export function NumberInput({
+	value,
+	onChange,
+	inputId,
+	className,
+}: NumberInputProps) {
 	return (
 		<input
+			id={inputId}
 			type="number"
 			value={value ?? ""}
 			onChange={(event) => onChange(parseInputNumber(event.target.value))}

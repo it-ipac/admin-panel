@@ -204,6 +204,39 @@ export const db = {
 		return supabase.from("orders").insert(payload).select("*").single();
 	},
 
+	getClientOrderCategories: async (clientId: string) => {
+		return supabase
+			.from("pkg_category")
+			.select(
+				`id, label, category_tag_map(tag:project_tags(id, name))`,
+			)
+			.eq("client_id", clientId)
+			.order("label", { ascending: true });
+	},
+
+	createOrderCategoryMappings: async (payload: {
+		order_id: string;
+		category_ids: string[];
+	}) => {
+		const uniqueCategoryIds = Array.from(
+			new Set((payload.category_ids || []).filter(Boolean)),
+		);
+
+		if (uniqueCategoryIds.length === 0) {
+			return { data: [], error: null };
+		}
+
+		return supabase
+			.from("category_order_map")
+			.insert(
+				uniqueCategoryIds.map((category_id) => ({
+					order_id: payload.order_id,
+					category_id,
+				})),
+			)
+			.select("*");
+	},
+
 	createOrderPackages: async (payload: {
 		order_id: string;
 		package_numbers: number[];
@@ -220,11 +253,55 @@ export const db = {
 		return supabase.from("order_packages").insert(rows).select("*");
 	},
 
+	createOrderPackageOverviews: async (
+		rows: Array<{
+			order_id: string;
+			pkg_number: number;
+			status?: "design" | "approved" | "in_production" | "packed";
+			quantity: number;
+			quantity_packed?: number;
+			description?: string | null;
+		}>,
+	) => {
+		if (!rows.length) return { data: [], error: null };
+		return supabase
+			.from("order_pkg_overview")
+			.insert(rows)
+			.select("id, order_id, pkg_number, quantity");
+	},
+
+	createOrderPackageInstances: async (
+		rows: Array<{
+			order_pkg_overview_id: string;
+			order_package_id: string;
+			instance_number: number;
+			status?: "design" | "approved" | "in_production" | "packed";
+			packed_at?: string | null;
+		}>,
+	) => {
+		if (!rows.length) return { data: [], error: null };
+		return supabase.from("order_pkg_instance").insert(rows).select("id");
+	},
+
 	getPackingTypes: async () => {
 		return supabase
 			.from("packing_types")
 			.select("id, code, name")
 			.order("code", { ascending: true });
+	},
+
+	getSeiCategories: async () => {
+		return supabase
+			.from("sei_categories")
+			.select("id, code, name, description")
+			.order("id", { ascending: true });
+	},
+
+	getSeiProtections: async () => {
+		return supabase
+			.from("sei_protection")
+			.select("id, code, name, description")
+			.order("id", { ascending: true });
 	},
 
 	getBoxTypes: async () => {
@@ -278,6 +355,8 @@ export const db = {
 		external_height?: number | null;
 		quantity?: number | null;
 		packing_type_id?: string | null;
+		sei_category?: number | null;
+		sei_protection?: number | null;
 		box_type_id?: string | null;
 		tare?: number | null;
 		net_weight?: number | null;

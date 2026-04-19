@@ -115,6 +115,8 @@ export interface PackageInfo {
 	tare: number | null;
 	quantity: number | null;
 	packing_type_id: string | null;
+	sei_category: number | null;
+	sei_protection: number | null;
 	box_type_id: string | null;
 	center_of_gravity: boolean | null;
 }
@@ -313,6 +315,8 @@ function OrderDetailPage() {
               tare,
               quantity,
               packing_type_id,
+							sei_category,
+							sei_protection,
               box_type_id,
               center_of_gravity
             ),
@@ -329,6 +333,8 @@ function OrderDetailPage() {
               tare,
               quantity,
               packing_type_id,
+							sei_category,
+							sei_protection,
               box_type_id,
               center_of_gravity
             )
@@ -383,8 +389,11 @@ function OrderDetailPage() {
 		"beam",
 		"package_items",
 		"media",
+		"order_pkg_instance",
+		"order_pkg_overview",
 		"order_packages",
 		"package_info",
+		"category_order_map",
 		"orders",
 	];
 
@@ -404,6 +413,16 @@ function OrderDetailPage() {
 			const packageIds = (packages || []).map((pkg: any) => pkg.id);
 			const packageInfoIds = (packages || [])
 				.flatMap((pkg: any) => [pkg.original_pkg_info, pkg.final_pkg_info])
+				.filter(Boolean);
+
+			const { data: overviewRows, error: overviewRowsError } = await supabase
+				.from("order_pkg_overview")
+				.select("id")
+				.eq("order_id", orderId);
+			if (overviewRowsError) throw overviewRowsError;
+
+			const overviewIds = (overviewRows || [])
+				.map((row: any) => row.id)
 				.filter(Boolean);
 
 			if (packageIds.length > 0) {
@@ -540,6 +559,26 @@ function OrderDetailPage() {
 						.in("id", taskLogIds);
 					if (taskLogsError) throw taskLogsError;
 				}
+
+				const { error: instanceByPackageError } = await supabase
+					.from("order_pkg_instance")
+					.delete()
+					.in("order_package_id", packageIds);
+				if (instanceByPackageError) throw instanceByPackageError;
+			}
+
+			if (overviewIds.length > 0) {
+				const { error: instanceByOverviewError } = await supabase
+					.from("order_pkg_instance")
+					.delete()
+					.in("order_pkg_overview_id", overviewIds);
+				if (instanceByOverviewError) throw instanceByOverviewError;
+
+				const { error: overviewDeleteError } = await supabase
+					.from("order_pkg_overview")
+					.delete()
+					.in("id", overviewIds);
+				if (overviewDeleteError) throw overviewDeleteError;
 			}
 
 			const { error: attendanceError } = await supabase
@@ -569,6 +608,12 @@ function OrderDetailPage() {
 					.in("id", packageInfoIds);
 				if (packageInfoError) throw packageInfoError;
 			}
+
+			const { error: categoryOrderMapError } = await supabase
+				.from("category_order_map")
+				.delete()
+				.eq("order_id", orderId);
+			if (categoryOrderMapError) throw categoryOrderMapError;
 
 			const { error: orderDeleteError } = await supabase
 				.from("orders")

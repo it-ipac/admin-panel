@@ -1,5 +1,6 @@
 import {
 	type AppliedExcelTemplateMode,
+	type ClientOption,
 	type ExcelTemplateMode,
 	type MaterialVariantOption,
 	type RawPackageRow,
@@ -45,6 +46,90 @@ export const resolveExcelTemplateMode = (
 	return "legacy";
 };
 
+const normalizeClientMatchText = (value: string) =>
+	value
+		.toLowerCase()
+		.replace(/&/g, " and ")
+		.replace(/[^a-z0-9]+/g, " ")
+		.trim()
+		.replace(/\s+/g, " ");
+
+const toCompactClientMatchText = (value: string) =>
+	normalizeClientMatchText(value).replace(/\s+/g, "");
+
+const escapeRegExp = (value: string) =>
+	value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const extractClientScopeFromOrderName = (orderName: string) => {
+	const normalizedName = orderName.trim();
+	if (!normalizedName) return "";
+
+	const versionSuffixMatch = normalizedName.match(
+		/(?:^|[-_\s])V\d+(?:[-_\s]+)(.+)$/i,
+	);
+	if (versionSuffixMatch?.[1]) {
+		return versionSuffixMatch[1].trim();
+	}
+
+	const segments = normalizedName
+		.split(/[-_]+/)
+		.map((segment) => segment.trim())
+		.filter(Boolean);
+	if (segments.length > 3) {
+		return segments.slice(3).join(" ");
+	}
+
+	return normalizedName;
+};
+
+export const findExistingClientIdFromOrderName = (
+	orderName: string | null | undefined,
+	clients: Pick<ClientOption, "id" | "name">[],
+) => {
+	if (!orderName || clients.length === 0) return "";
+
+	const scope = extractClientScopeFromOrderName(orderName);
+	const normalizedScope = normalizeClientMatchText(scope);
+	const compactScope = toCompactClientMatchText(scope);
+	if (!normalizedScope) return "";
+
+	const matches = clients
+		.map((client) => {
+			const normalizedClientName = normalizeClientMatchText(client.name || "");
+			if (!normalizedClientName) return null;
+
+			const wholeWordPattern = new RegExp(
+				`(?:^|\\s)${escapeRegExp(normalizedClientName).replace(/\s+/g, "\\s+")}(?:\\s|$)`,
+			);
+			const compactClientName = normalizedClientName.replace(/\s+/g, "");
+
+			const phraseMatch = wholeWordPattern.test(normalizedScope);
+			const compactMatch =
+				compactClientName.length >= 5 && compactScope.includes(compactClientName);
+			if (!phraseMatch && !compactMatch) return null;
+
+			const startsScope =
+				normalizedScope === normalizedClientName ||
+				normalizedScope.startsWith(`${normalizedClientName} `);
+			const score =
+				normalizedClientName.length * 2 + (startsScope ? 10 : 0) + (phraseMatch ? 5 : 0);
+
+			return {
+				id: client.id,
+				score,
+			};
+		})
+		.filter((item): item is { id: string; score: number } => item !== null)
+		.sort((a, b) => b.score - a.score);
+
+	if (matches.length === 0) return "";
+	if (matches.length > 1 && matches[0].score === matches[1].score) {
+		return "";
+	}
+
+	return matches[0].id;
+};
+
 export const normalizePackingTypeCode = (raw: string | null) => {
 	if (!raw) return null;
 	const cleaned = raw
@@ -64,6 +149,76 @@ export const normalizePackingTypeValue = (value: string | null | undefined) => {
 		.replace(/SEI/gi, "")
 		.replace(/[.\s]+/g, "")
 		.replace(/[^0-9A-Z]/g, "");
+};
+
+export const normalizeSeiCategoryValue = (
+	value: string | number | null | undefined,
+) => {
+	if (value === null || value === undefined) return null;
+	const raw = String(value).trim();
+	if (!raw) return null;
+
+	const normalized = raw.toUpperCase().replace(/\s+/g, "");
+
+	if (normalized === "NO" || normalized === "SEI.NO") return "-1";
+	if (normalized === "YES" || normalized === "SEI.YES") return "0";
+
+	const seiMatch = normalized.match(/SEI\.?(-?\d+)/i);
+	if (seiMatch) {
+		const parsed = Number(seiMatch[1]);
+		return Number.isFinite(parsed) ? String(parsed) : null;
+	}
+
+	if (/^-?\d+$/.test(normalized)) {
+		const parsed = Number(normalized);
+		return Number.isFinite(parsed) ? String(parsed) : null;
+	}
+
+	return null;
+};
+
+export const normalizeSeiProtectionValue = (
+	value: string | null | undefined,
+) => {
+	if (!value) return null;
+	const raw = String(value).trim();
+	if (!raw) return null;
+
+	const compact = raw.toLowerCase().replace(/[^a-z0-9]+/g, "");
+	if (!compact) return null;
+
+	const prefix = compact.match(/^[a-z]+[0-9]*/);
+	return prefix ? prefix[0] : compact;
+};
+
+export const extractSeiTokensFromCombined = (value: string | null | undefined) => {
+	if (!value) {
+		return {
+			categoryToken: null,
+			protectionToken: null,
+		};
+	}
+
+	const compact = String(value).trim().replace(/\s+/g, "");
+	if (!compact) {
+		return {
+			categoryToken: null,
+			protectionToken: null,
+		};
+	}
+
+	const seiMatch = compact.match(/SEI\.?(-?\d+)(.*)/i);
+	if (seiMatch) {
+		return {
+			categoryToken: normalizeSeiCategoryValue(seiMatch[1]),
+			protectionToken: normalizeSeiProtectionValue(seiMatch[2]),
+		};
+	}
+
+	return {
+		categoryToken: normalizeSeiCategoryValue(compact),
+		protectionToken: normalizeSeiProtectionValue(compact),
+	};
 };
 
 export const parseNumberText = (text: string | null | undefined) => {

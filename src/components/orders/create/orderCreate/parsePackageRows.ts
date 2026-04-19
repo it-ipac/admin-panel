@@ -154,13 +154,23 @@ export const parsePackageRows = (
 	};
 	const getText = (column: string, rowNumber: number) =>
 		normalizeDefensorText(extractCellText(sheet.getCell(`${shiftColumn(column)}${rowNumber}`)));
+	const getLiteralText = (column: string, rowNumber: number) =>
+		normalizeDefensorText(extractCellText(sheet.getCell(`${column}${rowNumber}`)));
 
 	for (let row = 4; row < 1000; row += 1) {
 		const currentLabel = getText("B", row);
-		if (!currentLabel) break;
-
-		const nextLabel = getText("B", row + 1);
 		const quantity = parseNumberText(getText("A", row));
+		const hasDesignation = currentLabel.trim().length > 0;
+		const hasValidQuantity =
+			quantity !== null && quantity > 0 && Number.isInteger(quantity);
+
+		// Ignore header/noise rows. A package row is valid only when:
+		// - Column A has a positive whole number
+		// - Column B has a designation
+		if (!hasDesignation || !hasValidQuantity) {
+			continue;
+		}
+
 		const itemLength = parseNumberText(getText("M", row));
 		const itemWidth = parseNumberText(getText("N", row));
 		const itemHeight = parseNumberText(getText("O", row));
@@ -177,6 +187,10 @@ export const parsePackageRows = (
 		const boxTypeLabel = getText("C", row) || null;
 		const packingTypeRaw = getText("AB", row) || null;
 		const packingTypeCode = normalizePackingTypeCode(packingTypeRaw);
+		const seiCategoryRaw =
+			columnOffset === 2 ? getLiteralText("C", row) || null : null;
+		const seiProtectionRaw =
+			columnOffset === 2 ? getLiteralText("D", row) || null : null;
 
 		const bigTypeLabel = getText("BK", row) || null;
 		const bigQuantity = parseNumberText(getText("BM", row));
@@ -420,12 +434,13 @@ export const parsePackageRows = (
 			boxTypeLabel,
 			packingTypeRaw,
 			packingTypeCode,
+			seiCategoryRaw,
+			seiProtectionRaw,
 			manufacturing,
 			securing,
 			accessories,
 		});
 
-		if (!nextLabel) break;
 		packageNumber += 1;
 	}
 

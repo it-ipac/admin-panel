@@ -37,8 +37,8 @@ function DataImportPage() {
 		queryFn: async () => {
 			if (!selectedClient) return [];
 			const { data, error } = await supabase
-				.from('maintenance_package_categories')
-				.select('id, label, project_type')
+				.from('pkg_category')
+				.select('id, label')
 				.eq('client_id', selectedClient)
                 .order('label');
 			if (error) throw error;
@@ -219,7 +219,7 @@ function DataImportPage() {
                     const { _source_sheet, ...pushData } = item;
                     return pushData;
                 });
-                const { error } = await supabase.from('maintenance_db').insert(cleanChunk);
+				const { error } = await supabase.from('items_db').insert(cleanChunk);
                 if (error) throw error;
             }
 		},
@@ -228,7 +228,7 @@ function DataImportPage() {
 			setParsedData([]);
 			setParsingError("");
 			if (fileInputRef.current) fileInputRef.current.value = "";
-			alert("Successfully imported " + parsedData.length + " items into the master pool!");
+			alert("Successfully imported " + parsedData.length + " items into items_db!");
 		},
 		onError: (err: any) => {
 			setParsingError(err.message || "Failed to upload to database");
@@ -308,7 +308,7 @@ function DataImportPage() {
 
 						{parsingError && (
 							<div className="mt-6 flex items-start gap-3 bg-red-50 text-red-700 p-4 rounded-xl border border-red-200">
-								<AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+								<AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
 								<p className="text-sm font-medium">{parsingError}</p>
 							</div>
 						)}

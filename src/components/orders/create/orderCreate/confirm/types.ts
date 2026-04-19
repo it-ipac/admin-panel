@@ -5,6 +5,7 @@ export interface OrderCreateSummary {
 	clientName: string;
 	fileName?: string | null;
 	packageCount?: number;
+	selectedCategoryLabels?: string[];
 	clientMode: "existing" | "new";
 	newClientDetails?: {
 		name: string;
@@ -43,11 +44,19 @@ export interface PackagePreview {
 	quantity: number | null;
 	boxTypeLabel: string | null;
 	boxTypeResolved: boolean;
+	seiCategoryRaw: string | null;
+	seiProtectionRaw: string | null;
 	packingTypeRaw: string | null;
 	packingTypeLabel: string | null;
 	packingTypeResolved: boolean;
 	packingTypeOptions: Array<{ id: string; label: string }> | null;
 	packingTypeId: string | null;
+	seiCategoryId: number | null;
+	seiProtectionId: number | null;
+	seiCategoryOptions: Array<{ id: number; label: string }>;
+	seiProtectionOptions: Array<{ id: number; label: string }>;
+	hasMatchedSeiCategories: boolean;
+	hasMatchedSeiProtections: boolean;
 	hasMatchedPackingOptions: boolean;
 	showAllPackingOptions: boolean;
 	internal: {
@@ -98,12 +107,23 @@ export interface OrderCreateConfirmDialogProps {
 	summary: OrderCreateSummary;
 	detailTables: OrderCreateDetailTable[];
 	packagePreviews: PackagePreview[];
+	packageIssueMessages?: Record<number, string[]>;
+	partIssueMessages?: Record<string, string[]>;
 	onPackageFieldChange: (
 		packageNumber: number,
 		field: PackageEditableField,
 		value: string | number | null,
 	) => void;
+	onPackageRemove: (packageNumber: number) => void;
 	onPackingTypeChange: (packageNumber: number, packingTypeId: string) => void;
+	onSeiCategoryChange: (
+		packageNumber: number,
+		seiCategoryId: number | null,
+	) => void;
+	onSeiProtectionChange: (
+		packageNumber: number,
+		seiProtectionId: number | null,
+	) => void;
 	onPackingTypeOptionsToggle: (packageNumber: number) => void;
 	onManufacturingTypeChange: (key: string, typeId: string) => void;
 	onManufacturingFieldChange: (

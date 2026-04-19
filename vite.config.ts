@@ -42,6 +42,8 @@ const deployedAt = process.env.VERCEL_GIT_COMMIT_DATE || new Date().toISOString(
 
 const releaseFeatures = process.env.VITE_RELEASE_FEATURES || commitMessage
 const releaseType = process.env.VITE_RELEASE_TYPE || 'patch'
+const enableTanStackDevtools =
+  process.env.VITE_ENABLE_TANSTACK_DEVTOOLS === 'true'
 
 const config = defineConfig({
   define: {
@@ -53,7 +55,7 @@ const config = defineConfig({
     __APP_RELEASE_TYPE__: JSON.stringify(releaseType),
   },
   plugins: [
-    devtools(),
+    ...(enableTanStackDevtools ? [devtools()] : []),
     nitro(),
     // this is the plugin that enables path aliases
     viteTsConfigPaths({

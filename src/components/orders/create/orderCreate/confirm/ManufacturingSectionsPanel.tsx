@@ -19,6 +19,7 @@ interface ManufacturingPartConfig {
 interface ManufacturingSectionsPanelProps {
 	pkg: PackagePreview;
 	isBaseOnlyPackage: boolean;
+	partIssueMessages: Record<string, string[]>;
 	onManufacturingTypeChange: OrderCreateConfirmDialogProps["onManufacturingTypeChange"];
 	onManufacturingFieldChange: OrderCreateConfirmDialogProps["onManufacturingFieldChange"];
 	onManufacturingOptionsToggle: OrderCreateConfirmDialogProps["onManufacturingOptionsToggle"];
@@ -42,6 +43,7 @@ const isGasPackingOnly = (boxTypeLabel: string | null | undefined): boolean =>
 export function ManufacturingSectionsPanel({
 	pkg,
 	isBaseOnlyPackage,
+	partIssueMessages,
 	onManufacturingTypeChange,
 	onManufacturingFieldChange,
 	onManufacturingOptionsToggle,
@@ -118,6 +120,7 @@ export function ManufacturingSectionsPanel({
 								key={entry.part.key}
 								label={entry.label}
 								part={entry.part}
+								issues={partIssueMessages[entry.part.key] || []}
 								showFields={entry.showFields}
 								removable={isGasPackingOnlyPackage}
 								onRemove={() => removePart(entry.part.key)}

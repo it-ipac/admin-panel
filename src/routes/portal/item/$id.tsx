@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useParams, Link } from "@tanstack/react-router";
-import { Loader2, ArrowLeft, Maximize, Ruler, Info, MapPin, Scale } from "lucide-react";
+import { Loader2, ArrowLeft, Maximize, Ruler, Info, MapPin, Scale, AlertCircle } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 
@@ -15,18 +15,26 @@ function ItemView() {
 		queryKey: ['portal-item', id],
 		queryFn: async () => {
 			const { data, error } = await supabase
-				.from('maintenance_db')
+				.from('items_db')
 				.select(`
 					*,
-					maintenance_package_categories (label),
-					maintenance_package_items (
+					pkg_category (label),
+					pkd_item (
 						id,
-                        quantity,
-						order_packages (
+						quantity,
+						pkg_instance:order_pkg_instance (
 							id,
-							package_number,
-							reference_number,
-							orders (order_name)
+							instance_number,
+							order_pkg_overview (
+								pkg_number
+							),
+							order_package:order_packages (
+								id,
+								package_number,
+								reference,
+								reference_number,
+								orders (order_name)
+							)
 						)
 					)
 				`)
@@ -50,8 +58,41 @@ function ItemView() {
 		return <div className="p-8 text-center bg-gray-50 min-h-screen">Item not found</div>;
 	}
 
-	const item = record; // The record IS the item now!
-	const packingHistory = record.maintenance_package_items || [];
+	const item = record;
+	const packingHistory = (record.pkd_item || [])
+		.map((entry: any) => {
+			const pkgInstance = entry?.pkg_instance;
+			const pkgOverview = pkgInstance?.order_pkg_overview;
+			const orderPackage = pkgInstance?.order_package;
+
+			const packageId = pkgInstance?.id || orderPackage?.id || null;
+			if (!packageId) return null;
+
+			const packageNumber =
+				pkgOverview?.pkg_number ?? orderPackage?.package_number ?? null;
+
+			return {
+				id: entry.id,
+				quantity: entry.quantity,
+				packageId,
+				packageNumber,
+				instanceNumber: pkgInstance?.instance_number ?? null,
+				label:
+					orderPackage?.reference ||
+					orderPackage?.reference_number ||
+					(packageNumber ? `Package ${packageNumber}` : "Package"),
+				orderName: orderPackage?.orders?.order_name || null,
+			};
+		})
+		.filter(Boolean) as Array<{
+			id: string;
+			quantity: number;
+			packageId: string;
+			packageNumber: number | null;
+			instanceNumber: number | null;
+			label: string;
+			orderName: string | null;
+		}>;
 
 	return (
 		<div className="min-h-screen bg-gray-50 pb-24">
@@ -78,9 +119,7 @@ function ItemView() {
 				{packingHistory.length > 0 ? (
                     <div className="space-y-4">
                         <h3 className="text-lg font-bold text-gray-900 px-1">Packing Locations</h3>
-                        {packingHistory.map((historyItem: any) => {
-                            const pkg = historyItem.order_packages;
-                            if (!pkg) return null;
+						{packingHistory.map((historyItem) => {
                             
                             return (
                                 <div key={historyItem.id} className="bg-blue-50 border border-blue-200 rounded-2xl p-6 sm:p-8 relative overflow-hidden">
@@ -95,12 +134,17 @@ function ItemView() {
                                                     Packed Qty: {historyItem.quantity}
                                                 </span>
                                             </div>
-                                            <h3 className="text-xl font-bold text-gray-900">Inside {pkg.reference_number || `Package ${pkg.package_number}`}</h3>
-                                            <p className="text-blue-700 mt-1">Part of order: {pkg.orders?.order_name}</p>
+											<h3 className="text-xl font-bold text-gray-900">Inside {historyItem.label}</h3>
+											<p className="text-blue-700 mt-1">
+												{historyItem.instanceNumber
+													? `Instance #${historyItem.instanceNumber}`
+													: `Package #${historyItem.packageNumber ?? '-'}`}
+												{historyItem.orderName ? ` • Order: ${historyItem.orderName}` : ''}
+											</p>
                                         </div>
                                         
                                         <Link 
-                                            to={`/portal/package/${pkg.id}`}
+											to={`/portal/package/${historyItem.packageId}`}
                                             className="inline-flex items-center justify-center py-2.5 px-5 bg-white text-blue-700 hover:bg-blue-50 border border-blue-200/60 rounded-xl font-bold shadow-sm transition-colors whitespace-nowrap"
                                         >
                                             View Package Contents
@@ -112,7 +156,7 @@ function ItemView() {
                     </div>
 				) : (
 					<div className="bg-amber-50 border border-amber-200 text-amber-800 px-6 py-4 rounded-xl flex items-center gap-3">
-						<AlertCircle className="w-5 h-5 flex-shrink-0 text-amber-600" />
+						<AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
 						<div>
 							<p className="font-semibold">Not Packed</p>
 							<p className="text-sm">This item has not yet been assigned to any packages.</p>
@@ -125,7 +169,7 @@ function ItemView() {
 					<div className="mb-8">
 						<div className="flex items-center gap-2 mb-2">
 							<span className="bg-gray-100 text-gray-700 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
-								{item.maintenance_package_categories?.label || 'General'}
+								{item.pkg_category?.label || 'General'}
 							</span>
 							<span className="text-sm font-medium text-gray-500">REF: {item.item_num || 'None'}</span>
 						</div>
@@ -188,6 +232,3 @@ function ItemView() {
 		</div>
 	);
 }
-
-// Ensure AlertCircle is defined since it is used in the UI
-import { AlertCircle } from "lucide-react";

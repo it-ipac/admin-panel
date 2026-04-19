@@ -5,23 +5,28 @@ import type { MaterialVariantOption, ResolvedPackageRow } from "./types";
 interface SubmitParams {
 	resolvedPackages: ResolvedPackageRow[];
 	selectedClientId: string;
+	selectedCategoryIds: string[];
 	clientMode: "existing" | "new";
 	createClient: () => Promise<{ id: string }>;
 	createOrder: (payload: { clientId: string }) => Promise<{ id: string }>;
+	createOrderCategoryMappings: (payload: {
+		orderId: string;
+		categoryIds: string[];
+	}) => Promise<{ error: any }>;
 	materialVariantMap: Map<string, MaterialVariantOption>;
 	queryClient: QueryClient;
-	onSuccess: () => void;
 }
 
 export const submitOrderCreate = async ({
 	resolvedPackages,
 	selectedClientId,
+	selectedCategoryIds,
 	clientMode,
 	createClient,
 	createOrder,
+	createOrderCategoryMappings,
 	materialVariantMap,
 	queryClient,
-	onSuccess,
 }: SubmitParams) => {
 	const missingQuantityPackages = resolvedPackages
 		.map((pkg) => {
@@ -50,6 +55,39 @@ export const submitOrderCreate = async ({
 			.join(", ");
 		throw new Error(
 			`Missing quantities for selected materials in package(s): ${packageList}. Please fill in quantities before creating the order.`,
+		);
+	}
+
+	const negativeMaterialQuantityPackages = resolvedPackages
+		.map((pkg) => {
+			const negativeSecuringCount = pkg.securing?.filter(
+				(part) =>
+					part?.typeId &&
+					part.quantity !== null &&
+					part.quantity !== undefined &&
+					part.quantity < 0,
+			).length;
+			const negativeAccessoriesCount = pkg.accessories?.filter(
+				(part) =>
+					part?.typeId &&
+					part.amount !== null &&
+					part.amount !== undefined &&
+					part.amount < 0,
+			).length;
+			return {
+				packageNumber: pkg.packageNumber,
+				negativeCount:
+					(negativeSecuringCount || 0) + (negativeAccessoriesCount || 0),
+			};
+		})
+		.filter((pkg) => pkg.negativeCount > 0);
+
+	if (negativeMaterialQuantityPackages.length > 0) {
+		const packageList = negativeMaterialQuantityPackages
+			.map((pkg) => `#${pkg.packageNumber}`)
+			.join(", ");
+		throw new Error(
+			`Negative material quantities found in package(s): ${packageList}. Quantity must be 0 or greater.`,
 		);
 	}
 
@@ -114,7 +152,37 @@ export const submitOrderCreate = async ({
 		clientId = createdClient.id;
 	}
 
+	const normalizedInstanceCountByPackage = new Map<number, number>();
+	const invalidQuantityPackages: number[] = [];
+	for (const pkg of resolvedPackages) {
+		const rawQty = Number(pkg.quantity);
+		if (!Number.isFinite(rawQty) || rawQty <= 0 || !Number.isInteger(rawQty)) {
+			invalidQuantityPackages.push(pkg.packageNumber);
+			continue;
+		}
+		normalizedInstanceCountByPackage.set(pkg.packageNumber, rawQty);
+	}
+
+	if (invalidQuantityPackages.length > 0) {
+		throw new Error(
+			`Invalid box quantity in column A for package(s): ${invalidQuantityPackages
+				.map((pkgNumber) => `#${pkgNumber}`)
+				.join(", ")}. Please provide a positive whole number for each package row.`,
+		);
+	}
+
 	const order = await createOrder({ clientId });
+	const normalizedCategoryIds = Array.from(
+		new Set((selectedCategoryIds || []).filter(Boolean)),
+	);
+	if (normalizedCategoryIds.length > 0) {
+		const { error: categoryMappingError } = await createOrderCategoryMappings({
+			orderId: order.id,
+			categoryIds: normalizedCategoryIds,
+		});
+		if (categoryMappingError) throw categoryMappingError;
+	}
+
 	const { data: createdPackages, error: packagesError } =
 		await db.createOrderPackages({
 			order_id: order.id,
@@ -134,6 +202,77 @@ export const submitOrderCreate = async ({
 		});
 	});
 
+	const overviewRows = resolvedPackages
+		.map((pkg) => {
+			const normalizedQty = normalizedInstanceCountByPackage.get(pkg.packageNumber);
+			if (!normalizedQty) return null;
+			return {
+				order_id: order.id,
+				pkg_number: pkg.packageNumber,
+				status: "design" as const,
+				quantity: normalizedQty,
+				quantity_packed: 0,
+				description: pkg.designation?.trim() || null,
+			};
+		})
+		.filter((row): row is NonNullable<typeof row> => !!row);
+
+	const { data: createdOverviews, error: overviewsError } =
+		await db.createOrderPackageOverviews(overviewRows);
+	if (overviewsError) throw overviewsError;
+
+	const overviewIdByPackageNumber = new Map<number, string>();
+	(createdOverviews || []).forEach((overview: any) => {
+		overviewIdByPackageNumber.set(Number(overview.pkg_number), String(overview.id));
+	});
+
+	const missingOverviewPackages = resolvedPackages
+		.map((pkg) => pkg.packageNumber)
+		.filter((packageNumber) => !overviewIdByPackageNumber.has(packageNumber));
+	if (missingOverviewPackages.length > 0) {
+		throw new Error(
+			`Failed to create package overview row(s) for package(s): ${missingOverviewPackages
+				.map((pkgNumber) => `#${pkgNumber}`)
+				.join(", ")}.`,
+		);
+	}
+
+	const instanceRows: Array<{
+		order_pkg_overview_id: string;
+		order_package_id: string;
+		instance_number: number;
+		status: "design";
+		packed_at: null;
+	}> = [];
+
+	for (const pkg of resolvedPackages) {
+		const orderPackage = packageByNumber.get(pkg.packageNumber);
+		const overviewId = overviewIdByPackageNumber.get(pkg.packageNumber);
+		const instanceCount = normalizedInstanceCountByPackage.get(pkg.packageNumber);
+		if (!orderPackage || !overviewId || !instanceCount) {
+			throw new Error(
+				`Could not resolve package mapping for package #${pkg.packageNumber}.`,
+			);
+		}
+
+		for (let instanceNumber = 1; instanceNumber <= instanceCount; instanceNumber += 1) {
+			instanceRows.push({
+				order_pkg_overview_id: overviewId,
+				order_package_id: orderPackage.id,
+				instance_number: instanceNumber,
+				status: "design",
+				packed_at: null,
+			});
+		}
+	}
+
+	const instanceChunkSize = 500;
+	for (let i = 0; i < instanceRows.length; i += instanceChunkSize) {
+		const chunk = instanceRows.slice(i, i + instanceChunkSize);
+		const { error: instancesError } = await db.createOrderPackageInstances(chunk);
+		if (instancesError) throw instancesError;
+	}
+
 	for (const pkg of resolvedPackages) {
 		const orderPackage = packageByNumber.get(pkg.packageNumber);
 		if (!orderPackage) continue;
@@ -146,8 +285,10 @@ export const submitOrderCreate = async ({
 				external_length: pkg.external_length,
 				external_width: pkg.external_width,
 				external_height: pkg.external_height,
-				quantity: pkg.quantity,
+				quantity: normalizedInstanceCountByPackage.get(pkg.packageNumber) || 1,
 				packing_type_id: pkg.packing_type_id,
+				sei_category: pkg.sei_category,
+				sei_protection: pkg.sei_protection,
 				box_type_id: pkg.box_type_id,
 				tare: pkg.tare,
 				net_weight: pkg.net_weight,
@@ -309,7 +450,8 @@ export const submitOrderCreate = async ({
 		}
 	}
 
-	await queryClient.invalidateQueries({ queryKey: ["orders"] });
-	await queryClient.invalidateQueries({ queryKey: ["clients"] });
-	onSuccess();
+	void Promise.allSettled([
+		queryClient.invalidateQueries({ queryKey: ["orders"] }),
+		queryClient.invalidateQueries({ queryKey: ["clients"] }),
+	]);
 };

@@ -22,8 +22,10 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrdersIndexRouteImport } from './routes/orders/index'
+import { Route as ClientsIndexRouteImport } from './routes/clients/index'
 import { Route as PortalLoginRouteImport } from './routes/portal/login'
 import { Route as OrdersOrderIdRouteImport } from './routes/orders/$orderId'
+import { Route as ClientsClientIdRouteImport } from './routes/clients/$clientId'
 import { Route as PortalProjectsIndexRouteImport } from './routes/portal/projects/index'
 import { Route as PortalScanTokenRouteImport } from './routes/portal/scan/$token'
 import { Route as PortalPackageIdRouteImport } from './routes/portal/package/$id'
@@ -94,6 +96,11 @@ const OrdersIndexRoute = OrdersIndexRouteImport.update({
   path: '/',
   getParentRoute: () => OrdersRoute,
 } as any)
+const ClientsIndexRoute = ClientsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ClientsRoute,
+} as any)
 const PortalLoginRoute = PortalLoginRouteImport.update({
   id: '/portal/login',
   path: '/portal/login',
@@ -103,6 +110,11 @@ const OrdersOrderIdRoute = OrdersOrderIdRouteImport.update({
   id: '/$orderId',
   path: '/$orderId',
   getParentRoute: () => OrdersRoute,
+} as any)
+const ClientsClientIdRoute = ClientsClientIdRouteImport.update({
+  id: '/$clientId',
+  path: '/$clientId',
+  getParentRoute: () => ClientsRoute,
 } as any)
 const PortalProjectsIndexRoute = PortalProjectsIndexRouteImport.update({
   id: '/portal/projects/',
@@ -127,7 +139,7 @@ const PortalItemIdRoute = PortalItemIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/clients': typeof ClientsRoute
+  '/clients': typeof ClientsRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/data-import': typeof DataImportRoute
   '/inventory': typeof InventoryRoute
@@ -138,8 +150,10 @@ export interface FileRoutesByFullPath {
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/clients/$clientId': typeof ClientsClientIdRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/portal/login': typeof PortalLoginRoute
+  '/clients/': typeof ClientsIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/portal/item/$id': typeof PortalItemIdRoute
   '/portal/package/$id': typeof PortalPackageIdRoute
@@ -148,7 +162,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
   '/data-import': typeof DataImportRoute
   '/inventory': typeof InventoryRoute
@@ -158,8 +171,10 @@ export interface FileRoutesByTo {
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/clients/$clientId': typeof ClientsClientIdRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/portal/login': typeof PortalLoginRoute
+  '/clients': typeof ClientsIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/portal/item/$id': typeof PortalItemIdRoute
   '/portal/package/$id': typeof PortalPackageIdRoute
@@ -169,7 +184,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/clients': typeof ClientsRoute
+  '/clients': typeof ClientsRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/data-import': typeof DataImportRoute
   '/inventory': typeof InventoryRoute
@@ -180,8 +195,10 @@ export interface FileRoutesById {
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/clients/$clientId': typeof ClientsClientIdRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/portal/login': typeof PortalLoginRoute
+  '/clients/': typeof ClientsIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/portal/item/$id': typeof PortalItemIdRoute
   '/portal/package/$id': typeof PortalPackageIdRoute
@@ -203,8 +220,10 @@ export interface FileRouteTypes {
     | '/requests'
     | '/settings'
     | '/users'
+    | '/clients/$clientId'
     | '/orders/$orderId'
     | '/portal/login'
+    | '/clients/'
     | '/orders/'
     | '/portal/item/$id'
     | '/portal/package/$id'
@@ -213,7 +232,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/clients'
     | '/dashboard'
     | '/data-import'
     | '/inventory'
@@ -223,8 +241,10 @@ export interface FileRouteTypes {
     | '/requests'
     | '/settings'
     | '/users'
+    | '/clients/$clientId'
     | '/orders/$orderId'
     | '/portal/login'
+    | '/clients'
     | '/orders'
     | '/portal/item/$id'
     | '/portal/package/$id'
@@ -244,8 +264,10 @@ export interface FileRouteTypes {
     | '/requests'
     | '/settings'
     | '/users'
+    | '/clients/$clientId'
     | '/orders/$orderId'
     | '/portal/login'
+    | '/clients/'
     | '/orders/'
     | '/portal/item/$id'
     | '/portal/package/$id'
@@ -255,7 +277,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ClientsRoute: typeof ClientsRoute
+  ClientsRoute: typeof ClientsRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   DataImportRoute: typeof DataImportRoute
   InventoryRoute: typeof InventoryRoute
@@ -366,6 +388,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrdersIndexRouteImport
       parentRoute: typeof OrdersRoute
     }
+    '/clients/': {
+      id: '/clients/'
+      path: '/'
+      fullPath: '/clients/'
+      preLoaderRoute: typeof ClientsIndexRouteImport
+      parentRoute: typeof ClientsRoute
+    }
     '/portal/login': {
       id: '/portal/login'
       path: '/portal/login'
@@ -379,6 +408,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/orders/$orderId'
       preLoaderRoute: typeof OrdersOrderIdRouteImport
       parentRoute: typeof OrdersRoute
+    }
+    '/clients/$clientId': {
+      id: '/clients/$clientId'
+      path: '/$clientId'
+      fullPath: '/clients/$clientId'
+      preLoaderRoute: typeof ClientsClientIdRouteImport
+      parentRoute: typeof ClientsRoute
     }
     '/portal/projects/': {
       id: '/portal/projects/'
@@ -411,6 +447,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ClientsRouteChildren {
+  ClientsClientIdRoute: typeof ClientsClientIdRoute
+  ClientsIndexRoute: typeof ClientsIndexRoute
+}
+
+const ClientsRouteChildren: ClientsRouteChildren = {
+  ClientsClientIdRoute: ClientsClientIdRoute,
+  ClientsIndexRoute: ClientsIndexRoute,
+}
+
+const ClientsRouteWithChildren =
+  ClientsRoute._addFileChildren(ClientsRouteChildren)
+
 interface OrdersRouteChildren {
   OrdersOrderIdRoute: typeof OrdersOrderIdRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
@@ -426,7 +475,7 @@ const OrdersRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ClientsRoute: ClientsRoute,
+  ClientsRoute: ClientsRouteWithChildren,
   DashboardRoute: DashboardRoute,
   DataImportRoute: DataImportRoute,
   InventoryRoute: InventoryRoute,

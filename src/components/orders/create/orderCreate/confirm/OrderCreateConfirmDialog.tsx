@@ -14,6 +14,23 @@ export function OrderCreateConfirmDialog(props: OrderCreateConfirmDialogProps) {
 		}
 	}, [activePackage, props.packagePreviews.length]);
 
+	useEffect(() => {
+		if (!props.open) return;
+		const issuePackageNumbers = Object.keys(props.packageIssueMessages || {})
+			.map((value) => Number(value))
+			.filter((value) => Number.isFinite(value))
+			.sort((a, b) => a - b);
+
+		if (issuePackageNumbers.length === 0) return;
+		const firstIssuePackage = issuePackageNumbers[0];
+		const issuePackageIndex = props.packagePreviews.findIndex(
+			(pkg) => pkg.packageNumber === firstIssuePackage,
+		);
+		if (issuePackageIndex >= 0) {
+			setActivePackage(issuePackageIndex);
+		}
+	}, [props.open, props.packageIssueMessages, props.packagePreviews]);
+
 	const handleConfirmClick = () => {
 		if (props.templateWarningCount && props.templateWarningCount > 0) {
 			setShowTemplateWarning(true);

@@ -18,8 +18,13 @@ export function ConfirmDialogContent({
 	summary,
 	detailTables,
 	packagePreviews,
+	packageIssueMessages,
+	partIssueMessages,
 	onPackageFieldChange,
+	onPackageRemove,
 	onPackingTypeChange,
+	onSeiCategoryChange,
+	onSeiProtectionChange,
 	onPackingTypeOptionsToggle,
 	onManufacturingTypeChange,
 	onManufacturingFieldChange,
@@ -66,6 +71,7 @@ export function ConfirmDialogContent({
 					</div>
 
 					<div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+
 						<div className="rounded-lg border border-gray-200 p-4">
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
 								<div className="space-y-3">
@@ -97,6 +103,22 @@ export function ConfirmDialogContent({
 											{summary.clientName}
 										</p>
 									</div>
+									{summary.selectedCategoryLabels &&
+										summary.selectedCategoryLabels.length > 0 && (
+											<div>
+												<p className="text-xs text-gray-500">Mapped categories</p>
+												<div className="mt-1 flex flex-wrap gap-1.5">
+													{summary.selectedCategoryLabels.map((label) => (
+														<span
+															key={label}
+															className="rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700"
+														>
+															{label}
+														</span>
+													))}
+												</div>
+											</div>
+										)}
 									{summary.clientMode === "new" && summary.newClientDetails && (
 										<div>
 											<p className="text-xs text-gray-500">
@@ -113,11 +135,16 @@ export function ConfirmDialogContent({
 
 						<PackagePreviewSection
 							packagePreviews={packagePreviews}
+							packageIssueMessages={packageIssueMessages || {}}
+							partIssueMessages={partIssueMessages || {}}
 							activePackage={activePackage}
 							setActivePackage={setActivePackage}
 							templateMode={templateMode}
 							onPackageFieldChange={onPackageFieldChange}
+							onPackageRemove={onPackageRemove}
 							onPackingTypeChange={onPackingTypeChange}
+							onSeiCategoryChange={onSeiCategoryChange}
+							onSeiProtectionChange={onSeiProtectionChange}
 							onPackingTypeOptionsToggle={onPackingTypeOptionsToggle}
 							onManufacturingTypeChange={onManufacturingTypeChange}
 							onManufacturingFieldChange={onManufacturingFieldChange}
