@@ -69,55 +69,7 @@ function NotFoundComponent() {
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<head>
-				<script
-					dangerouslySetInnerHTML={{
-						__html: `(function(){
-							var attr = 'bis_skin_checked';
-							var removeFrom = function(root){
-								if (!root || !root.querySelectorAll) return;
-								var nodes = root.querySelectorAll('[' + attr + ']');
-								for (var i = 0; i < nodes.length; i++) {
-									nodes[i].removeAttribute(attr);
-								}
-							};
-
-							removeFrom(document);
-
-							if (!window.MutationObserver) return;
-
-							var observer = new MutationObserver(function(mutations){
-								for (var i = 0; i < mutations.length; i++) {
-									var mutation = mutations[i];
-									if (mutation.type === 'attributes' && mutation.attributeName === attr && mutation.target && mutation.target.removeAttribute) {
-										mutation.target.removeAttribute(attr);
-									}
-
-									if (!mutation.addedNodes) continue;
-									for (var j = 0; j < mutation.addedNodes.length; j++) {
-										var node = mutation.addedNodes[j];
-										if (!node || node.nodeType !== 1) continue;
-										if (node.hasAttribute && node.hasAttribute(attr)) {
-											node.removeAttribute(attr);
-										}
-										removeFrom(node);
-									}
-								}
-							});
-
-							observer.observe(document.documentElement, {
-								subtree: true,
-								childList: true,
-								attributes: true,
-								attributeFilter: [attr],
-							});
-
-							window.addEventListener('load', function(){
-								setTimeout(function(){ observer.disconnect(); }, 3000);
-							}, { once: true });
-						})();`,
-					}}
-				/>
+			<head suppressHydrationWarning>
 				<HeadContent />
 			</head>
 			<body suppressHydrationWarning>

@@ -100,6 +100,13 @@ export interface PackagePreview {
 	accessories: ManufacturingPartPreview[];
 }
 
+export interface PackageItemMatchStatus {
+	status: "matched" | "unmatched";
+	searchedItemNumber: string;
+	matchedItemNumber?: string;
+	matchedItemId?: string;
+}
+
 export interface OrderCreateConfirmDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -109,6 +116,7 @@ export interface OrderCreateConfirmDialogProps {
 	packagePreviews: PackagePreview[];
 	packageIssueMessages?: Record<number, string[]>;
 	partIssueMessages?: Record<string, string[]>;
+	itemMatchStatusByPackage?: Record<number, PackageItemMatchStatus>;
 	onPackageFieldChange: (
 		packageNumber: number,
 		field: PackageEditableField,
@@ -134,6 +142,12 @@ export interface OrderCreateConfirmDialogProps {
 	onManufacturingOptionsToggle: (key: string) => void;
 	onManufacturingPartAdd: (key: string) => void;
 	onManufacturingPartRemove: (key: string) => void;
+	onFetchItems: () => void;
+	isFetchingItems?: boolean;
+	fetchItemsDisabled?: boolean;
+	fetchItemsDisabledReason?: string;
+	onMakeAllPositive?: () => void;
+	negativeValueCount?: number;
 	confirmDisabled?: boolean;
 	confirmDisabledReason?: string;
 	templateWarningCount?: number;

@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import {
 	createContext,
+	useEffect,
 	useCallback,
 	useContext,
 	useMemo,
@@ -57,7 +58,12 @@ const variantTitleClasses: Record<ToastVariant, string> = {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
 	const [toasts, setToasts] = useState<ToastMessage[]>([]);
+	const [isMounted, setIsMounted] = useState(false);
 	const counter = useRef(0);
+
+	useEffect(() => {
+		setIsMounted(true);
+	}, []);
 
 	const toast = useCallback((opts: Omit<ToastMessage, "id">) => {
 		counter.current += 1;
@@ -113,7 +119,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 						</RadixToast.Close>
 					</RadixToast.Root>
 				))}
-				<RadixToast.Viewport className="fixed bottom-4 right-4 flex flex-col gap-2 z-9999 outline-none" />
+				{isMounted ? (
+					<RadixToast.Viewport
+						suppressHydrationWarning
+						className="fixed bottom-4 right-4 flex flex-col gap-2 z-9999 outline-none"
+					/>
+				) : null}
 			</RadixToast.Provider>
 		</ToastContext.Provider>
 	);

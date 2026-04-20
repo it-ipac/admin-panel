@@ -131,6 +131,15 @@ export interface OrderPackage {
 	final_pkg_info: PackageInfo | null;
 }
 
+export interface PackageInstance {
+	id: string;
+	order_pkg_overview_id: string | null;
+	order_package_id: string;
+	instance_number: number | null;
+	ipac_reference: string | null;
+	status: string | null;
+}
+
 interface Client {
 	id: string;
 	name: string;
@@ -250,6 +259,42 @@ interface Order {
 	project_lead: { full_name: string } | null;
 	order_packages: OrderPackage[];
 }
+
+const IN_QUERY_CHUNK_SIZE = 120;
+
+const chunkArray = <T,>(items: T[], size = IN_QUERY_CHUNK_SIZE): T[][] => {
+	if (!items.length) return [];
+	const chunks: T[][] = [];
+	for (let i = 0; i < items.length; i += size) {
+		chunks.push(items.slice(i, i + size));
+	}
+	return chunks;
+};
+
+const queryRowsInChunks = async <T,>(
+	ids: string[],
+	runner: (chunk: string[]) => PromiseLike<{ data: T[] | null; error: any }>,
+): Promise<T[]> => {
+	if (!ids.length) return [];
+	const rows: T[] = [];
+	for (const chunk of chunkArray(ids)) {
+		const { data, error } = await runner(chunk);
+		if (error) throw error;
+		if (data?.length) rows.push(...data);
+	}
+	return rows;
+};
+
+const mutateInChunks = async (
+	ids: string[],
+	runner: (chunk: string[]) => PromiseLike<{ error: any }>,
+) => {
+	if (!ids.length) return;
+	for (const chunk of chunkArray(ids)) {
+		const { error } = await runner(chunk);
+		if (error) throw error;
+	}
+};
 
 function OrderDetailPage() {
 	const { orderId } = Route.useParams();
@@ -390,6 +435,7 @@ function OrderDetailPage() {
 		"package_items",
 		"media",
 		"order_pkg_instance",
+		"pkd_item",
 		"order_pkg_overview",
 		"order_packages",
 		"package_info",
@@ -426,12 +472,12 @@ function OrderDetailPage() {
 				.filter(Boolean);
 
 			if (packageIds.length > 0) {
-				const { data: mediaRows, error: mediaError } = await supabase
-					.from("media")
-					.select("id, image_url")
-					.in("order_package_id", packageIds);
-
-				if (mediaError) throw mediaError;
+				const mediaRows = await queryRowsInChunks<any>(packageIds, (chunk) =>
+					supabase
+						.from("media")
+						.select("id, image_url")
+						.in("order_package_id", chunk),
+				);
 
 				const mediaPaths = (mediaRows || [])
 					.map((row: any) => row.image_url)
@@ -444,35 +490,34 @@ function OrderDetailPage() {
 					if (storageError) throw storageError;
 				}
 
-				const { error: mediaDeleteError } = await supabase
-					.from("media")
-					.delete()
-					.in("order_package_id", packageIds);
-				if (mediaDeleteError) throw mediaDeleteError;
+				await mutateInChunks(packageIds, (chunk) =>
+					supabase.from("media").delete().in("order_package_id", chunk),
+				);
 
-				const { error: packageItemsError } = await supabase
-					.from("package_items")
-					.delete()
-					.in("order_package_id", packageIds);
-				if (packageItemsError) throw packageItemsError;
+				await mutateInChunks(packageIds, (chunk) =>
+					supabase.from("package_items").delete().in("order_package_id", chunk),
+				);
 
-				const { error: materialsError } = await supabase
-					.from("order_package_materials")
-					.delete()
-					.in("order_package_id", packageIds);
-				if (materialsError) throw materialsError;
+				await mutateInChunks(packageIds, (chunk) =>
+					supabase
+						.from("order_package_materials")
+						.delete()
+						.in("order_package_id", chunk),
+				);
 
-				const { error: servicesError } = await supabase
-					.from("order_package_services")
-					.delete()
-					.in("order_package_id", packageIds);
-				if (servicesError) throw servicesError;
+				await mutateInChunks(packageIds, (chunk) =>
+					supabase
+						.from("order_package_services")
+						.delete()
+						.in("order_package_id", chunk),
+				);
 
-				const { data: securingRows, error: securingError } = await supabase
-					.from("order_package_securing")
-					.select("id, securing_template_id")
-					.in("order_package_id", packageIds);
-				if (securingError) throw securingError;
+				const securingRows = await queryRowsInChunks<any>(packageIds, (chunk) =>
+					supabase
+						.from("order_package_securing")
+						.select("id, securing_template_id")
+						.in("order_package_id", chunk),
+				);
 
 				const templateIds = Array.from(
 					new Set(
@@ -484,12 +529,14 @@ function OrderDetailPage() {
 
 				let beamIds: string[] = [];
 				if (templateIds.length > 0) {
-					const { data: templateRows, error: templateRowsError } =
-						await supabase
-							.from("securing_template")
-							.select("id, horizontal_bar, vertical_bar, skids")
-							.in("id", templateIds);
-					if (templateRowsError) throw templateRowsError;
+					const templateRows = await queryRowsInChunks<any>(
+						templateIds,
+						(chunk) =>
+							supabase
+								.from("securing_template")
+								.select("id, horizontal_bar, vertical_bar, skids")
+								.in("id", chunk),
+					);
 
 					beamIds = Array.from(
 						new Set(
@@ -504,33 +551,27 @@ function OrderDetailPage() {
 					) as string[];
 				}
 
-				const { error: securingDeleteError } = await supabase
-					.from("order_package_securing")
-					.delete()
-					.in("order_package_id", packageIds);
-				if (securingDeleteError) throw securingDeleteError;
-
-				if (templateIds.length > 0) {
-					const { error: templateDeleteError } = await supabase
-						.from("securing_template")
+				await mutateInChunks(packageIds, (chunk) =>
+					supabase
+						.from("order_package_securing")
 						.delete()
-						.in("id", templateIds);
-					if (templateDeleteError) throw templateDeleteError;
-				}
+						.in("order_package_id", chunk),
+				);
 
-				if (beamIds.length > 0) {
-					const { error: beamError } = await supabase
-						.from("beam")
-						.delete()
-						.in("id", beamIds);
-					if (beamError) throw beamError;
-				}
+				await mutateInChunks(templateIds, (chunk) =>
+					supabase.from("securing_template").delete().in("id", chunk),
+				);
 
-				const { data: taskPackages, error: taskPackagesError } = await supabase
-					.from("task_packages")
-					.select("id, task_log_id")
-					.in("order_package_id", packageIds);
-				if (taskPackagesError) throw taskPackagesError;
+				await mutateInChunks(beamIds, (chunk) =>
+					supabase.from("beam").delete().in("id", chunk),
+				);
+
+				const taskPackages = await queryRowsInChunks<any>(packageIds, (chunk) =>
+					supabase
+						.from("task_packages")
+						.select("id, task_log_id")
+						.in("order_package_id", chunk),
+				);
 
 				const taskLogIds = Array.from(
 					new Set(
@@ -540,45 +581,72 @@ function OrderDetailPage() {
 					),
 				);
 
-				const { error: taskPackagesDeleteError } = await supabase
-					.from("task_packages")
-					.delete()
-					.in("order_package_id", packageIds);
-				if (taskPackagesDeleteError) throw taskPackagesDeleteError;
-
-				if (taskLogIds.length > 0) {
-					const { error: taskAssignmentsError } = await supabase
-						.from("task_assignments")
+				await mutateInChunks(packageIds, (chunk) =>
+					supabase
+						.from("task_packages")
 						.delete()
-						.in("task_log_id", taskLogIds);
-					if (taskAssignmentsError) throw taskAssignmentsError;
+						.in("order_package_id", chunk),
+				);
 
-					const { error: taskLogsError } = await supabase
-						.from("task_logs")
+				await mutateInChunks(taskLogIds, (chunk) =>
+					supabase.from("task_assignments").delete().in("task_log_id", chunk),
+				);
+
+				await mutateInChunks(taskLogIds, (chunk) =>
+					supabase.from("task_logs").delete().in("id", chunk),
+				);
+
+				const packageInstances = await queryRowsInChunks<any>(
+					packageIds,
+					(chunk) =>
+						supabase
+							.from("order_pkg_instance")
+							.select("id")
+							.in("order_package_id", chunk),
+				);
+				const packageInstanceIds = (packageInstances || [])
+					.map((row: any) => row.id)
+					.filter(Boolean);
+
+				await mutateInChunks(packageInstanceIds, (chunk) =>
+					supabase.from("pkd_item").delete().in("pkg_instance_id", chunk),
+				);
+
+				await mutateInChunks(packageIds, (chunk) =>
+					supabase
+						.from("order_pkg_instance")
 						.delete()
-						.in("id", taskLogIds);
-					if (taskLogsError) throw taskLogsError;
-				}
-
-				const { error: instanceByPackageError } = await supabase
-					.from("order_pkg_instance")
-					.delete()
-					.in("order_package_id", packageIds);
-				if (instanceByPackageError) throw instanceByPackageError;
+						.in("order_package_id", chunk),
+				);
 			}
 
 			if (overviewIds.length > 0) {
-				const { error: instanceByOverviewError } = await supabase
-					.from("order_pkg_instance")
-					.delete()
-					.in("order_pkg_overview_id", overviewIds);
-				if (instanceByOverviewError) throw instanceByOverviewError;
+				const overviewInstances = await queryRowsInChunks<any>(
+					overviewIds,
+					(chunk) =>
+						supabase
+							.from("order_pkg_instance")
+							.select("id")
+							.in("order_pkg_overview_id", chunk),
+				);
+				const overviewInstanceIds = (overviewInstances || [])
+					.map((row: any) => row.id)
+					.filter(Boolean);
 
-				const { error: overviewDeleteError } = await supabase
-					.from("order_pkg_overview")
-					.delete()
-					.in("id", overviewIds);
-				if (overviewDeleteError) throw overviewDeleteError;
+				await mutateInChunks(overviewInstanceIds, (chunk) =>
+					supabase.from("pkd_item").delete().in("pkg_instance_id", chunk),
+				);
+
+				await mutateInChunks(overviewIds, (chunk) =>
+					supabase
+						.from("order_pkg_instance")
+						.delete()
+						.in("order_pkg_overview_id", chunk),
+				);
+
+				await mutateInChunks(overviewIds, (chunk) =>
+					supabase.from("order_pkg_overview").delete().in("id", chunk),
+				);
 			}
 
 			const { error: attendanceError } = await supabase
@@ -593,21 +661,13 @@ function OrderDetailPage() {
 				.eq("order_id", orderId);
 			if (teamMembersError) throw teamMembersError;
 
-			if (packageIds.length > 0) {
-				const { error: packagesDeleteError } = await supabase
-					.from("order_packages")
-					.delete()
-					.in("id", packageIds);
-				if (packagesDeleteError) throw packagesDeleteError;
-			}
+			await mutateInChunks(packageIds, (chunk) =>
+				supabase.from("order_packages").delete().in("id", chunk),
+			);
 
-			if (packageInfoIds.length > 0) {
-				const { error: packageInfoError } = await supabase
-					.from("package_info")
-					.delete()
-					.in("id", packageInfoIds);
-				if (packageInfoError) throw packageInfoError;
-			}
+			await mutateInChunks(packageInfoIds, (chunk) =>
+				supabase.from("package_info").delete().in("id", chunk),
+			);
 
 			const { error: categoryOrderMapError } = await supabase
 				.from("category_order_map")
@@ -708,23 +768,32 @@ function OrderDetailPage() {
 			const packageIds = packages.map((p) => p.id);
 
 			// Get task_packages for these packages
-			const { data: taskPackages, error: tpError } = await supabase
-				.from("task_packages")
-				.select("task_log_id, order_package_id")
-				.in("order_package_id", packageIds);
+			const taskPackages = await queryRowsInChunks<{
+				task_log_id: string | null;
+				order_package_id: string;
+			}>(packageIds, (chunk) =>
+				supabase
+					.from("task_packages")
+					.select("task_log_id, order_package_id")
+					.in("order_package_id", chunk),
+			);
 
-			if (tpError) throw tpError;
-			if (!taskPackages || taskPackages.length === 0) return [];
+			if (taskPackages.length === 0) return [];
 
 			const taskLogIds = [
-				...new Set(taskPackages.map((tp) => tp.task_log_id).filter(Boolean)),
+				...new Set(
+					taskPackages
+						.map((tp) => tp.task_log_id)
+						.filter((id): id is string => Boolean(id)),
+				),
 			];
 			if (taskLogIds.length === 0) return [];
 
 			// Get full task_logs with assignments
-			const { data: logs, error: logsError } = await supabase
-				.from("task_logs")
-				.select(`
+			const logs = await queryRowsInChunks<any>(taskLogIds, (chunk) =>
+				supabase
+					.from("task_logs")
+					.select(`
           id,
           start_time,
           end_time,
@@ -741,13 +810,19 @@ function OrderDetailPage() {
             )
           )
         `)
-				.in("id", taskLogIds)
-				.order("start_time", { ascending: false });
+					.in("id", chunk)
+					.order("start_time", { ascending: false }),
+			);
 
-			if (logsError) throw logsError;
+			if (logs.length === 0) return [];
+
+			const sortedLogs = [...logs].sort(
+				(a, b) =>
+					new Date(b.start_time).getTime() - new Date(a.start_time).getTime(),
+			);
 
 			// Map task_packages to each task_log
-			return logs.map((log) => ({
+			return sortedLogs.map((log) => ({
 				...log,
 				task: Array.isArray(log.task) ? log.task[0] : log.task,
 				task_packages: taskPackages.filter((tp) => tp.task_log_id === log.id),
@@ -777,9 +852,10 @@ function OrderDetailPage() {
 			const packageIds = packages.map((p) => p.id);
 
 			// Get all media for these packages
-			const { data, error } = await supabase
-				.from("media")
-				.select(`
+			const data = await queryRowsInChunks<any>(packageIds, (chunk) =>
+				supabase
+					.from("media")
+					.select(`
           id,
           image_url,
           notes,
@@ -787,15 +863,20 @@ function OrderDetailPage() {
           order_package_id,
           designation
         `)
-				.in("order_package_id", packageIds)
-				.order("created_at", { ascending: false });
+					.in("order_package_id", chunk)
+					.order("created_at", { ascending: false }),
+			);
 
-			if (error) throw error;
-			if (!data || data.length === 0) return [];
+			if (data.length === 0) return [];
+
+			const sortedMedia = [...data].sort(
+				(a, b) =>
+					new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+			);
 
 			// Generate signed URLs for each media item (bucket is private)
 			const mediaWithSignedUrls = await Promise.all(
-				data.map(async (item) => {
+				sortedMedia.map(async (item) => {
 					if (!item.image_url) {
 						return { ...item, signed_url: null } as Media;
 					}
@@ -834,12 +915,13 @@ function OrderDetailPage() {
 
 			const packageIds = packages.map((p) => p.id);
 
-			const { data, error } = await supabase
-				.from("package_items")
-				.select("*")
-				.in("order_package_id", packageIds);
+			const data = await queryRowsInChunks<PackageItem>(packageIds, (chunk) =>
+				supabase
+					.from("package_items")
+					.select("*")
+					.in("order_package_id", chunk),
+			);
 
-			if (error) throw error;
 			return data as PackageItem[];
 		},
 		enabled: !!user && !!order,
@@ -860,9 +942,10 @@ function OrderDetailPage() {
 			const packageIds = packages.map((p) => p.id);
 
 			// Fetch standard materials
-			const materialsPromise = supabase
-				.from("order_package_materials")
-				.select(`
+			const materialsPromise = queryRowsInChunks<any>(packageIds, (chunk) =>
+				supabase
+					.from("order_package_materials")
+					.select(`
           id,
           order_package_id,
           material_variant_id,
@@ -886,12 +969,14 @@ function OrderDetailPage() {
             name
           )
         `)
-				.in("order_package_id", packageIds);
+					.in("order_package_id", chunk),
+			);
 
 			// Fetch securing materials (beams)
-			const securingPromise = supabase
-				.from("order_package_securing")
-				.select(`
+			const securingPromise = queryRowsInChunks<any>(packageIds, (chunk) =>
+				supabase
+					.from("order_package_securing")
+					.select(`
           id,
           order_package_id,
           securing_side,
@@ -914,18 +999,16 @@ function OrderDetailPage() {
             )
           )
         `)
-				.in("order_package_id", packageIds);
+					.in("order_package_id", chunk),
+			);
 
-			const [materialsResult, securingResult] = await Promise.all([
+			const [materialRows, securingRows] = await Promise.all([
 				materialsPromise,
 				securingPromise,
 			]);
 
-			if (materialsResult.error) throw materialsResult.error;
-			if (securingResult.error) throw securingResult.error;
-
 			// Flatten the nested relations for standard materials
-			const standardMaterials = materialsResult.data.map((item: any) => ({
+			const standardMaterials = materialRows.map((item: any) => ({
 				...item,
 				variant_name: Array.isArray(item.material_variant)
 					? item.material_variant[0]?.variant_name
@@ -943,7 +1026,7 @@ function OrderDetailPage() {
 			}));
 
 			// Process securing materials
-			const securingMaterials = securingResult.data.flatMap((securing: any) => {
+			const securingMaterials = securingRows.flatMap((securing: any) => {
 				const template = securing.securing_template;
 				if (!template) return [];
 
@@ -1013,9 +1096,10 @@ function OrderDetailPage() {
 
 			const packageIds = packages.map((p) => p.id);
 
-			const { data, error } = await supabase
-				.from("order_package_securing")
-				.select(`
+			const securingRows = await queryRowsInChunks<any>(packageIds, (chunk) =>
+				supabase
+					.from("order_package_securing")
+					.select(`
           id,
           order_package_id,
           securing_side,
@@ -1037,13 +1121,12 @@ function OrderDetailPage() {
             )
           )
         `)
-				.in("order_package_id", packageIds);
-
-			if (error) throw error;
+					.in("order_package_id", chunk),
+			);
 
 			// Fetch beam details for all referenced beams
 			const beamIds = new Set<string>();
-			data?.forEach((securing: any) => {
+			securingRows?.forEach((securing: any) => {
 				if (securing.securing_template?.horizontal_bar)
 					beamIds.add(securing.securing_template.horizontal_bar);
 				if (securing.securing_template?.vertical_bar)
@@ -1053,10 +1136,12 @@ function OrderDetailPage() {
 			});
 
 			let beamsData: any[] = [];
-			if (beamIds.size > 0) {
-				const { data: beams, error: beamsError } = await supabase
-					.from("beam")
-					.select(`
+			const beamIdList = Array.from(beamIds);
+			if (beamIdList.length > 0) {
+				beamsData = await queryRowsInChunks<any>(beamIdList, (chunk) =>
+					supabase
+						.from("beam")
+						.select(`
             id,
             quantity,
             width,
@@ -1070,17 +1155,15 @@ function OrderDetailPage() {
               )
             )
           `)
-					.in("id", Array.from(beamIds));
-
-				if (beamsError) throw beamsError;
-				beamsData = beams || [];
+						.in("id", chunk),
+				);
 			}
 
 			// Build lookup map for beams
 			const beamMap = new Map(beamsData.map((b) => [b.id, b]));
 
 			// Transform the data to include beam details
-			return data.map((securing: any) => {
+			return securingRows.map((securing: any) => {
 				const template = securing.securing_template;
 				const type = Array.isArray(template?.type)
 					? template.type[0]
@@ -1143,9 +1226,10 @@ function OrderDetailPage() {
 
 			const packageIds = packages.map((p) => p.id);
 
-			const { data, error } = await supabase
-				.from("order_package_services")
-				.select(`
+			const data = await queryRowsInChunks<any>(packageIds, (chunk) =>
+				supabase
+					.from("order_package_services")
+					.select(`
           id,
           order_package_id,
           service_id,
@@ -1155,9 +1239,8 @@ function OrderDetailPage() {
             service
           )
         `)
-				.in("order_package_id", packageIds);
-
-			if (error) throw error;
+					.in("order_package_id", chunk),
+			);
 
 			return data.map((item: any) => ({
 				...item,
@@ -1165,6 +1248,37 @@ function OrderDetailPage() {
 					? item.service[0]?.service
 					: item.service?.service,
 			})) as PackageService[];
+		},
+		enabled: !!user && !!order,
+	});
+
+	// Fetch package instances for all packages in this order
+	const { data: packageInstances } = useQuery({
+		queryKey: ["packageInstances", orderId],
+		queryFn: async () => {
+			const { data: packages, error: pkgError } = await supabase
+				.from("order_packages")
+				.select("id")
+				.eq("order_id", orderId);
+
+			if (pkgError) throw pkgError;
+			if (!packages || packages.length === 0) return [];
+
+			const packageIds = packages.map((p) => p.id);
+
+			const rows = await queryRowsInChunks<PackageInstance>(
+				packageIds,
+				(chunk) =>
+					supabase
+						.from("order_pkg_instance")
+						.select(
+							"id, order_pkg_overview_id, order_package_id, instance_number, ipac_reference, status",
+						)
+						.in("order_package_id", chunk)
+						.order("instance_number", { ascending: true }),
+			);
+
+			return rows;
 		},
 		enabled: !!user && !!order,
 	});
@@ -1852,6 +1966,16 @@ function OrderDetailPage() {
 			order.order_packages.find((pkg) => pkg.id === selectedPackageId) || null
 		);
 	}, [order?.order_packages, selectedPackageId]);
+
+	const selectedPackageInstances = useMemo(() => {
+		if (!packageInstances || !selectedPackageId) return [];
+		return packageInstances
+			.filter((instance) => instance.order_package_id === selectedPackageId)
+			.sort(
+				(a, b) =>
+					Number(a.instance_number || 0) - Number(b.instance_number || 0),
+			);
+	}, [packageInstances, selectedPackageId]);
 
 	// Get items for selected package
 	const selectedPackageItems = useMemo(() => {
@@ -3574,6 +3698,7 @@ function OrderDetailPage() {
 														{selectedPackageTab === "info" && (
 															<PackageInfoTab
 																selectedPackage={selectedPackage}
+																	selectedPackageInstances={selectedPackageInstances}
 																updatePackageInfoMutation={
 																	updatePackageInfoMutation
 																}

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CheckCircle, Clock, Loader2, ShoppingCart, Users } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
 	Bar,
 	BarChart,
@@ -79,6 +79,11 @@ const CHART_COLORS = {
 function DashboardPage() {
 	const navigate = useNavigate();
 	const { user, profile, loading: authLoading } = useAuth();
+	const [isMounted, setIsMounted] = useState(false);
+
+	useEffect(() => {
+		setIsMounted(true);
+	}, []);
 
 	useEffect(() => {
 		if (!authLoading && !user) {
@@ -135,14 +140,17 @@ function DashboardPage() {
 
 	if (authLoading) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50">
+			<div
+				suppressHydrationWarning
+				className="min-h-screen flex items-center justify-center bg-gray-50"
+			>
 				<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
 			</div>
 		);
 	}
 
 	return (
-		<div className="flex h-screen bg-gray-50">
+		<div suppressHydrationWarning className="flex h-screen bg-gray-50">
 			<Sidebar />
 			<main className="flex-1 overflow-y-auto">
 				<div className="p-8 animate-fade-in">
@@ -191,8 +199,13 @@ function DashboardPage() {
 								Weekly Orders
 							</h2>
 							<div className="h-80">
-								{weeklyData.length > 0 ? (
-									<ResponsiveContainer width="100%" height="100%">
+								{isMounted && weeklyData.length > 0 ? (
+									<ResponsiveContainer
+										width="100%"
+										height="100%"
+										minWidth={0}
+										minHeight={280}
+									>
 										<BarChart data={weeklyData}>
 											<CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
 											<XAxis dataKey="name" stroke="#64748b" fontSize={12} />
@@ -226,25 +239,36 @@ function DashboardPage() {
 								Order Status
 							</h2>
 							<div className="h-80">
-								<ResponsiveContainer width="100%" height="100%">
-									<PieChart>
-										<Pie
-											data={pieData}
-											cx="50%"
-											cy="50%"
-											innerRadius={60}
-											outerRadius={100}
-											paddingAngle={2}
-											dataKey="value"
-										>
-											{pieData.map((entry) => (
-												<Cell key={entry.name} fill={entry.color} />
-											))}
-										</Pie>
-										<Tooltip />
-										<Legend />
-									</PieChart>
-								</ResponsiveContainer>
+								{isMounted ? (
+									<ResponsiveContainer
+										width="100%"
+										height="100%"
+										minWidth={0}
+										minHeight={280}
+									>
+										<PieChart>
+											<Pie
+												data={pieData}
+												cx="50%"
+												cy="50%"
+												innerRadius={60}
+												outerRadius={100}
+												paddingAngle={2}
+												dataKey="value"
+											>
+												{pieData.map((entry) => (
+													<Cell key={entry.name} fill={entry.color} />
+												))}
+											</Pie>
+											<Tooltip />
+											<Legend />
+										</PieChart>
+									</ResponsiveContainer>
+								) : (
+									<div className="flex items-center justify-center h-full text-gray-400">
+										<p>Loading chart...</p>
+									</div>
+								)}
 							</div>
 						</div>
 					</div>

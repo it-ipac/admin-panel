@@ -132,6 +132,14 @@ export const db = {
 			.order("name", { ascending: true });
 	},
 
+	getClientNameById: async (clientId: string) => {
+		return supabase
+			.from("clients")
+			.select("name")
+			.eq("id", clientId)
+			.single();
+	},
+
 	createClient: async (payload: {
 		name: string;
 		contact_person?: string | null;
@@ -275,12 +283,74 @@ export const db = {
 			order_pkg_overview_id: string;
 			order_package_id: string;
 			instance_number: number;
+			ipac_reference?: string | null;
 			status?: "design" | "approved" | "in_production" | "packed";
 			packed_at?: string | null;
 		}>,
 	) => {
 		if (!rows.length) return { data: [], error: null };
-		return supabase.from("order_pkg_instance").insert(rows).select("id");
+		return supabase
+			.from("order_pkg_instance")
+			.insert(rows)
+			.select("id, order_package_id, instance_number, ipac_reference");
+	},
+
+	getLatestIpacReferenceForPrefix: async (prefix: string) => {
+		return supabase
+			.from("order_pkg_instance")
+			.select("ipac_reference")
+			.ilike("ipac_reference", `${prefix}-%`)
+			.order("ipac_reference", { ascending: false })
+			.limit(1);
+	},
+
+	getClientItemsDbForOrderCreate: async (clientId: string) => {
+		const pageSize = 1000;
+		let from = 0;
+		const allRows: Array<{
+			id: string;
+			item_num: string | null;
+			reference: string | null;
+		}> = [];
+
+		while (true) {
+			const { data, error } = await supabase
+				.from("items_db")
+				.select("id, item_num, reference")
+				.eq("client_id", clientId)
+				.order("id", { ascending: true })
+				.range(from, from + pageSize - 1);
+
+			if (error) {
+				return { data: null, error };
+			}
+
+			const rows = (data || []) as Array<{
+				id: string;
+				item_num: string | null;
+				reference: string | null;
+			}>;
+			allRows.push(...rows);
+
+			if (rows.length < pageSize) {
+				break;
+			}
+
+			from += pageSize;
+		}
+
+		return { data: allRows, error: null };
+	},
+
+	createPackedItemsForInstances: async (
+		rows: Array<{
+			maintenance_db_id: string;
+			pkg_instance_id: string;
+			quantity: number;
+		}>,
+	) => {
+		if (!rows.length) return { data: [], error: null };
+		return supabase.from("pkd_item").insert(rows).select("id");
 	},
 
 	getPackingTypes: async () => {
@@ -385,7 +455,7 @@ export const db = {
 		payload: Array<{
 			order_package_id: string;
 			quantity: number;
-			designation: string;
+			designation: string | null;
 			length?: number | null;
 			width?: number | null;
 			height?: number | null;
@@ -418,7 +488,7 @@ export const db = {
 		thickness?: number | null;
 		space?: number | null;
 	}) => {
-		return supabase.from("beam").insert(payload).select("*").single();
+		return supabase.from("beam").insert(payload).select("id").single();
 	},
 
 	createSecuringTemplate: async (payload: {
@@ -432,7 +502,7 @@ export const db = {
 		return supabase
 			.from("securing_template")
 			.insert(payload)
-			.select("*")
+			.select("id")
 			.single();
 	},
 
@@ -442,11 +512,7 @@ export const db = {
 		securing_side: "big_sides" | "small_sides" | "lid" | "base";
 		is_final: boolean;
 	}) => {
-		return supabase
-			.from("order_package_securing")
-			.insert(payload)
-			.select("*")
-			.single();
+		return supabase.from("order_package_securing").insert(payload);
 	},
 
 	getOrders: async () => {
@@ -469,6 +535,16 @@ export const db = {
 			.from("profiles")
 			.select("*, roles(*)")
 			.order("full_name", { ascending: true });
+	},
+
+	getPackerAssignmentStatus: async () => {
+		return supabase.rpc("get_packer_assignment_status");
+	},
+
+	forceReleasePacker: async (packerId: string) => {
+		return supabase.rpc("admin_force_release_packer", {
+			packer_uuid: packerId,
+		});
 	},
 
 	getRoles: async () => {

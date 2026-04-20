@@ -2,12 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ManufacturingPartCard } from "./ManufacturingPartCard";
 import { ManufacturingSectionsPanel } from "./ManufacturingSectionsPanel";
 import { formatNumber, NumberInput } from "./NumberInput";
-import type { OrderCreateConfirmDialogProps, PackagePreview } from "./types";
+import type {
+	OrderCreateConfirmDialogProps,
+	PackageItemMatchStatus,
+	PackagePreview,
+} from "./types";
 
 interface PackagePreviewSectionProps {
 	packagePreviews: PackagePreview[];
 	packageIssueMessages: Record<number, string[]>;
 	partIssueMessages: Record<string, string[]>;
+	itemMatchStatusByPackage: Record<number, PackageItemMatchStatus>;
 	activePackage: number;
 	setActivePackage: (index: number) => void;
 	templateMode?: "legacy" | "v54plus";
@@ -92,11 +97,6 @@ interface PackageIssueAction {
 	packageNumber: number;
 	message: string;
 	targetId?: string;
-	makePositive?: {
-		partKey: string;
-		field: IssueField;
-		value: number;
-	};
 }
 
 const sanitizeForDomId = (value: string) =>
@@ -115,6 +115,7 @@ export function PackagePreviewSection({
 	packagePreviews,
 	packageIssueMessages,
 	partIssueMessages,
+	itemMatchStatusByPackage,
 	activePackage,
 	setActivePackage,
 	templateMode,
@@ -133,6 +134,9 @@ export function PackagePreviewSection({
 	if (!packagePreviews.length) return null;
 	const pkg = packagePreviews[activePackage];
 	if (!pkg) return null;
+	const itemMatchState = itemMatchStatusByPackage[pkg.packageNumber];
+	const isUnmatchedItem = itemMatchState?.status === "unmatched";
+	const isMatchedItem = itemMatchState?.status === "matched";
 	const numericQuantity = Number(pkg.quantity);
 	const isQuantityValid =
 		Number.isFinite(numericQuantity) &&
@@ -211,6 +215,15 @@ export function PackagePreviewSection({
 					continue;
 				}
 
+				if (
+					message.startsWith("Item number ") &&
+					message.includes("was not found in client items DB")
+				) {
+					action.targetId = getPackageInputId(preview.packageNumber, "designation");
+					actions.push(action);
+					continue;
+				}
+
 				const quantityRequiredMatch = message.match(quantityRequiredPattern);
 				if (quantityRequiredMatch) {
 					const partType = quantityRequiredMatch[1] as "Securing" | "Accessory";
@@ -248,7 +261,6 @@ export function PackagePreviewSection({
 					const partType = negativeMatch[1] as "Securing" | "Accessory";
 					const partNumber = Number(negativeMatch[2]);
 					const issueField = negativeMatch[3] as "quantity" | "width" | "thickness";
-					const currentValue = Number(negativeMatch[4]);
 					const partIndex = partNumber - 1;
 					const part =
 						partType === "Securing"
@@ -256,11 +268,6 @@ export function PackagePreviewSection({
 							: preview.accessories[partIndex];
 					if (part) {
 						action.targetId = getPartInputId(part.key, issueField);
-						action.makePositive = {
-							partKey: part.key,
-							field: issueField,
-							value: currentValue,
-						};
 					}
 					actions.push(action);
 					continue;
@@ -339,21 +346,6 @@ export function PackagePreviewSection({
 			}
 		},
 		[issueActionByKey, jumpToIssue, orderedIssueKeys],
-	);
-
-	const handleMakePositive = useCallback(
-		(issueKey: string) => {
-			const issue = issueActionByKey.get(issueKey);
-			if (!issue?.makePositive) return;
-
-			startIssueNavigationFrom(issueKey);
-			onManufacturingFieldChange(
-				issue.makePositive.partKey,
-				issue.makePositive.field,
-				Math.abs(issue.makePositive.value),
-			);
-		},
-		[issueActionByKey, onManufacturingFieldChange, startIssueNavigationFrom],
 	);
 
 	useEffect(() => {
@@ -450,15 +442,6 @@ export function PackagePreviewSection({
 											className="rounded border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100"
 										>
 											Go to issue
-										</button>
-									)}
-									{issue.makePositive && (
-										<button
-											type="button"
-											onClick={() => handleMakePositive(issue.key)}
-											className="rounded border border-green-200 bg-green-50 px-2 py-1 text-[11px] font-medium text-green-700 hover:bg-green-100"
-										>
-											Make positive
 										</button>
 									)}
 								</div>
@@ -643,6 +626,7 @@ export function PackagePreviewSection({
 					<div>
 						<p className="text-xs text-gray-500">Item designation (col B)</p>
 						<input
+							id={getPackageInputId(pkg.packageNumber, "designation")}
 							type="text"
 							value={pkg.designation || ""}
 							onChange={(event) =>
@@ -652,8 +636,25 @@ export function PackagePreviewSection({
 									event.target.value,
 								)
 							}
-							className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+							className={`mt-1 w-full px-2 py-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 ${
+								isUnmatchedItem
+									? "border-red-300 bg-red-50 focus:ring-red-500"
+									: isMatchedItem
+										? "border-green-300 bg-green-50 focus:ring-green-500"
+										: "border-gray-300 focus:ring-blue-500"
+							}`}
 						/>
+						{isMatchedItem && (
+							<p className="mt-1 text-xs text-green-700">
+								Linked to client item: {itemMatchState?.matchedItemNumber}
+							</p>
+						)}
+						{isUnmatchedItem && (
+							<p className="mt-1 text-xs text-red-700">
+								Not found in client items DB. Keep as normal package item,
+								edit and fetch again, or clear this field.
+							</p>
+						)}
 					</div>
 					<div>
 						<p className="text-xs text-gray-500">

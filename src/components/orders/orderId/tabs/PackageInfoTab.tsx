@@ -2,6 +2,7 @@ import { type UseMutationResult, useQuery } from "@tanstack/react-query";
 import { supabase } from "../../../../lib/supabase";
 import type {
 	OrderPackage,
+	PackageInstance,
 	PackageInfo,
 } from "../../../../routes/orders/$orderId";
 import { DimensionsCard } from "../../../ui/DimensionsCard";
@@ -9,6 +10,7 @@ import { TwoTierCard } from "../../../ui/TwoTierCard";
 
 interface PackageInfoTabProps {
 	selectedPackage: OrderPackage;
+	selectedPackageInstances: PackageInstance[];
 	updatePackageInfoMutation: UseMutationResult<
 		PackageInfo,
 		Error,
@@ -22,6 +24,7 @@ interface PackageInfoTabProps {
 
 export function PackageInfoTab({
 	selectedPackage,
+	selectedPackageInstances,
 	updatePackageInfoMutation,
 }: PackageInfoTabProps) {
 	const { data: packingTypes } = useQuery({
@@ -137,6 +140,52 @@ export function PackageInfoTab({
 				<div className="flex items-center gap-2">
 					{/* Status Badge/Select could go here if needed, but sticking to UI replication */}
 				</div>
+			</div>
+
+			{/* Instances & References */}
+			<div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+				<div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+					<h4 className="text-sm font-semibold text-gray-900">
+						Box Instances
+					</h4>
+					<span className="text-xs text-gray-500">
+						{selectedPackageInstances.length} instance
+						{selectedPackageInstances.length === 1 ? "" : "s"}
+					</span>
+				</div>
+
+				{selectedPackageInstances.length > 0 ? (
+					<div className="overflow-x-auto">
+						<table className="min-w-full text-sm">
+							<thead className="bg-gray-50 text-gray-600">
+								<tr>
+									<th className="text-left px-4 py-2.5 font-medium">Instance #</th>
+									<th className="text-left px-4 py-2.5 font-medium">IPAC Reference</th>
+									<th className="text-left px-4 py-2.5 font-medium">Status</th>
+								</tr>
+							</thead>
+							<tbody>
+								{selectedPackageInstances.map((instance) => (
+									<tr key={instance.id} className="border-t border-gray-100">
+										<td className="px-4 py-2.5 text-gray-900 font-medium">
+											{instance.instance_number ?? "-"}
+										</td>
+										<td className="px-4 py-2.5 text-gray-800">
+											{instance.ipac_reference || "-"}
+										</td>
+										<td className="px-4 py-2.5 text-gray-600">
+											{instance.status || "design"}
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				) : (
+					<div className="px-4 py-4 text-sm text-gray-500">
+						No instance rows found for this box.
+					</div>
+				)}
 			</div>
 
 			{/* Package Info Cards */}

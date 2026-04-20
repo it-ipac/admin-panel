@@ -36,6 +36,24 @@ export function ManufacturingPartCard({
 }: ManufacturingPartCardProps) {
 	const hasIssues = !!issues && issues.length > 0;
 
+	const renderMakePositiveButton = (
+		field: "quantity" | "width" | "thickness" | "space",
+		value: number | null,
+	) => {
+		if (value === null || !Number.isFinite(value) || value >= 0) return null;
+		return (
+			<button
+				type="button"
+				onClick={() =>
+					onManufacturingFieldChange(part.key, field, Math.abs(value))
+				}
+				className="rounded border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 hover:bg-green-100"
+			>
+				Make positive
+			</button>
+		);
+	};
+
 	return (
 		<div
 			className={`space-y-2 rounded-lg border p-3 ${
@@ -100,7 +118,10 @@ export function ManufacturingPartCard({
 			<div className="grid grid-cols-2 gap-2 text-[11px] text-gray-600">
 				{showFields.includes("quantity") && (
 					<div>
-						<p className="text-gray-400">Qty</p>
+						<div className="mb-1 flex items-center justify-between">
+							<p className="text-gray-400">Qty</p>
+							{renderMakePositiveButton("quantity", part.quantity)}
+						</div>
 						<NumberInput
 							inputId={fieldInputIds?.quantity}
 							value={part.quantity}
@@ -112,7 +133,10 @@ export function ManufacturingPartCard({
 				)}
 				{showFields.includes("width") && (
 					<div>
-						<p className="text-gray-400">Width</p>
+						<div className="mb-1 flex items-center justify-between">
+							<p className="text-gray-400">Width</p>
+							{renderMakePositiveButton("width", part.width)}
+						</div>
 						<NumberInput
 							inputId={fieldInputIds?.width}
 							value={part.width}
@@ -124,7 +148,10 @@ export function ManufacturingPartCard({
 				)}
 				{showFields.includes("thickness") && (
 					<div>
-						<p className="text-gray-400">Thickness</p>
+						<div className="mb-1 flex items-center justify-between">
+							<p className="text-gray-400">Thickness</p>
+							{renderMakePositiveButton("thickness", part.thickness)}
+						</div>
 						<NumberInput
 							inputId={fieldInputIds?.thickness}
 							value={part.thickness}
@@ -136,7 +163,10 @@ export function ManufacturingPartCard({
 				)}
 				{showFields.includes("space") && (
 					<div>
-						<p className="text-gray-400">Space</p>
+						<div className="mb-1 flex items-center justify-between">
+							<p className="text-gray-400">Space</p>
+							{renderMakePositiveButton("space", part.space)}
+						</div>
 						<NumberInput
 							inputId={fieldInputIds?.space}
 							value={part.space}

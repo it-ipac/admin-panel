@@ -20,6 +20,7 @@ export function ConfirmDialogContent({
 	packagePreviews,
 	packageIssueMessages,
 	partIssueMessages,
+	itemMatchStatusByPackage,
 	onPackageFieldChange,
 	onPackageRemove,
 	onPackingTypeChange,
@@ -31,6 +32,12 @@ export function ConfirmDialogContent({
 	onManufacturingOptionsToggle,
 	onManufacturingPartAdd,
 	onManufacturingPartRemove,
+	onFetchItems,
+	isFetchingItems,
+	fetchItemsDisabled,
+	fetchItemsDisabledReason,
+	onMakeAllPositive,
+	negativeValueCount,
 	confirmDisabled,
 	confirmDisabledReason,
 	templateWarningCount,
@@ -46,7 +53,7 @@ export function ConfirmDialogContent({
 		<Dialog.Root open={open} onOpenChange={onOpenChange}>
 			<Dialog.Portal>
 				<Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-				<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-2xl bg-white rounded-xl shadow-2xl p-6">
+				<Dialog.Content className="fixed inset-2 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 z-50 w-auto md:w-full md:max-w-2xl bg-white rounded-xl shadow-2xl p-4 md:p-6 flex flex-col max-h-[calc(100vh-1rem)] md:max-h-[85vh]">
 					<div className="flex items-start justify-between mb-4">
 						<div>
 							<Dialog.Title className="text-lg font-semibold text-gray-900">
@@ -70,7 +77,7 @@ export function ConfirmDialogContent({
 						</button>
 					</div>
 
-					<div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+					<div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-2">
 
 						<div className="rounded-lg border border-gray-200 p-4">
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
@@ -137,6 +144,7 @@ export function ConfirmDialogContent({
 							packagePreviews={packagePreviews}
 							packageIssueMessages={packageIssueMessages || {}}
 							partIssueMessages={partIssueMessages || {}}
+							itemMatchStatusByPackage={itemMatchStatusByPackage || {}}
 							activePackage={activePackage}
 							setActivePackage={setActivePackage}
 							templateMode={templateMode}
@@ -198,6 +206,12 @@ export function ConfirmDialogContent({
 						</div>
 					)}
 
+					{fetchItemsDisabledReason && (
+						<div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+							{fetchItemsDisabledReason}
+						</div>
+					)}
+
 					{templateWarningCount !== undefined &&
 						templateWarningCount > 0 &&
 						!confirmDisabled && (
@@ -209,17 +223,38 @@ export function ConfirmDialogContent({
 							</div>
 						)}
 
-					<div className="flex justify-end gap-2 mt-6">
+					<div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
 						<Dialog.Close asChild>
-							<button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
+							<button className="w-full sm:w-auto px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
 								Cancel
 							</button>
 						</Dialog.Close>
+						{typeof negativeValueCount === "number" &&
+							negativeValueCount > 0 &&
+							onMakeAllPositive && (
+								<button
+									type="button"
+									onClick={onMakeAllPositive}
+									disabled={isSubmitting}
+									className="w-full sm:w-auto px-4 py-2 text-sm rounded-lg border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50"
+								>
+									Make All Positive ({negativeValueCount})
+								</button>
+							)}
+						<button
+							type="button"
+							onClick={onFetchItems}
+							disabled={isSubmitting || isFetchingItems || fetchItemsDisabled}
+							className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+						>
+							{isFetchingItems && <Loader2 className="w-4 h-4 animate-spin" />}
+							Fetch Items
+						</button>
 						<button
 							type="button"
 							onClick={onConfirmClick}
 							disabled={isSubmitting || confirmDisabled}
-							className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+							className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
 						>
 							{isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
 							Create order

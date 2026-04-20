@@ -15,6 +15,10 @@ import {
 	clearManufacturingPart,
 } from "./orderCreate/editRawPackages";
 import { OrderCreateFormDialog } from "./orderCreate/OrderCreateFormDialog.tsx";
+import {
+	buildClientItemLookup,
+	matchPackageDesignations,
+} from "./orderCreate/itemNumberMatching";
 import { parseExcelFile } from "./orderCreate/parseExcelFile";
 import { resolvePackages } from "./orderCreate/resolvePackages";
 import { submitOrderCreate } from "./orderCreate/submitOrderCreate";
@@ -40,6 +44,13 @@ import {
 	stripExtension,
 } from "./orderCreate/utils";
 import { validateOrderCreateForm } from "./orderCreate/validateForm";
+
+interface PackageItemMatchState {
+	status: "matched" | "unmatched";
+	searchedItemNumber: string;
+	matchedItemNumber?: string;
+	matchedItemId?: string;
+}
 
 export function OrderCreateDialog({
 	open,
@@ -91,6 +102,10 @@ export function OrderCreateDialog({
 	const [showConfirm, setShowConfirm] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
 	const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+	const [isFetchingItems, setIsFetchingItems] = useState(false);
+	const [itemMatchStatusByPackage, setItemMatchStatusByPackage] = useState<
+		Record<number, PackageItemMatchState>
+	>({});
 	const isCreatingOrderRef = useRef(false);
 
 	const { data: clients = [], isLoading: clientsLoading } = useQuery({
@@ -274,11 +289,22 @@ export function OrderCreateDialog({
 			setShowConfirm(false);
 			setSubmitError(null);
 			setIsCreatingOrder(false);
+			setIsFetchingItems(false);
+			setItemMatchStatusByPackage({});
 			isCreatingOrderRef.current = false;
 		}
 	}, [open]);
 
 	const isCreateInProgress = isCreatingOrder;
+
+	const resolveEffectiveExistingClientId = (
+		explicitSelectedClientId?: string,
+	) => {
+		if (clientMode !== "existing") return "";
+		const explicit = explicitSelectedClientId || selectedClientId;
+		if (explicit) return explicit;
+		return findExistingClientIdFromOrderName(orderName, clients) || "";
+	};
 
 	useEffect(() => {
 		if (clientMode !== "existing") {
@@ -636,6 +662,49 @@ export function OrderCreateDialog({
 		};
 	}, [appliedTemplateMode, getVariantUnitId, packagePreviews]);
 
+	const itemMatchIssueMessages = useMemo(() => {
+		const messages: Record<number, string[]> = {};
+
+		Object.entries(itemMatchStatusByPackage).forEach(([packageNumberRaw, state]) => {
+			const packageNumber = Number(packageNumberRaw);
+			if (!Number.isFinite(packageNumber)) return;
+			if (state.status !== "unmatched") return;
+
+			messages[packageNumber] = [
+				`Item number \"${state.searchedItemNumber}\" was not found in client items DB. Keep it as a package item, edit the item number and fetch again, or clear it.`,
+			];
+		});
+
+		return messages;
+	}, [itemMatchStatusByPackage]);
+
+	const mergedPackageIssueMessages = useMemo(() => {
+		const merged: Record<number, string[]> = {};
+		const allPackageNumbers = new Set<number>();
+
+		Object.keys(packageIssueMessages).forEach((packageNumberRaw) => {
+			const packageNumber = Number(packageNumberRaw);
+			if (Number.isFinite(packageNumber)) allPackageNumbers.add(packageNumber);
+		});
+
+		Object.keys(itemMatchIssueMessages).forEach((packageNumberRaw) => {
+			const packageNumber = Number(packageNumberRaw);
+			if (Number.isFinite(packageNumber)) allPackageNumbers.add(packageNumber);
+		});
+
+		allPackageNumbers.forEach((packageNumber) => {
+			const combined = [
+				...(packageIssueMessages[packageNumber] || []),
+				...(itemMatchIssueMessages[packageNumber] || []),
+			];
+			if (combined.length > 0) {
+				merged[packageNumber] = Array.from(new Set(combined));
+			}
+		});
+
+		return merged;
+	}, [itemMatchIssueMessages, packageIssueMessages]);
+
 	const unresolvedMappingReason = useMemo(() => {
 		if (!hasUnresolvedMappings) return undefined;
 
@@ -739,6 +808,80 @@ export function OrderCreateDialog({
 		return "No package rows remain. Add/update Excel rows before creating the order.";
 	}, [packagePreviews.length]);
 
+	const negativeValueCount = useMemo(() => {
+		let count = 0;
+		const register = (value: number | null | undefined) => {
+			if (value === null || value === undefined) return;
+			if (!Number.isFinite(value)) return;
+			if (value < 0) count += 1;
+		};
+
+		for (const pkg of rawPackages) {
+			register(pkg.quantity);
+			register(pkg.item_length);
+			register(pkg.item_width);
+			register(pkg.item_height);
+			register(pkg.internal_length);
+			register(pkg.internal_width);
+			register(pkg.internal_height);
+			register(pkg.external_length);
+			register(pkg.external_width);
+			register(pkg.external_height);
+			register(pkg.net_weight);
+			register(pkg.tare);
+
+			const manufacturingSides = [
+				pkg.manufacturing.big,
+				pkg.manufacturing.small,
+				pkg.manufacturing.lid,
+				pkg.manufacturing.base,
+			];
+
+			for (const side of manufacturingSides) {
+				register(side.quantity);
+				register(side.thickness);
+				register(side.horizontal.quantity);
+				register(side.horizontal.width);
+				register(side.horizontal.thickness);
+				register(side.horizontal.space);
+				register(side.vertical.quantity);
+				register(side.vertical.width);
+				register(side.vertical.thickness);
+				register(side.vertical.space);
+			}
+
+			register(pkg.manufacturing.base.skids.quantity);
+			register(pkg.manufacturing.base.skids.width);
+			register(pkg.manufacturing.base.skids.thickness);
+			register(pkg.manufacturing.base.skids.space);
+
+			for (const part of pkg.securing) {
+				register(part.quantity);
+				register(part.width);
+				register(part.thickness);
+			}
+
+			for (const accessory of pkg.accessories) {
+				register(accessory.amount);
+			}
+		}
+
+		return count;
+	}, [rawPackages]);
+
+	const fetchItemsDisabledReason = useMemo(() => {
+		if (clientMode !== "existing") {
+			return "Fetch Items requires an existing client.";
+		}
+		if (!resolveEffectiveExistingClientId()) {
+			return "Select a client before fetching items.";
+		}
+		if (resolvedPackages.length === 0) {
+			return "No package rows available to fetch.";
+		}
+		return undefined;
+	}, [clientMode, resolveEffectiveExistingClientId, resolvedPackages.length]);
+
 	const confirmDisabledReason =
 		missingPackagesReason ||
 		unresolvedMappingReason ||
@@ -750,10 +893,20 @@ export function OrderCreateDialog({
 		packageNumber: number,
 		field: PackageEditableField,
 		value: string | number | null,
-	) =>
+	) => {
 		setRawPackages((prev) =>
 			applyPackageFieldChange(prev, packageNumber, field, value),
 		);
+
+		if (field === "designation") {
+			setItemMatchStatusByPackage((prev) => {
+				if (!(packageNumber in prev)) return prev;
+				const next = { ...prev };
+				delete next[packageNumber];
+				return next;
+			});
+		}
+	};
 
 	const handleManufacturingFieldChange = (
 		key: string,
@@ -790,6 +943,13 @@ export function OrderCreateDialog({
 		setRawPackages((prev) =>
 			prev.filter((pkg) => pkg.packageNumber !== packageNumber),
 		);
+
+		setItemMatchStatusByPackage((prev) => {
+			if (!(packageNumber in prev)) return prev;
+			const next = { ...prev };
+			delete next[packageNumber];
+			return next;
+		});
 
 		setPackingTypeOverrides((prev) => {
 			if (!(packageNumber in prev)) return prev;
@@ -848,6 +1008,7 @@ export function OrderCreateDialog({
 	): Promise<number> => {
 		setIsParsing(true);
 		setFileError(null);
+		setItemMatchStatusByPackage({});
 		try {
 			const parsed = await parseExcelFile(file, {
 				versionMode: mode,
@@ -893,6 +1054,7 @@ export function OrderCreateDialog({
 		setWorksheetNames([]);
 		setRawPackages([]);
 		setPackageCount(0);
+		setItemMatchStatusByPackage({});
 		setPackingTypeOverrides({});
 		setSeiCategoryOverrides({});
 		setSeiProtectionOverrides({});
@@ -903,21 +1065,303 @@ export function OrderCreateDialog({
 		setValidationErrors((prev) => ({ ...prev, file: "" }));
 	};
 
+	const handleFetchItems = async () => {
+		if (isFetchingItems || isCreateInProgress) return;
+
+		if (clientMode !== "existing") {
+			const message = "Fetch Items requires an existing client selection.";
+			toast({
+				title: "Fetch Items unavailable",
+				description: message,
+				variant: "warning",
+			});
+			return;
+		}
+
+		const effectiveClientId = resolveEffectiveExistingClientId();
+		if (!effectiveClientId) {
+			const message = "Select a client before fetching items.";
+			toast({
+				title: "Fetch Items unavailable",
+				description: message,
+				variant: "warning",
+			});
+			return;
+		}
+
+		if (resolvedPackages.length === 0) {
+			toast({
+				title: "No packages to fetch",
+				description: "Import and review package rows first.",
+				variant: "warning",
+			});
+			return;
+		}
+
+		if (effectiveClientId !== selectedClientId) {
+			setSelectedClientId(effectiveClientId);
+			setValidationErrors((prev) => ({ ...prev, client: "" }));
+		}
+
+		setIsFetchingItems(true);
+		setSubmitError(null);
+		console.log("[OrderCreate] Fetch Items - start", {
+			clientId: effectiveClientId,
+			packageCount: resolvedPackages.length,
+		});
+
+		try {
+			const { data, error } = await db.getClientItemsDbForOrderCreate(
+				effectiveClientId,
+			);
+			if (error) throw error;
+
+			const lookup = buildClientItemLookup((data || []) as any[]);
+			const { matches, unmatched } = matchPackageDesignations(
+				resolvedPackages.map((pkg) => ({
+					packageNumber: pkg.packageNumber,
+					designation: pkg.designation,
+				})),
+				lookup,
+			);
+
+			const statusByPackage: Record<number, PackageItemMatchState> = {};
+			for (const match of matches) {
+				statusByPackage[match.packageNumber] = {
+					status: "matched",
+					searchedItemNumber: match.searchedItemNumber,
+					matchedItemNumber: match.matchedItemNumber,
+					matchedItemId: match.matchedItemId,
+				};
+			}
+			for (const miss of unmatched) {
+				statusByPackage[miss.packageNumber] = {
+					status: "unmatched",
+					searchedItemNumber: miss.searchedItemNumber,
+				};
+			}
+
+			setItemMatchStatusByPackage(statusByPackage);
+
+			if (matches.length > 0) {
+				const matchedDesignationByPackage = new Map<number, string>();
+				for (const match of matches) {
+					matchedDesignationByPackage.set(
+						match.packageNumber,
+						match.matchedItemNumber,
+					);
+				}
+
+				setRawPackages((prev) =>
+					prev.map((pkg) => {
+						const nextDesignation = matchedDesignationByPackage.get(
+							pkg.packageNumber,
+						);
+						if (!nextDesignation || nextDesignation === pkg.designation) {
+							return pkg;
+						}
+						return {
+							...pkg,
+							designation: nextDesignation,
+						};
+					}),
+				);
+			}
+
+			console.log("[OrderCreate] Fetch Items - completed", {
+				matched: matches.length,
+				unmatched: unmatched.length,
+			});
+
+			if (unmatched.length > 0) {
+				toast({
+					title: "Fetch completed with unmatched items",
+					description: `Matched ${matches.length} package item${matches.length === 1 ? "" : "s"}. ${unmatched.length} remained unmatched and will stay as normal package items unless you change them.`,
+					variant: "warning",
+				});
+			} else {
+				toast({
+					title: "Items fetched",
+					description: `Matched ${matches.length} package item${matches.length === 1 ? "" : "s"}.`,
+					variant: "success",
+				});
+			}
+		} catch (error: any) {
+			const message = error?.message || "Failed to fetch items from client DB";
+			setSubmitError(message);
+			toast({
+				title: "Fetch Items failed",
+				description: message,
+				variant: "error",
+			});
+		} finally {
+			setIsFetchingItems(false);
+		}
+	};
+
+	const handleMakeAllPositive = () => {
+		let updatedValues = 0;
+
+		const toPositive = (value: number | null | undefined) => {
+			if (value === null || value === undefined) return value ?? null;
+			if (!Number.isFinite(value) || value >= 0) return value;
+			updatedValues += 1;
+			return Math.abs(value);
+		};
+
+		setRawPackages((prev) =>
+			prev.map((pkg) => {
+				const next = structuredClone(pkg);
+				next.quantity = toPositive(next.quantity);
+				next.item_length = toPositive(next.item_length);
+				next.item_width = toPositive(next.item_width);
+				next.item_height = toPositive(next.item_height);
+				next.internal_length = toPositive(next.internal_length);
+				next.internal_width = toPositive(next.internal_width);
+				next.internal_height = toPositive(next.internal_height);
+				next.external_length = toPositive(next.external_length);
+				next.external_width = toPositive(next.external_width);
+				next.external_height = toPositive(next.external_height);
+				next.net_weight = toPositive(next.net_weight);
+				next.tare = toPositive(next.tare);
+
+				const sides = [
+					next.manufacturing.big,
+					next.manufacturing.small,
+					next.manufacturing.lid,
+					next.manufacturing.base,
+				];
+				for (const side of sides) {
+					side.quantity = toPositive(side.quantity);
+					side.thickness = toPositive(side.thickness);
+					side.horizontal.quantity = toPositive(side.horizontal.quantity);
+					side.horizontal.width = toPositive(side.horizontal.width);
+					side.horizontal.thickness = toPositive(side.horizontal.thickness);
+					side.horizontal.space = toPositive(side.horizontal.space);
+					side.vertical.quantity = toPositive(side.vertical.quantity);
+					side.vertical.width = toPositive(side.vertical.width);
+					side.vertical.thickness = toPositive(side.vertical.thickness);
+					side.vertical.space = toPositive(side.vertical.space);
+				}
+
+				next.manufacturing.base.skids.quantity = toPositive(
+					next.manufacturing.base.skids.quantity,
+				);
+				next.manufacturing.base.skids.width = toPositive(
+					next.manufacturing.base.skids.width,
+				);
+				next.manufacturing.base.skids.thickness = toPositive(
+					next.manufacturing.base.skids.thickness,
+				);
+				next.manufacturing.base.skids.space = toPositive(
+					next.manufacturing.base.skids.space,
+				);
+
+				next.securing = next.securing.map((part) => ({
+					...part,
+					quantity: toPositive(part.quantity),
+					width: toPositive(part.width),
+					thickness: toPositive(part.thickness),
+				}));
+
+				next.accessories = next.accessories.map((part) => ({
+					...part,
+					amount: toPositive(part.amount),
+				}));
+
+				next.gross_weight =
+					next.net_weight !== null && next.tare !== null
+						? next.net_weight + next.tare
+						: null;
+
+				return next;
+			}),
+		);
+
+		if (updatedValues > 0) {
+			toast({
+				title: "Values normalized",
+				description: `Converted ${updatedValues} negative value${updatedValues === 1 ? "" : "s"} to positive.`,
+				variant: "success",
+			});
+		} else {
+			toast({
+				title: "No negative values",
+				description: "Nothing to update.",
+				variant: "info",
+			});
+		}
+	};
+
 	const handleConfirmCreate = async () => {
 		if (isCreatingOrderRef.current) return;
+
+		const effectiveClientId = resolveEffectiveExistingClientId();
+		if (clientMode === "existing" && !effectiveClientId) {
+			const message = "Select a client before creating the order.";
+			setSubmitError(message);
+			setShowConfirm(true);
+			toast({
+				title: "Create order failed",
+				description: message,
+				variant: "error",
+			});
+			return;
+		}
+
+		if (
+			clientMode === "existing" &&
+			effectiveClientId &&
+			effectiveClientId !== selectedClientId
+		) {
+			setSelectedClientId(effectiveClientId);
+			setValidationErrors((prev) => ({ ...prev, client: "" }));
+		}
+
 		isCreatingOrderRef.current = true;
 		setIsCreatingOrder(true);
 		setSubmitError(null);
 		setShowConfirm(false);
+		console.log("[OrderCreate] UI - starting create order");
 		toast({
 			title: "Creating order",
 			description: "This can take a moment for large Excel files.",
 			variant: "info",
 		});
 		try {
+			const effectiveClientName =
+				clientMode === "new"
+					? newClient.name
+					: clients.find((client) => client.id === effectiveClientId)?.name || "";
+
+			const preferredItemLinksByPackage = Object.entries(itemMatchStatusByPackage)
+				.filter(([, value]) => value.status === "matched" && !!value.matchedItemId)
+				.reduce(
+					(acc, [packageNumberRaw, value]) => {
+						const packageNumber = Number(packageNumberRaw);
+						if (!Number.isFinite(packageNumber) || !value.matchedItemId) {
+							return acc;
+						}
+						acc[packageNumber] = {
+							itemId: value.matchedItemId,
+							itemNumber:
+								value.matchedItemNumber || value.searchedItemNumber || "",
+						};
+						return acc;
+					},
+					{} as Record<number, { itemId: string; itemNumber: string }>,
+				);
+
+			console.log("[OrderCreate] UI - calling submitOrderCreate", {
+				packageCount: resolvedPackages.length,
+				preferredLinkedPackages: Object.keys(preferredItemLinksByPackage).length,
+			});
+
 			await submitOrderCreate({
 				resolvedPackages,
-				selectedClientId,
+				selectedClientId:
+					clientMode === "existing" ? effectiveClientId : selectedClientId,
+				clientNameForReference: effectiveClientName,
 				selectedCategoryIds,
 				clientMode,
 				createClient: () => createClientMutation.mutateAsync(),
@@ -929,7 +1373,9 @@ export function OrderCreateDialog({
 					}),
 				materialVariantMap,
 				queryClient,
+				preferredItemLinksByPackage,
 			});
+			console.log("[OrderCreate] UI - submitOrderCreate completed");
 			onOpenChange(false);
 			toast({
 				title: "Order created",
@@ -937,7 +1383,15 @@ export function OrderCreateDialog({
 				variant: "success",
 			});
 		} catch (error: any) {
-			const message = error?.message || "Failed to create order";
+			console.error("[OrderCreate] UI - create order failed", error);
+			const rawMessage = error?.message || "Failed to create order";
+			const isTransientNetworkFailure =
+				/failed to fetch|networkerror|err_failed|cors|520|522|524/i.test(
+					rawMessage,
+				);
+			const message = isTransientNetworkFailure
+				? "Temporary API/network failure while creating securing data. Please retry once."
+				: rawMessage;
 			setShowConfirm(true);
 			setSubmitError(message);
 			toast({
@@ -946,6 +1400,7 @@ export function OrderCreateDialog({
 				variant: "error",
 			});
 		} finally {
+			console.log("[OrderCreate] UI - create order flow finished");
 			isCreatingOrderRef.current = false;
 			setIsCreatingOrder(false);
 		}
@@ -994,6 +1449,7 @@ export function OrderCreateDialog({
 					setWorksheetNames([]);
 					setPackageCount(0);
 					setRawPackages([]);
+					setItemMatchStatusByPackage({});
 					setPackingTypeOverrides({});
 						setSeiCategoryOverrides({});
 						setSeiProtectionOverrides({});
@@ -1003,14 +1459,10 @@ export function OrderCreateDialog({
 				setFileError={setFileError}
 				onReview={async (options) => {
 					setSubmitError(null);
-					const explicitSelectedClientId =
-						options?.selectedClientId || selectedClientId;
-					const inferredClientId =
-						clientMode === "existing" && !explicitSelectedClientId
-							? findExistingClientIdFromOrderName(orderName, clients)
-							: "";
 					const effectiveSelectedClientId =
-						explicitSelectedClientId || inferredClientId;
+						clientMode === "existing"
+							? resolveEffectiveExistingClientId(options?.selectedClientId)
+							: selectedClientId;
 					if (
 						effectiveSelectedClientId &&
 						effectiveSelectedClientId !== selectedClientId
@@ -1053,8 +1505,9 @@ export function OrderCreateDialog({
 				summary={summary}
 				detailTables={detailTables}
 				packagePreviews={packagePreviews}
-				packageIssueMessages={packageIssueMessages}
+				packageIssueMessages={mergedPackageIssueMessages}
 				partIssueMessages={partIssueMessages}
+				itemMatchStatusByPackage={itemMatchStatusByPackage}
 				onPackageFieldChange={handlePackageFieldChange}
 				onPackageRemove={handlePackageRemove}
 				onPackingTypeChange={(packageNumber, packingTypeId) =>
@@ -1114,6 +1567,12 @@ export function OrderCreateDialog({
 				}
 				onManufacturingPartAdd={handleManufacturingPartAdd}
 				onManufacturingPartRemove={handleManufacturingPartRemove}
+				onFetchItems={handleFetchItems}
+				isFetchingItems={isFetchingItems}
+				fetchItemsDisabled={Boolean(fetchItemsDisabledReason)}
+				fetchItemsDisabledReason={fetchItemsDisabledReason}
+				onMakeAllPositive={handleMakeAllPositive}
+				negativeValueCount={negativeValueCount}
 				confirmDisabled={isConfirmDisabled}
 				confirmDisabledReason={confirmDisabledReason}
 				templateWarningCount={missingTemplateCount}

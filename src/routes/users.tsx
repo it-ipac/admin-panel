@@ -20,6 +20,19 @@ export const Route = createFileRoute("/users")({
 	component: UsersPage,
 });
 
+interface PackerAssignmentRow {
+	packer_id: string;
+	full_name: string;
+	username: string | null;
+	packer_status: string | null;
+	current_order_id: string | null;
+	current_order_name: string | null;
+	active_orders: number;
+	active_sessions: number;
+	open_attendance: number;
+	active_tasks: number;
+}
+
 function UsersPage() {
 	const navigate = useNavigate();
 	const { user, loading: authLoading } = useAuth();
@@ -61,6 +74,21 @@ function UsersPage() {
 		},
 		enabled: !!user,
 		staleTime: 30000,
+	});
+
+	const {
+		data: packerAssignments = [],
+		isLoading: packerAssignmentsLoading,
+		error: packerAssignmentsError,
+	} = useQuery({
+		queryKey: ["packer-assignment-status"],
+		queryFn: async () => {
+			const { data, error } = await db.getPackerAssignmentStatus();
+			if (error) throw error;
+			return (data || []) as PackerAssignmentRow[];
+		},
+		enabled: !!user,
+		staleTime: 15000,
 	});
 
 	const { data: roles = [] } = useQuery({
@@ -122,6 +150,54 @@ function UsersPage() {
 			setFormError(error?.message || "Failed to create user");
 		},
 	});
+
+	const forceReleaseMutation = useMutation({
+		mutationFn: async (packerId: string) => {
+			const { data, error } = await db.forceReleasePacker(packerId);
+			if (error) throw error;
+			return data as {
+				success?: boolean;
+				memberships_removed?: number;
+				sessions_closed?: number;
+				attendance_closed?: number;
+				assignments_completed?: number;
+			};
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["users"] });
+			queryClient.invalidateQueries({ queryKey: ["packer-assignment-status"] });
+		},
+	});
+
+	const handleForceRelease = async (row: PackerAssignmentRow) => {
+		const hasRuntimeState =
+			row.active_orders > 0 ||
+			row.active_sessions > 0 ||
+			row.open_attendance > 0 ||
+			row.active_tasks > 0 ||
+			row.packer_status === "busy" ||
+			Boolean(row.current_order_id);
+
+		if (!hasRuntimeState) {
+			window.alert(`${row.full_name} is already free.`);
+			return;
+		}
+
+		const confirmed = window.confirm(
+			`Free ${row.full_name}? This will remove active team memberships, end active sessions and attendance, and complete active task assignments for this packer.`,
+		);
+
+		if (!confirmed) return;
+
+		try {
+			const result = await forceReleaseMutation.mutateAsync(row.packer_id);
+			window.alert(
+				`${row.full_name} has been freed.\n\nMemberships removed: ${result?.memberships_removed ?? 0}\nSessions closed: ${result?.sessions_closed ?? 0}\nAttendance rows closed: ${result?.attendance_closed ?? 0}\nTask assignments completed: ${result?.assignments_completed ?? 0}`,
+			);
+		} catch (error: any) {
+			window.alert(error?.message || "Failed to free packer");
+		}
+	};
 
 	const filteredUsers =
 		users?.filter((u: any) => {
@@ -208,6 +284,82 @@ function UsersPage() {
 								<option value="client">Client</option>
 							</select>
 						</div>
+					</div>
+
+					<div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+						<div className="px-6 py-4 border-b border-gray-100">
+							<h2 className="text-lg font-semibold text-gray-900">Packer Project Control</h2>
+							<p className="text-sm text-gray-500 mt-1">
+								See who is currently tied to projects and force-free a packer when reassignment is required.
+							</p>
+						</div>
+
+						{packerAssignmentsLoading ? (
+							<div className="px-6 py-8 flex items-center gap-2 text-gray-600">
+								<Loader2 className="w-4 h-4 animate-spin" />
+								Loading packer assignment status...
+							</div>
+						) : packerAssignmentsError ? (
+							<div className="px-6 py-6 text-sm text-red-700 bg-red-50 border-t border-red-100">
+								Failed to load packer assignment status.
+							</div>
+						) : (
+							<div className="overflow-x-auto">
+								<table className="min-w-full text-sm">
+									<thead className="bg-gray-50 text-gray-600">
+										<tr>
+											<th className="text-left px-4 py-3 font-semibold">Packer</th>
+											<th className="text-left px-4 py-3 font-semibold">Current Order</th>
+											<th className="text-right px-4 py-3 font-semibold">Orders</th>
+											<th className="text-right px-4 py-3 font-semibold">Sessions</th>
+											<th className="text-right px-4 py-3 font-semibold">Open Attendance</th>
+											<th className="text-right px-4 py-3 font-semibold">Active Tasks</th>
+											<th className="text-right px-4 py-3 font-semibold">Action</th>
+										</tr>
+									</thead>
+									<tbody>
+										{packerAssignments.map((row) => {
+											const isBusy = row.packer_status === "busy" || row.active_orders > 0;
+											const hasRuntimeState =
+												row.active_orders > 0 ||
+												row.active_sessions > 0 ||
+												row.open_attendance > 0 ||
+												row.active_tasks > 0 ||
+												row.packer_status === "busy" ||
+												Boolean(row.current_order_id);
+
+											return (
+												<tr key={row.packer_id} className="border-t border-gray-100">
+													<td className="px-4 py-3">
+														<div className="font-medium text-gray-900">{row.full_name}</div>
+														<div className="text-xs text-gray-500">@{row.username || "no-username"}</div>
+														<div className={`inline-flex mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+															isBusy ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+														}`}>
+															{row.packer_status || "available"}
+														</div>
+													</td>
+													<td className="px-4 py-3 text-gray-700">{row.current_order_name || "-"}</td>
+													<td className="px-4 py-3 text-right text-gray-900">{row.active_orders}</td>
+													<td className="px-4 py-3 text-right text-gray-900">{row.active_sessions}</td>
+													<td className="px-4 py-3 text-right text-gray-900">{row.open_attendance}</td>
+													<td className="px-4 py-3 text-right text-gray-900">{row.active_tasks}</td>
+													<td className="px-4 py-3 text-right">
+														<button
+															onClick={() => handleForceRelease(row)}
+															disabled={forceReleaseMutation.isPending || !hasRuntimeState}
+															className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+														>
+															Free Packer
+														</button>
+													</td>
+												</tr>
+											);
+										})}
+									</tbody>
+								</table>
+							</div>
+						)}
 					</div>
 
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
