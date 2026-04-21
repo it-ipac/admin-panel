@@ -125,7 +125,9 @@ export const resolvePackages = ({
 		seiCategories.map((category) => [Number(category.id), category] as const),
 	);
 	const seiProtectionMap = new Map(
-		seiProtections.map((protection) => [Number(protection.id), protection] as const),
+		seiProtections.map(
+			(protection) => [Number(protection.id), protection] as const,
+		),
 	);
 
 	const previews: PackagePreview[] = rawPackages.map((pkg) => {
@@ -156,7 +158,9 @@ export const resolvePackages = ({
 		let hasMatchedSeiProtections = false;
 
 		if (templateMode === "v54plus") {
-			const combinedSeiTokens = extractSeiTokensFromCombined(pkg.packingTypeRaw);
+			const combinedSeiTokens = extractSeiTokensFromCombined(
+				pkg.packingTypeRaw,
+			);
 			const categoryToken =
 				combinedSeiTokens.categoryToken ||
 				normalizeSeiCategoryValue(pkg.seiCategoryRaw);
@@ -179,7 +183,9 @@ export const resolvePackages = ({
 				? seiProtections.filter((protection) => {
 						const codeToken = normalizeSeiProtectionValue(protection.code);
 						const nameToken = normalizeSeiProtectionValue(protection.name);
-						return protectionToken === codeToken || protectionToken === nameToken;
+						return (
+							protectionToken === codeToken || protectionToken === nameToken
+						);
 					})
 				: [];
 
@@ -237,7 +243,9 @@ export const resolvePackages = ({
 					? toSeiOption(selectedCategory, selectedProtection)
 					: null;
 		} else {
-			const rawPackingNormalized = normalizePackingTypeValue(pkg.packingTypeRaw);
+			const rawPackingNormalized = normalizePackingTypeValue(
+				pkg.packingTypeRaw,
+			);
 			const matchedPackingOptions = rawPackingNormalized
 				? packingTypes.filter((packing) => {
 						const normalized = normalizePackingTypeValue(packing.code);
@@ -575,8 +583,7 @@ export const resolvePackages = ({
 		item_width: preview.item.width,
 		item_height: preview.item.height,
 		box_type_id: (preview as any).boxTypeId,
-		packing_type_id:
-			templateMode === "v54plus" ? null : preview.packingTypeId,
+		packing_type_id: templateMode === "v54plus" ? null : preview.packingTypeId,
 		sei_category: preview.seiCategoryId,
 		sei_protection: preview.seiProtectionId,
 		internal_length: preview.internal.length,

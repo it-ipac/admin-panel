@@ -105,14 +105,17 @@ export const findExistingClientIdFromOrderName = (
 
 			const phraseMatch = wholeWordPattern.test(normalizedScope);
 			const compactMatch =
-				compactClientName.length >= 5 && compactScope.includes(compactClientName);
+				compactClientName.length >= 5 &&
+				compactScope.includes(compactClientName);
 			if (!phraseMatch && !compactMatch) return null;
 
 			const startsScope =
 				normalizedScope === normalizedClientName ||
 				normalizedScope.startsWith(`${normalizedClientName} `);
 			const score =
-				normalizedClientName.length * 2 + (startsScope ? 10 : 0) + (phraseMatch ? 5 : 0);
+				normalizedClientName.length * 2 +
+				(startsScope ? 10 : 0) +
+				(phraseMatch ? 5 : 0);
 
 			return {
 				id: client.id,
@@ -191,7 +194,9 @@ export const normalizeSeiProtectionValue = (
 	return prefix ? prefix[0] : compact;
 };
 
-export const extractSeiTokensFromCombined = (value: string | null | undefined) => {
+export const extractSeiTokensFromCombined = (
+	value: string | null | undefined,
+) => {
 	if (!value) {
 		return {
 			categoryToken: null,

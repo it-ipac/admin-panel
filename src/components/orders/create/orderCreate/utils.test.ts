@@ -95,7 +95,10 @@ describe("findExistingClientIdFromOrderName", () => {
 
 	it("returns empty when no unique match can be found", () => {
 		expect(
-			findExistingClientIdFromOrderName("2026-0419-V54-Unknown Client-RevA", clients),
+			findExistingClientIdFromOrderName(
+				"2026-0419-V54-Unknown Client-RevA",
+				clients,
+			),
 		).toBe("");
 		expect(
 			findExistingClientIdFromOrderName("2026-0419-V54-ACME-RevA", [

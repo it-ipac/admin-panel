@@ -26,7 +26,10 @@ function IndexPage() {
 			suppressHydrationWarning
 			className="min-h-screen flex items-center justify-center bg-gray-50"
 		>
-			<div suppressHydrationWarning className="flex flex-col items-center gap-4">
+			<div
+				suppressHydrationWarning
+				className="flex flex-col items-center gap-4"
+			>
 				<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
 				<p className="text-gray-600">Loading...</p>
 			</div>

@@ -133,11 +133,7 @@ export const db = {
 	},
 
 	getClientNameById: async (clientId: string) => {
-		return supabase
-			.from("clients")
-			.select("name")
-			.eq("id", clientId)
-			.single();
+		return supabase.from("clients").select("name").eq("id", clientId).single();
 	},
 
 	createClient: async (payload: {
@@ -150,19 +146,31 @@ export const db = {
 		return supabase.from("clients").insert(payload).select("*").single();
 	},
 
-	updateClient: async (id: string, payload: {
-		name?: string;
-		contact_person?: string | null;
-		email?: string | null;
-		phone?: string | null;
-		address?: string | null;
-		portal_settings_id?: string | null;
-	}) => {
-		return supabase.from("clients").update(payload).eq("id", id).select("*").single();
+	updateClient: async (
+		id: string,
+		payload: {
+			name?: string;
+			contact_person?: string | null;
+			email?: string | null;
+			phone?: string | null;
+			address?: string | null;
+			portal_settings_id?: string | null;
+		},
+	) => {
+		return supabase
+			.from("clients")
+			.update(payload)
+			.eq("id", id)
+			.select("*")
+			.single();
 	},
 
 	getPortalSettings: async (id: string) => {
-		return supabase.from("client_portal_settings").select("*").eq("id", id).single();
+		return supabase
+			.from("client_portal_settings")
+			.select("*")
+			.eq("id", id)
+			.single();
 	},
 
 	upsertPortalSettings: async (payload: {
@@ -179,16 +187,18 @@ export const db = {
 			is_active: payload.is_active,
 			requires_auth: payload.portal_requires_auth,
 			show_qr_logo: payload.show_qr_logo,
-			qr_logo_url: payload.qr_logo_url
+			qr_logo_url: payload.qr_logo_url,
 		};
 		if (dbPayload.id) {
-			return supabase.from("client_portal_settings")
+			return supabase
+				.from("client_portal_settings")
 				.update(dbPayload)
 				.eq("id", dbPayload.id)
 				.select("*")
 				.single();
 		} else {
-			return supabase.from("client_portal_settings")
+			return supabase
+				.from("client_portal_settings")
 				.insert(dbPayload)
 				.select("*")
 				.single();
@@ -215,9 +225,7 @@ export const db = {
 	getClientOrderCategories: async (clientId: string) => {
 		return supabase
 			.from("pkg_category")
-			.select(
-				`id, label, category_tag_map(tag:project_tags(id, name))`,
-			)
+			.select(`id, label, category_tag_map(tag:project_tags(id, name))`)
 			.eq("client_id", clientId)
 			.order("label", { ascending: true });
 	},

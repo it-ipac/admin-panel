@@ -46,7 +46,8 @@ const toExcelJsWorksheet = (
 
 	rows.forEach((row, rowIndex) => {
 		row.forEach((cellValue, colIndex) => {
-			if (cellValue === null || cellValue === undefined || cellValue === "") return;
+			if (cellValue === null || cellValue === undefined || cellValue === "")
+				return;
 			convertedSheet.getCell(rowIndex + 1, colIndex + 1).value =
 				cellValue as any;
 		});
@@ -66,7 +67,9 @@ const parseWorkbookWithExcelJs = async (arrayBuffer: ArrayBuffer) => {
 
 	const calculationSheetName = findCalculationSheetName(worksheetNames);
 	const targetSheet = calculationSheetName
-		? workbook.worksheets.find((sheet) => sheet.name === calculationSheetName) || null
+		? workbook.worksheets.find(
+				(sheet) => sheet.name === calculationSheetName,
+			) || null
 		: workbook.worksheets[0] || null;
 
 	return {

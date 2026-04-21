@@ -2,8 +2,8 @@ import { type UseMutationResult, useQuery } from "@tanstack/react-query";
 import { supabase } from "../../../../lib/supabase";
 import type {
 	OrderPackage,
-	PackageInstance,
 	PackageInfo,
+	PackageInstance,
 } from "../../../../routes/orders/$orderId";
 import { DimensionsCard } from "../../../ui/DimensionsCard";
 import { TwoTierCard } from "../../../ui/TwoTierCard";
@@ -145,9 +145,7 @@ export function PackageInfoTab({
 			{/* Instances & References */}
 			<div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
 				<div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-					<h4 className="text-sm font-semibold text-gray-900">
-						Box Instances
-					</h4>
+					<h4 className="text-sm font-semibold text-gray-900">Box Instances</h4>
 					<span className="text-xs text-gray-500">
 						{selectedPackageInstances.length} instance
 						{selectedPackageInstances.length === 1 ? "" : "s"}
@@ -159,8 +157,12 @@ export function PackageInfoTab({
 						<table className="min-w-full text-sm">
 							<thead className="bg-gray-50 text-gray-600">
 								<tr>
-									<th className="text-left px-4 py-2.5 font-medium">Instance #</th>
-									<th className="text-left px-4 py-2.5 font-medium">IPAC Reference</th>
+									<th className="text-left px-4 py-2.5 font-medium">
+										Instance #
+									</th>
+									<th className="text-left px-4 py-2.5 font-medium">
+										IPAC Reference
+									</th>
 									<th className="text-left px-4 py-2.5 font-medium">Status</th>
 								</tr>
 							</thead>
@@ -217,9 +219,7 @@ export function PackageInfoTab({
 					final={selectedPackage.final_pkg_info?.sei_category}
 					type="select"
 					selectItems={seiCategoryOptions}
-					onChange={(v) =>
-						handleUpdate("sei_category", v ? Number(v) : null)
-					}
+					onChange={(v) => handleUpdate("sei_category", v ? Number(v) : null)}
 					editable={!isPacked}
 				/>
 				<TwoTierCard
@@ -230,9 +230,7 @@ export function PackageInfoTab({
 					final={selectedPackage.final_pkg_info?.sei_protection}
 					type="select"
 					selectItems={seiProtectionOptions}
-					onChange={(v) =>
-						handleUpdate("sei_protection", v ? Number(v) : null)
-					}
+					onChange={(v) => handleUpdate("sei_protection", v ? Number(v) : null)}
 					editable={!isPacked}
 				/>
 				<TwoTierCard

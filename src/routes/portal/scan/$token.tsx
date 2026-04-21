@@ -1,20 +1,23 @@
-import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	useNavigate,
+	useParams,
+} from "@tanstack/react-router";
+import { AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Loader2, AlertCircle } from "lucide-react";
-import { db } from "../../../lib/supabase";
-import { supabase } from "../../../lib/supabase";
-import { useAuth } from "../../../hooks/useAuth";
 import { useToastContext } from "../../../components/ui/ToastProvider";
+import { useAuth } from "../../../hooks/useAuth";
+import { db, supabase } from "../../../lib/supabase";
 
 export const Route = createFileRoute("/portal/scan/$token")({
 	component: TokenResolver,
 });
 
 function TokenResolver() {
-	const { token } = useParams({ from: '/portal/scan/$token' });
+	const { token } = useParams({ from: "/portal/scan/$token" });
 	const navigate = useNavigate();
 	const { user, loading: authLoading } = useAuth();
-    const { toast } = useToastContext();
+	const { toast } = useToastContext();
 	const [resolving, setResolving] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -27,9 +30,9 @@ function TokenResolver() {
 			try {
 				// 1. Find the QR Code token in the database
 				const { data: qrData, error: qrError } = await supabase
-					.from('qr_codes')
-					.select('*')
-					.eq('token', token)
+					.from("qr_codes")
+					.select("*")
+					.eq("token", token)
 					.single();
 
 				if (qrError || !qrData) {
@@ -42,63 +45,67 @@ function TokenResolver() {
 
 				// 2. Identify who owns this entity to find their portal settings
 				let clientId = null;
-				let targetUrl = '';
+				let targetUrl = "";
 
-				if (qrData.entity_type === 'package') {
+				if (qrData.entity_type === "package") {
 					// New flow: package QR represents an order_pkg_instance id.
 					const { data: pkgInstance, error: pkgInstanceError } = await supabase
-						.from('order_pkg_instance')
+						.from("order_pkg_instance")
 						.select(`
 							id,
 							order_pkg_overview (order_id),
 							order_package:order_packages (order_id)
 						`)
-						.eq('id', qrData.entity_id)
+						.eq("id", qrData.entity_id)
 						.maybeSingle();
 
-					if (pkgInstanceError && pkgInstanceError.code !== 'PGRST116') {
+					if (pkgInstanceError && pkgInstanceError.code !== "PGRST116") {
 						throw pkgInstanceError;
 					}
 
 					if (pkgInstance) {
 						const orderId =
-							pkgInstance.order_pkg_overview?.order_id ||
-							pkgInstance.order_package?.order_id ||
+							(Array.isArray(pkgInstance.order_pkg_overview)
+								? pkgInstance.order_pkg_overview[0]?.order_id
+								: (pkgInstance.order_pkg_overview as any)?.order_id) ||
+							(Array.isArray(pkgInstance.order_package)
+								? pkgInstance.order_package[0]?.order_id
+								: (pkgInstance.order_package as any)?.order_id) ||
 							null;
 
 						if (orderId) {
 							const { data: order } = await supabase
-								.from('orders')
-								.select('client_id')
-								.eq('id', orderId)
+								.from("orders")
+								.select("client_id")
+								.eq("id", orderId)
 								.single();
 							clientId = order?.client_id;
 						}
 					} else {
 						// Legacy fallback: token may still target order_packages.id.
 						const { data: pkg } = await supabase
-							.from('order_packages')
-							.select('order_id')
-							.eq('id', qrData.entity_id)
+							.from("order_packages")
+							.select("order_id")
+							.eq("id", qrData.entity_id)
 							.maybeSingle();
 
 						if (pkg?.order_id) {
 							const { data: order } = await supabase
-								.from('orders')
-								.select('client_id')
-								.eq('id', pkg.order_id)
+								.from("orders")
+								.select("client_id")
+								.eq("id", pkg.order_id)
 								.single();
 							clientId = order?.client_id;
 						}
 					}
 
 					targetUrl = `/portal/package/${qrData.entity_id}`;
-				} else if (qrData.entity_type === 'item') {
+				} else if (qrData.entity_type === "item") {
 					// We need to look up the item in items_db
 					const { data: mDb } = await supabase
-						.from('items_db')
-						.select('client_id')
-						.eq('id', qrData.entity_id)
+						.from("items_db")
+						.select("client_id")
+						.eq("id", qrData.entity_id)
 						.single();
 					clientId = mDb?.client_id;
 					targetUrl = `/portal/item/${qrData.entity_id}`;
@@ -110,16 +117,20 @@ function TokenResolver() {
 
 				// 3. Look up Client Portal Settings
 				const { data: clientData } = await supabase
-					.from('clients')
-					.select('portal_settings_id')
-					.eq('id', clientId)
+					.from("clients")
+					.select("portal_settings_id")
+					.eq("id", clientId)
 					.single();
 
 				if (!clientData?.portal_settings_id) {
-					throw new Error("The portal for this client has not been configured.");
+					throw new Error(
+						"The portal for this client has not been configured.",
+					);
 				}
 
-				const { data: portalSettings } = await db.getPortalSettings(clientData.portal_settings_id);
+				const { data: portalSettings } = await db.getPortalSettings(
+					clientData.portal_settings_id,
+				);
 
 				if (!portalSettings?.is_active) {
 					throw new Error("This client portal is currently disabled.");
@@ -132,28 +143,35 @@ function TokenResolver() {
 						toast({
 							title: "Authentication Required",
 							description: "Please log in to view this item.",
-							variant: "default",
+							variant: "info",
 						});
-						navigate({ to: '/portal/login', search: { returnUrl: `/portal/scan/${token}` } });
+						navigate({
+							to: "/portal/login",
+							search: { returnUrl: `/portal/scan/${token}` },
+						});
 						return;
 					}
 
 					// User IS logged in. We must verify they belong to THIS exact client
 					const { data: profile } = await db.getProfile(user.id);
-					
+
 					// Admins and Directors can view anything, but Clients must match IDs
-					const isRestrictedRole = profile.roles?.name === 'client' || profile.roles?.name === 'sales';
+					const isRestrictedRole =
+						profile.roles?.name === "client" || profile.roles?.name === "sales";
 					if (isRestrictedRole && profile.client_id !== clientId) {
-						throw new Error("You do not have permission to view items belonging to this client.");
+						throw new Error(
+							"You do not have permission to view items belonging to this client.",
+						);
 					}
 				}
 
 				// 5. All checks passed! Redirect to the actual resource page
 				if (isMounted) navigate({ to: targetUrl });
-
 			} catch (e: any) {
 				if (isMounted) {
-					setError(e.message || "An unknown error occurred resolving this QR code.");
+					setError(
+						e.message || "An unknown error occurred resolving this QR code.",
+					);
 					setResolving(false);
 				}
 			}
@@ -161,8 +179,10 @@ function TokenResolver() {
 
 		resolveToken();
 
-		return () => { isMounted = false; };
-	}, [token, user, authLoading, navigate]);
+		return () => {
+			isMounted = false;
+		};
+	}, [token, user, authLoading, navigate, toast]);
 
 	if (resolving || authLoading) {
 		return (
@@ -173,7 +193,9 @@ function TokenResolver() {
 						<div className="w-6 h-6 bg-blue-600 rounded-sm"></div>
 					</div>
 				</div>
-				<h2 className="mt-6 text-xl font-bold text-gray-900">Resolving QR Code...</h2>
+				<h2 className="mt-6 text-xl font-bold text-gray-900">
+					Resolving QR Code...
+				</h2>
 				<p className="text-gray-500 mt-2">Checking security clearance</p>
 			</div>
 		);
@@ -188,8 +210,8 @@ function TokenResolver() {
 				</div>
 				<h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
 				<p className="text-gray-600 mb-8">{error}</p>
-				<button 
-					onClick={() => navigate({ to: '/portal/login' })}
+				<button
+					onClick={() => navigate({ to: "/portal/login" })}
 					className="w-full py-3 px-4 bg-gray-900 hover:bg-black text-white rounded-xl font-medium transition-colors"
 				>
 					Return Home

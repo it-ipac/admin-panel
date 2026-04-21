@@ -92,7 +92,9 @@ const formatIpacDateCode = (date: Date) => {
 };
 
 const parseIpacSequence = (reference: unknown, prefix: string) => {
-	const value = String(reference || "").trim().toUpperCase();
+	const value = String(reference || "")
+		.trim()
+		.toUpperCase();
 	const match = value.match(new RegExp(`^${prefix}-(\\d{4})$`));
 	if (!match) return 0;
 	const sequence = Number(match[1]);
@@ -345,7 +347,9 @@ export const submitOrderCreate = async ({
 		throw new Error(
 			`Invalid box quantity in column A for package(s): ${invalidQuantityPackages
 				.map((pkgNumber) => `#${pkgNumber}`)
-				.join(", ")}. Please provide a positive whole number for each package row.`,
+				.join(
+					", ",
+				)}. Please provide a positive whole number for each package row.`,
 		);
 	}
 
@@ -402,8 +406,7 @@ export const submitOrderCreate = async ({
 			if (!orderPackage) return null;
 			return {
 				order_package_id: orderPackage.id,
-				quantity:
-					normalizedInstanceCountByPackage.get(pkg.packageNumber) || 1,
+				quantity: normalizedInstanceCountByPackage.get(pkg.packageNumber) || 1,
 				designation: pkg.designation?.trim() || null,
 				length: pkg.item_length,
 				width: pkg.item_width,
@@ -417,7 +420,11 @@ export const submitOrderCreate = async ({
 			rowCount: fallbackPackageItems.length,
 		});
 		const packageItemChunkSize = 400;
-		for (let i = 0; i < fallbackPackageItems.length; i += packageItemChunkSize) {
+		for (
+			let i = 0;
+			i < fallbackPackageItems.length;
+			i += packageItemChunkSize
+		) {
 			const chunk = fallbackPackageItems.slice(i, i + packageItemChunkSize);
 			const { error } = await db.createPackageItems(chunk);
 			if (error) throw error;
@@ -429,7 +436,9 @@ export const submitOrderCreate = async ({
 	});
 	const overviewRows = resolvedPackages
 		.map((pkg) => {
-			const normalizedQty = normalizedInstanceCountByPackage.get(pkg.packageNumber);
+			const normalizedQty = normalizedInstanceCountByPackage.get(
+				pkg.packageNumber,
+			);
 			if (!normalizedQty) return null;
 			return {
 				order_id: order.id,
@@ -451,7 +460,10 @@ export const submitOrderCreate = async ({
 
 	const overviewIdByPackageNumber = new Map<number, string>();
 	(createdOverviews || []).forEach((overview: any) => {
-		overviewIdByPackageNumber.set(Number(overview.pkg_number), String(overview.id));
+		overviewIdByPackageNumber.set(
+			Number(overview.pkg_number),
+			String(overview.id),
+		);
 	});
 
 	const missingOverviewPackages = resolvedPackages
@@ -477,14 +489,20 @@ export const submitOrderCreate = async ({
 	for (const pkg of resolvedPackages) {
 		const orderPackage = packageByNumber.get(pkg.packageNumber);
 		const overviewId = overviewIdByPackageNumber.get(pkg.packageNumber);
-		const instanceCount = normalizedInstanceCountByPackage.get(pkg.packageNumber);
+		const instanceCount = normalizedInstanceCountByPackage.get(
+			pkg.packageNumber,
+		);
 		if (!orderPackage || !overviewId || !instanceCount) {
 			throw new Error(
 				`Could not resolve package mapping for package #${pkg.packageNumber}.`,
 			);
 		}
 
-		for (let instanceNumber = 1; instanceNumber <= instanceCount; instanceNumber += 1) {
+		for (
+			let instanceNumber = 1;
+			instanceNumber <= instanceCount;
+			instanceNumber += 1
+		) {
 			const generatedIpacReference = `${ipacPrefix}-${String(
 				nextIpacSequence,
 			).padStart(4, "0")}`;
@@ -538,7 +556,8 @@ export const submitOrderCreate = async ({
 			);
 			if (!packageNumber) return null;
 
-			const maintenanceDbId = maintenanceItemIdByPackageNumber.get(packageNumber);
+			const maintenanceDbId =
+				maintenanceItemIdByPackageNumber.get(packageNumber);
 			if (!maintenanceDbId) return null;
 
 			return {
@@ -555,9 +574,8 @@ export const submitOrderCreate = async ({
 	const packedItemChunkSize = 500;
 	for (let i = 0; i < packedItemRows.length; i += packedItemChunkSize) {
 		const chunk = packedItemRows.slice(i, i + packedItemChunkSize);
-		const { error: packedItemsError } = await db.createPackedItemsForInstances(
-			chunk,
-		);
+		const { error: packedItemsError } =
+			await db.createPackedItemsForInstances(chunk);
 		if (packedItemsError) throw packedItemsError;
 	}
 

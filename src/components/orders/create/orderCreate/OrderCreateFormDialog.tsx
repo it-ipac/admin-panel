@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { Loader2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebouncedValue } from "../../../../hooks/useDebouncedValue";
 import { ExcelDropzone } from "../ExcelDropzone";
 import type {
@@ -126,15 +126,17 @@ export function OrderCreateFormDialog({
 	const shouldShowCreateClientAction =
 		trimmedClientSearchQuery.length > 0 && !hasExactClientMatch;
 
-	const getCategorySearchText = (category: OrderCategoryOption) =>
-		`${category.label} ${(category.tags || []).join(" ")}`.toLowerCase();
-
+	const getCategorySearchText = useCallback(
+		(category: OrderCategoryOption) =>
+			`${category.label} ${(category.tags || []).join(" ")}`.toLowerCase(),
+		[],
+	);
 	const waterCategoryIds = useMemo(
 		() =>
 			clientCategories
 				.filter((category) => getCategorySearchText(category).includes("water"))
 				.map((category) => category.id),
-		[clientCategories],
+		[clientCategories, getCategorySearchText],
 	);
 
 	const powerCategoryIds = useMemo(
@@ -142,9 +144,8 @@ export function OrderCreateFormDialog({
 			clientCategories
 				.filter((category) => getCategorySearchText(category).includes("power"))
 				.map((category) => category.id),
-		[clientCategories],
+		[clientCategories, getCategorySearchText],
 	);
-
 	const setCategorySelection = (ids: string[]) => {
 		setSelectedCategoryIds(Array.from(new Set(ids.filter(Boolean))));
 	};
@@ -456,8 +457,8 @@ export function OrderCreateFormDialog({
 									)}
 								</div>
 								<p className="text-xs text-gray-500">
-									When selected, packers will only browse catalog items from these
-									categories for this order.
+									When selected, packers will only browse catalog items from
+									these categories for this order.
 								</p>
 
 								<div className="flex flex-wrap gap-2">
@@ -507,12 +508,17 @@ export function OrderCreateFormDialog({
 													type="checkbox"
 													checked={checked}
 													onChange={(event) =>
-														toggleCategorySelection(category.id, event.target.checked)
+														toggleCategorySelection(
+															category.id,
+															event.target.checked,
+														)
 													}
 													className="mt-0.5"
 												/>
 												<div>
-													<p className="text-sm text-gray-800">{category.label}</p>
+													<p className="text-sm text-gray-800">
+														{category.label}
+													</p>
 													{category.tags.length > 0 && (
 														<div className="mt-1 flex flex-wrap gap-1">
 															{category.tags.map((tag) => (
@@ -588,7 +594,6 @@ export function OrderCreateFormDialog({
 								</p>
 							)}
 						</div>
-
 					</div>
 
 					<div className="flex justify-end gap-2 mt-6">

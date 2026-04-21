@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Building2, ChevronRight, Loader2, Plus, Search, Upload } from "lucide-react";
+import {
+	Building2,
+	ChevronRight,
+	Loader2,
+	Plus,
+	Search,
+	Upload,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Sidebar } from "../../components/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
@@ -223,13 +230,21 @@ function ClientsIndexPage() {
 										className="grid grid-cols-[2fr_1.5fr_1.5fr_auto] items-center gap-4 px-5 py-4 hover:bg-blue-50 transition-colors"
 									>
 										<div className="min-w-0">
-											<p className="font-semibold text-gray-900 truncate">{client.name}</p>
+											<p className="font-semibold text-gray-900 truncate">
+												{client.name}
+											</p>
 											{client.contact_person && (
-												<p className="text-xs text-gray-500 truncate">{client.contact_person}</p>
+												<p className="text-xs text-gray-500 truncate">
+													{client.contact_person}
+												</p>
 											)}
 										</div>
-										<p className="text-sm text-gray-600 truncate">{client.email || "-"}</p>
-										<p className="text-sm text-gray-600 truncate">{client.phone || "-"}</p>
+										<p className="text-sm text-gray-600 truncate">
+											{client.email || "-"}
+										</p>
+										<p className="text-sm text-gray-600 truncate">
+											{client.phone || "-"}
+										</p>
 										<ChevronRight className="w-4 h-4 text-gray-400 justify-self-end" />
 									</Link>
 								))}
@@ -254,18 +269,33 @@ function ClientsIndexPage() {
 
 						<div className="grid gap-4">
 							<div>
-								<label className="text-sm font-medium text-gray-700">Company Name *</label>
+								<label
+									htmlFor="client-name"
+									className="text-sm font-medium text-gray-700"
+								>
+									Company Name *
+								</label>
 								<input
+									id="client-name"
 									className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
 									value={newClient.name}
 									onChange={(e) =>
-										setNewClient((previous) => ({ ...previous, name: e.target.value }))
+										setNewClient((previous) => ({
+											...previous,
+											name: e.target.value,
+										}))
 									}
 								/>
 							</div>
 							<div>
-								<label className="text-sm font-medium text-gray-700">Contact Person</label>
+								<label
+									htmlFor="client-contact"
+									className="text-sm font-medium text-gray-700"
+								>
+									Contact Person
+								</label>
 								<input
+									id="client-contact"
 									className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
 									value={newClient.contact_person}
 									onChange={(e) =>
@@ -278,22 +308,40 @@ function ClientsIndexPage() {
 							</div>
 							<div className="grid grid-cols-2 gap-4">
 								<div>
-									<label className="text-sm font-medium text-gray-700">Email</label>
+									<label
+										htmlFor="client-email"
+										className="text-sm font-medium text-gray-700"
+									>
+										Email
+									</label>
 									<input
+										id="client-email"
 										className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
 										value={newClient.email}
 										onChange={(e) =>
-											setNewClient((previous) => ({ ...previous, email: e.target.value }))
+											setNewClient((previous) => ({
+												...previous,
+												email: e.target.value,
+											}))
 										}
 									/>
 								</div>
 								<div>
-									<label className="text-sm font-medium text-gray-700">Phone</label>
+									<label
+										htmlFor="client-phone"
+										className="text-sm font-medium text-gray-700"
+									>
+										Phone
+									</label>
 									<input
+										id="client-phone"
 										className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
 										value={newClient.phone}
 										onChange={(e) =>
-											setNewClient((previous) => ({ ...previous, phone: e.target.value }))
+											setNewClient((previous) => ({
+												...previous,
+												phone: e.target.value,
+											}))
 										}
 									/>
 								</div>

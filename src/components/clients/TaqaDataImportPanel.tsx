@@ -57,7 +57,10 @@ const normalizeCompact = (value: string | null | undefined) =>
 	(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
 const normalizeWords = (value: string | null | undefined) =>
-	(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+	(value || "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, " ")
+		.trim();
 
 const hasTaqaMarker = (value: string | null | undefined) => {
 	const source = normalizeWords(value);
@@ -85,7 +88,9 @@ const classifyUnifiedCategory = (value: string): SheetKey | null => {
 	const hasPower = normalized.includes("power");
 	const hasWater = normalized.includes("water");
 	const hasNon =
-		normalized.includes("non") || normalized.includes("without") || normalized.includes("noac");
+		normalized.includes("non") ||
+		normalized.includes("without") ||
+		normalized.includes("noac");
 	const hasAc = normalized.includes("ac");
 
 	if (hasPower && hasNon) return "power-non-ac";
@@ -118,7 +123,10 @@ const findTaqaAllTotalSheet = (worksheets: ParsedWorksheet[]) => {
 	);
 };
 
-const workbookContainsTaqa = (worksheets: ParsedWorksheet[], fileName: string) => {
+const workbookContainsTaqa = (
+	worksheets: ParsedWorksheet[],
+	fileName: string,
+) => {
 	if (hasTaqaMarker(fileName)) return true;
 
 	for (const sheet of worksheets) {
@@ -142,7 +150,9 @@ const getFileExtension = (fileName: string) => {
 	return fileName.slice(lastDot + 1).toLowerCase();
 };
 
-const buildExcelJsWorksheets = (workbook: ExcelJS.Workbook): ParsedWorksheet[] => {
+const buildExcelJsWorksheets = (
+	workbook: ExcelJS.Workbook,
+): ParsedWorksheet[] => {
 	return workbook.worksheets.map((worksheet) => ({
 		name: worksheet.name,
 		rowCount: worksheet.rowCount || 0,
@@ -175,7 +185,9 @@ const buildXlsxWorksheets = (workbook: XLSX.WorkBook): ParsedWorksheet[] => {
 	});
 };
 
-const loadParsedWorksheets = async (selectedFile: File): Promise<ParsedWorksheet[]> => {
+const loadParsedWorksheets = async (
+	selectedFile: File,
+): Promise<ParsedWorksheet[]> => {
 	const buffer = await selectedFile.arrayBuffer();
 	const extension = getFileExtension(selectedFile.name);
 
@@ -215,7 +227,9 @@ const containsWord = (label: string, word: string) =>
 	new RegExp(`\\b${word}\\b`, "i").test(label);
 
 const hasNonAcMarker = (source: string) =>
-	containsWord(source, "non") || source.includes("without ac") || source.includes("no ac");
+	containsWord(source, "non") ||
+	source.includes("without ac") ||
+	source.includes("no ac");
 
 const hasAcOnlyMarker = (source: string) =>
 	containsWord(source, "ac") && !hasNonAcMarker(source);
@@ -235,8 +249,7 @@ const resolveCategoryId = (categories: CategoryRow[], sheetKey: SheetKey) => {
 	if (sheetKey === "power-ac") {
 		return find(
 			(searchText) =>
-				containsWord(searchText, "power") &&
-				hasAcOnlyMarker(searchText),
+				containsWord(searchText, "power") && hasAcOnlyMarker(searchText),
 		);
 	}
 
@@ -251,8 +264,7 @@ const resolveCategoryId = (categories: CategoryRow[], sheetKey: SheetKey) => {
 	if (sheetKey === "water-ac") {
 		return find(
 			(searchText) =>
-				containsWord(searchText, "water") &&
-				hasAcOnlyMarker(searchText),
+				containsWord(searchText, "water") && hasAcOnlyMarker(searchText),
 		);
 	}
 
@@ -268,7 +280,10 @@ interface TaqaDataImportPanelProps {
 	clientName: string;
 }
 
-export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPanelProps) {
+export function TaqaDataImportPanel({
+	clientId,
+	clientName,
+}: TaqaDataImportPanelProps) {
 	const { toast } = useToastContext();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -301,11 +316,17 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 	const activeGroup = useMemo(() => {
 		if (!groupedParsedRows.length) return null;
 		if (!activeSheetName) return groupedParsedRows[0];
-		return groupedParsedRows.find((group) => group.sheetName === activeSheetName) || groupedParsedRows[0];
+		return (
+			groupedParsedRows.find((group) => group.sheetName === activeSheetName) ||
+			groupedParsedRows[0]
+		);
 	}, [groupedParsedRows, activeSheetName]);
 
 	const invalidExpectedQtyRows = useMemo(
-		() => parsedRows.filter((row) => !(Number.isFinite(row.expected_qty) && row.expected_qty >= 0)),
+		() =>
+			parsedRows.filter(
+				(row) => !(Number.isFinite(row.expected_qty) && row.expected_qty >= 0),
+			),
 		[parsedRows],
 	);
 
@@ -317,7 +338,10 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 			return;
 		}
 
-		if (!activeSheetName || !groupedParsedRows.some((group) => group.sheetName === activeSheetName)) {
+		if (
+			!activeSheetName ||
+			!groupedParsedRows.some((group) => group.sheetName === activeSheetName)
+		) {
 			setActiveSheetName(groupedParsedRows[0].sheetName);
 		}
 	}, [groupedParsedRows, activeSheetName]);
@@ -327,9 +351,7 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 		queryFn: async () => {
 			const { data, error } = await supabase
 				.from("pkg_category")
-				.select(
-					`id, label, category_tag_map ( project_tags ( name ) )`,
-				)
+				.select(`id, label, category_tag_map ( project_tags ( name ) )`)
 				.eq("client_id", clientId)
 				.order("label");
 			if (error) throw error;
@@ -399,7 +421,7 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 			const worksheet = findTaqaAllTotalSheet(worksheets);
 			if (!worksheet) {
 				setParsingError(
-					`Could not find worksheet \"${TAQA_ALL_TOTAL_SHEET_NAME}\". Please upload the updated TAQA workbook format.`,
+					`Could not find worksheet "${TAQA_ALL_TOTAL_SHEET_NAME}". Please upload the updated TAQA workbook format.`,
 				);
 				return;
 			}
@@ -503,11 +525,15 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 
 			setParsedRows(rows);
 		} catch (error: any) {
-			setParsingError(`Failed to parse workbook: ${error?.message || "Unknown error"}`);
+			setParsingError(
+				`Failed to parse workbook: ${error?.message || "Unknown error"}`,
+			);
 		}
 	};
 
-	const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+	const handleFileChange = async (
+		event: React.ChangeEvent<HTMLInputElement>,
+	) => {
 		const selectedFile = event.target.files?.[0];
 		if (!selectedFile) return;
 		await processFile(selectedFile);
@@ -537,13 +563,16 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 			let insertedCount = 0;
 			for (let i = 0; i < parsedRows.length; i += CHUNK_SIZE) {
 				const chunk = parsedRows.slice(i, i + CHUNK_SIZE).map((row) => {
-					const { _source_sheet, _row_id, _source_row_number, ...payload } = row;
+					const { _source_sheet, _row_id, _source_row_number, ...payload } =
+						row;
 					return payload;
 				});
 
 				const { error } = await supabase.from("items_db").insert(chunk);
 				if (error) {
-					throw new Error(`${error.message} (Inserted ${insertedCount} rows before failure.)`);
+					throw new Error(
+						`${error.message} (Inserted ${insertedCount} rows before failure.)`,
+					);
 				}
 				insertedCount += chunk.length;
 			}
@@ -594,23 +623,34 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 	};
 
 	const handleRemoveSheetRows = (sheetName: string) => {
-		setParsedRows((prev) => prev.filter((row) => row._source_sheet !== sheetName));
+		setParsedRows((prev) =>
+			prev.filter((row) => row._source_sheet !== sheetName),
+		);
 	};
 
 	const handleRemoveInvalidQtyRows = () => {
-		setParsedRows((prev) => prev.filter((row) => Number.isFinite(row.expected_qty) && row.expected_qty >= 0));
+		setParsedRows((prev) =>
+			prev.filter(
+				(row) => Number.isFinite(row.expected_qty) && row.expected_qty >= 0,
+			),
+		);
 	};
 
 	return (
 		<div className="space-y-5">
 			<div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-				<p className="text-sm font-semibold text-blue-900">Client: {clientName}</p>
+				<p className="text-sm font-semibold text-blue-900">
+					Client: {clientName}
+				</p>
 				<p className="mt-1 text-xs text-blue-700">
-					TAQA parser mode is enabled only when workbook contains TAQA/TAKA marker text.
+					TAQA parser mode is enabled only when workbook contains TAQA/TAKA
+					marker text.
 				</p>
 			</div>
 
 			<div
+				role="button"
+				tabIndex={0}
 				className={`rounded-xl border-2 border-dashed p-8 text-center transition-all ${
 					isDragging
 						? "scale-[1.01] border-blue-500 bg-blue-100"
@@ -621,6 +661,11 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 				onDragOver={handleDragOver}
 				onDragLeave={handleDragLeave}
 				onDrop={handleDrop}
+				onKeyDown={(e) => {
+					if (e.key === "Enter" || e.key === " ") {
+						fileInputRef.current?.click();
+					}
+				}}
 				onClick={() => fileInputRef.current?.click()}
 			>
 				<FileUp
@@ -632,7 +677,8 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 					<div className="font-medium text-blue-700">{file.name}</div>
 				) : (
 					<div>
-						<span className="font-medium text-blue-600">Click to upload</span> or drag and drop
+						<span className="font-medium text-blue-600">Click to upload</span>{" "}
+						or drag and drop
 						<p className="mt-1 text-xs text-gray-500">
 							Upload .xlsx/.xlsm/.xls TAQA sheet for this client.
 						</p>
@@ -670,7 +716,10 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 					<p className="text-sm font-semibold text-gray-800">Sheet mapping</p>
 					<div className="mt-3 grid gap-2 md:grid-cols-2">
 						{matchedSheets.map((sheet) => (
-							<div key={sheet.expected} className="rounded-lg border border-gray-100 bg-gray-50 p-2 text-sm">
+							<div
+								key={sheet.expected}
+								className="rounded-lg border border-gray-100 bg-gray-50 p-2 text-sm"
+							>
 								<p className="text-gray-500">Expected: {sheet.expected}</p>
 								<p className="font-medium text-gray-800">
 									Actual: {sheet.actual || "Not found"}
@@ -723,7 +772,9 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 							</button>
 							<button
 								onClick={() => uploadMutation.mutate()}
-								disabled={uploadMutation.isPending || invalidExpectedQtyRows.length > 0}
+								disabled={
+									uploadMutation.isPending || invalidExpectedQtyRows.length > 0
+								}
 								className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
 							>
 								{uploadMutation.isPending ? (
@@ -737,8 +788,9 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 
 					{invalidExpectedQtyRows.length > 0 && (
 						<div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-							{invalidExpectedQtyRows.length} row(s) have expected quantity less than 0. Database constraint requires
-							expected_qty &gt;= 0, so remove negative rows before confirming import.
+							{invalidExpectedQtyRows.length} row(s) have expected quantity less
+							than 0. Database constraint requires expected_qty &gt;= 0, so
+							remove negative rows before confirming import.
 						</div>
 					)}
 
@@ -783,13 +835,27 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 								<table className="w-full text-left">
 									<thead className="sticky top-0 bg-gray-100">
 										<tr>
-											<th className="p-3 font-semibold text-gray-700">Item Num</th>
-											<th className="p-3 font-semibold text-gray-700">Reference</th>
-											<th className="p-3 font-semibold text-gray-700">Description</th>
-											<th className="p-3 font-semibold text-gray-700">Expected</th>
-											<th className="p-3 font-semibold text-gray-700">Location</th>
-											<th className="p-3 font-semibold text-gray-700">Sheet Row</th>
-											<th className="p-3 font-semibold text-gray-700">Action</th>
+											<th className="p-3 font-semibold text-gray-700">
+												Item Num
+											</th>
+											<th className="p-3 font-semibold text-gray-700">
+												Reference
+											</th>
+											<th className="p-3 font-semibold text-gray-700">
+												Description
+											</th>
+											<th className="p-3 font-semibold text-gray-700">
+												Expected
+											</th>
+											<th className="p-3 font-semibold text-gray-700">
+												Location
+											</th>
+											<th className="p-3 font-semibold text-gray-700">
+												Sheet Row
+											</th>
+											<th className="p-3 font-semibold text-gray-700">
+												Action
+											</th>
 										</tr>
 									</thead>
 									<tbody className="divide-y divide-gray-200">
@@ -797,10 +863,14 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 											<tr
 												key={row._row_id}
 												className={
-													row.expected_qty >= 0 ? "hover:bg-gray-100" : "bg-amber-50 hover:bg-amber-100"
+													row.expected_qty >= 0
+														? "hover:bg-gray-100"
+														: "bg-amber-50 hover:bg-amber-100"
 												}
 											>
-												<td className="p-3 font-medium text-gray-900">{row.item_num}</td>
+												<td className="p-3 font-medium text-gray-900">
+													{row.item_num}
+												</td>
 												<td className="p-3 text-gray-600">{row.reference}</td>
 												<td className="p-3 text-gray-600">{row.description}</td>
 												<td className="p-3 text-gray-600">
@@ -813,8 +883,12 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 														)}
 													</div>
 												</td>
-												<td className="p-3 text-gray-600">{row.warehouse_location}</td>
-												<td className="p-3 text-gray-500">{row._source_row_number}</td>
+												<td className="p-3 text-gray-600">
+													{row.warehouse_location}
+												</td>
+												<td className="p-3 text-gray-500">
+													{row._source_row_number}
+												</td>
 												<td className="p-3">
 													<button
 														onClick={() => handleRemoveRow(row._row_id)}
@@ -831,7 +905,8 @@ export function TaqaDataImportPanel({ clientId, clientName }: TaqaDataImportPane
 						</div>
 					)}
 					<p className="mt-2 text-right text-xs text-gray-500">
-						Select a sheet tab to view its rows. The table is scrollable and supports row/sheet removal.
+						Select a sheet tab to view its rows. The table is scrollable and
+						supports row/sheet removal.
 					</p>
 				</div>
 			)}

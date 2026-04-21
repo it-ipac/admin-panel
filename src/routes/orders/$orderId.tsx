@@ -582,10 +582,7 @@ function OrderDetailPage() {
 				);
 
 				await mutateInChunks(packageIds, (chunk) =>
-					supabase
-						.from("task_packages")
-						.delete()
-						.in("order_package_id", chunk),
+					supabase.from("task_packages").delete().in("order_package_id", chunk),
 				);
 
 				await mutateInChunks(taskLogIds, (chunk) =>
@@ -3698,7 +3695,9 @@ function OrderDetailPage() {
 														{selectedPackageTab === "info" && (
 															<PackageInfoTab
 																selectedPackage={selectedPackage}
-																	selectedPackageInstances={selectedPackageInstances}
+																selectedPackageInstances={
+																	selectedPackageInstances
+																}
 																updatePackageInfoMutation={
 																	updatePackageInfoMutation
 																}

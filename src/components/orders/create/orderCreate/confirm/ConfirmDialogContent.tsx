@@ -78,7 +78,6 @@ export function ConfirmDialogContent({
 					</div>
 
 					<div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-2">
-
 						<div className="rounded-lg border border-gray-200 p-4">
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
 								<div className="space-y-3">
@@ -113,7 +112,9 @@ export function ConfirmDialogContent({
 									{summary.selectedCategoryLabels &&
 										summary.selectedCategoryLabels.length > 0 && (
 											<div>
-												<p className="text-xs text-gray-500">Mapped categories</p>
+												<p className="text-xs text-gray-500">
+													Mapped categories
+												</p>
 												<div className="mt-1 flex flex-wrap gap-1.5">
 													{summary.selectedCategoryLabels.map((label) => (
 														<span

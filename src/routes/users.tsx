@@ -91,17 +91,6 @@ function UsersPage() {
 		staleTime: 15000,
 	});
 
-	const { data: roles = [] } = useQuery({
-		queryKey: ["roles"],
-		queryFn: async () => {
-			const { data, error } = await db.getRoles();
-			if (error) throw error;
-			return data || [];
-		},
-		enabled: !!user,
-		staleTime: 60000,
-	});
-
 	const { data: clients = [] } = useQuery({
 		queryKey: ["clients"],
 		queryFn: async () => {
@@ -123,7 +112,8 @@ function UsersPage() {
 				phone_number: newUser.phone_number.trim() || null,
 				role_name: newUser.role_name,
 				status: newUser.status || "active",
-				client_id: newUser.role_name === 'client' ? (newUser.client_id || null) : null,
+				client_id:
+					newUser.role_name === "client" ? newUser.client_id || null : null,
 			};
 
 			const { data, error } = await db.createUserWithProfile(payload);
@@ -288,9 +278,12 @@ function UsersPage() {
 
 					<div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
 						<div className="px-6 py-4 border-b border-gray-100">
-							<h2 className="text-lg font-semibold text-gray-900">Packer Project Control</h2>
+							<h2 className="text-lg font-semibold text-gray-900">
+								Packer Project Control
+							</h2>
 							<p className="text-sm text-gray-500 mt-1">
-								See who is currently tied to projects and force-free a packer when reassignment is required.
+								See who is currently tied to projects and force-free a packer
+								when reassignment is required.
 							</p>
 						</div>
 
@@ -308,18 +301,33 @@ function UsersPage() {
 								<table className="min-w-full text-sm">
 									<thead className="bg-gray-50 text-gray-600">
 										<tr>
-											<th className="text-left px-4 py-3 font-semibold">Packer</th>
-											<th className="text-left px-4 py-3 font-semibold">Current Order</th>
-											<th className="text-right px-4 py-3 font-semibold">Orders</th>
-											<th className="text-right px-4 py-3 font-semibold">Sessions</th>
-											<th className="text-right px-4 py-3 font-semibold">Open Attendance</th>
-											<th className="text-right px-4 py-3 font-semibold">Active Tasks</th>
-											<th className="text-right px-4 py-3 font-semibold">Action</th>
+											<th className="text-left px-4 py-3 font-semibold">
+												Packer
+											</th>
+											<th className="text-left px-4 py-3 font-semibold">
+												Current Order
+											</th>
+											<th className="text-right px-4 py-3 font-semibold">
+												Orders
+											</th>
+											<th className="text-right px-4 py-3 font-semibold">
+												Sessions
+											</th>
+											<th className="text-right px-4 py-3 font-semibold">
+												Open Attendance
+											</th>
+											<th className="text-right px-4 py-3 font-semibold">
+												Active Tasks
+											</th>
+											<th className="text-right px-4 py-3 font-semibold">
+												Action
+											</th>
 										</tr>
 									</thead>
 									<tbody>
 										{packerAssignments.map((row) => {
-											const isBusy = row.packer_status === "busy" || row.active_orders > 0;
+											const isBusy =
+												row.packer_status === "busy" || row.active_orders > 0;
 											const hasRuntimeState =
 												row.active_orders > 0 ||
 												row.active_sessions > 0 ||
@@ -329,25 +337,49 @@ function UsersPage() {
 												Boolean(row.current_order_id);
 
 											return (
-												<tr key={row.packer_id} className="border-t border-gray-100">
+												<tr
+													key={row.packer_id}
+													className="border-t border-gray-100"
+												>
 													<td className="px-4 py-3">
-														<div className="font-medium text-gray-900">{row.full_name}</div>
-														<div className="text-xs text-gray-500">@{row.username || "no-username"}</div>
-														<div className={`inline-flex mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-															isBusy ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
-														}`}>
+														<div className="font-medium text-gray-900">
+															{row.full_name}
+														</div>
+														<div className="text-xs text-gray-500">
+															@{row.username || "no-username"}
+														</div>
+														<div
+															className={`inline-flex mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+																isBusy
+																	? "bg-amber-100 text-amber-700"
+																	: "bg-emerald-100 text-emerald-700"
+															}`}
+														>
 															{row.packer_status || "available"}
 														</div>
 													</td>
-													<td className="px-4 py-3 text-gray-700">{row.current_order_name || "-"}</td>
-													<td className="px-4 py-3 text-right text-gray-900">{row.active_orders}</td>
-													<td className="px-4 py-3 text-right text-gray-900">{row.active_sessions}</td>
-													<td className="px-4 py-3 text-right text-gray-900">{row.open_attendance}</td>
-													<td className="px-4 py-3 text-right text-gray-900">{row.active_tasks}</td>
+													<td className="px-4 py-3 text-gray-700">
+														{row.current_order_name || "-"}
+													</td>
+													<td className="px-4 py-3 text-right text-gray-900">
+														{row.active_orders}
+													</td>
+													<td className="px-4 py-3 text-right text-gray-900">
+														{row.active_sessions}
+													</td>
+													<td className="px-4 py-3 text-right text-gray-900">
+														{row.open_attendance}
+													</td>
+													<td className="px-4 py-3 text-right text-gray-900">
+														{row.active_tasks}
+													</td>
 													<td className="px-4 py-3 text-right">
 														<button
 															onClick={() => handleForceRelease(row)}
-															disabled={forceReleaseMutation.isPending || !hasRuntimeState}
+															disabled={
+																forceReleaseMutation.isPending ||
+																!hasRuntimeState
+															}
 															className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
 														>
 															Free Packer
@@ -580,7 +612,7 @@ function UsersPage() {
 								</select>
 							</div>
 
-							{newUser.role_name === 'client' && (
+							{newUser.role_name === "client" && (
 								<div className="md:col-span-2 p-3 bg-blue-50 border border-blue-100 rounded-lg">
 									<label
 										htmlFor="new-user-client"
@@ -601,10 +633,15 @@ function UsersPage() {
 									>
 										<option value="">-- Select a client --</option>
 										{clients.map((c: any) => (
-											<option key={c.id} value={c.id}>{c.name}</option>
+											<option key={c.id} value={c.id}>
+												{c.name}
+											</option>
 										))}
 									</select>
-									<p className="text-xs text-blue-600 mt-1">This user will only have access to data belonging to the selected client.</p>
+									<p className="text-xs text-blue-600 mt-1">
+										This user will only have access to data belonging to the
+										selected client.
+									</p>
 								</div>
 							)}
 

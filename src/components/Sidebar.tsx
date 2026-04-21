@@ -1,5 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
+	Building2,
 	ClipboardList,
 	Copy,
 	FileText,
@@ -9,7 +10,6 @@ import {
 	Settings,
 	ShoppingCart,
 	Users,
-	Building2,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { cn } from "../lib/cn";

@@ -131,39 +131,11 @@ export function PackagePreviewSection({
 	onManufacturingPartAdd,
 	onManufacturingPartRemove,
 }: PackagePreviewSectionProps) {
-	if (!packagePreviews.length) return null;
 	const pkg = packagePreviews[activePackage];
-	if (!pkg) return null;
-	const itemMatchState = itemMatchStatusByPackage[pkg.packageNumber];
-	const isUnmatchedItem = itemMatchState?.status === "unmatched";
-	const isMatchedItem = itemMatchState?.status === "matched";
-	const numericQuantity = Number(pkg.quantity);
-	const isQuantityValid =
-		Number.isFinite(numericQuantity) &&
-		Number.isInteger(numericQuantity) &&
-		numericQuantity > 0;
-	const normalizedBoxTypeLabel = normalizeLabel(pkg.boxTypeLabel);
-	const isBaseOnlyPackage = normalizedBoxTypeLabel.includes("baseonly");
-	const isV54Template = templateMode === "v54plus";
 
-	const boxTypeColumn = shiftColumn("C", templateMode);
-	const packingTypeColumn = shiftColumn("AB", templateMode);
-	const seiCategoryColumn = shiftColumn("C", templateMode);
-	const seiProtectionColumn = shiftColumn("D", templateMode);
-	const itemDimColumns = ["M", "N", "O"]
-		.map((column) => shiftColumn(column, templateMode))
-		.join(", ");
-	const internalDimColumns = ["V", "W", "X"]
-		.map((column) => shiftColumn(column, templateMode))
-		.join(", ");
-	const externalDimColumns = ["Y", "Z", "AA"]
-		.map((column) => shiftColumn(column, templateMode))
-		.join(", ");
-	const netWeightColumn = shiftColumn("U", templateMode);
-	const tareColumn = shiftColumn("BAB", templateMode);
-	const [issueNavigationQueue, setIssueNavigationQueue] = useState<string[] | null>(
-		null,
-	);
+	const [issueNavigationQueue, setIssueNavigationQueue] = useState<
+		string[] | null
+	>(null);
 
 	const orderedIssueActions = useMemo(() => {
 		const negativePattern =
@@ -186,7 +158,10 @@ export function PackagePreviewSection({
 				};
 
 				if (message === "Box quantity must be a positive whole number.") {
-					action.targetId = getPackageInputId(preview.packageNumber, "quantity");
+					action.targetId = getPackageInputId(
+						preview.packageNumber,
+						"quantity",
+					);
 					actions.push(action);
 					continue;
 				}
@@ -198,19 +173,28 @@ export function PackagePreviewSection({
 				}
 
 				if (message === "Packing type is not mapped.") {
-					action.targetId = getPackageInputId(preview.packageNumber, "packingType");
+					action.targetId = getPackageInputId(
+						preview.packageNumber,
+						"packingType",
+					);
 					actions.push(action);
 					continue;
 				}
 
 				if (message === "SEI category/protection is not fully selected.") {
-					action.targetId = getPackageInputId(preview.packageNumber, "seiCategory");
+					action.targetId = getPackageInputId(
+						preview.packageNumber,
+						"seiCategory",
+					);
 					actions.push(action);
 					continue;
 				}
 
 				if (message.startsWith("Resolve ")) {
-					action.targetId = getPackageInputId(preview.packageNumber, "manufacturing");
+					action.targetId = getPackageInputId(
+						preview.packageNumber,
+						"manufacturing",
+					);
 					actions.push(action);
 					continue;
 				}
@@ -219,7 +203,10 @@ export function PackagePreviewSection({
 					message.startsWith("Item number ") &&
 					message.includes("was not found in client items DB")
 				) {
-					action.targetId = getPackageInputId(preview.packageNumber, "designation");
+					action.targetId = getPackageInputId(
+						preview.packageNumber,
+						"designation",
+					);
 					actions.push(action);
 					continue;
 				}
@@ -260,7 +247,10 @@ export function PackagePreviewSection({
 				if (negativeMatch) {
 					const partType = negativeMatch[1] as "Securing" | "Accessory";
 					const partNumber = Number(negativeMatch[2]);
-					const issueField = negativeMatch[3] as "quantity" | "width" | "thickness";
+					const issueField = negativeMatch[3] as
+						| "quantity"
+						| "width"
+						| "thickness";
 					const partIndex = partNumber - 1;
 					const part =
 						partType === "Securing"
@@ -293,9 +283,9 @@ export function PackagePreviewSection({
 	const currentPackageIssueActions = useMemo(
 		() =>
 			orderedIssueActions.filter(
-				(issue) => issue.packageNumber === pkg.packageNumber,
+				(issue) => issue.packageNumber === pkg?.packageNumber,
 			),
-		[orderedIssueActions, pkg.packageNumber],
+		[orderedIssueActions, pkg?.packageNumber],
 	);
 
 	const jumpToIssue = useCallback(
@@ -334,7 +324,7 @@ export function PackagePreviewSection({
 
 	const startIssueNavigationFrom = useCallback(
 		(issueKey: string) => {
-			const startIndex = orderedIssueKeys.findIndex((key) => key === issueKey);
+			const startIndex = orderedIssueKeys.indexOf(issueKey);
 			if (startIndex < 0) return;
 
 			const nextQueue = orderedIssueKeys.slice(startIndex);
@@ -376,6 +366,36 @@ export function PackagePreviewSection({
 		}
 	}, [issueActionByKey, issueNavigationQueue, jumpToIssue]);
 
+	if (!packagePreviews.length) return null;
+	if (!pkg) return null;
+	const itemMatchState = itemMatchStatusByPackage[pkg.packageNumber];
+	const isUnmatchedItem = itemMatchState?.status === "unmatched";
+	const isMatchedItem = itemMatchState?.status === "matched";
+	const numericQuantity = Number(pkg.quantity);
+	const isQuantityValid =
+		Number.isFinite(numericQuantity) &&
+		Number.isInteger(numericQuantity) &&
+		numericQuantity > 0;
+	const normalizedBoxTypeLabel = normalizeLabel(pkg.boxTypeLabel);
+	const isBaseOnlyPackage = normalizedBoxTypeLabel.includes("baseonly");
+	const isV54Template = templateMode === "v54plus";
+
+	const boxTypeColumn = shiftColumn("C", templateMode);
+	const packingTypeColumn = shiftColumn("AB", templateMode);
+	const seiCategoryColumn = shiftColumn("C", templateMode);
+	const seiProtectionColumn = shiftColumn("D", templateMode);
+	const itemDimColumns = ["M", "N", "O"]
+		.map((column) => shiftColumn(column, templateMode))
+		.join(", ");
+	const internalDimColumns = ["V", "W", "X"]
+		.map((column) => shiftColumn(column, templateMode))
+		.join(", ");
+	const externalDimColumns = ["Y", "Z", "AA"]
+		.map((column) => shiftColumn(column, templateMode))
+		.join(", ");
+	const netWeightColumn = shiftColumn("U", templateMode);
+	const tareColumn = shiftColumn("BAB", templateMode);
+
 	return (
 		<div className="rounded-lg border border-gray-200 p-4">
 			<div className="flex items-center justify-between mb-3">
@@ -395,7 +415,8 @@ export function PackagePreviewSection({
 			</div>
 			<div className="flex flex-wrap gap-2 mb-4">
 				{packagePreviews.map((item, index) => {
-					const issueCount = (packageIssueMessages[item.packageNumber] || []).length;
+					const issueCount = (packageIssueMessages[item.packageNumber] || [])
+						.length;
 					const hasIssues = issueCount > 0;
 					const isActive = activePackage === index;
 					const tabClass = hasIssues
@@ -555,7 +576,9 @@ export function PackagePreviewSection({
 								{pkg.hasMatchedPackingOptions && (
 									<button
 										type="button"
-										onClick={() => onPackingTypeOptionsToggle(pkg.packageNumber)}
+										onClick={() =>
+											onPackingTypeOptionsToggle(pkg.packageNumber)
+										}
 										className="mt-1 text-[11px] text-blue-600 hover:text-blue-700"
 									>
 										{pkg.showAllPackingOptions
@@ -594,7 +617,9 @@ export function PackagePreviewSection({
 								{pkg.hasMatchedPackingOptions && (
 									<button
 										type="button"
-										onClick={() => onPackingTypeOptionsToggle(pkg.packageNumber)}
+										onClick={() =>
+											onPackingTypeOptionsToggle(pkg.packageNumber)
+										}
 										className="mt-1 text-[11px] text-blue-600 hover:text-blue-700"
 									>
 										{pkg.showAllPackingOptions
@@ -651,8 +676,8 @@ export function PackagePreviewSection({
 						)}
 						{isUnmatchedItem && (
 							<p className="mt-1 text-xs text-red-700">
-								Not found in client items DB. Keep as normal package item,
-								edit and fetch again, or clear this field.
+								Not found in client items DB. Keep as normal package item, edit
+								and fetch again, or clear this field.
 							</p>
 						)}
 					</div>

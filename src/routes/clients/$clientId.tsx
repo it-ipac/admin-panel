@@ -68,13 +68,18 @@ const ITEMS_DB_COLUMN_ORDER = [
 ];
 
 const normalizeWords = (value: string | null | undefined) =>
-	(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+	(value || "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, " ")
+		.trim();
 
 const containsWord = (source: string, word: string) =>
 	new RegExp(`\\b${word}\\b`, "i").test(source);
 
 const hasNonAcMarker = (source: string) =>
-	containsWord(source, "non") || source.includes("without ac") || source.includes("no ac");
+	containsWord(source, "non") ||
+	source.includes("without ac") ||
+	source.includes("no ac");
 
 const hasAcOnlyMarker = (source: string) =>
 	containsWord(source, "ac") && !hasNonAcMarker(source);
@@ -89,6 +94,8 @@ const EMPTY_PORTAL_CONFIG: PortalConfigState = {
 	show_qr_logo: true,
 	qr_logo_url: "",
 };
+
+const DEFAULT_QR_LOGO_PATH = "assets/default_qr_logo.png";
 
 function ClientWorkspacePage() {
 	const { clientId } = Route.useParams();
@@ -105,11 +112,14 @@ function ClientWorkspacePage() {
 	const [uploadingLogo, setUploadingLogo] = useState(false);
 	const [defaultLogoUrl, setDefaultLogoUrl] = useState<string | null>(null);
 	const [logoLoadFailed, setLogoLoadFailed] = useState(false);
-	const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
+	const [selectedCategoryFilter, setSelectedCategoryFilter] =
+		useState<string>("all");
 	const [selectedProjectFilter, setSelectedProjectFilter] = useState<
 		"all" | "power" | "water"
 	>("all");
-	const [selectedAcFilter, setSelectedAcFilter] = useState<"all" | "ac" | "non-ac">("all");
+	const [selectedAcFilter, setSelectedAcFilter] = useState<
+		"all" | "ac" | "non-ac"
+	>("all");
 	const clientLogoInputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
@@ -119,7 +129,7 @@ function ClientWorkspacePage() {
 	useEffect(() => {
 		const { data } = supabase.storage
 			.from("media")
-			.getPublicUrl("assets/default_qr_logo.png");
+			.getPublicUrl(DEFAULT_QR_LOGO_PATH);
 		setLogoLoadFailed(false);
 		setDefaultLogoUrl(`${data.publicUrl}?t=${Date.now()}`);
 	}, []);
@@ -139,7 +149,9 @@ function ClientWorkspacePage() {
 		queryFn: async () => {
 			const { data, error } = await supabase
 				.from("clients")
-				.select("id, name, contact_person, email, phone, address, portal_settings_id")
+				.select(
+					"id, name, contact_person, email, phone, address, portal_settings_id",
+				)
 				.eq("id", clientId)
 				.single();
 			if (error) throw error;
@@ -158,9 +170,7 @@ function ClientWorkspacePage() {
 		queryFn: async () => {
 			const { data, error } = await supabase
 				.from("pkg_category")
-				.select(
-					`id, label, category_tag_map ( project_tags ( name ) )`,
-				)
+				.select(`id, label, category_tag_map ( project_tags ( name ) )`)
 				.eq("client_id", clientId)
 				.order("label", { ascending: true });
 			if (error) throw error;
@@ -224,7 +234,9 @@ function ClientWorkspacePage() {
 		queryKey: ["client-portal-settings", clientId, client?.portal_settings_id],
 		queryFn: async () => {
 			if (!client?.portal_settings_id) return null;
-			const { data, error } = await db.getPortalSettings(client.portal_settings_id);
+			const { data, error } = await db.getPortalSettings(
+				client.portal_settings_id,
+			);
 			if (error) throw error;
 			return data as any;
 		},
@@ -248,9 +260,9 @@ function ClientWorkspacePage() {
 	}, [client, portalSettings]);
 
 	const categoryById = useMemo(() => {
-		const entries: Array<[string, MaintenanceCategoryRow]> = (categories || []).map(
-			(category) => [category.id, category],
-		);
+		const entries: Array<[string, MaintenanceCategoryRow]> = (
+			categories || []
+		).map((category) => [category.id, category]);
 		return new Map<string, MaintenanceCategoryRow>(entries);
 	}, [categories]);
 
@@ -258,11 +270,17 @@ function ClientWorkspacePage() {
 		const rows = maintenanceSnapshot?.rows || [];
 
 		return rows.filter((row) => {
-			const categoryId = typeof row.category_id === "string" ? row.category_id : null;
+			const categoryId =
+				typeof row.category_id === "string" ? row.category_id : null;
 			const category = categoryId ? categoryById.get(categoryId) : undefined;
-			const categorySearchText = category ? buildCategorySearchText(category) : "";
+			const categorySearchText = category
+				? buildCategorySearchText(category)
+				: "";
 
-			if (selectedCategoryFilter !== "all" && categoryId !== selectedCategoryFilter) {
+			if (
+				selectedCategoryFilter !== "all" &&
+				categoryId !== selectedCategoryFilter
+			) {
 				return false;
 			}
 
@@ -279,8 +297,13 @@ function ClientWorkspacePage() {
 
 			if (selectedAcFilter !== "all") {
 				if (!categorySearchText) return false;
-				if (selectedAcFilter === "ac" && !hasAcOnlyMarker(categorySearchText)) return false;
-				if (selectedAcFilter === "non-ac" && hasAcOnlyMarker(categorySearchText)) return false;
+				if (selectedAcFilter === "ac" && !hasAcOnlyMarker(categorySearchText))
+					return false;
+				if (
+					selectedAcFilter === "non-ac" &&
+					hasAcOnlyMarker(categorySearchText)
+				)
+					return false;
 			}
 
 			return true;
@@ -333,13 +356,21 @@ function ClientWorkspacePage() {
 		mutationFn: async () => {
 			if (!client) throw new Error("Client not loaded.");
 
+			const { data: defaultLogoData } = supabase.storage
+				.from("media")
+				.getPublicUrl(DEFAULT_QR_LOGO_PATH);
+
+			const resolvedQrLogoUrl = portalConfig.show_qr_logo
+				? portalConfig.qr_logo_url.trim() || defaultLogoData.publicUrl
+				: null;
+
 			const payload = {
 				id: client.portal_settings_id || undefined,
 				slug: portalConfig.slug.trim(),
 				is_active: portalConfig.is_active,
 				portal_requires_auth: portalConfig.portal_requires_auth,
 				show_qr_logo: portalConfig.show_qr_logo,
-				qr_logo_url: portalConfig.qr_logo_url || null,
+				qr_logo_url: resolvedQrLogoUrl,
 			};
 
 			const { data: updatedSettings, error: settingError } =
@@ -455,10 +486,12 @@ function ClientWorkspacePage() {
 								<ArrowLeft className="w-4 h-4" />
 								Back to Clients
 							</Link>
-							<h1 className="mt-3 text-2xl font-bold text-gray-900">{client.name}</h1>
+							<h1 className="mt-3 text-2xl font-bold text-gray-900">
+								{client.name}
+							</h1>
 							<p className="text-gray-500 mt-1">
-								Client workspace: portal settings, items DB snapshot, and
-								import tools.
+								Client workspace: portal settings, items DB snapshot, and import
+								tools.
 							</p>
 						</div>
 						<div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
@@ -469,187 +502,222 @@ function ClientWorkspacePage() {
 					</div>
 
 					<section className="rounded-xl border border-gray-200 bg-white p-6">
-							<div className="flex items-center gap-2 mb-4">
-								<Globe className="h-5 w-5 text-blue-700" />
-								<h2 className="text-lg font-semibold text-gray-900">Portal Settings</h2>
+						<div className="flex items-center gap-2 mb-4">
+							<Globe className="h-5 w-5 text-blue-700" />
+							<h2 className="text-lg font-semibold text-gray-900">
+								Portal Settings
+							</h2>
+						</div>
+
+						<label className="flex items-center cursor-pointer justify-between rounded-lg border border-blue-100 bg-blue-50 p-4">
+							<div>
+								<div className="font-semibold text-blue-900">
+									Enable Client Portal
+								</div>
+								<div className="text-sm text-blue-700">
+									Turn this on to enable QR tracking for this client.
+								</div>
+							</div>
+							<div className="relative">
+								<input
+									type="checkbox"
+									className="sr-only"
+									checked={portalConfig.is_active}
+									onChange={(event) =>
+										setPortalConfig((previous) => ({
+											...previous,
+											is_active: event.target.checked,
+										}))
+									}
+								/>
+								<div
+									className={`block h-8 w-14 rounded-full transition-colors ${
+										portalConfig.is_active ? "bg-blue-600" : "bg-gray-300"
+									}`}
+								/>
+								<div
+									className={`absolute left-1 top-1 h-6 w-6 rounded-full bg-white transition-transform ${
+										portalConfig.is_active ? "translate-x-6" : ""
+									}`}
+								/>
+							</div>
+						</label>
+
+						<div
+							className={`mt-5 space-y-4 ${!portalConfig.is_active ? "opacity-50" : ""}`}
+						>
+							<div>
+								<label
+									htmlFor="portal-slug"
+									className="text-sm font-semibold text-gray-700"
+								>
+									URL Slug *
+								</label>
+								<p className="mb-1 text-xs text-gray-500">
+									Example: ipac-admin.vercel.app/portal/your-slug/...
+								</p>
+								<input
+									id="portal-slug"
+									className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
+									value={portalConfig.slug}
+									onChange={(event) =>
+										setPortalConfig((previous) => ({
+											...previous,
+											slug: event.target.value,
+										}))
+									}
+								/>
 							</div>
 
-							<label className="flex items-center cursor-pointer justify-between rounded-lg border border-blue-100 bg-blue-50 p-4">
+							<label className="flex items-center gap-3">
+								<input
+									type="checkbox"
+									className="h-5 w-5 rounded text-blue-600"
+									checked={portalConfig.portal_requires_auth}
+									onChange={(event) =>
+										setPortalConfig((previous) => ({
+											...previous,
+											portal_requires_auth: event.target.checked,
+										}))
+									}
+								/>
 								<div>
-									<div className="font-semibold text-blue-900">Enable Client Portal</div>
-									<div className="text-sm text-blue-700">
-										Turn this on to enable QR tracking for this client.
+									<div className="font-medium text-gray-800">
+										Require Authentication
 									</div>
-								</div>
-								<div className="relative">
-									<input
-										type="checkbox"
-										className="sr-only"
-										checked={portalConfig.is_active}
-										onChange={(event) =>
-											setPortalConfig((previous) => ({
-												...previous,
-												is_active: event.target.checked,
-											}))
-										}
-									/>
-									<div
-										className={`block h-8 w-14 rounded-full transition-colors ${
-											portalConfig.is_active ? "bg-blue-600" : "bg-gray-300"
-										}`}
-									/>
-									<div
-										className={`absolute left-1 top-1 h-6 w-6 rounded-full bg-white transition-transform ${
-											portalConfig.is_active ? "translate-x-6" : ""
-										}`}
-									/>
+									<div className="text-xs text-gray-500">
+										Require login before viewing portal data.
+									</div>
 								</div>
 							</label>
 
-							<div className={`mt-5 space-y-4 ${!portalConfig.is_active ? "opacity-50" : ""}`}>
-								<div>
-									<label className="text-sm font-semibold text-gray-700">URL Slug *</label>
-									<p className="mb-1 text-xs text-gray-500">
-										Example: ipac-admin.vercel.app/portal/your-slug/...
-									</p>
-									<input
-										className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
-										value={portalConfig.slug}
-										onChange={(event) =>
-											setPortalConfig((previous) => ({
-												...previous,
-												slug: event.target.value,
-											}))
-										}
-									/>
-								</div>
-
-								<label className="flex items-center gap-3">
-									<input
-										type="checkbox"
-										className="h-5 w-5 rounded text-blue-600"
-										checked={portalConfig.portal_requires_auth}
-										onChange={(event) =>
-											setPortalConfig((previous) => ({
-												...previous,
-												portal_requires_auth: event.target.checked,
-											}))
-										}
-									/>
-									<div>
-										<div className="font-medium text-gray-800">Require Authentication</div>
-										<div className="text-xs text-gray-500">Require login before viewing portal data.</div>
-									</div>
-								</label>
-
-								<label className="flex items-center gap-3">
-									<input
-										type="checkbox"
-										className="h-5 w-5 rounded text-blue-600"
-										checked={portalConfig.show_qr_logo}
-										onChange={(event) =>
-											setPortalConfig((previous) => ({
-												...previous,
-												show_qr_logo: event.target.checked,
-											}))
-										}
-									/>
-									<div>
-										<div className="font-medium text-gray-800">Show Logo in QR Codes</div>
-										<div className="text-xs text-gray-500">Use default or custom logo in generated QR.</div>
-									</div>
-								</label>
-
-								<div className={`pt-2 ${!portalConfig.show_qr_logo ? "opacity-40 pointer-events-none" : ""}`}>
-									<label className="inline-block mb-1 text-sm font-semibold text-gray-700">QR Code Logo</label>
-									<div className="flex items-center gap-4">
-										<div className="relative rounded-lg border border-gray-200 bg-gray-50 p-2">
-											{portalConfig.qr_logo_url ? (
-												<img
-													src={portalConfig.qr_logo_url}
-													className="h-16 w-16 object-contain"
-													alt="Client custom logo"
-												/>
-											) : defaultLogoUrl && !logoLoadFailed ? (
-												<img
-													src={defaultLogoUrl}
-													className="h-16 w-16 object-contain opacity-75"
-													alt="Default IPAC logo"
-												/>
-											) : (
-												<div className="flex h-16 w-16 items-center justify-center">
-													<ImageIcon className="h-6 w-6 text-gray-400" />
-												</div>
-											)}
-										</div>
-
-										<input
-											type="file"
-											ref={clientLogoInputRef}
-											className="hidden"
-											accept="image/*"
-											onChange={handleUploadClientLogo}
-										/>
-
-										<div className="flex flex-col gap-2">
-											<button
-												onClick={() => clientLogoInputRef.current?.click()}
-												disabled={uploadingLogo}
-												className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-											>
-												{uploadingLogo ? (
-													<Loader2 className="h-4 w-4 animate-spin" />
-												) : (
-													<Upload className="h-4 w-4" />
-												)}
-												{portalConfig.qr_logo_url ? "Replace Image" : "Upload Custom Image"}
-											</button>
-											{portalConfig.qr_logo_url && (
-												<button
-													onClick={() =>
-														setPortalConfig((previous) => ({ ...previous, qr_logo_url: "" }))
-													}
-													className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100"
-												>
-													Remove Custom Logo
-												</button>
-											)}
-										</div>
-									</div>
-								</div>
-							</div>
-
-							{formError && (
-								<div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-									{formError}
-								</div>
-							)}
-
-							<div className="mt-6 flex justify-end">
-								<button
-									onClick={() => {
-										setFormError(null);
-										savePortalConfigMutation.mutate();
-									}}
-									disabled={
-										savePortalConfigMutation.isPending ||
-										(portalConfig.is_active && !portalConfig.slug.trim())
+							<label className="flex items-center gap-3">
+								<input
+									type="checkbox"
+									className="h-5 w-5 rounded text-blue-600"
+									checked={portalConfig.show_qr_logo}
+									onChange={(event) =>
+										setPortalConfig((previous) => ({
+											...previous,
+											show_qr_logo: event.target.checked,
+										}))
 									}
-									className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+								/>
+								<div>
+									<div className="font-medium text-gray-800">
+										Show Logo in QR Codes
+									</div>
+									<div className="text-xs text-gray-500">
+										Use default or custom logo in generated QR.
+									</div>
+								</div>
+							</label>
+
+							<div
+								className={`pt-2 ${!portalConfig.show_qr_logo ? "opacity-40 pointer-events-none" : ""}`}
+							>
+								<label
+									htmlFor="qr-logo-upload"
+									className="inline-block mb-1 text-sm font-semibold text-gray-700"
 								>
-									{savePortalConfigMutation.isPending ? (
-										<Loader2 className="h-4 w-4 animate-spin" />
-									) : (
-										"Save Portal Settings"
-									)}
-								</button>
+									QR Code Logo
+								</label>
+								<div className="flex items-center gap-4">
+									<div className="relative rounded-lg border border-gray-200 bg-gray-50 p-2">
+										{portalConfig.qr_logo_url ? (
+											<img
+												src={portalConfig.qr_logo_url}
+												className="h-16 w-16 object-contain"
+												alt="Client custom logo"
+											/>
+										) : defaultLogoUrl && !logoLoadFailed ? (
+											<img
+												src={defaultLogoUrl}
+												className="h-16 w-16 object-contain opacity-75"
+												alt="Default IPAC logo"
+											/>
+										) : (
+											<div className="flex h-16 w-16 items-center justify-center">
+												<ImageIcon className="h-6 w-6 text-gray-400" />
+											</div>
+										)}
+									</div>
+
+									<input
+										id="qr-logo-upload"
+										type="file"
+										ref={clientLogoInputRef}
+										className="hidden"
+										accept="image/*"
+										onChange={handleUploadClientLogo}
+									/>
+
+									<div className="flex flex-col gap-2">
+										<button
+											onClick={() => clientLogoInputRef.current?.click()}
+											disabled={uploadingLogo}
+											className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+										>
+											{uploadingLogo ? (
+												<Loader2 className="h-4 w-4 animate-spin" />
+											) : (
+												<Upload className="h-4 w-4" />
+											)}
+											{portalConfig.qr_logo_url
+												? "Replace Image"
+												: "Upload Custom Image"}
+										</button>
+										{portalConfig.qr_logo_url && (
+											<button
+												onClick={() =>
+													setPortalConfig((previous) => ({
+														...previous,
+														qr_logo_url: "",
+													}))
+												}
+												className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100"
+											>
+												Remove Custom Logo
+											</button>
+										)}
+									</div>
+								</div>
 							</div>
+						</div>
+
+						{formError && (
+							<div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+								{formError}
+							</div>
+						)}
+
+						<div className="mt-6 flex justify-end">
+							<button
+								onClick={() => {
+									setFormError(null);
+									savePortalConfigMutation.mutate();
+								}}
+								disabled={
+									savePortalConfigMutation.isPending ||
+									(portalConfig.is_active && !portalConfig.slug.trim())
+								}
+								className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+							>
+								{savePortalConfigMutation.isPending ? (
+									<Loader2 className="h-4 w-4 animate-spin" />
+								) : (
+									"Save Portal Settings"
+								)}
+							</button>
+						</div>
 					</section>
 
 					<section className="rounded-xl border border-gray-200 bg-white p-6">
 						<div className="flex items-center gap-2 mb-4">
 							<Database className="h-5 w-5 text-slate-700" />
-							<h2 className="text-lg font-semibold text-gray-900">Items DB Snapshot</h2>
+							<h2 className="text-lg font-semibold text-gray-900">
+								Items DB Snapshot
+							</h2>
 						</div>
 
 						{loadingCategories || loadingSnapshot || loadingPortalSettings ? (
@@ -664,13 +732,17 @@ function ClientWorkspacePage() {
 							<>
 								<div className="grid grid-cols-2 gap-3 mb-4 md:w-80">
 									<div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-										<p className="text-xs uppercase tracking-wide text-gray-500">Rows</p>
+										<p className="text-xs uppercase tracking-wide text-gray-500">
+											Rows
+										</p>
 										<p className="text-xl font-semibold text-gray-900">
 											{maintenanceSnapshot?.totalRows || 0}
 										</p>
 									</div>
 									<div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-										<p className="text-xs uppercase tracking-wide text-gray-500">Categories</p>
+										<p className="text-xs uppercase tracking-wide text-gray-500">
+											Categories
+										</p>
 										<p className="text-xl font-semibold text-gray-900">
 											{categories?.length || 0}
 										</p>
@@ -679,7 +751,9 @@ function ClientWorkspacePage() {
 
 								<div className="mb-4 space-y-3">
 									<div>
-										<p className="text-xs uppercase tracking-wide text-gray-500">Category Labels</p>
+										<p className="text-xs uppercase tracking-wide text-gray-500">
+											Category Labels
+										</p>
 										<div className="mt-2 flex flex-wrap gap-2">
 											<button
 												onClick={() => setSelectedCategoryFilter("all")}
@@ -709,30 +783,38 @@ function ClientWorkspacePage() {
 
 									<div className="flex flex-wrap items-start gap-4">
 										<div>
-											<p className="text-xs uppercase tracking-wide text-gray-500">Project Type</p>
+											<p className="text-xs uppercase tracking-wide text-gray-500">
+												Project Type
+											</p>
 											<div className="mt-2 flex flex-wrap gap-2">
-												{(["all", "power", "water"] as const).map((projectType) => (
-													<button
-														key={projectType}
-														onClick={() => setSelectedProjectFilter(projectType)}
-														className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${
-															selectedProjectFilter === projectType
-																? "border-blue-300 bg-blue-50 text-blue-800"
-																: "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-														}`}
-													>
-														{projectType === "all"
-															? "All"
-															: projectType === "power"
-																? "Power"
-																: "Water"}
-													</button>
-												))}
+												{(["all", "power", "water"] as const).map(
+													(projectType) => (
+														<button
+															key={projectType}
+															onClick={() =>
+																setSelectedProjectFilter(projectType)
+															}
+															className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${
+																selectedProjectFilter === projectType
+																	? "border-blue-300 bg-blue-50 text-blue-800"
+																	: "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+															}`}
+														>
+															{projectType === "all"
+																? "All"
+																: projectType === "power"
+																	? "Power"
+																	: "Water"}
+														</button>
+													),
+												)}
 											</div>
 										</div>
 
 										<div>
-											<p className="text-xs uppercase tracking-wide text-gray-500">AC Mode</p>
+											<p className="text-xs uppercase tracking-wide text-gray-500">
+												AC Mode
+											</p>
 											<div className="mt-2 flex flex-wrap gap-2">
 												{(["all", "ac", "non-ac"] as const).map((acMode) => (
 													<button
@@ -744,7 +826,11 @@ function ClientWorkspacePage() {
 																: "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
 														}`}
 													>
-														{acMode === "all" ? "All" : acMode === "ac" ? "AC" : "Non-AC"}
+														{acMode === "all"
+															? "All"
+															: acMode === "ac"
+																? "AC"
+																: "Non-AC"}
 													</button>
 												))}
 											</div>
@@ -753,7 +839,8 @@ function ClientWorkspacePage() {
 								</div>
 
 								<p className="mb-2 text-xs text-gray-500">
-									Showing {filteredSnapshotRows.length} of {(maintenanceSnapshot?.rows || []).length} rows.
+									Showing {filteredSnapshotRows.length} of{" "}
+									{(maintenanceSnapshot?.rows || []).length} rows.
 								</p>
 
 								<div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -762,7 +849,10 @@ function ClientWorkspacePage() {
 											<thead className="sticky top-0 bg-gray-100">
 												<tr>
 													{snapshotColumns.map((column) => (
-														<th key={column} className="p-2 font-semibold text-gray-700 whitespace-nowrap">
+														<th
+															key={column}
+															className="p-2 font-semibold text-gray-700 whitespace-nowrap"
+														>
 															{column}
 														</th>
 													))}
@@ -771,7 +861,10 @@ function ClientWorkspacePage() {
 											<tbody className="divide-y divide-gray-100 bg-white">
 												{filteredSnapshotRows.length === 0 ? (
 													<tr>
-														<td className="p-3 text-gray-500" colSpan={snapshotColumns.length}>
+														<td
+															className="p-3 text-gray-500"
+															colSpan={snapshotColumns.length}
+														>
 															No rows match current filters.
 														</td>
 													</tr>
@@ -779,7 +872,10 @@ function ClientWorkspacePage() {
 													filteredSnapshotRows.map((row) => (
 														<tr key={row.id}>
 															{snapshotColumns.map((column) => (
-																<td key={`${row.id}-${column}`} className="p-2 text-gray-700 whitespace-nowrap">
+																<td
+																	key={`${row.id}-${column}`}
+																	className="p-2 text-gray-700 whitespace-nowrap"
+																>
 																	{formatSnapshotCell(row, column)}
 																</td>
 															))}
@@ -803,10 +899,14 @@ function ClientWorkspacePage() {
 						</p>
 
 						{isTaqaClient ? (
-							<TaqaDataImportPanel clientId={client.id} clientName={client.name} />
+							<TaqaDataImportPanel
+								clientId={client.id}
+								clientName={client.name}
+							/>
 						) : (
 							<div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900 text-sm">
-								This parser is configured for TAQA/Taka workbook format only. It is disabled for this client.
+								This parser is configured for TAQA/Taka workbook format only. It
+								is disabled for this client.
 							</div>
 						)}
 					</section>

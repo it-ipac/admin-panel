@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../hooks/useAuth";
 import { db } from "../../../lib/supabase";
 import { useToastContext } from "../../ui/ToastProvider";
@@ -14,11 +14,11 @@ import {
 	applyPackageFieldChange,
 	clearManufacturingPart,
 } from "./orderCreate/editRawPackages";
-import { OrderCreateFormDialog } from "./orderCreate/OrderCreateFormDialog.tsx";
 import {
 	buildClientItemLookup,
 	matchPackageDesignations,
 } from "./orderCreate/itemNumberMatching";
+import { OrderCreateFormDialog } from "./orderCreate/OrderCreateFormDialog.tsx";
 import { parseExcelFile } from "./orderCreate/parseExcelFile";
 import { resolvePackages } from "./orderCreate/resolvePackages";
 import { submitOrderCreate } from "./orderCreate/submitOrderCreate";
@@ -204,11 +204,12 @@ export function OrderCreateDialog({
 		staleTime: 60000,
 	});
 
-	const { data: clientCategories = [], isLoading: categoriesLoading } = useQuery(
-		{
+	const { data: clientCategories = [], isLoading: categoriesLoading } =
+		useQuery({
 			queryKey: ["clientOrderCategories", selectedClientId],
 			queryFn: async () => {
-				const { data, error } = await db.getClientOrderCategories(selectedClientId);
+				const { data, error } =
+					await db.getClientOrderCategories(selectedClientId);
 				if (error) throw error;
 				const rows = (data || []) as any[];
 				return rows.map((row) => {
@@ -219,9 +220,7 @@ export function OrderCreateDialog({
 							: [];
 					const tags = tagMap
 						.map((entry: any) => {
-							const tag = Array.isArray(entry?.tag)
-								? entry.tag[0]
-								: entry?.tag;
+							const tag = Array.isArray(entry?.tag) ? entry.tag[0] : entry?.tag;
 							return tag?.name ? String(tag.name) : "";
 						})
 						.filter(Boolean);
@@ -235,8 +234,7 @@ export function OrderCreateDialog({
 			},
 			enabled: open && clientMode === "existing" && !!selectedClientId,
 			staleTime: 30000,
-		},
-	);
+		});
 
 	const createClientMutation = useMutation({
 		mutationFn: async () => {
@@ -297,15 +295,15 @@ export function OrderCreateDialog({
 
 	const isCreateInProgress = isCreatingOrder;
 
-	const resolveEffectiveExistingClientId = (
-		explicitSelectedClientId?: string,
-	) => {
-		if (clientMode !== "existing") return "";
-		const explicit = explicitSelectedClientId || selectedClientId;
-		if (explicit) return explicit;
-		return findExistingClientIdFromOrderName(orderName, clients) || "";
-	};
-
+	const resolveEffectiveExistingClientId = useCallback(
+		(explicitSelectedClientId?: string) => {
+			if (clientMode !== "existing") return "";
+			const explicit = explicitSelectedClientId || selectedClientId;
+			if (explicit) return explicit;
+			return findExistingClientIdFromOrderName(orderName, clients) || "";
+		},
+		[clientMode, selectedClientId, orderName, clients],
+	);
 	useEffect(() => {
 		if (clientMode !== "existing") {
 			setSelectedCategoryIds([]);
@@ -347,7 +345,8 @@ export function OrderCreateDialog({
 			packageCount,
 			selectedCategoryLabels: selectedCategoryIds
 				.map(
-					(id) => clientCategories.find((category) => category.id === id)?.label,
+					(id) =>
+						clientCategories.find((category) => category.id === id)?.label,
 				)
 				.filter((label): label is string => !!label),
 			clientMode,
@@ -384,15 +383,17 @@ export function OrderCreateDialog({
 		[materialVariants],
 	);
 
-	const getVariantUnitId = (variantId: string | null | undefined): string | null => {
-		if (!variantId) return null;
-		const variant = materialVariantMap.get(variantId);
-		const unitValue = Array.isArray(variant?.unit)
-			? variant.unit[0]
-			: variant?.unit;
-		return unitValue?.id || null;
-	};
-
+	const getVariantUnitId = useCallback(
+		(variantId: string | null | undefined): string | null => {
+			if (!variantId) return null;
+			const variant = materialVariantMap.get(variantId);
+			const unitValue = Array.isArray(variant?.unit)
+				? variant.unit[0]
+				: variant?.unit;
+			return unitValue?.id || null;
+		},
+		[materialVariantMap],
+	);
 	const {
 		packagePreviews,
 		resolvedPackages,
@@ -436,244 +437,245 @@ export function OrderCreateDialog({
 		],
 	);
 
-	const {
-		packageIssueMessages,
-		partIssueMessages,
-		materialValidationReason,
-	} = useMemo(() => {
-		const issuesByPackage = new Map<number, Set<string>>();
-		const issuesByPart = new Map<string, Set<string>>();
-		const blockingMaterialIssuePackages = new Set<number>();
+	const { packageIssueMessages, partIssueMessages, materialValidationReason } =
+		useMemo(() => {
+			const issuesByPackage = new Map<number, Set<string>>();
+			const issuesByPart = new Map<string, Set<string>>();
+			const blockingMaterialIssuePackages = new Set<number>();
 
-		const addPackageIssue = (packageNumber: number, message: string) => {
-			if (!issuesByPackage.has(packageNumber)) {
-				issuesByPackage.set(packageNumber, new Set());
-			}
-			issuesByPackage.get(packageNumber)?.add(message);
-		};
+			const addPackageIssue = (packageNumber: number, message: string) => {
+				if (!issuesByPackage.has(packageNumber)) {
+					issuesByPackage.set(packageNumber, new Set());
+				}
+				issuesByPackage.get(packageNumber)?.add(message);
+			};
 
-		const addPartIssue = (
-			packageNumber: number,
-			partKey: string,
-			message: string,
-			isBlockingMaterialIssue = false,
-		) => {
-			addPackageIssue(packageNumber, message);
-			if (!issuesByPart.has(partKey)) {
-				issuesByPart.set(partKey, new Set());
-			}
-			issuesByPart.get(partKey)?.add(message);
-			if (isBlockingMaterialIssue) {
-				blockingMaterialIssuePackages.add(packageNumber);
-			}
-		};
+			const addPartIssue = (
+				packageNumber: number,
+				partKey: string,
+				message: string,
+				isBlockingMaterialIssue = false,
+			) => {
+				addPackageIssue(packageNumber, message);
+				if (!issuesByPart.has(partKey)) {
+					issuesByPart.set(partKey, new Set());
+				}
+				issuesByPart.get(partKey)?.add(message);
+				if (isBlockingMaterialIssue) {
+					blockingMaterialIssuePackages.add(packageNumber);
+				}
+			};
 
-		const addNonNegativePartIssue = (
-			packageNumber: number,
-			partKey: string,
-			label: string,
-			value: number | null | undefined,
-			isBlockingMaterialIssue: boolean,
-		) => {
-			if (value === null || value === undefined) return;
-			if (!Number.isFinite(value) || value >= 0) return;
-			addPartIssue(
-				packageNumber,
-				partKey,
-				`${label} cannot be negative (${value}).`,
-				isBlockingMaterialIssue,
-			);
-		};
-
-		const normalizeBoxTypeLabel = (value: string | null | undefined) =>
-			(value || "")
-				.toLowerCase()
-				.replace(/\bpacking\b/g, "pkg")
-				.replace(/\bpackage\b/g, "pkg")
-				.replace(/[^a-z0-9]/g, "");
-
-		const isBaseOnlyPackage = (value: string | null | undefined) =>
-			normalizeBoxTypeLabel(value).includes("baseonly");
-
-		for (const preview of packagePreviews) {
-			const packageNumber = preview.packageNumber;
-			const quantity = Number(preview.quantity);
-			if (
-				!Number.isFinite(quantity) ||
-				!Number.isInteger(quantity) ||
-				quantity <= 0
-			) {
-				addPackageIssue(
+			const addNonNegativePartIssue = (
+				packageNumber: number,
+				partKey: string,
+				label: string,
+				value: number | null | undefined,
+				isBlockingMaterialIssue: boolean,
+			) => {
+				if (value === null || value === undefined) return;
+				if (!Number.isFinite(value) || value >= 0) return;
+				addPartIssue(
 					packageNumber,
-					"Box quantity must be a positive whole number.",
+					partKey,
+					`${label} cannot be negative (${value}).`,
+					isBlockingMaterialIssue,
 				);
-			}
+			};
 
-			if (!preview.boxTypeResolved) {
-				addPackageIssue(packageNumber, "Box type is not mapped.");
-			}
+			const normalizeBoxTypeLabel = (value: string | null | undefined) =>
+				(value || "")
+					.toLowerCase()
+					.replace(/\bpacking\b/g, "pkg")
+					.replace(/\bpackage\b/g, "pkg")
+					.replace(/[^a-z0-9]/g, "");
 
-			if (!preview.packingTypeResolved) {
-				addPackageIssue(
-					packageNumber,
-					appliedTemplateMode === "v54plus"
-						? "SEI category/protection is not fully selected."
-						: "Packing type is not mapped.",
-				);
-			}
+			const isBaseOnlyPackage = (value: string | null | undefined) =>
+				normalizeBoxTypeLabel(value).includes("baseonly");
 
-			const manufacturingBars = isBaseOnlyPackage(preview.boxTypeLabel)
-				? [
-						preview.manufacturing.base.horizontal,
-						preview.manufacturing.base.vertical,
-						preview.manufacturing.base.skids,
-					]
-				: [
-						preview.manufacturing.big.horizontal,
-						preview.manufacturing.big.vertical,
-						preview.manufacturing.small.horizontal,
-						preview.manufacturing.small.vertical,
-						preview.manufacturing.lid.horizontal,
-						preview.manufacturing.lid.vertical,
-						preview.manufacturing.base.horizontal,
-						preview.manufacturing.base.vertical,
-						preview.manufacturing.base.skids,
-					];
-
-			const unresolvedManufacturingCount = manufacturingBars.filter(
-				(part) => part.typeLabel && !part.typeResolved,
-			).length;
-			if (unresolvedManufacturingCount > 0) {
-				addPackageIssue(
-					packageNumber,
-					`Resolve ${unresolvedManufacturingCount} manufacturing material selection${unresolvedManufacturingCount > 1 ? "s" : ""}.`,
-				);
-			}
-
-			for (const [index, part] of preview.securing.entries()) {
-				const hasData =
-					part.quantity !== null ||
-					part.width !== null ||
-					part.thickness !== null;
-				if (!hasData || !part.typeId) continue;
-
-				const label = `Securing ${index + 1}`;
-				if (part.quantity === null || part.quantity === undefined) {
-					addPartIssue(
+			for (const preview of packagePreviews) {
+				const packageNumber = preview.packageNumber;
+				const quantity = Number(preview.quantity);
+				if (
+					!Number.isFinite(quantity) ||
+					!Number.isInteger(quantity) ||
+					quantity <= 0
+				) {
+					addPackageIssue(
 						packageNumber,
-						part.key,
-						`${label} quantity is required when a material is selected.`,
-						true,
+						"Box quantity must be a positive whole number.",
 					);
 				}
 
-				addNonNegativePartIssue(
-					packageNumber,
-					part.key,
-					`${label} quantity`,
-					part.quantity,
-					true,
-				);
-				addNonNegativePartIssue(
-					packageNumber,
-					part.key,
-					`${label} width`,
-					part.width,
-					false,
-				);
-				addNonNegativePartIssue(
-					packageNumber,
-					part.key,
-					`${label} thickness`,
-					part.thickness,
-					false,
-				);
+				if (!preview.boxTypeResolved) {
+					addPackageIssue(packageNumber, "Box type is not mapped.");
+				}
 
-				if (!getVariantUnitId(part.typeId)) {
-					addPartIssue(
+				if (!preview.packingTypeResolved) {
+					addPackageIssue(
+						packageNumber,
+						appliedTemplateMode === "v54plus"
+							? "SEI category/protection is not fully selected."
+							: "Packing type is not mapped.",
+					);
+				}
+
+				const manufacturingBars = isBaseOnlyPackage(preview.boxTypeLabel)
+					? [
+							preview.manufacturing.base.horizontal,
+							preview.manufacturing.base.vertical,
+							preview.manufacturing.base.skids,
+						]
+					: [
+							preview.manufacturing.big.horizontal,
+							preview.manufacturing.big.vertical,
+							preview.manufacturing.small.horizontal,
+							preview.manufacturing.small.vertical,
+							preview.manufacturing.lid.horizontal,
+							preview.manufacturing.lid.vertical,
+							preview.manufacturing.base.horizontal,
+							preview.manufacturing.base.vertical,
+							preview.manufacturing.base.skids,
+						];
+
+				const unresolvedManufacturingCount = manufacturingBars.filter(
+					(part) => part.typeLabel && !part.typeResolved,
+				).length;
+				if (unresolvedManufacturingCount > 0) {
+					addPackageIssue(
+						packageNumber,
+						`Resolve ${unresolvedManufacturingCount} manufacturing material selection${unresolvedManufacturingCount > 1 ? "s" : ""}.`,
+					);
+				}
+
+				for (const [index, part] of preview.securing.entries()) {
+					const hasData =
+						part.quantity !== null ||
+						part.width !== null ||
+						part.thickness !== null;
+					if (!hasData || !part.typeId) continue;
+
+					const label = `Securing ${index + 1}`;
+					if (part.quantity === null || part.quantity === undefined) {
+						addPartIssue(
+							packageNumber,
+							part.key,
+							`${label} quantity is required when a material is selected.`,
+							true,
+						);
+					}
+
+					addNonNegativePartIssue(
 						packageNumber,
 						part.key,
-						`${label} material has no unit mapping in inventory.`,
+						`${label} quantity`,
+						part.quantity,
 						true,
 					);
+					addNonNegativePartIssue(
+						packageNumber,
+						part.key,
+						`${label} width`,
+						part.width,
+						false,
+					);
+					addNonNegativePartIssue(
+						packageNumber,
+						part.key,
+						`${label} thickness`,
+						part.thickness,
+						false,
+					);
+
+					if (!getVariantUnitId(part.typeId)) {
+						addPartIssue(
+							packageNumber,
+							part.key,
+							`${label} material has no unit mapping in inventory.`,
+							true,
+						);
+					}
+				}
+
+				for (const [index, part] of preview.accessories.entries()) {
+					const hasData = part.typeLabel || part.quantity !== null;
+					if (!hasData || !part.typeId) continue;
+
+					const label = `Accessory ${index + 1}`;
+					if (part.quantity === null || part.quantity === undefined) {
+						addPartIssue(
+							packageNumber,
+							part.key,
+							`${label} quantity is required when a material is selected.`,
+							true,
+						);
+					}
+
+					addNonNegativePartIssue(
+						packageNumber,
+						part.key,
+						`${label} quantity`,
+						part.quantity,
+						true,
+					);
+
+					if (!getVariantUnitId(part.typeId)) {
+						addPartIssue(
+							packageNumber,
+							part.key,
+							`${label} material has no unit mapping in inventory.`,
+							true,
+						);
+					}
 				}
 			}
 
-			for (const [index, part] of preview.accessories.entries()) {
-				const hasData = part.typeLabel || part.quantity !== null;
-				if (!hasData || !part.typeId) continue;
-
-				const label = `Accessory ${index + 1}`;
-				if (part.quantity === null || part.quantity === undefined) {
-					addPartIssue(
-						packageNumber,
-						part.key,
-						`${label} quantity is required when a material is selected.`,
-						true,
-					);
-				}
-
-				addNonNegativePartIssue(
-					packageNumber,
-					part.key,
-					`${label} quantity`,
-					part.quantity,
-					true,
-				);
-
-				if (!getVariantUnitId(part.typeId)) {
-					addPartIssue(
-						packageNumber,
-						part.key,
-						`${label} material has no unit mapping in inventory.`,
-						true,
-					);
-				}
+			const packageIssueMessages: Record<number, string[]> = {};
+			for (const [packageNumber, messages] of issuesByPackage.entries()) {
+				packageIssueMessages[packageNumber] = Array.from(messages);
 			}
-		}
 
-		const packageIssueMessages: Record<number, string[]> = {};
-		for (const [packageNumber, messages] of issuesByPackage.entries()) {
-			packageIssueMessages[packageNumber] = Array.from(messages);
-		}
+			const partIssueMessages: Record<string, string[]> = {};
+			for (const [partKey, messages] of issuesByPart.entries()) {
+				partIssueMessages[partKey] = Array.from(messages);
+			}
 
-		const partIssueMessages: Record<string, string[]> = {};
-		for (const [partKey, messages] of issuesByPart.entries()) {
-			partIssueMessages[partKey] = Array.from(messages);
-		}
+			const sortedBlockingPackages = Array.from(
+				blockingMaterialIssuePackages,
+			).sort((a, b) => a - b);
+			const shownBlockingPackages = sortedBlockingPackages.slice(0, 5);
+			const remainingBlocking =
+				sortedBlockingPackages.length - shownBlockingPackages.length;
+			const materialValidationReason =
+				sortedBlockingPackages.length > 0
+					? `Fix material validation issues in ${shownBlockingPackages
+							.map((pkgNumber) => `Box ${pkgNumber}`)
+							.join(
+								", ",
+							)}${remainingBlocking > 0 ? ` and ${remainingBlocking} more` : ""}.`
+					: undefined;
 
-		const sortedBlockingPackages = Array.from(blockingMaterialIssuePackages).sort(
-			(a, b) => a - b,
-		);
-		const shownBlockingPackages = sortedBlockingPackages.slice(0, 5);
-		const remainingBlocking =
-			sortedBlockingPackages.length - shownBlockingPackages.length;
-		const materialValidationReason =
-			sortedBlockingPackages.length > 0
-				? `Fix material validation issues in ${shownBlockingPackages
-						.map((pkgNumber) => `Box ${pkgNumber}`)
-						.join(", ")}${remainingBlocking > 0 ? ` and ${remainingBlocking} more` : ""}.`
-				: undefined;
-
-		return {
-			packageIssueMessages,
-			partIssueMessages,
-			materialValidationReason,
-		};
-	}, [appliedTemplateMode, getVariantUnitId, packagePreviews]);
+			return {
+				packageIssueMessages,
+				partIssueMessages,
+				materialValidationReason,
+			};
+		}, [appliedTemplateMode, getVariantUnitId, packagePreviews]);
 
 	const itemMatchIssueMessages = useMemo(() => {
 		const messages: Record<number, string[]> = {};
 
-		Object.entries(itemMatchStatusByPackage).forEach(([packageNumberRaw, state]) => {
-			const packageNumber = Number(packageNumberRaw);
-			if (!Number.isFinite(packageNumber)) return;
-			if (state.status !== "unmatched") return;
+		Object.entries(itemMatchStatusByPackage).forEach(
+			([packageNumberRaw, state]) => {
+				const packageNumber = Number(packageNumberRaw);
+				if (!Number.isFinite(packageNumber)) return;
+				if (state.status !== "unmatched") return;
 
-			messages[packageNumber] = [
-				`Item number \"${state.searchedItemNumber}\" was not found in client items DB. Keep it as a package item, edit the item number and fetch again, or clear it.`,
-			];
-		});
+				messages[packageNumber] = [
+					`Item number "${state.searchedItemNumber}" was not found in client items DB. Keep it as a package item, edit the item number and fetch again, or clear it.`,
+				];
+			},
+		);
 
 		return messages;
 	}, [itemMatchStatusByPackage]);
@@ -798,7 +800,9 @@ export function OrderCreateDialog({
 		if (invalidQuantityPackages.length === 0) return undefined;
 		const shown = invalidQuantityPackages.slice(0, 4);
 		const remaining = invalidQuantityPackages.length - shown.length;
-		const listedPackages = shown.map((pkgNumber) => `Box ${pkgNumber}`).join(", ");
+		const listedPackages = shown
+			.map((pkgNumber) => `Box ${pkgNumber}`)
+			.join(", ");
 		const suffix = remaining > 0 ? ` and ${remaining} more` : "";
 		return `Invalid quantity in ${listedPackages}${suffix}. Quantity must be a positive whole number. Update the quantity or remove that package.`;
 	}, [invalidQuantityPackages]);
@@ -1111,9 +1115,8 @@ export function OrderCreateDialog({
 		});
 
 		try {
-			const { data, error } = await db.getClientItemsDbForOrderCreate(
-				effectiveClientId,
-			);
+			const { data, error } =
+				await db.getClientItemsDbForOrderCreate(effectiveClientId);
 			if (error) throw error;
 
 			const lookup = buildClientItemLookup((data || []) as any[]);
@@ -1332,10 +1335,15 @@ export function OrderCreateDialog({
 			const effectiveClientName =
 				clientMode === "new"
 					? newClient.name
-					: clients.find((client) => client.id === effectiveClientId)?.name || "";
+					: clients.find((client) => client.id === effectiveClientId)?.name ||
+						"";
 
-			const preferredItemLinksByPackage = Object.entries(itemMatchStatusByPackage)
-				.filter(([, value]) => value.status === "matched" && !!value.matchedItemId)
+			const preferredItemLinksByPackage = Object.entries(
+				itemMatchStatusByPackage,
+			)
+				.filter(
+					([, value]) => value.status === "matched" && !!value.matchedItemId,
+				)
 				.reduce(
 					(acc, [packageNumberRaw, value]) => {
 						const packageNumber = Number(packageNumberRaw);
@@ -1354,7 +1362,8 @@ export function OrderCreateDialog({
 
 			console.log("[OrderCreate] UI - calling submitOrderCreate", {
 				packageCount: resolvedPackages.length,
-				preferredLinkedPackages: Object.keys(preferredItemLinksByPackage).length,
+				preferredLinkedPackages: Object.keys(preferredItemLinksByPackage)
+					.length,
 			});
 
 			await submitOrderCreate({
@@ -1451,8 +1460,8 @@ export function OrderCreateDialog({
 					setRawPackages([]);
 					setItemMatchStatusByPackage({});
 					setPackingTypeOverrides({});
-						setSeiCategoryOverrides({});
-						setSeiProtectionOverrides({});
+					setSeiCategoryOverrides({});
+					setSeiProtectionOverrides({});
 					setPackingTypeShowAll({});
 					setFileError(null);
 				}}
@@ -1490,9 +1499,7 @@ export function OrderCreateDialog({
 					if (Object.keys(errors).length > 0) return;
 					setShowConfirm(true);
 				}}
-				isSubmitting={
-					isCreateInProgress
-				}
+				isSubmitting={isCreateInProgress}
 			/>
 
 			<OrderCreateConfirmDialog
@@ -1577,9 +1584,7 @@ export function OrderCreateDialog({
 				confirmDisabledReason={confirmDisabledReason}
 				templateWarningCount={missingTemplateCount}
 				onConfirm={handleConfirmCreate}
-				isSubmitting={
-					isCreateInProgress
-				}
+				isSubmitting={isCreateInProgress}
 				submitError={submitError}
 			/>
 		</>

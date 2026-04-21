@@ -1,9 +1,9 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/clients")({
-component: ClientsLayout,
+	component: ClientsLayout,
 });
 
 function ClientsLayout() {
-return <Outlet />;
+	return <Outlet />;
 }

@@ -57,9 +57,7 @@ export function ManufacturingPartCard({
 	return (
 		<div
 			className={`space-y-2 rounded-lg border p-3 ${
-				hasIssues
-					? "border-red-200 bg-red-50"
-					: "border-gray-100 bg-gray-50"
+				hasIssues ? "border-red-200 bg-red-50" : "border-gray-100 bg-gray-50"
 			}`}
 		>
 			<div className="flex items-center justify-between">

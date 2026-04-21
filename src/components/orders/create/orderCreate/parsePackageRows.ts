@@ -153,9 +153,13 @@ export const parsePackageRows = (
 		return numberToColumn(numeric + columnOffset);
 	};
 	const getText = (column: string, rowNumber: number) =>
-		normalizeDefensorText(extractCellText(sheet.getCell(`${shiftColumn(column)}${rowNumber}`)));
+		normalizeDefensorText(
+			extractCellText(sheet.getCell(`${shiftColumn(column)}${rowNumber}`)),
+		);
 	const getLiteralText = (column: string, rowNumber: number) =>
-		normalizeDefensorText(extractCellText(sheet.getCell(`${column}${rowNumber}`)));
+		normalizeDefensorText(
+			extractCellText(sheet.getCell(`${column}${rowNumber}`)),
+		);
 
 	for (let row = 4; row < 1000; row += 1) {
 		const currentLabel = getText("B", row);
@@ -253,8 +257,12 @@ export const parsePackageRows = (
 		const accessoryStart = columnToNumber(shiftColumn("BAD"));
 		const accessoryEnd = columnToNumber(shiftColumn("BDA"));
 		const getAccessoryHeader = (col: number) => {
-			const headerRow2 = normalizeDefensorText(extractCellText(sheet.getCell(2, col)));
-			const headerRow3 = normalizeDefensorText(extractCellText(sheet.getCell(3, col)));
+			const headerRow2 = normalizeDefensorText(
+				extractCellText(sheet.getCell(2, col)),
+			);
+			const headerRow3 = normalizeDefensorText(
+				extractCellText(sheet.getCell(3, col)),
+			);
 			return headerRow3 || headerRow2;
 		};
 		// Skip quantity/metadata sub-header columns that aren't material names.
