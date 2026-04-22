@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Loader2, PackageX } from "lucide-react";
-import { useEffect } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Loader2, PackageX, ShieldAlert } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../../hooks/useAuth";
-import { auth, db } from "../../../lib/supabase";
+import { auth, db, supabase } from "../../../lib/supabase";
 
 export const Route = createFileRoute("/portal/projects/")({
 	component: PortalProjects,
@@ -23,7 +23,7 @@ function PortalProjects() {
 		}
 	}, [user, loading, navigate]);
 
-	// Fetch current user's profile to extract their client_id
+	// Fetch current user's profile to extract their client_id and role
 	const { data: profile, isLoading: profileLoading } = useQuery({
 		queryKey: ["currentUserProfile", user?.id],
 		queryFn: async () => {
@@ -35,13 +35,105 @@ function PortalProjects() {
 		enabled: !!user,
 	});
 
-	// If no client_id is attached to the profile, they shouldn't be here (or they have no data)
 	const clientId = profile?.client_id;
+	const roleName = profile?.roles?.name;
+	const isStaffUser =
+		roleName === "admin" ||
+		roleName === "director" ||
+		roleName === "project_lead" ||
+		roleName === "sales";
+	const [itemSearch, setItemSearch] = useState("");
+
+	const {
+		data: items,
+		isLoading: itemsLoading,
+		error: itemsError,
+	} = useQuery({
+		queryKey: ["portal-items", clientId],
+		queryFn: async () => {
+			if (!clientId) return [];
+
+			const { data, error } = await supabase
+				.from("items_db")
+				.select(`
+					id,
+					item_num,
+					reference,
+					description,
+					expected_qty,
+					packed_qty,
+					pkg_category (label)
+				`)
+				.eq("client_id", clientId)
+				.order("item_num", { ascending: true })
+				.limit(1000);
+
+			if (error) throw error;
+			return data || [];
+		},
+		enabled: !!clientId,
+	});
+
+	const searchToken = itemSearch.trim().toLowerCase();
+	const filteredItems = useMemo(() => {
+		const source = items || [];
+		if (!searchToken) return source;
+
+		return source.filter((item: any) => {
+			const searchable = [
+				item.item_num,
+				item.reference,
+				item.description,
+				item.pkg_category?.label,
+			]
+				.filter(Boolean)
+				.join(" ")
+				.toLowerCase();
+
+			return searchable.includes(searchToken);
+		});
+	}, [items, searchToken]);
 
 	if (loading || profileLoading) {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-gray-50">
 				<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+			</div>
+		);
+	}
+
+	// Staff/admin accidentally landed on the client portal
+	if (isStaffUser && !clientId) {
+		return (
+			<div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
+				<ShieldAlert className="w-16 h-16 text-amber-400 mb-4" />
+				<h2 className="text-xl font-bold text-gray-900 mb-2">
+					Staff Account Detected
+				</h2>
+				<p className="text-gray-500 max-w-md mb-6">
+					You're logged in as a staff member (
+					<span className="font-semibold">
+						{profile?.full_name || profile?.username}
+					</span>
+					). This portal is for clients only.
+				</p>
+				<div className="flex gap-3">
+					<Link
+						to="/dashboard"
+						className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
+					>
+						Go to Admin Panel
+					</Link>
+					<button
+						onClick={async () => {
+							await auth.signOut();
+							navigate({ to: "/portal/login" });
+						}}
+						className="px-5 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold rounded-xl transition-colors"
+					>
+						Sign out
+					</button>
+				</div>
 			</div>
 		);
 	}
@@ -53,10 +145,19 @@ function PortalProjects() {
 				<h2 className="text-xl font-bold text-gray-900 mb-2">
 					No Client Assigned
 				</h2>
-				<p className="text-gray-500 max-w-md">
+				<p className="text-gray-500 max-w-md mb-6">
 					Your user profile is not linked to any client company. Please contact
 					support.
 				</p>
+				<button
+					onClick={async () => {
+						await auth.signOut();
+						navigate({ to: "/portal/login" });
+					}}
+					className="px-5 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold rounded-xl transition-colors"
+				>
+					Sign out & try again
+				</button>
 			</div>
 		);
 	}
@@ -90,9 +191,6 @@ function PortalProjects() {
 							<h1 className="text-lg font-bold text-gray-900">IPAC Portal</h1>
 						</div>
 						<div className="flex items-center gap-4">
-							<span className="text-sm font-medium text-gray-700">
-								{profile?.full_name}
-							</span>
 							<button
 								className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
 								onClick={async () => {
@@ -113,16 +211,88 @@ function PortalProjects() {
 						Your Inventory Projects
 					</h2>
 					<p className="text-gray-500 mt-1">
-						Browse all items packed across your projects.
+						Browse all items and open detailed records for each item.
 					</p>
 				</div>
 
-				<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">
-					This dashboard will automatically populate with aggregated inventory
-					analytics and bulk item lists.
-					<br />
-					<br />
-					Status: Awaiting Database Sync (Phase 3 Backend Data Bridge)
+				<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+					<div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+						<input
+							type="search"
+							value={itemSearch}
+							onChange={(event) => setItemSearch(event.target.value)}
+							placeholder="Search item number, reference, or description"
+							className="w-full sm:max-w-xl px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+						/>
+						<div className="text-sm text-gray-500">
+							{filteredItems.length} item{filteredItems.length === 1 ? "" : "s"}
+						</div>
+					</div>
+
+					{itemsLoading ? (
+						<div className="py-14 flex items-center justify-center text-gray-500">
+							<Loader2 className="w-5 h-5 mr-2 animate-spin" />
+							Loading items...
+						</div>
+					) : itemsError ? (
+						<div className="py-10 px-4 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
+							Failed to load items. Please refresh and try again.
+						</div>
+					) : filteredItems.length === 0 ? (
+						<div className="py-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 text-center">
+							No items found for this client.
+						</div>
+					) : (
+						<ul className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+							{filteredItems.map((item: any) => {
+								const packedQty = Number(item?.packed_qty ?? 0);
+								const expectedQty = Number(item?.expected_qty ?? 0);
+								const fullyPacked = expectedQty > 0 && packedQty >= expectedQty;
+
+								return (
+									<li key={item.id}>
+										<Link
+											to="/portal/item/$id"
+											params={{ id: item.id }}
+											className="block p-4 sm:p-5 hover:bg-gray-50 transition-colors"
+										>
+											<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+												<div>
+													<div className="flex items-center gap-2 mb-1.5">
+														<span className="text-xs font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+															{item.item_num || item.reference || "NO-REF"}
+														</span>
+														<span className="text-xs text-gray-500">
+															{item.pkg_category?.label || "General"}
+														</span>
+													</div>
+													<h3 className="text-base font-semibold text-gray-900">
+														{item.description ||
+															item.reference ||
+															"Unnamed Item"}
+													</h3>
+												</div>
+												<div className="sm:text-right text-sm">
+													<div className="text-gray-700">
+														Packed {packedQty} / {expectedQty || "-"}
+													</div>
+													<div
+														className={`inline-flex mt-1 px-2 py-0.5 rounded text-xs font-semibold ${
+															fullyPacked
+																? "bg-emerald-100 text-emerald-700"
+																: "bg-amber-100 text-amber-700"
+														}`}
+													>
+														{fullyPacked ? "Packed" : "Pending"}
+													</div>
+												</div>
+											</div>
+										</Link>
+									</li>
+								);
+							})}
+						</ul>
+					)}
 				</div>
 			</main>
 		</div>

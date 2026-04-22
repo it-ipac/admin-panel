@@ -23,11 +23,15 @@ function PackageView() {
 				.from("order_pkg_instance")
 				.select(`
 					id,
+					order_pkg_overview_id,
+					order_package_id,
 					instance_number,
 					status,
 					packed_at,
+					ipac_reference,
 					order_pkg_overview (
 						id,
+						order_id,
 						pkg_number,
 						quantity,
 						quantity_packed,
@@ -83,6 +87,10 @@ function PackageView() {
 					(Array.isArray(instanceData.order_package)
 						? instanceData.order_package[0]
 						: instanceData.order_package) || null;
+				const overview =
+					(Array.isArray(instanceData.order_pkg_overview)
+						? instanceData.order_pkg_overview[0]
+						: instanceData.order_pkg_overview) || null;
 				const finalInfo =
 					(Array.isArray(orderPackage?.final_pkg_info)
 						? orderPackage.final_pkg_info[0]
@@ -95,6 +103,11 @@ function PackageView() {
 				return {
 					id: instanceData.id,
 					source: "instance",
+					orderPkgOverviewId:
+						instanceData.order_pkg_overview_id || overview?.id || null,
+					orderPackageId:
+						instanceData.order_package_id || orderPackage?.id || null,
+					instanceRow: instanceData,
 					instance_number: instanceData.instance_number ?? null,
 					package_number:
 						(Array.isArray(instanceData.order_pkg_overview)
@@ -228,6 +241,9 @@ function PackageView() {
 			return {
 				id: legacyPackage.id,
 				source: "legacy",
+				orderPkgOverviewId: null,
+				orderPackageId: legacyPackage.id,
+				instanceRow: null,
 				instance_number: null,
 				package_number: legacyPackage.package_number ?? null,
 				reference_number:
@@ -244,6 +260,37 @@ function PackageView() {
 				items: normalizedItems,
 			};
 		},
+	});
+
+	const { data: siblingBoxes, isLoading: siblingBoxesLoading } = useQuery({
+		queryKey: ["portal-package-siblings", pkg?.orderPkgOverviewId, pkg?.id],
+		queryFn: async () => {
+			if (!pkg?.orderPkgOverviewId) return [];
+
+			const { data, error } = await supabase
+				.from("order_pkg_instance")
+				.select(`
+					id,
+					instance_number,
+					status,
+					packed_at,
+					order_pkg_overview (
+						pkg_number
+					),
+					order_package:order_packages (
+						reference,
+						reference_number,
+						package_number
+					)
+				`)
+				.eq("order_pkg_overview_id", pkg.orderPkgOverviewId)
+				.order("instance_number", { ascending: true });
+
+			if (error) throw error;
+
+			return (data || []).filter((instance: any) => instance.id !== pkg.id);
+		},
+		enabled: !!pkg?.orderPkgOverviewId,
 	});
 
 	if (isLoading) {
@@ -289,6 +336,32 @@ function PackageView() {
 			</header>
 
 			<main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-5">
+					<div className="flex flex-wrap items-center gap-3">
+						<button
+							onClick={() => {
+								if (
+									typeof window !== "undefined" &&
+									window.history.length > 1
+								) {
+									window.history.back();
+									return;
+								}
+								navigate({ to: "/portal/projects" });
+							}}
+							className="inline-flex items-center justify-center py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-sm font-semibold transition-colors"
+						>
+							Go Back
+						</button>
+						<Link
+							to="/portal/projects"
+							className="inline-flex items-center justify-center py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors"
+						>
+							View All Items
+						</Link>
+					</div>
+				</section>
+
 				{/* Package Hero Card */}
 				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
 					<div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
@@ -359,6 +432,62 @@ function PackageView() {
 							</div>
 						</div>
 					</div>
+				</section>
+
+				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+					<h3 className="text-lg font-bold text-gray-900">Other Boxes</h3>
+					<p className="text-sm text-gray-500 mt-1 mb-4">
+						Browse other box instances from the same package group.
+					</p>
+
+					{siblingBoxesLoading ? (
+						<div className="text-sm text-gray-500 flex items-center gap-2">
+							<Loader2 className="w-4 h-4 animate-spin" />
+							Loading other boxes...
+						</div>
+					) : !siblingBoxes || siblingBoxes.length === 0 ? (
+						<div className="text-sm text-gray-500">
+							No other boxes found in this group.
+						</div>
+					) : (
+						<ul className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+							{siblingBoxes.map((entry: any) => {
+								const orderPackage = Array.isArray(entry.order_package)
+									? entry.order_package[0]
+									: entry.order_package;
+								const overview = Array.isArray(entry.order_pkg_overview)
+									? entry.order_pkg_overview[0]
+									: entry.order_pkg_overview;
+
+								return (
+									<li key={entry.id}>
+										<Link
+											to="/portal/package/$id"
+											params={{ id: entry.id }}
+											className="block p-4 hover:bg-gray-50 transition-colors"
+										>
+											<div className="flex items-center justify-between gap-3">
+												<div>
+													<div className="text-sm font-semibold text-gray-900">
+														{orderPackage?.reference ||
+															orderPackage?.reference_number ||
+															`Package ${overview?.pkg_number || orderPackage?.package_number || "-"}`}
+													</div>
+													<div className="text-xs text-gray-500 mt-1">
+														Instance #{entry.instance_number || "-"}
+														{entry.status ? ` • ${entry.status}` : ""}
+													</div>
+												</div>
+												<div className="text-xs font-semibold text-blue-700">
+													Open
+												</div>
+											</div>
+										</Link>
+									</li>
+								);
+							})}
+						</ul>
+					)}
 				</section>
 
 				{/* Items manifest */}
@@ -432,6 +561,24 @@ function PackageView() {
 							</ul>
 						)}
 					</div>
+				</section>
+
+				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+					<h3 className="text-lg font-bold text-gray-900">Database Rows</h3>
+					<p className="text-sm text-gray-500 mt-1 mb-4">
+						Full row data for this box instance and package payload.
+					</p>
+
+					<details className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+						<summary className="cursor-pointer text-sm font-semibold text-gray-800">
+							View full order_pkg_instance row
+						</summary>
+						<pre className="mt-3 text-xs text-gray-700 overflow-auto whitespace-pre-wrap wrap-break-word">
+							{pkg.instanceRow
+								? JSON.stringify(pkg.instanceRow, null, 2)
+								: "This QR resolved through legacy order_packages fallback (no instance row)."}
+						</pre>
+					</details>
 				</section>
 			</main>
 		</div>

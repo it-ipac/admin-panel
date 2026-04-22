@@ -33,19 +33,23 @@ function ItemView() {
 					*,
 					pkg_category (label),
 					pkd_item (
-						id,
-						quantity,
+						*,
 						pkg_instance:order_pkg_instance (
-							id,
-							instance_number,
+							*,
 							order_pkg_overview (
-								pkg_number
+								id,
+								pkg_number,
+								quantity,
+								quantity_packed,
+								description,
+								order_id
 							),
 							order_package:order_packages (
 								id,
 								package_number,
 								reference,
 								reference_number,
+								status,
 								orders (order_name)
 							)
 						)
@@ -94,6 +98,8 @@ function ItemView() {
 				packageId,
 				packageNumber,
 				instanceNumber: pkgInstance?.instance_number ?? null,
+				pkdItemRow: entry,
+				pkgInstanceRow: pkgInstance || null,
 				label:
 					orderPackage?.reference ||
 					orderPackage?.reference_number ||
@@ -107,6 +113,8 @@ function ItemView() {
 		packageId: string;
 		packageNumber: number | null;
 		instanceNumber: number | null;
+		pkdItemRow: Record<string, any>;
+		pkgInstanceRow: Record<string, any> | null;
 		label: string;
 		orderName: string | null;
 	}>;
@@ -134,6 +142,36 @@ function ItemView() {
 			</header>
 
 			<main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-5">
+					<div className="flex flex-wrap items-center gap-3">
+						<button
+							onClick={() => {
+								if (
+									typeof window !== "undefined" &&
+									window.history.length > 1
+								) {
+									window.history.back();
+									return;
+								}
+								navigate({ to: "/portal/projects" });
+							}}
+							className="inline-flex items-center justify-center py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-sm font-semibold transition-colors"
+						>
+							Go Back
+						</button>
+						<Link
+							to="/portal/projects"
+							className="inline-flex items-center justify-center py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors"
+						>
+							View All Items
+						</Link>
+					</div>
+					<p className="text-sm text-gray-600 mt-3">
+						Need another box? Use the package links below to browse other boxes
+						this item appears in.
+					</p>
+				</section>
+
 				{/* Location Banner (If packed) */}
 				{packingHistory.length > 0 ? (
 					<div className="space-y-4">
@@ -274,6 +312,75 @@ function ItemView() {
 							<div className="bg-gray-50/50 rounded-xl p-5 border border-gray-100 italic text-gray-600 shadow-inner">
 								"{record.ipac_comments}"
 							</div>
+						</div>
+					)}
+				</section>
+
+				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+					<h3 className="text-lg font-bold text-gray-900">Database Rows</h3>
+					<p className="text-sm text-gray-500 mt-1 mb-4">
+						Full records for this item and its packing rows.
+					</p>
+
+					<details className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+						<summary className="cursor-pointer text-sm font-semibold text-gray-800">
+							View full item row (items_db)
+						</summary>
+						<pre className="mt-3 text-xs text-gray-700 overflow-auto whitespace-pre-wrap wrap-break-word">
+							{JSON.stringify(item, null, 2)}
+						</pre>
+					</details>
+
+					{packingHistory.length === 0 ? (
+						<div className="mt-4 text-sm text-gray-500">
+							No `pkd_item` rows found for this item yet.
+						</div>
+					) : (
+						<div className="mt-4 space-y-4">
+							{packingHistory.map((historyItem) => (
+								<div
+									key={`db-${historyItem.id}`}
+									className="rounded-xl border border-gray-200 p-4"
+								>
+									<div className="flex flex-wrap items-center gap-2">
+										<span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700">
+											pkd_item #{historyItem.id}
+										</span>
+										<span className="text-xs text-gray-600">
+											Qty: {historyItem.quantity}
+										</span>
+										{historyItem.packageId && (
+											<Link
+												to="/portal/package/$id"
+												params={{ id: historyItem.packageId }}
+												className="text-xs font-semibold text-blue-700 hover:text-blue-800"
+											>
+												Open Box
+											</Link>
+										)}
+									</div>
+
+									<details className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+										<summary className="cursor-pointer text-xs font-semibold text-gray-800">
+											View full pkd_item row
+										</summary>
+										<pre className="mt-2 text-xs text-gray-700 overflow-auto whitespace-pre-wrap wrap-break-word">
+											{JSON.stringify(historyItem.pkdItemRow, null, 2)}
+										</pre>
+									</details>
+
+									<details className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+										<summary className="cursor-pointer text-xs font-semibold text-gray-800">
+											View full order_pkg_instance row
+										</summary>
+										<pre className="mt-2 text-xs text-gray-700 overflow-auto whitespace-pre-wrap wrap-break-word">
+											{historyItem.pkgInstanceRow
+												? JSON.stringify(historyItem.pkgInstanceRow, null, 2)
+												: "No linked order_pkg_instance row."}
+										</pre>
+									</details>
+								</div>
+							))}
 						</div>
 					)}
 				</section>

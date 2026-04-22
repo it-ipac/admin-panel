@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useToastContext } from "../../components/ui/ToastProvider";
 import { useAuth } from "../../hooks/useAuth";
 import { auth, db } from "../../lib/supabase";
@@ -19,14 +19,26 @@ function PortalLogin() {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const searchParams = new window.URLSearchParams(window.location.search);
-	const returnUrl = searchParams.get("returnUrl") || "/portal/projects";
+	const rawReturnUrl = searchParams.get("returnUrl");
+	const returnUrl = rawReturnUrl?.startsWith("/portal/")
+		? rawReturnUrl
+		: "/portal/projects";
+
+	const goToReturnUrl = useCallback(() => {
+		if (typeof window !== "undefined") {
+			window.location.assign(returnUrl);
+			return;
+		}
+
+		navigate({ to: "/portal/projects" });
+	}, [navigate, returnUrl]);
 
 	useEffect(() => {
 		if (!loading && user) {
 			// Already logged in
-			navigate({ to: returnUrl });
+			goToReturnUrl();
 		}
-	}, [user, loading, navigate, returnUrl]);
+	}, [user, loading, goToReturnUrl]);
 
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -45,7 +57,7 @@ function PortalLogin() {
 						description: "Welcome to your Client Portal.",
 						variant: "success",
 					});
-					navigate({ to: returnUrl });
+					goToReturnUrl();
 				} else {
 					// They are standard admin staff trying to log into the portal? That's fine, but maybe redirect them to admin area?
 					// Or let them in if they are testing.
@@ -54,7 +66,7 @@ function PortalLogin() {
 						description: "Redirecting...",
 						variant: "success",
 					});
-					navigate({ to: returnUrl });
+					goToReturnUrl();
 				}
 			}
 		} catch (error: any) {

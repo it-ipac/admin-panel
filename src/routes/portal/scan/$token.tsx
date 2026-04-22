@@ -45,7 +45,10 @@ function TokenResolver() {
 
 				// 2. Identify who owns this entity to find their portal settings
 				let clientId = null;
-				let targetUrl = "";
+				let targetEntity:
+					| { type: "package"; id: string }
+					| { type: "item"; id: string }
+					| null = null;
 
 				if (qrData.entity_type === "package") {
 					// New flow: package QR represents an order_pkg_instance id.
@@ -99,7 +102,10 @@ function TokenResolver() {
 						}
 					}
 
-					targetUrl = `/portal/package/${qrData.entity_id}`;
+					targetEntity = {
+						type: "package",
+						id: String(qrData.entity_id),
+					};
 				} else if (qrData.entity_type === "item") {
 					// We need to look up the item in items_db
 					const { data: mDb } = await supabase
@@ -108,7 +114,12 @@ function TokenResolver() {
 						.eq("id", qrData.entity_id)
 						.single();
 					clientId = mDb?.client_id;
-					targetUrl = `/portal/item/${qrData.entity_id}`;
+					targetEntity = {
+						type: "item",
+						id: String(qrData.entity_id),
+					};
+				} else {
+					throw new Error("Unsupported QR entity type.");
 				}
 
 				if (!clientId) {
@@ -165,8 +176,24 @@ function TokenResolver() {
 					}
 				}
 
+				if (!targetEntity) {
+					throw new Error("Unable to resolve QR destination.");
+				}
+
 				// 5. All checks passed! Redirect to the actual resource page
-				if (isMounted) navigate({ to: targetUrl });
+				if (isMounted) {
+					if (targetEntity.type === "package") {
+						navigate({
+							to: "/portal/package/$id",
+							params: { id: targetEntity.id },
+						});
+					} else {
+						navigate({
+							to: "/portal/item/$id",
+							params: { id: targetEntity.id },
+						});
+					}
+				}
 			} catch (e: any) {
 				if (isMounted) {
 					setError(

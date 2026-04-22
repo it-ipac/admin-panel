@@ -13,6 +13,7 @@ interface Profile {
 	full_name: string | null;
 	username: string | null;
 	role_id: string | null;
+	client_id: string | null;
 	roles: {
 		id: string;
 		name: string | null;
