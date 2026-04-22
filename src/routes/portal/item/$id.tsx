@@ -11,6 +11,7 @@ import {
 	Info,
 	Loader2,
 	MapPin,
+	PackageX,
 	Ruler,
 	Scale,
 } from "lucide-react";
@@ -24,7 +25,11 @@ function ItemView() {
 	const { id } = useParams({ from: "/portal/item/$id" });
 	const navigate = useNavigate();
 
-	const { data: record, isLoading } = useQuery({
+	const {
+		data: record,
+		isLoading,
+		error: queryError,
+	} = useQuery({
 		queryKey: ["portal-item", id],
 		queryFn: async () => {
 			const { data, error } = await supabase
@@ -33,22 +38,22 @@ function ItemView() {
 					*,
 					pkg_category (label),
 					pkd_item (
-						*,
-						pkg_instance:order_pkg_instance (
-							*,
+						id,
+						quantity,
+						order_pkg_instance (
+							id,
+							instance_number,
+							status,
 							order_pkg_overview (
 								id,
 								pkg_number,
 								quantity,
-								quantity_packed,
-								description,
-								order_id
+								description
 							),
-							order_package:order_packages (
+							order_packages (
 								id,
 								package_number,
 								reference,
-								reference_number,
 								status,
 								orders (order_name)
 							)
@@ -56,17 +61,42 @@ function ItemView() {
 					)
 				`)
 				.eq("id", id)
-				.single();
+				.maybeSingle();
 
-			if (error) throw error;
+			if (error) {
+				console.error("Portal Item Query Error:", error);
+				throw error;
+			}
 			return data;
 		},
+		enabled: !!id,
 	});
 
 	if (isLoading) {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-gray-50">
 				<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+			</div>
+		);
+	}
+
+	if (queryError) {
+		return (
+			<div className="p-8 text-center bg-gray-50 min-h-screen flex flex-col items-center justify-center">
+				<div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+					<PackageX className="w-8 h-8 text-red-600" />
+				</div>
+				<h2 className="text-xl font-bold text-gray-900 mb-2">Query Failed</h2>
+				<p className="text-gray-500 max-w-md mb-6">
+					{(queryError as any)?.message ||
+						"An error occurred while fetching the item details."}
+				</p>
+				<button
+					onClick={() => window.location.reload()}
+					className="px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-xl transition-colors"
+				>
+					Try Again
+				</button>
 			</div>
 		);
 	}
@@ -82,9 +112,9 @@ function ItemView() {
 	const item = record;
 	const packingHistory = (record.pkd_item || [])
 		.map((entry: any) => {
-			const pkgInstance = entry?.pkg_instance;
+			const pkgInstance = entry?.order_pkg_instance;
 			const pkgOverview = pkgInstance?.order_pkg_overview;
-			const orderPackage = pkgInstance?.order_package;
+			const orderPackage = pkgInstance?.order_packages;
 
 			const packageId = pkgInstance?.id || orderPackage?.id || null;
 			if (!packageId) return null;
@@ -102,7 +132,6 @@ function ItemView() {
 				pkgInstanceRow: pkgInstance || null,
 				label:
 					orderPackage?.reference ||
-					orderPackage?.reference_number ||
 					(packageNumber ? `Package ${packageNumber}` : "Package"),
 				orderName: orderPackage?.orders?.order_name || null,
 			};
