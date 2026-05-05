@@ -60,6 +60,8 @@ interface Props {
 	setFileError: (value: string | null) => void;
 	onReview: (options?: { selectedClientId?: string }) => Promise<void>;
 	isSubmitting: boolean;
+	globalDestination: string;
+	setGlobalDestination: (value: string) => void;
 }
 
 export function OrderCreateFormDialog({
@@ -96,6 +98,8 @@ export function OrderCreateFormDialog({
 	setFileError,
 	onReview,
 	isSubmitting,
+	globalDestination,
+	setGlobalDestination,
 }: Props) {
 	const [clientSearchQuery, setClientSearchQuery] = useState("");
 	const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
@@ -442,6 +446,27 @@ export function OrderCreateFormDialog({
 									{validationErrors.orderName}
 								</p>
 							)}
+						</div>
+
+						<div>
+							<label
+								htmlFor="global-destination"
+								className="block text-sm font-medium text-gray-900 mb-1"
+							>
+								Global destination (Optional)
+							</label>
+							<input
+								id="global-destination"
+								type="text"
+								value={globalDestination}
+								onChange={(event) => setGlobalDestination(event.target.value)}
+								placeholder="e.g. MZC, ALD, or leave empty"
+								className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+							/>
+							<p className="mt-1 text-[11px] text-gray-500">
+								When set, this will be applied to all boxes as the default
+								destination.
+							</p>
 						</div>
 
 						{shouldShowCategoryMapping && (

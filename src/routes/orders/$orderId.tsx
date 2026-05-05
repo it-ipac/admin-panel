@@ -67,6 +67,7 @@ import {
 	Phone,
 	Play,
 	Printer,
+	RefreshCw,
 	Sparkles,
 	StopCircle,
 	Sun,
@@ -86,6 +87,10 @@ import {
 	packageMaterialSchema,
 	validateInput,
 } from "@/lib/validation";
+import {
+	generateIpacReference,
+	mapCategoryToTag,
+} from "../../components/orders/create/orderCreate/utils";
 import { MediaGallery } from "../../components/orders/orderId/MediaGallery";
 import { AccessoriesTab } from "../../components/orders/orderId/tabs/AccessoriesTab";
 import { CommentsTab } from "../../components/orders/orderId/tabs/CommentsTab";
@@ -202,12 +207,16 @@ interface AttendanceChange {
 
 export interface PackageItem {
 	id: string;
-	order_package_id: string;
+	order_package_id?: string;
 	quantity: number;
 	designation: string;
 	length: number | null;
 	width: number | null;
 	height: number | null;
+	source?: "custom" | "inventory";
+	instance_number?: number;
+	warehouse_location?: string;
+	item_num?: string;
 }
 
 export interface PackageMaterial {
@@ -581,12 +590,30 @@ function OrderDetailPage() {
 					),
 				);
 
+				// Collect task_ids from task_logs so we can clean up task_assignments
+				// (task_assignments links to tasks.id via task_id, not to task_logs)
+				const taskLogRows =
+					taskLogIds.length > 0
+						? await queryRowsInChunks<any>(taskLogIds, (chunk) =>
+								supabase
+									.from("task_logs")
+									.select("id, task_id")
+									.in("id", chunk),
+							)
+						: [];
+
+				const taskIds = Array.from(
+					new Set(
+						(taskLogRows || []).map((row: any) => row.task_id).filter(Boolean),
+					),
+				);
+
 				await mutateInChunks(packageIds, (chunk) =>
 					supabase.from("task_packages").delete().in("order_package_id", chunk),
 				);
 
-				await mutateInChunks(taskLogIds, (chunk) =>
-					supabase.from("task_assignments").delete().in("task_log_id", chunk),
+				await mutateInChunks(taskIds, (chunk) =>
+					supabase.from("task_assignments").delete().in("task_id", chunk),
 				);
 
 				await mutateInChunks(taskLogIds, (chunk) =>
@@ -920,6 +947,58 @@ function OrderDetailPage() {
 			);
 
 			return data as PackageItem[];
+		},
+		enabled: !!user && !!order,
+	});
+
+	// Fetch client inventory from items_db
+	const { data: clientInventory } = useQuery({
+		queryKey: ["clientInventory", order?.clients?.id],
+		queryFn: async () => {
+			if (!order?.clients?.id) return [];
+			const { data, error } = await supabase
+				.from("items_db")
+				.select("*")
+				.eq("client_id", order.clients.id)
+				.order("item_num");
+			if (error) throw error;
+			return data;
+		},
+		enabled: !!user && !!order?.clients?.id,
+	});
+
+	// Fetch pkd_items (inventory items) for all instances in this order
+	const { data: pkdItems } = useQuery({
+		queryKey: ["pkdItems", orderId],
+		queryFn: async () => {
+			const { data: packages, error: pkgError } = await supabase
+				.from("order_packages")
+				.select("id")
+				.eq("order_id", orderId);
+
+			if (pkgError) throw pkgError;
+			if (!packages || packages.length === 0) return [];
+
+			const packageIds = packages.map((p) => p.id);
+
+			const { data: instances, error: instError } = await supabase
+				.from("order_pkg_instance")
+				.select("id")
+				.in("order_package_id", packageIds);
+
+			if (instError) throw instError;
+			if (!instances || instances.length === 0) return [];
+
+			const instanceIds = instances.map((i) => i.id);
+
+			const data = await queryRowsInChunks<any>(instanceIds, (chunk) =>
+				supabase
+					.from("pkd_item")
+					.select("*, items_db:maintenance_db_id(*)")
+					.in("pkg_instance_id", chunk),
+			);
+
+			return data;
 		},
 		enabled: !!user && !!order,
 	});
@@ -1333,6 +1412,10 @@ function OrderDetailPage() {
 
 	const deletePackageItemMutation = useMutation({
 		mutationFn: async (id: string) => {
+			// 1. Delete associated media first
+			await supabase.from("media").delete().eq("package_item_id", id);
+
+			// 2. Delete the item
 			const { error } = await supabase
 				.from("package_items")
 				.delete()
@@ -1341,6 +1424,92 @@ function OrderDetailPage() {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["packageItems", orderId] });
+		},
+	});
+
+	// Pkd Item Mutations (Inventory Items)
+	const addPkdItemMutation = useMutation({
+		mutationFn: async (item: {
+			pkg_instance_id: string;
+			maintenance_db_id: string;
+			quantity: number;
+		}) => {
+			// 1. Check current inventory
+			const { data: inventory, error: invError } = await supabase
+				.from("items_db")
+				.select("expected_qty, packed_qty")
+				.eq("id", item.maintenance_db_id)
+				.single();
+
+			if (invError) throw invError;
+			const available =
+				(inventory.expected_qty || 0) - (inventory.packed_qty || 0);
+			if (item.quantity > available) {
+				throw new Error(`Insufficient inventory. Available: ${available}`);
+			}
+
+			// 2. Insert pkd_item
+			const { data, error } = await supabase
+				.from("pkd_item")
+				.insert(item)
+				.select()
+				.single();
+			if (error) throw error;
+
+			// 3. Update items_db packed_qty
+			const { error: updateError } = await supabase
+				.from("items_db")
+				.update({ packed_qty: (inventory.packed_qty || 0) + item.quantity })
+				.eq("id", item.maintenance_db_id);
+			if (updateError) throw updateError;
+
+			return data;
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["pkdItems", orderId] });
+			queryClient.invalidateQueries({ queryKey: ["clientInventory"] });
+		},
+	});
+
+	const deletePkdItemMutation = useMutation({
+		mutationFn: async (id: string) => {
+			// 1. Fetch item to get quantity and items_db_id
+			const { data: item, error: fetchError } = await supabase
+				.from("pkd_item")
+				.select("quantity, maintenance_db_id")
+				.eq("id", id)
+				.single();
+			if (fetchError) throw fetchError;
+
+			// 2. Delete associated media first
+			await supabase.from("media").delete().eq("pkd_item_id", id);
+
+			// 3. Delete pkd_item
+			const { error } = await supabase.from("pkd_item").delete().eq("id", id);
+			if (error) throw error;
+
+			// 4. Update items_db packed_qty
+			const { data: inventory } = await supabase
+				.from("items_db")
+				.select("packed_qty")
+				.eq("id", item.maintenance_db_id)
+				.single();
+
+			if (inventory) {
+				await supabase
+					.from("items_db")
+					.update({
+						packed_qty: Math.max(
+							0,
+							(inventory.packed_qty || 0) - item.quantity,
+						),
+					})
+					.eq("id", item.maintenance_db_id);
+			}
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["pkdItems", orderId] });
+			queryClient.invalidateQueries({ queryKey: ["clientInventory"] });
 		},
 	});
 
@@ -1558,16 +1727,303 @@ function OrderDetailPage() {
 		},
 	});
 
+	// Duplicate Package Mutation
+	const duplicatePackageMutation = useMutation({
+		mutationFn: async (packageId: string) => {
+			// 1. Fetch source package with its original info
+			const { data: sourcePkg, error: fetchError } = await supabase
+				.from("order_packages")
+				.select(`
+					*,
+					original_pkg_info:package_info!order_packages_original_pkg_info_fkey(*),
+					order_pkg_overview(quantity, description)
+				`)
+				.eq("id", packageId)
+				.single();
+
+			if (fetchError) throw fetchError;
+			if (!sourcePkg) throw new Error("Source package not found");
+
+			// 2. Determine new package number (max + 1 for the order)
+			const { data: maxPkg, error: maxPkgError } = await supabase
+				.from("order_packages")
+				.select("package_number")
+				.eq("order_id", orderId)
+				.order("package_number", { ascending: false })
+				.limit(1)
+				.single();
+
+			if (maxPkgError && maxPkgError.code !== "PGRST116") throw maxPkgError;
+			const newPackageNumber = (maxPkg?.package_number || 0) + 1;
+
+			// 3. Create new package_info rows
+			// Copy original
+			const originalInfo = { ...sourcePkg.original_pkg_info };
+			delete (originalInfo as any).id;
+			delete (originalInfo as any).created_at;
+
+			const { data: newOriginalInfo, error: createOrigError } = await supabase
+				.from("package_info")
+				.insert(originalInfo)
+				.select()
+				.single();
+			if (createOrigError) throw createOrigError;
+
+			// Create empty final info
+			const { data: newFinalInfo, error: createFinalError } = await supabase
+				.from("package_info")
+				.insert({})
+				.select()
+				.single();
+			if (createFinalError) throw createFinalError;
+
+			// 4. Create order_package
+			const { data: newPkg, error: createPkgError } = await supabase
+				.from("order_packages")
+				.insert({
+					order_id: orderId,
+					package_number: newPackageNumber,
+					description: sourcePkg.description,
+					status: "design",
+					original_pkg_info: newOriginalInfo.id,
+					final_pkg_info: newFinalInfo.id,
+				})
+				.select()
+				.single();
+			if (createPkgError) throw createPkgError;
+
+			// 5. Create order_pkg_overview
+			const sourceOverview = sourcePkg.order_pkg_overview?.[0];
+			const { data: newOverview, error: createOverviewError } = await supabase
+				.from("order_pkg_overview")
+				.insert({
+					order_id: orderId,
+					pkg_number: newPackageNumber,
+					quantity: 1,
+					status: "design",
+					description: sourceOverview?.description || sourcePkg.description,
+				})
+				.select()
+				.single();
+			if (createOverviewError) throw createOverviewError;
+
+			// 6. Generate IPAC Reference
+			const { data: sourceInstance } = await supabase
+				.from("order_pkg_instance")
+				.select("ipac_reference, destination")
+				.eq("order_package_id", packageId)
+				.limit(1)
+				.single();
+
+			const destination = sourceInstance?.destination || "XXX";
+			let categoryLabel = "TAG";
+			if (newOriginalInfo.sei_category) {
+				const { data: catData } = await supabase
+					.from("sei_categories")
+					.select("name")
+					.eq("id", newOriginalInfo.sei_category)
+					.single();
+				if (catData?.name) categoryLabel = catData.name;
+			}
+			const tag = mapCategoryToTag(categoryLabel);
+
+			// Find next sequence for this tag and destination
+			const destPrefix = (destination || "XXX").toUpperCase().slice(0, 3);
+			const { data: existingInstances } = await supabase
+				.from("order_pkg_instance")
+				.select("ipac_reference")
+				.ilike("ipac_reference", `${destPrefix}-${tag}-%`)
+				.order("ipac_reference", { ascending: false });
+
+			let nextSeq = 1;
+			if (existingInstances && existingInstances.length > 0) {
+				for (const inst of existingInstances) {
+					const match = inst.ipac_reference?.match(/-(\d+)$/);
+					if (match) {
+						const num = parseInt(match[1], 10);
+						if (num >= nextSeq) {
+							nextSeq = num + 1;
+							break; // Found highest because sorted DESC
+						}
+					}
+				}
+			}
+
+			const newReference = generateIpacReference({
+				destination,
+				tag,
+				isCustom: false,
+				boxNumber: nextSeq,
+			});
+
+			// 7. Create order_pkg_instance
+			const { error: createInstanceError } = await supabase
+				.from("order_pkg_instance")
+				.insert({
+					order_pkg_overview_id: newOverview.id,
+					order_package_id: newPkg.id,
+					instance_number: 1,
+					ipac_reference: newReference,
+					status: "design",
+					destination: destination,
+				});
+			if (createInstanceError) throw createInstanceError;
+
+			return newPkg;
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+			queryClient.invalidateQueries({
+				queryKey: ["packageInstances", orderId],
+			});
+		},
+	});
+
+	// Remove Package Mutation
+	const removePackageMutation = useMutation({
+		mutationFn: async (packageId: string) => {
+			// 1. Fetch package details to get info IDs and pkg_number
+			const { data: pkg, error: fetchError } = await supabase
+				.from("order_packages")
+				.select("original_pkg_info, final_pkg_info, package_number")
+				.eq("id", packageId)
+				.single();
+			if (fetchError) throw fetchError;
+
+			// 2. Delete instances (RESTRICT prevents deleting package if instances exist)
+			const { error: instError } = await supabase
+				.from("order_pkg_instance")
+				.delete()
+				.eq("order_package_id", packageId);
+			if (instError) throw instError;
+
+			// 3. Delete overview (one overview per package in this flow)
+			const { error: overviewError } = await supabase
+				.from("order_pkg_overview")
+				.delete()
+				.eq("order_id", orderId)
+				.eq("pkg_number", pkg.package_number);
+			if (overviewError) throw overviewError;
+
+			// 4. Delete the package (this triggers CASCADE for items, materials, etc.)
+			const { error: pkgError } = await supabase
+				.from("order_packages")
+				.delete()
+				.eq("id", packageId);
+			if (pkgError) throw pkgError;
+
+			// 5. Delete associated package_info rows
+			const infoIds = [];
+			if (pkg.original_pkg_info) infoIds.push(pkg.original_pkg_info);
+			if (pkg.final_pkg_info) infoIds.push(pkg.final_pkg_info);
+
+			if (infoIds.length > 0) {
+				const { error: infoError } = await supabase
+					.from("package_info")
+					.delete()
+					.in("id", infoIds);
+				if (infoError) throw infoError;
+			}
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+			queryClient.invalidateQueries({
+				queryKey: ["packageInstances", orderId],
+			});
+			setSelectedPackageId(null);
+		},
+	});
+
+	// Update Instance Mutation
+	const updateInstanceMutation = useMutation({
+		mutationFn: async ({
+			instanceId,
+			updates,
+		}: {
+			instanceId: string;
+			updates: Partial<PackageInstance>;
+		}) => {
+			const { error } = await supabase
+				.from("order_pkg_instance")
+				.update(updates)
+				.eq("id", instanceId);
+			if (error) throw error;
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+			queryClient.invalidateQueries({
+				queryKey: ["packageInstances", orderId],
+			});
+		},
+	});
+
+	// Regenerate Reference Mutation
+	const regenerateReferenceMutation = useMutation({
+		mutationFn: async ({
+			instanceId,
+			isCustom,
+			itemNumber,
+			categoryLabel,
+		}: {
+			instanceId: string;
+			isCustom: boolean;
+			itemNumber?: string;
+			categoryLabel?: string;
+		}) => {
+			if (!selectedPackage) return;
+
+			// 1. Fetch items to get item number/quantity for custom ref
+			const { data: items, error: itemsError } = await supabase
+				.from("package_items")
+				.select("*")
+				.eq("order_package_id", selectedPackage.id);
+			if (itemsError) throw itemsError;
+
+			// 2. Map category to tag
+			const tagVal = mapCategoryToTag(categoryLabel);
+
+			// 3. Generate reference
+			const reference = generateIpacReference({
+				destination: (order as any)?.destination || "XXX",
+				tag: tagVal,
+				isCustom,
+				boxNumber: selectedPackage.package_number,
+				itemNumber:
+					itemNumber ||
+					(items && items.length > 0 ? items[0].item_number : null),
+				quantity: items && items.length > 0 ? items[0].quantity : 1,
+			});
+
+			// 4. Update instance
+			const { error: updateError } = await supabase
+				.from("order_pkg_instance")
+				.update({ ipac_reference: reference })
+				.eq("id", instanceId);
+			if (updateError) throw updateError;
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+			queryClient.invalidateQueries({
+				queryKey: ["packageInstances", orderId],
+			});
+		},
+	});
+
 	// ========== STATE FOR MODALS AND EDITING ==========
 
 	// Package Item State
 	const [showAddItemModal, setShowAddItemModal] = useState(false);
+	const [itemSource, setItemSource] = useState<"custom" | "inventory">(
+		"custom",
+	);
+	const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
 	const [itemForm, setItemForm] = useState({
 		designation: "",
 		quantity: 1,
 		length: "" as string | number,
 		width: "" as string | number,
 		height: "" as string | number,
+		items_db_id: "",
 	});
 	const [itemValidationErrors, setItemValidationErrors] = useState<
 		Record<string, string>
@@ -1645,35 +2101,74 @@ function OrderDetailPage() {
 	const handleAddItem = async () => {
 		if (!selectedPackageId) return;
 
-		// Validate input
-		const validation = validateInput(packageItemSchema, {
-			designation: itemForm.designation,
-			quantity: itemForm.quantity,
-			length: itemForm.length !== "" ? Number(itemForm.length) : null,
-			width: itemForm.width !== "" ? Number(itemForm.width) : null,
-			height: itemForm.height !== "" ? Number(itemForm.height) : null,
-		});
+		if (itemSource === "inventory") {
+			if (!selectedInstanceId) {
+				setItemValidationErrors((prev) => ({
+					...prev,
+					instance: "Please select a box",
+				}));
+				return;
+			}
+			if (!itemForm.items_db_id) {
+				setItemValidationErrors((prev) => ({
+					...prev,
+					items_db: "Please select an item from inventory",
+				}));
+				return;
+			}
 
-		if (!validation.success) {
-			setItemValidationErrors(validation.errors);
-			return;
+			try {
+				await addPkdItemMutation.mutateAsync({
+					pkg_instance_id: selectedInstanceId,
+					maintenance_db_id: itemForm.items_db_id,
+					quantity: itemForm.quantity,
+				});
+				setShowAddItemModal(false);
+				resetItemForm();
+			} catch (err: any) {
+				setItemValidationErrors((prev) => ({
+					...prev,
+					quantity: err.message || "Failed to add inventory item",
+				}));
+			}
+		} else {
+			// Validate input
+			const validation = validateInput(packageItemSchema, {
+				designation: itemForm.designation,
+				quantity: itemForm.quantity,
+				length: itemForm.length !== "" ? Number(itemForm.length) : null,
+				width: itemForm.width !== "" ? Number(itemForm.width) : null,
+				height: itemForm.height !== "" ? Number(itemForm.height) : null,
+			});
+
+			if (!validation.success) {
+				setItemValidationErrors(validation.errors);
+				return;
+			}
+
+			setItemValidationErrors({});
+
+			await addPackageItemMutation.mutateAsync({
+				order_package_id: selectedPackageId,
+				...validation.data,
+			});
+			setShowAddItemModal(false);
+			resetItemForm();
 		}
+	};
 
-		setItemValidationErrors({});
-
-		await addPackageItemMutation.mutateAsync({
-			order_package_id: selectedPackageId,
-			...validation.data,
-		});
-
-		setShowAddItemModal(false);
+	const resetItemForm = () => {
 		setItemForm({
 			designation: "",
 			quantity: 1,
 			length: "",
 			width: "",
 			height: "",
+			items_db_id: "",
 		});
+		setItemSource("custom");
+		setSelectedInstanceId("");
+		setItemValidationErrors({});
 	};
 
 	const resetMaterialForm = () => {
@@ -1720,6 +2215,106 @@ function OrderDetailPage() {
 
 		setShowAddMaterialModal(false);
 		resetMaterialForm();
+	};
+
+	const [regeneratingReferences, setRegeneratingReferences] = useState(false);
+	const handleRegenerateReferences = async () => {
+		setRegeneratingReferences(true);
+		try {
+			// Query instances along with their pkg_item and items_db data
+			const { data: instances, error } = await supabase
+				.from("order_pkg_instance")
+				.select(`
+					id,
+					instance_number,
+					order_package_id,
+					order_pkg_overview:order_pkg_overview_id ( quantity ),
+					order_package:order_package_id!inner (
+						order_id
+					),
+					pkd_item:pkd_item!inner (
+						quantity,
+						items_db:maintenance_db_id (
+							warehouse_location,
+							item_num,
+							category:category_id ( name )
+						)
+					)
+				`)
+				.eq("order_package.order_id", orderId);
+
+			if (error) {
+				console.error("Error fetching instances:", error);
+				alert(
+					`Failed to fetch instances for regeneration: ${error.message || ""}`,
+				);
+				return;
+			}
+
+			if (!instances || instances.length === 0) {
+				alert("No custom instances found to update.");
+				return;
+			}
+
+			// We don't need to filter by box_type name anymore.
+			// Standard boxes don't have items, so they are already excluded by pkd_item!inner.
+			const customInstances = instances;
+
+			if (customInstances.length === 0) {
+				alert("No custom boxes found to update.");
+				return;
+			}
+
+			const updates = customInstances.map((inst: any) => {
+				const pkdItem = inst.pkd_item?.[0];
+				const itemsDb = pkdItem?.items_db;
+				const destination = itemsDb?.warehouse_location || null;
+				const categoryLabel = itemsDb?.category?.name || "TAG";
+				const itemNumber = itemsDb?.item_num || "ITEM";
+				const quantity = pkdItem?.quantity || 1;
+				const tag = mapCategoryToTag(categoryLabel);
+
+				const newReference = generateIpacReference({
+					destination,
+					tag,
+					isCustom: true,
+					boxNumber: inst.instance_number, // Not used for custom but passed
+					itemNumber,
+					quantity,
+				});
+
+				return {
+					id: inst.id,
+					destination,
+					ipac_reference: newReference,
+				};
+			});
+
+			// Execute batch update
+			for (let i = 0; i < updates.length; i += 100) {
+				const chunk = updates.slice(i, i + 100);
+				const promises = chunk.map((update) =>
+					supabase
+						.from("order_pkg_instance")
+						.update({
+							destination: update.destination,
+							ipac_reference: update.ipac_reference,
+						})
+						.eq("id", update.id),
+				);
+				await Promise.all(promises);
+			}
+
+			queryClient.invalidateQueries({
+				queryKey: ["packageInstances", orderId],
+			});
+			alert(`Successfully updated ${updates.length} custom instances!`);
+		} catch (error) {
+			console.error("Error regenerating references:", error);
+			alert("An unexpected error occurred while regenerating references.");
+		} finally {
+			setRegeneratingReferences(false);
+		}
 	};
 
 	// State for attendance cleaner modal
@@ -1974,14 +2569,6 @@ function OrderDetailPage() {
 			);
 	}, [packageInstances, selectedPackageId]);
 
-	// Get items for selected package
-	const selectedPackageItems = useMemo(() => {
-		if (!packageItems || !selectedPackageId) return [];
-		return packageItems.filter(
-			(item) => item.order_package_id === selectedPackageId,
-		);
-	}, [packageItems, selectedPackageId]);
-
 	// Get manufacturing templates for selected package
 	const selectedPackageManufacturing = useMemo(() => {
 		if (!packageManufacturing || !selectedPackageId) return [];
@@ -2072,6 +2659,40 @@ function OrderDetailPage() {
 			return nameA.localeCompare(nameB);
 		});
 	}, [attendanceLogs, selectedAttendanceDate]);
+
+	// Combine standard items and inventory items for the Items tab
+	const combinedPackageItems = useMemo(() => {
+		const standardItems = (packageItems || [])
+			.filter((item) => item.order_package_id === selectedPackageId)
+			.map((item) => ({ ...item, source: "custom" as const }));
+
+		const invItems = (pkdItems || [])
+			.filter((item) => {
+				const instance = packageInstances?.find(
+					(inst) => inst.id === item.pkg_instance_id,
+				);
+				return instance?.order_package_id === selectedPackageId;
+			})
+			.map((item) => {
+				const instance = packageInstances?.find(
+					(inst) => inst.id === item.pkg_instance_id,
+				);
+				return {
+					id: item.id,
+					designation: item.items_db?.description || "Unknown Inventory Item",
+					quantity: item.quantity,
+					length: item.items_db?.length,
+					width: item.items_db?.width,
+					height: item.items_db?.height,
+					source: "inventory" as const,
+					instance_number: instance?.instance_number ?? undefined,
+					warehouse_location: item.items_db?.warehouse_location,
+					item_num: item.items_db?.item_num,
+				};
+			});
+
+		return [...standardItems, ...invItems];
+	}, [packageItems, pkdItems, selectedPackageId, packageInstances]);
 
 	// Get tasks for selected package with day filtering and sorting
 	const tasksForPackage = useMemo(() => {
@@ -3630,7 +4251,7 @@ function OrderDetailPage() {
 																{
 																	key: "items",
 																	label: "Items",
-																	count: selectedPackageItems.length,
+																	count: combinedPackageItems.length,
 																},
 																{
 																	key: "manufacturing",
@@ -3701,19 +4322,28 @@ function OrderDetailPage() {
 																updatePackageInfoMutation={
 																	updatePackageInfoMutation
 																}
+																duplicatePackageMutation={
+																	duplicatePackageMutation
+																}
+																removePackageMutation={removePackageMutation}
+																updateInstanceMutation={updateInstanceMutation}
+																regenerateReferenceMutation={
+																	regenerateReferenceMutation
+																}
 															/>
 														)}
 
 														{/* Items Tab */}
 														{selectedPackageTab === "items" && (
 															<PackageItemsTab
-																selectedPackageItems={selectedPackageItems}
+																selectedPackageItems={combinedPackageItems}
 																updatePackageItemMutation={
 																	updatePackageItemMutation
 																}
 																deletePackageItemMutation={
 																	deletePackageItemMutation
 																}
+																deletePkdItemMutation={deletePkdItemMutation}
 																setShowAddItemModal={setShowAddItemModal}
 															/>
 														)}
@@ -3817,163 +4447,317 @@ function OrderDetailPage() {
 												Add a new item to this package
 											</Dialog.Description>
 
+											<div className="flex p-1 bg-gray-100 rounded-lg mb-6">
+												<button
+													onClick={() => setItemSource("custom")}
+													className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
+														itemSource === "custom"
+															? "bg-white text-blue-600 shadow-sm"
+															: "text-gray-500 hover:text-gray-700"
+													}`}
+												>
+													Custom Item
+												</button>
+												<button
+													onClick={() => setItemSource("inventory")}
+													className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
+														itemSource === "inventory"
+															? "bg-white text-blue-600 shadow-sm"
+															: "text-gray-500 hover:text-gray-700"
+													}`}
+												>
+													From Inventory
+												</button>
+											</div>
+
 											<div className="space-y-4">
-												<div>
-													<label
-														htmlFor="add-item-designation"
-														className="block text-sm font-medium text-gray-700 mb-1"
-													>
-														Item Name / Designation
-													</label>
-													<input
-														id="add-item-designation"
-														type="text"
-														value={itemForm.designation}
-														onChange={(e) => {
-															setItemForm((f) => ({
-																...f,
-																designation: e.target.value,
-															}));
-															setItemValidationErrors((prev) => ({
-																...prev,
-																designation: "",
-															}));
-														}}
-														className={`w-full px-3 py-2 border rounded-lg ${
-															itemValidationErrors.designation
-																? "border-red-500 focus:ring-red-500"
-																: ""
-														}`}
-														placeholder="Enter item name"
-													/>
-													{itemValidationErrors.designation && (
-														<p className="mt-1 text-sm text-red-600">
-															{itemValidationErrors.designation}
-														</p>
-													)}
-												</div>
-												<div>
-													<label
-														htmlFor="add-item-quantity"
-														className="block text-sm font-medium text-gray-700 mb-1"
-													>
-														Quantity
-													</label>
-													<input
-														id="add-item-quantity"
-														type="number"
-														value={itemForm.quantity}
-														onChange={(e) => {
-															setItemForm((f) => ({
-																...f,
-																quantity: Number(e.target.value),
-															}));
-															setItemValidationErrors((prev) => ({
-																...prev,
-																quantity: "",
-															}));
-														}}
-														className={`w-full px-3 py-2 border rounded-lg ${
-															itemValidationErrors.quantity
-																? "border-red-500 focus:ring-red-500"
-																: ""
-														}`}
-														min={1}
-													/>
-													{itemValidationErrors.quantity && (
-														<p className="mt-1 text-sm text-red-600">
-															{itemValidationErrors.quantity}
-														</p>
-													)}
-												</div>
-												<div>
-													<p className="block text-sm font-medium text-gray-700 mb-1">
-														Dimensions (L × W × H) - Optional
-													</p>
-													<div className="grid grid-cols-3 gap-2">
+												{itemSource === "inventory" ? (
+													<>
 														<div>
-															<input
-																type="number"
-																placeholder="Length"
-																value={itemForm.length}
+															<label
+																htmlFor="inventoryTargetItem"
+																className="block text-sm font-medium text-gray-700 mb-1"
+															>
+																Select Item from Inventory
+															</label>
+															<select
+																id="inventoryTargetItem"
+																value={itemForm.items_db_id}
 																onChange={(e) => {
-																	setItemForm((f) => ({
-																		...f,
-																		length: e.target.value,
-																	}));
-																	setItemValidationErrors((prev) => ({
-																		...prev,
-																		length: "",
-																	}));
+																	const selected = clientInventory?.find(
+																		(i) => i.id === e.target.value,
+																	);
+																	if (selected) {
+																		setItemForm((f) => ({
+																			...f,
+																			items_db_id: selected.id,
+																			designation: selected.description || "",
+																			length: selected.length || "",
+																			width: selected.width || "",
+																			height: selected.height || "",
+																		}));
+																		setItemValidationErrors((prev) => ({
+																			...prev,
+																			items_db: "",
+																		}));
+																	}
 																}}
-																className={`px-3 py-2 border rounded-lg w-full ${
-																	itemValidationErrors.length
+																className={`w-full px-3 py-2 border rounded-lg ${
+																	itemValidationErrors.items_db
 																		? "border-red-500"
 																		: ""
 																}`}
+															>
+																<option value="">Select an item...</option>
+																{clientInventory?.map((item) => (
+																	<option key={item.id} value={item.id}>
+																		{item.item_num} - {item.description} (
+																		{item.warehouse_location}) - Avail:{" "}
+																		{(item.expected_qty || 0) -
+																			(item.packed_qty || 0)}
+																	</option>
+																))}
+															</select>
+															{itemValidationErrors.items_db && (
+																<p className="mt-1 text-sm text-red-600">
+																	{itemValidationErrors.items_db}
+																</p>
+															)}
+														</div>
+
+														<div>
+															<label
+																htmlFor="boxInstanceSelect"
+																className="block text-sm font-medium text-gray-700 mb-1"
+															>
+																Box Instance
+															</label>
+															<select
+																id="boxInstanceSelect"
+																value={selectedInstanceId}
+																onChange={(e) => {
+																	setSelectedInstanceId(e.target.value);
+																	setItemValidationErrors((prev) => ({
+																		...prev,
+																		instance: "",
+																	}));
+																}}
+																className={`w-full px-3 py-2 border rounded-lg ${
+																	itemValidationErrors.instance
+																		? "border-red-500"
+																		: ""
+																}`}
+															>
+																<option value="">Select Box...</option>
+																{selectedPackageInstances?.map((inst) => (
+																	<option key={inst.id} value={inst.id}>
+																		Box #{inst.instance_number} (
+																		{inst.ipac_reference || "No Ref"})
+																	</option>
+																))}
+															</select>
+															{itemValidationErrors.instance && (
+																<p className="mt-1 text-sm text-red-600">
+																	{itemValidationErrors.instance}
+																</p>
+															)}
+														</div>
+
+														<div>
+															<label
+																htmlFor="add-item-quantity"
+																className="block text-sm font-medium text-gray-700 mb-1"
+															>
+																Quantity
+															</label>
+															<input
+																id="add-item-quantity"
+																type="number"
+																value={itemForm.quantity}
+																onChange={(e) => {
+																	setItemForm((f) => ({
+																		...f,
+																		quantity: Number(e.target.value),
+																	}));
+																	setItemValidationErrors((prev) => ({
+																		...prev,
+																		quantity: "",
+																	}));
+																}}
+																className={`w-full px-3 py-2 border rounded-lg ${
+																	itemValidationErrors.quantity
+																		? "border-red-500"
+																		: ""
+																}`}
+																min={1}
 															/>
-															{itemValidationErrors.length && (
-																<p className="mt-0.5 text-xs text-red-600">
-																	{itemValidationErrors.length}
+															{itemValidationErrors.quantity && (
+																<p className="mt-1 text-sm text-red-600">
+																	{itemValidationErrors.quantity}
+																</p>
+															)}
+														</div>
+													</>
+												) : (
+													<>
+														<div>
+															<label
+																htmlFor="add-item-designation"
+																className="block text-sm font-medium text-gray-700 mb-1"
+															>
+																Item Name / Designation
+															</label>
+															<input
+																id="add-item-designation"
+																type="text"
+																value={itemForm.designation}
+																onChange={(e) => {
+																	setItemForm((f) => ({
+																		...f,
+																		designation: e.target.value,
+																	}));
+																	setItemValidationErrors((prev) => ({
+																		...prev,
+																		designation: "",
+																	}));
+																}}
+																className={`w-full px-3 py-2 border rounded-lg ${
+																	itemValidationErrors.designation
+																		? "border-red-500 focus:ring-red-500"
+																		: ""
+																}`}
+																placeholder="Enter item name"
+															/>
+															{itemValidationErrors.designation && (
+																<p className="mt-1 text-sm text-red-600">
+																	{itemValidationErrors.designation}
 																</p>
 															)}
 														</div>
 														<div>
+															<label
+																htmlFor="add-item-quantity"
+																className="block text-sm font-medium text-gray-700 mb-1"
+															>
+																Quantity
+															</label>
 															<input
+																id="add-item-quantity"
 																type="number"
-																placeholder="Width"
-																value={itemForm.width}
+																value={itemForm.quantity}
 																onChange={(e) => {
 																	setItemForm((f) => ({
 																		...f,
-																		width: e.target.value,
+																		quantity: Number(e.target.value),
 																	}));
 																	setItemValidationErrors((prev) => ({
 																		...prev,
-																		width: "",
+																		quantity: "",
 																	}));
 																}}
-																className={`px-3 py-2 border rounded-lg w-full ${
-																	itemValidationErrors.width
-																		? "border-red-500"
+																className={`w-full px-3 py-2 border rounded-lg ${
+																	itemValidationErrors.quantity
+																		? "border-red-500 focus:ring-red-500"
 																		: ""
 																}`}
+																min={1}
 															/>
-															{itemValidationErrors.width && (
-																<p className="mt-0.5 text-xs text-red-600">
-																	{itemValidationErrors.width}
+															{itemValidationErrors.quantity && (
+																<p className="mt-1 text-sm text-red-600">
+																	{itemValidationErrors.quantity}
 																</p>
 															)}
 														</div>
 														<div>
-															<input
-																type="number"
-																placeholder="Height"
-																value={itemForm.height}
-																onChange={(e) => {
-																	setItemForm((f) => ({
-																		...f,
-																		height: e.target.value,
-																	}));
-																	setItemValidationErrors((prev) => ({
-																		...prev,
-																		height: "",
-																	}));
-																}}
-																className={`px-3 py-2 border rounded-lg w-full ${
-																	itemValidationErrors.height
-																		? "border-red-500"
-																		: ""
-																}`}
-															/>
-															{itemValidationErrors.height && (
-																<p className="mt-0.5 text-xs text-red-600">
-																	{itemValidationErrors.height}
-																</p>
-															)}
+															<p className="block text-sm font-medium text-gray-700 mb-1">
+																Dimensions (L × W × H) - Optional
+															</p>
+															<div className="grid grid-cols-3 gap-2">
+																<div>
+																	<input
+																		type="number"
+																		placeholder="Length"
+																		value={itemForm.length}
+																		onChange={(e) => {
+																			setItemForm((f) => ({
+																				...f,
+																				length: e.target.value,
+																			}));
+																			setItemValidationErrors((prev) => ({
+																				...prev,
+																				length: "",
+																			}));
+																		}}
+																		className={`px-3 py-2 border rounded-lg w-full ${
+																			itemValidationErrors.length
+																				? "border-red-500"
+																				: ""
+																		}`}
+																	/>
+																	{itemValidationErrors.length && (
+																		<p className="mt-0.5 text-xs text-red-600">
+																			{itemValidationErrors.length}
+																		</p>
+																	)}
+																</div>
+																<div>
+																	<input
+																		type="number"
+																		placeholder="Width"
+																		value={itemForm.width}
+																		onChange={(e) => {
+																			setItemForm((f) => ({
+																				...f,
+																				width: e.target.value,
+																			}));
+																			setItemValidationErrors((prev) => ({
+																				...prev,
+																				width: "",
+																			}));
+																		}}
+																		className={`px-3 py-2 border rounded-lg w-full ${
+																			itemValidationErrors.width
+																				? "border-red-500"
+																				: ""
+																		}`}
+																	/>
+																	{itemValidationErrors.width && (
+																		<p className="mt-0.5 text-xs text-red-600">
+																			{itemValidationErrors.width}
+																		</p>
+																	)}
+																</div>
+																<div>
+																	<input
+																		type="number"
+																		placeholder="Height"
+																		value={itemForm.height}
+																		onChange={(e) => {
+																			setItemForm((f) => ({
+																				...f,
+																				height: e.target.value,
+																			}));
+																			setItemValidationErrors((prev) => ({
+																				...prev,
+																				height: "",
+																			}));
+																		}}
+																		className={`px-3 py-2 border rounded-lg w-full ${
+																			itemValidationErrors.height
+																				? "border-red-500"
+																				: ""
+																		}`}
+																	/>
+																	{itemValidationErrors.height && (
+																		<p className="mt-0.5 text-xs text-red-600">
+																			{itemValidationErrors.height}
+																		</p>
+																	)}
+																</div>
+															</div>
 														</div>
-													</div>
-												</div>
+													</>
+												)}
 											</div>
 
 											<div className="flex justify-end gap-2 mt-6">
@@ -3984,10 +4768,14 @@ function OrderDetailPage() {
 												</Dialog.Close>
 												<button
 													onClick={handleAddItem}
-													disabled={addPackageItemMutation.isPending}
+													disabled={
+														addPackageItemMutation.isPending ||
+														addPkdItemMutation.isPending
+													}
 													className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
 												>
-													{addPackageItemMutation.isPending && (
+													{(addPackageItemMutation.isPending ||
+														addPkdItemMutation.isPending) && (
 														<Loader2 className="w-4 h-4 animate-spin" />
 													)}
 													Add Item
@@ -4590,82 +5378,113 @@ function OrderDetailPage() {
 								) : null}
 
 								{/* Danger Zone */}
-								<div className="bg-white rounded-lg border border-red-200 shadow-sm p-6">
-									<h2 className="text-lg font-semibold text-red-700 mb-2 flex items-center gap-2">
-										<AlertTriangle className="w-5 h-5" />
-										Danger Zone
-									</h2>
-									<p className="text-sm text-gray-600 mb-4">
-										Deleting this order removes all related records, including
-										packages, materials, tasks, and manufacturing data.
-									</p>
-									<Dialog.Root
-										open={deleteOrderOpen}
-										onOpenChange={setDeleteOrderOpen}
-									>
-										<Dialog.Trigger asChild>
-											<button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
-												<Trash2 className="w-4 h-4" />
-												Delete Order
-											</button>
-										</Dialog.Trigger>
-										<Dialog.Portal>
-											<Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-											<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-50 w-full max-w-2xl p-6">
-												<Dialog.Title className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-													<Trash2 className="w-5 h-5 text-red-600" />
+								<div className="bg-white rounded-lg border border-red-200 shadow-sm p-6 flex flex-col gap-6">
+									<div>
+										<h2 className="text-lg font-semibold text-red-700 mb-2 flex items-center gap-2">
+											<AlertTriangle className="w-5 h-5" />
+											Danger Zone
+										</h2>
+										<p className="text-sm text-gray-600 mb-4">
+											Deleting this order removes all related records, including
+											packages, materials, tasks, and manufacturing data.
+										</p>
+										<Dialog.Root
+											open={deleteOrderOpen}
+											onOpenChange={setDeleteOrderOpen}
+										>
+											<Dialog.Trigger asChild>
+												<button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
+													<Trash2 className="w-4 h-4" />
 													Delete Order
-												</Dialog.Title>
-												<Dialog.Description className="text-sm text-gray-500 mt-1">
-													This action is permanent. The following tables will be
-													cleaned up for this order.
-												</Dialog.Description>
+												</button>
+											</Dialog.Trigger>
+											<Dialog.Portal>
+												<Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+												<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-50 w-full max-w-2xl p-6">
+													<Dialog.Title className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+														<Trash2 className="w-5 h-5 text-red-600" />
+														Delete Order
+													</Dialog.Title>
+													<Dialog.Description className="text-sm text-gray-500 mt-1">
+														This action is permanent. The following tables will
+														be cleaned up for this order.
+													</Dialog.Description>
 
-												<div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-													{deleteOrderTargets.map((target) => (
-														<div
-															key={target}
-															className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
-														>
-															<span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-															{target}
-														</div>
-													))}
-												</div>
-
-												{deleteOrderError && (
-													<div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-														{deleteOrderError}
+													<div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+														{deleteOrderTargets.map((target) => (
+															<div
+																key={target}
+																className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
+															>
+																<span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+																{target}
+															</div>
+														))}
 													</div>
-												)}
 
-												<div className="mt-6 flex justify-end gap-2">
-													<Dialog.Close asChild>
-														<button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
-															Cancel
+													{deleteOrderError && (
+														<div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+															{deleteOrderError}
+														</div>
+													)}
+
+													<div className="mt-6 flex justify-end gap-2">
+														<Dialog.Close asChild>
+															<button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
+																Cancel
+															</button>
+														</Dialog.Close>
+														<button
+															onClick={deleteOrderCascade}
+															disabled={deletingOrder}
+															className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
+														>
+															{deletingOrder ? (
+																<>
+																	<Loader2 className="w-4 h-4 animate-spin" />
+																	Deleting...
+																</>
+															) : (
+																<>
+																	<Trash2 className="w-4 h-4" />
+																	Delete Order
+																</>
+															)}
 														</button>
-													</Dialog.Close>
-													<button
-														onClick={deleteOrderCascade}
-														disabled={deletingOrder}
-														className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
-													>
-														{deletingOrder ? (
-															<>
-																<Loader2 className="w-4 h-4 animate-spin" />
-																Deleting...
-															</>
-														) : (
-															<>
-																<Trash2 className="w-4 h-4" />
-																Delete Order
-															</>
-														)}
-													</button>
-												</div>
-											</Dialog.Content>
-										</Dialog.Portal>
-									</Dialog.Root>
+													</div>
+												</Dialog.Content>
+											</Dialog.Portal>
+										</Dialog.Root>
+									</div>
+
+									<div className="pt-6 border-t border-red-100">
+										<h3 className="text-md font-semibold text-red-700 mb-2 flex items-center gap-2">
+											<RefreshCw className="w-5 h-5" />
+											Regenerate Custom Box References
+										</h3>
+										<p className="text-sm text-gray-600 mb-4">
+											This will loop through all custom boxes in this order,
+											find the matching item in the database, and update their
+											destination and regenerate their IPAC reference.
+										</p>
+										<button
+											onClick={handleRegenerateReferences}
+											disabled={regeneratingReferences}
+											className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
+										>
+											{regeneratingReferences ? (
+												<>
+													<Loader2 className="w-4 h-4 animate-spin" />
+													Updating...
+												</>
+											) : (
+												<>
+													<RefreshCw className="w-4 h-4" />
+													Regenerate References
+												</>
+											)}
+										</button>
+									</div>
 								</div>
 							</div>
 						</div>

@@ -32,6 +32,7 @@ export function ConfirmDialogContent({
 	onManufacturingOptionsToggle,
 	onManufacturingPartAdd,
 	onManufacturingPartRemove,
+	onInstanceOverrideChange,
 	onFetchItems,
 	isFetchingItems,
 	fetchItemsDisabled,
@@ -160,6 +161,7 @@ export function ConfirmDialogContent({
 							onManufacturingOptionsToggle={onManufacturingOptionsToggle}
 							onManufacturingPartAdd={onManufacturingPartAdd}
 							onManufacturingPartRemove={onManufacturingPartRemove}
+							onInstanceOverrideChange={onInstanceOverrideChange}
 						/>
 
 						{showDetails && (

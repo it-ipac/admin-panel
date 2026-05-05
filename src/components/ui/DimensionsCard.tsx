@@ -1,5 +1,7 @@
 import type React from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/cn";
+import { useDebounce } from "../../lib/useDebounce";
 
 export interface DimensionsTriple {
 	length: number | null;
@@ -11,11 +13,29 @@ interface DimensionsCardProps {
 	heading: string;
 	original: DimensionsTriple | null | undefined;
 	final: DimensionsTriple | null | undefined;
-	onChangeFinal: (patch: Partial<DimensionsTriple>) => void;
+	onChangeOriginal?: (patch: Partial<DimensionsTriple>) => void;
+	onChangeFinal?: (patch: Partial<DimensionsTriple>) => void;
+	originalEditable?: boolean;
+	finalEditable?: boolean;
 	className?: string;
 }
 
 const fmt = (v: number | null | undefined) => (v === 0 || v ? String(v) : "—");
+
+const isSameTriple = (
+	a: DimensionsTriple | null | undefined,
+	b: DimensionsTriple | null | undefined,
+) => {
+	const normalize = (v: number | null | undefined) =>
+		v === null || v === undefined ? null : v;
+	if (!a && !b) return true;
+	if (!a || !b) return false;
+	return (
+		normalize(a.length) === normalize(b.length) &&
+		normalize(a.width) === normalize(b.width) &&
+		normalize(a.height) === normalize(b.height)
+	);
+};
 
 const TripleRowReadOnly: React.FC<{
 	title: string;
@@ -52,9 +72,44 @@ const TripleRowEditable: React.FC<{
 	title: string;
 	value: DimensionsTriple | null | undefined;
 	onChange: (patch: Partial<DimensionsTriple>) => void;
-}> = ({ title, value, onChange }) => {
+	isOriginal?: boolean;
+}> = ({ title, value, onChange, isOriginal = false }) => {
+	const [draft, setDraft] = useState<DimensionsTriple>(
+		value ?? { length: null, width: null, height: null },
+	);
+	const debouncedDraft = useDebounce(draft, 500);
+
+	// Always have the latest onChange without adding it to effect deps
+	const onChangeRef = useRef(onChange);
+	useEffect(() => {
+		onChangeRef.current = onChange;
+	});
+
+	// Sync INWARD only: when the external value changes (e.g. after a save/refetch),
+	// and the user is NOT currently editing (draft matches the old value), update draft.
+	// We track the previous external value with a ref to avoid the effect running on every render.
+	const prevValueRef = useRef(value);
+	useEffect(() => {
+		if (!isSameTriple(prevValueRef.current, value)) {
+			prevValueRef.current = value;
+			// Only reset draft if it hasn't diverged from the previous external value.
+			// This means we DON'T overwrite what the user is currently typing.
+			if (isSameTriple(draft, prevValueRef.current)) {
+				setDraft(value ?? { length: null, width: null, height: null });
+			}
+		}
+	}, [value, draft]);
+
+	// Fire the callback when the debounced draft differs from the last saved external value
+	const lastFiredRef = useRef(value);
+	useEffect(() => {
+		if (isSameTriple(debouncedDraft, lastFiredRef.current)) return;
+		lastFiredRef.current = debouncedDraft;
+		onChangeRef.current(debouncedDraft);
+	}, [debouncedDraft]);
+
 	const pick = (field: keyof DimensionsTriple): string => {
-		const v = value?.[field];
+		const v = draft[field];
 		return v === null || v === undefined ? "" : String(v);
 	};
 	const toNumberOrNull = (s: string) => {
@@ -63,10 +118,18 @@ const TripleRowEditable: React.FC<{
 		const n = Number(t);
 		return Number.isFinite(n) ? n : null;
 	};
+	const labelColor = isOriginal
+		? "text-amber-900 bg-amber-100"
+		: "text-green-900 bg-green-100";
+
 	return (
 		<div className="bg-gray-50 border border-indigo-200 rounded-lg px-2 py-2 mb-2 flex flex-col items-center justify-center">
-			<span className="text-[10px] text-green-900 mb-1 bg-green-100 text-center w-full rounded-sm">
-				{" "}
+			<span
+				className={cn(
+					"text-[10px] mb-1 text-center w-full rounded-sm",
+					labelColor,
+				)}
+			>
 				{title}
 			</span>
 			<div className="flex flex-row items-center justify-between w-[75%] gap-2">
@@ -76,7 +139,10 @@ const TripleRowEditable: React.FC<{
 						className="border border-gray-300 bg-white rounded py-1 text-center w-[70px] text-sm focus:outline-none focus:border-blue-500"
 						value={pick("length")}
 						onChange={(e) =>
-							onChange({ length: toNumberOrNull(e.target.value) })
+							setDraft((prev) => ({
+								...prev,
+								length: toNumberOrNull(e.target.value),
+							}))
 						}
 						type="number"
 					/>
@@ -87,7 +153,10 @@ const TripleRowEditable: React.FC<{
 						className="border border-gray-300 bg-white rounded py-1 text-center w-[70px] text-sm focus:outline-none focus:border-blue-500"
 						value={pick("width")}
 						onChange={(e) =>
-							onChange({ width: toNumberOrNull(e.target.value) })
+							setDraft((prev) => ({
+								...prev,
+								width: toNumberOrNull(e.target.value),
+							}))
 						}
 						type="number"
 					/>
@@ -98,7 +167,10 @@ const TripleRowEditable: React.FC<{
 						className="border border-gray-300 bg-white rounded py-1 text-center w-[70px] text-sm focus:outline-none focus:border-blue-500"
 						value={pick("height")}
 						onChange={(e) =>
-							onChange({ height: toNumberOrNull(e.target.value) })
+							setDraft((prev) => ({
+								...prev,
+								height: toNumberOrNull(e.target.value),
+							}))
 						}
 						type="number"
 					/>
@@ -112,7 +184,10 @@ export const DimensionsCard: React.FC<DimensionsCardProps> = ({
 	heading,
 	original,
 	final,
+	onChangeOriginal,
 	onChangeFinal,
+	originalEditable = false,
+	finalEditable = true,
 	className,
 }) => {
 	return (
@@ -127,8 +202,26 @@ export const DimensionsCard: React.FC<DimensionsCardProps> = ({
 					{heading}
 				</span>
 			</div>
-			<TripleRowReadOnly title="Original" dims={original} />
-			<TripleRowEditable title="Final" value={final} onChange={onChangeFinal} />
+			{originalEditable && onChangeOriginal ? (
+				<TripleRowEditable
+					title="Original"
+					value={original}
+					onChange={onChangeOriginal}
+					isOriginal
+				/>
+			) : (
+				<TripleRowReadOnly title="Original" dims={original} />
+			)}
+
+			{finalEditable && onChangeFinal ? (
+				<TripleRowEditable
+					title="Final"
+					value={final}
+					onChange={onChangeFinal}
+				/>
+			) : (
+				<TripleRowReadOnly title="Final" dims={final} />
+			)}
 		</div>
 	);
 };

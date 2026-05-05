@@ -263,3 +263,56 @@ export const updateRawPackageByNumber = (
 	updater: (pkg: RawPackageRow) => RawPackageRow,
 ) =>
 	rows.map((pkg) => (pkg.packageNumber === packageNumber ? updater(pkg) : pkg));
+
+export const mapCategoryToTag = (
+	categoryLabel: string | null | undefined,
+): string => {
+	if (!categoryLabel) return "TAG";
+	const normalized = categoryLabel.toLowerCase();
+	if (
+		normalized.includes("power") &&
+		(normalized.includes("non") || normalized.includes("without"))
+	)
+		return "P-NAC";
+	if (normalized.includes("power")) return "P-AC";
+	if (
+		normalized.includes("water") &&
+		(normalized.includes("non") || normalized.includes("without"))
+	)
+		return "W-NAC";
+	if (normalized.includes("water")) return "W-AC";
+	return "TAG";
+};
+
+export const mapTagsToIpacTag = (tags: string[]): string => {
+	const joined = tags.join(" ").toLowerCase();
+	const isPower = joined.includes("power");
+	const isWater = joined.includes("water");
+	const isNonAc = joined.includes("non") || joined.includes("without");
+
+	if (isPower && isNonAc) return "P-NAC";
+	if (isPower) return "P-AC";
+	if (isWater && isNonAc) return "W-NAC";
+	if (isWater) return "W-AC";
+	return "TAG";
+};
+
+export const generateIpacReference = (params: {
+	destination: string | null;
+	tag: string;
+	isCustom: boolean;
+	boxNumber: number;
+	itemNumber?: string | null;
+	quantity?: number | null;
+}) => {
+	const dest = (params.destination || "XXX").toUpperCase().slice(0, 3);
+	const tag = params.tag;
+
+	if (!params.isCustom) {
+		return `${dest}-${tag}-${String(params.boxNumber).padStart(2, "0")}`;
+	}
+
+	const itemNum = params.itemNumber || "ITEM";
+	const qty = String(params.quantity || 1).padStart(2, "0");
+	return `${dest}-${tag}-${itemNum}-${qty}`;
+};

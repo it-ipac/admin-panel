@@ -27,6 +27,7 @@ interface PackagePreviewSectionProps {
 	onManufacturingOptionsToggle: OrderCreateConfirmDialogProps["onManufacturingOptionsToggle"];
 	onManufacturingPartAdd: OrderCreateConfirmDialogProps["onManufacturingPartAdd"];
 	onManufacturingPartRemove: OrderCreateConfirmDialogProps["onManufacturingPartRemove"];
+	onInstanceOverrideChange: OrderCreateConfirmDialogProps["onInstanceOverrideChange"];
 }
 
 const columnToNumber = (label: string) => {
@@ -130,8 +131,16 @@ export function PackagePreviewSection({
 	onManufacturingOptionsToggle,
 	onManufacturingPartAdd,
 	onManufacturingPartRemove,
+	onInstanceOverrideChange,
 }: PackagePreviewSectionProps) {
 	const pkg = packagePreviews[activePackage];
+	const [showInstanceOverrides, setShowInstanceOverrides] = useState(false);
+
+	useEffect(() => {
+		if (pkg?.packageNumber) {
+			setShowInstanceOverrides(false);
+		}
+	}, [pkg?.packageNumber]);
 
 	const [issueNavigationQueue, setIssueNavigationQueue] = useState<
 		string[] | null
@@ -473,7 +482,7 @@ export function PackagePreviewSection({
 			)}
 
 			<div className="space-y-3 text-xs text-gray-700">
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 					<div>
 						<p className="text-xs text-gray-500">Quantity (col A)</p>
 						<NumberInput
@@ -489,6 +498,22 @@ export function PackagePreviewSection({
 								this package.
 							</p>
 						)}
+					</div>
+					<div>
+						<p className="text-xs text-gray-500">Destination</p>
+						<input
+							type="text"
+							value={pkg.destination || ""}
+							onChange={(event) =>
+								onPackageFieldChange(
+									pkg.packageNumber,
+									"destination",
+									event.target.value,
+								)
+							}
+							placeholder="e.g. MZC"
+							className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+						/>
 					</div>
 					<div>
 						<p className="text-xs text-gray-500">
@@ -681,6 +706,82 @@ export function PackagePreviewSection({
 							</p>
 						)}
 					</div>
+					<div>
+						<p className="text-xs text-gray-500">Static ID (Reference)</p>
+						<input
+							type="text"
+							readOnly
+							value={pkg.ipacReference || ""}
+							className="mt-1 w-full px-2 py-1.5 border border-gray-200 bg-gray-50 rounded-lg text-xs text-gray-600 focus:outline-none"
+						/>
+						<p className="mt-1 text-[10px] text-gray-400">
+							Generated based on destination, tag, and box number/item number.
+						</p>
+					</div>
+				</div>
+
+				{numericQuantity > 1 && isQuantityValid && (
+					<div className="pt-3 border-t border-gray-100">
+						<div className="flex items-center justify-between mb-2">
+							<p className="text-xs font-semibold text-gray-700">
+								Per-Box Destination Overrides ({numericQuantity} boxes)
+							</p>
+							<button
+								type="button"
+								onClick={() => setShowInstanceOverrides(!showInstanceOverrides)}
+								className="text-[11px] text-blue-600 hover:text-blue-700 font-medium"
+							>
+								{showInstanceOverrides
+									? "Hide details"
+									: "Configure individual boxes"}
+							</button>
+						</div>
+
+						{showInstanceOverrides && (
+							<div className="bg-gray-50 rounded-lg p-3 space-y-2 border border-gray-200">
+								<p className="text-[11px] text-gray-500 mb-2 italic">
+									Use these fields if some boxes in this set go to a different
+									destination than "{pkg.destination || "the default"}".
+								</p>
+								<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+									{Array.from({ length: numericQuantity }).map((_, i) => {
+										const instanceNum = i + 1;
+										const override = pkg.instanceOverrides?.[instanceNum];
+										return (
+											<div
+												key={`instance-override-${pkg.packageNumber}-${instanceNum}`}
+												className="flex flex-col gap-1"
+											>
+												<label
+													htmlFor={`instance-dest-${pkg.packageNumber}-${instanceNum}`}
+													className="text-[10px] font-medium text-gray-600"
+												>
+													Box #{instanceNum} Destination
+												</label>
+												<input
+													id={`instance-dest-${pkg.packageNumber}-${instanceNum}`}
+													type="text"
+													value={override?.destination || ""}
+													onChange={(e) =>
+														onInstanceOverrideChange(
+															pkg.packageNumber,
+															instanceNum,
+															e.target.value || null,
+														)
+													}
+													placeholder={pkg.destination || "Destination"}
+													className="w-full px-2 py-1.5 border border-gray-300 rounded text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+												/>
+											</div>
+										);
+									})}
+								</div>
+							</div>
+						)}
+					</div>
+				)}
+
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 					<div>
 						<p className="text-xs text-gray-500">
 							Item dimensions ({itemDimColumns})

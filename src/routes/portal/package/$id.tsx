@@ -562,24 +562,6 @@ function PackageView() {
 						)}
 					</div>
 				</section>
-
-				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
-					<h3 className="text-lg font-bold text-gray-900">Database Rows</h3>
-					<p className="text-sm text-gray-500 mt-1 mb-4">
-						Full row data for this box instance and package payload.
-					</p>
-
-					<details className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-						<summary className="cursor-pointer text-sm font-semibold text-gray-800">
-							View full order_pkg_instance row
-						</summary>
-						<pre className="mt-3 text-xs text-gray-700 overflow-auto whitespace-pre-wrap wrap-break-word">
-							{pkg.instanceRow
-								? JSON.stringify(pkg.instanceRow, null, 2)
-								: "This QR resolved through legacy order_packages fallback (no instance row)."}
-						</pre>
-					</details>
-				</section>
 			</main>
 		</div>
 	);

@@ -1,3 +1,4 @@
+import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -6,9 +7,11 @@ import {
 	Globe,
 	Image as ImageIcon,
 	Loader2,
+	Package,
 	Upload,
+	X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TaqaDataImportPanel } from "../../components/clients/TaqaDataImportPanel";
 import { Sidebar } from "../../components/Sidebar";
 import { useToastContext } from "../../components/ui/ToastProvider";
@@ -51,9 +54,9 @@ type MaintenanceDbRow = {
 
 const ITEMS_DB_COLUMN_ORDER = [
 	"id",
-	"client_id",
 	"category_id",
 	"item_num",
+	"packages",
 	"reference",
 	"description",
 	"expected_qty",
@@ -97,6 +100,141 @@ const EMPTY_PORTAL_CONFIG: PortalConfigState = {
 
 const DEFAULT_QR_LOGO_PATH = "assets/default_qr_logo.png";
 
+function ItemPackagesList({ itemId }: { itemId?: string }) {
+	const {
+		data: boxes,
+		isLoading,
+		error,
+	} = useQuery({
+		queryKey: ["item-boxes", itemId],
+		queryFn: async () => {
+			if (!itemId) return [];
+			const { data, error } = await supabase
+				.from("pkd_item")
+				.select(`
+					quantity,
+					order_pkg_instance (
+						ipac_reference,
+						order_packages (
+							package_number,
+							orders (
+								order_name
+							)
+						)
+					)
+				`)
+				.eq("maintenance_db_id", itemId);
+			if (error) throw error;
+			return data || [];
+		},
+		enabled: !!itemId,
+	});
+
+	if (isLoading) {
+		return (
+			<div className="py-8 flex justify-center">
+				<Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className="p-4 text-red-600 bg-red-50 rounded">
+				Failed to load packages.
+			</div>
+		);
+	}
+
+	if (!boxes || boxes.length === 0) {
+		return (
+			<div className="p-4 text-gray-500 text-center">
+				Not found in any packages.
+			</div>
+		);
+	}
+
+	return (
+		<div className="space-y-2 max-h-[60vh] overflow-y-auto">
+			{boxes.map((pi: any, idx: number) => {
+				const instance = pi.order_pkg_instance;
+				const pkg = instance?.order_packages;
+				const order = pkg?.orders;
+
+				let name = "Unknown Box";
+				if (instance?.ipac_reference) {
+					name = instance.ipac_reference;
+				} else if (order?.order_name && pkg?.package_number) {
+					name = `${order.order_name} - Box ${pkg.package_number}`;
+				} else if (pkg?.package_number) {
+					name = `Box ${pkg.package_number}`;
+				}
+
+				return (
+					<div
+						// biome-ignore lint/suspicious/noArrayIndexKey: No unique ID available
+						key={idx}
+						className="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-200"
+					>
+						<div className="font-medium text-gray-800">{name}</div>
+						<div className="text-sm font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
+							Qty: {pi.quantity}
+						</div>
+					</div>
+				);
+			})}
+		</div>
+	);
+}
+
+function EditableCell({
+	initialValue,
+	column,
+	rowId,
+	updateDb,
+}: {
+	initialValue: any;
+	column: string;
+	rowId: string;
+	updateDb: (id: string, col: string, val: any) => void;
+}) {
+	const [val, setVal] = useState(
+		initialValue === null || initialValue === undefined ? "" : initialValue,
+	);
+	const [isTyping, setIsTyping] = useState(false);
+
+	useEffect(() => {
+		if (!isTyping) {
+			setVal(
+				initialValue === null || initialValue === undefined ? "" : initialValue,
+			);
+		}
+	}, [initialValue, isTyping]);
+
+	useEffect(() => {
+		if (!isTyping) return;
+		const handler = setTimeout(() => {
+			setIsTyping(false);
+			updateDb(rowId, column, val === "" ? null : val);
+		}, 800);
+		return () => clearTimeout(handler);
+	}, [val, isTyping, updateDb, rowId, column]);
+
+	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setVal(e.target.value);
+		setIsTyping(true);
+	};
+
+	return (
+		<input
+			className="w-full min-w-[80px] border border-transparent hover:border-gray-300 focus:border-blue-400 focus:bg-white bg-transparent px-1 py-0.5 rounded text-xs outline-none transition-colors"
+			value={val}
+			onChange={handleChange}
+			title={typeof val === "string" && val.length > 50 ? val : undefined}
+		/>
+	);
+}
+
 function ClientWorkspacePage() {
 	const { clientId } = Route.useParams();
 	const navigate = useNavigate();
@@ -112,8 +250,9 @@ function ClientWorkspacePage() {
 	const [uploadingLogo, setUploadingLogo] = useState(false);
 	const [defaultLogoUrl, setDefaultLogoUrl] = useState<string | null>(null);
 	const [logoLoadFailed, setLogoLoadFailed] = useState(false);
-	const [selectedCategoryFilter, setSelectedCategoryFilter] =
-		useState<string>("all");
+	const [itemNumberFilter, setItemNumberFilter] = useState<string>("");
+	const [itemsPage, setItemsPage] = useState<number>(1);
+	const [itemsPerPage, setItemsPerPage] = useState<number>(1000);
 	const [selectedProjectFilter, setSelectedProjectFilter] = useState<
 		"all" | "power" | "water"
 	>("all");
@@ -121,6 +260,8 @@ function ClientWorkspacePage() {
 		"all" | "ac" | "non-ac"
 	>("all");
 	const clientLogoInputRef = useRef<HTMLInputElement>(null);
+	const [selectedItemForPackages, setSelectedItemForPackages] =
+		useState<MaintenanceDbRow | null>(null);
 
 	useEffect(() => {
 		setMounted(true);
@@ -206,25 +347,38 @@ function ClientWorkspacePage() {
 	} = useQuery({
 		queryKey: ["client-items-db-snapshot", clientId],
 		queryFn: async () => {
-			const [{ count, error: countError }, { data, error: rowsError }] =
-				await Promise.all([
-					supabase
-						.from("items_db")
-						.select("id", { count: "exact", head: true })
-						.eq("client_id", clientId),
-					supabase
-						.from("items_db")
-						.select("*")
-						.eq("client_id", clientId)
-						.order("created_at", { ascending: false }),
-				]);
+			const [{ count, error: countError }] = await Promise.all([
+				supabase
+					.from("items_db")
+					.select("id", { count: "exact", head: true })
+					.eq("client_id", clientId),
+			]);
 
 			if (countError) throw countError;
-			if (rowsError) throw rowsError;
+
+			// Fetch all rows bypassing standard 1000 limit
+			let allRows: any[] = [];
+			const batchSize = 1000;
+			for (let i = 0; i < (count || 0); i += batchSize) {
+				const { data: batch, error: batchError } = await supabase
+					.from("items_db")
+					.select("*")
+					.eq("client_id", clientId)
+					.order("created_at", { ascending: false })
+					.range(i, i + batchSize - 1);
+
+				if (batchError) throw batchError;
+				if (batch && batch.length > 0) {
+					allRows = [...allRows, ...batch];
+				}
+				if (!batch || batch.length < batchSize) {
+					break;
+				}
+			}
 
 			return {
 				totalRows: count || 0,
-				rows: (data || []) as MaintenanceDbRow[],
+				rows: allRows as MaintenanceDbRow[],
 			};
 		},
 		enabled: !!client,
@@ -266,6 +420,44 @@ function ClientWorkspacePage() {
 		return new Map<string, MaintenanceCategoryRow>(entries);
 	}, [categories]);
 
+	const handleCellUpdate = useCallback(
+		(id: string, column: string, value: any) => {
+			// Optimistically update React Query Cache
+			queryClient.setQueryData(
+				["client-items-db-snapshot", clientId],
+				(old: any) => {
+					if (!old) return old;
+					return {
+						...old,
+						rows: old.rows.map((row: any) =>
+							row.id === id ? { ...row, [column]: value } : row,
+						),
+					};
+				},
+			);
+
+			// Fire mutation to save to DB
+			supabase
+				.from("items_db")
+				.update({ [column]: value })
+				.eq("id", id)
+				.then(({ error }) => {
+					if (error) {
+						toast({
+							title: "Failed to save edit",
+							description: error.message,
+							variant: "error",
+						});
+						// Revert on failure
+						queryClient.invalidateQueries({
+							queryKey: ["client-items-db-snapshot", clientId],
+						});
+					}
+				});
+		},
+		[queryClient, clientId, toast],
+	);
+
 	const filteredSnapshotRows = useMemo(() => {
 		const rows = maintenanceSnapshot?.rows || [];
 
@@ -277,11 +469,14 @@ function ClientWorkspacePage() {
 				? buildCategorySearchText(category)
 				: "";
 
-			if (
-				selectedCategoryFilter !== "all" &&
-				categoryId !== selectedCategoryFilter
-			) {
-				return false;
+			if (itemNumberFilter.trim() !== "") {
+				const cleanItemNumStr = String(row.item_num || "")
+					.toLowerCase()
+					.replace(/\s+/g, "");
+				const cleanFilter = itemNumberFilter.toLowerCase().replace(/\s+/g, "");
+				if (!cleanItemNumStr.includes(cleanFilter)) {
+					return false;
+				}
 			}
 
 			if (selectedProjectFilter !== "all") {
@@ -311,42 +506,91 @@ function ClientWorkspacePage() {
 	}, [
 		maintenanceSnapshot?.rows,
 		categoryById,
-		selectedCategoryFilter,
+		itemNumberFilter,
 		selectedProjectFilter,
 		selectedAcFilter,
 	]);
 
+	// Reset page when filters change
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset page on filter change
 	useEffect(() => {
-		if (selectedCategoryFilter === "all") return;
-		const stillExists = (categories || []).some(
-			(category) => category.id === selectedCategoryFilter,
-		);
-		if (!stillExists) {
-			setSelectedCategoryFilter("all");
-		}
-	}, [categories, selectedCategoryFilter]);
+		setItemsPage(1);
+	}, [itemNumberFilter, selectedProjectFilter, selectedAcFilter]);
+
+	const totalPages = Math.ceil(filteredSnapshotRows.length / itemsPerPage) || 1;
+	const paginatedRows = useMemo(() => {
+		const start = (itemsPage - 1) * itemsPerPage;
+		return filteredSnapshotRows.slice(start, start + itemsPerPage);
+	}, [filteredSnapshotRows, itemsPage, itemsPerPage]);
 
 	const snapshotColumns = useMemo(() => {
 		const rows = maintenanceSnapshot?.rows || [];
 		if (!rows.length) return ITEMS_DB_COLUMN_ORDER;
 
-		const keys = Object.keys(rows[0]);
+		const keys = [...Object.keys(rows[0]), "packages"];
 		const preferred = ITEMS_DB_COLUMN_ORDER.filter((column) =>
 			keys.includes(column),
 		);
-		const extras = keys.filter((column) => !preferred.includes(column));
+		const extras = keys.filter(
+			(column) =>
+				!preferred.includes(column) &&
+				column !== "client_id" &&
+				column !== "pkd_item",
+		);
 		return [...preferred, ...extras];
 	}, [maintenanceSnapshot?.rows]);
 
 	const formatSnapshotCell = (row: MaintenanceDbRow, column: string) => {
+		if (column === "packages") {
+			const packedQty = Number(row.packed_qty || 0);
+			if (packedQty === 0) return "-";
+
+			return (
+				<button
+					onClick={() => setSelectedItemForPackages(row)}
+					className="flex items-center gap-1 bg-blue-50 text-blue-700 hover:bg-blue-100 px-2 py-1 rounded text-xs font-semibold"
+				>
+					<Package className="w-3 h-3" />
+					View Boxes ({packedQty})
+				</button>
+			);
+		}
+
+		if (column === "category_id") {
+			const value = row[column];
+			if (typeof value === "string") {
+				const category = categoryById.get(value);
+				return category?.label || "(No label)";
+			}
+			return "-";
+		}
+
+		const editableColumns = [
+			"item_num",
+			"reference",
+			"description",
+			"expected_qty",
+			"packed_qty",
+			"warehouse_location",
+			"length",
+			"width",
+			"height",
+			"ipac_comments",
+		];
+
+		if (editableColumns.includes(column)) {
+			return (
+				<EditableCell
+					initialValue={row[column]}
+					column={column}
+					rowId={row.id}
+					updateDb={handleCellUpdate}
+				/>
+			);
+		}
+
 		const value = row[column];
 		if (value === null || value === undefined || value === "") return "-";
-
-		if (column === "category_id" && typeof value === "string") {
-			const category = categoryById.get(value);
-			const label = category?.label || "(No label)";
-			return category ? `${value} (${label})` : value;
-		}
 
 		if (typeof value === "boolean") return value ? "true" : "false";
 		return String(value);
@@ -750,38 +994,20 @@ function ClientWorkspacePage() {
 								</div>
 
 								<div className="mb-4 space-y-3">
-									<div>
-										<p className="text-xs uppercase tracking-wide text-gray-500">
-											Category Labels
-										</p>
-										<div className="mt-2 flex flex-wrap gap-2">
-											<button
-												onClick={() => setSelectedCategoryFilter("all")}
-												className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${
-													selectedCategoryFilter === "all"
-														? "border-blue-300 bg-blue-50 text-blue-800"
-														: "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-												}`}
-											>
-												All Labels
-											</button>
-											{(categories || []).map((category) => (
-												<button
-													key={category.id}
-													onClick={() => setSelectedCategoryFilter(category.id)}
-													className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${
-														selectedCategoryFilter === category.id
-															? "border-blue-300 bg-blue-50 text-blue-800"
-															: "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-													}`}
-												>
-													{category.label || "(No label)"}
-												</button>
-											))}
-										</div>
-									</div>
-
 									<div className="flex flex-wrap items-start gap-4">
+										<div>
+											<p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+												Item Number Filter
+											</p>
+											<input
+												type="text"
+												placeholder="Search item number..."
+												value={itemNumberFilter}
+												onChange={(e) => setItemNumberFilter(e.target.value)}
+												className="rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+											/>
+										</div>
+
 										<div>
 											<p className="text-xs uppercase tracking-wide text-gray-500">
 												Project Type
@@ -838,38 +1064,54 @@ function ClientWorkspacePage() {
 									</div>
 								</div>
 
-								<p className="mb-2 text-xs text-gray-500">
-									Showing {filteredSnapshotRows.length} of{" "}
-									{(maintenanceSnapshot?.rows || []).length} rows.
-								</p>
+								<div className="mb-2 flex items-center justify-between">
+									<p className="text-xs text-gray-500">
+										Showing {filteredSnapshotRows.length} total rows matched.
+									</p>
+									<div className="flex items-center gap-2 text-xs text-gray-600">
+										<span>Items per page:</span>
+										<select
+											value={itemsPerPage}
+											onChange={(e) => {
+												setItemsPerPage(Number(e.target.value));
+												setItemsPage(1);
+											}}
+											className="rounded border border-gray-300 px-2 py-1 outline-none focus:border-blue-500"
+										>
+											<option value={500}>500</option>
+											<option value={1000}>1000</option>
+											<option value={5000}>5000</option>
+										</select>
+									</div>
+								</div>
 
 								<div className="overflow-x-auto rounded-lg border border-gray-200">
 									<div className="max-h-[65vh] overflow-auto">
 										<table className="min-w-max w-full text-left text-xs">
-											<thead className="sticky top-0 bg-gray-100">
+											<thead className="sticky top-0 bg-gray-100 z-10">
 												<tr>
 													{snapshotColumns.map((column) => (
 														<th
 															key={column}
 															className="p-2 font-semibold text-gray-700 whitespace-nowrap"
 														>
-															{column}
+															{column === "category_id" ? "Category" : column}
 														</th>
 													))}
 												</tr>
 											</thead>
 											<tbody className="divide-y divide-gray-100 bg-white">
-												{filteredSnapshotRows.length === 0 ? (
+												{paginatedRows.length === 0 ? (
 													<tr>
 														<td
-															className="p-3 text-gray-500"
+															className="p-3 text-gray-500 text-center"
 															colSpan={snapshotColumns.length}
 														>
 															No rows match current filters.
 														</td>
 													</tr>
 												) : (
-													filteredSnapshotRows.map((row) => (
+													paginatedRows.map((row) => (
 														<tr key={row.id}>
 															{snapshotColumns.map((column) => (
 																<td
@@ -886,6 +1128,51 @@ function ClientWorkspacePage() {
 										</table>
 									</div>
 								</div>
+
+								{/* Pagination Controls */}
+								{filteredSnapshotRows.length > 0 && (
+									<div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
+										<p className="text-sm text-gray-700">
+											Showing{" "}
+											<span className="font-semibold">
+												{(itemsPage - 1) * itemsPerPage + 1}
+											</span>{" "}
+											to{" "}
+											<span className="font-semibold">
+												{Math.min(
+													itemsPage * itemsPerPage,
+													filteredSnapshotRows.length,
+												)}
+											</span>{" "}
+											of{" "}
+											<span className="font-semibold">
+												{filteredSnapshotRows.length}
+											</span>{" "}
+											results
+										</p>
+										<div className="flex gap-2">
+											<button
+												onClick={() => setItemsPage((p) => Math.max(1, p - 1))}
+												disabled={itemsPage === 1}
+												className="rounded border border-gray-300 px-3 py-1 text-sm font-medium text-gray-700 disabled:opacity-50 hover:bg-gray-50 transition-colors"
+											>
+												Previous
+											</button>
+											<span className="px-3 py-1 text-sm text-gray-600 border border-transparent">
+												Page {itemsPage} of {totalPages}
+											</span>
+											<button
+												onClick={() =>
+													setItemsPage((p) => Math.min(totalPages, p + 1))
+												}
+												disabled={itemsPage === totalPages}
+												className="rounded border border-gray-300 px-3 py-1 text-sm font-medium text-gray-700 disabled:opacity-50 hover:bg-gray-50 transition-colors"
+											>
+												Next
+											</button>
+										</div>
+									</div>
+								)}
 							</>
 						)}
 					</section>
@@ -912,6 +1199,27 @@ function ClientWorkspacePage() {
 					</section>
 				</div>
 			</main>
+
+			<Dialog.Root
+				open={!!selectedItemForPackages}
+				onOpenChange={(open) => !open && setSelectedItemForPackages(null)}
+			>
+				<Dialog.Portal>
+					<Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
+					<Dialog.Content className="fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] bg-white p-6 rounded-xl shadow-xl w-[90vw] max-w-lg z-50">
+						<div className="flex justify-between items-center mb-4">
+							<Dialog.Title className="text-lg font-bold text-gray-900">
+								Item Packages
+							</Dialog.Title>
+							<Dialog.Close className="text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 rounded p-1">
+								<X className="w-5 h-5" />
+							</Dialog.Close>
+						</div>
+
+						<ItemPackagesList itemId={selectedItemForPackages?.id} />
+					</Dialog.Content>
+				</Dialog.Portal>
+			</Dialog.Root>
 		</div>
 	);
 }

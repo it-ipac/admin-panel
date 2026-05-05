@@ -11,8 +11,10 @@ import type {
 import { WOOD_OUT_OF_RANGE_ID } from "./types";
 import {
 	extractSeiTokensFromCombined,
+	generateIpacReference,
 	isGenericWood,
 	isWoodVariantOption,
+	mapTagsToIpacTag,
 	nearlyEqual,
 	normalizePackingTypeValue,
 	normalizeSeiCategoryValue,
@@ -36,6 +38,12 @@ interface ResolveParams {
 	packingTypeShowAll: Record<number, boolean>;
 	manufacturingTypeOverrides: Record<string, string>;
 	manufacturingShowAll: Record<string, boolean>;
+	instanceOverrides: Record<
+		number,
+		Record<number, { destination: string | null }>
+	>;
+	globalDestination?: string;
+	orderCategoryTags?: string[];
 }
 
 export const resolvePackages = ({
@@ -54,6 +62,9 @@ export const resolvePackages = ({
 	packingTypeShowAll,
 	manufacturingTypeOverrides,
 	manufacturingShowAll,
+	instanceOverrides,
+	globalDestination = "",
+	orderCategoryTags = [],
 }: ResolveParams) => {
 	const normalizeBoxTypeValue = (value: string | null | undefined): string =>
 		(value || "")
@@ -129,6 +140,8 @@ export const resolvePackages = ({
 			(protection) => [Number(protection.id), protection] as const,
 		),
 	);
+
+	const sequenceByTag = new Map<string, number>();
 
 	const previews: PackagePreview[] = rawPackages.map((pkg) => {
 		const rawBoxTypeLabel = pkg.boxTypeLabel?.trim() || "";
@@ -425,6 +438,25 @@ export const resolvePackages = ({
 			),
 		);
 
+		const isCustom = pkg.boxTypeLabel !== "Standard Box";
+		const tag = mapTagsToIpacTag(orderCategoryTags);
+		let boxNumber = 1;
+		if (!isCustom) {
+			boxNumber = (sequenceByTag.get(tag) || 0) + 1;
+			sequenceByTag.set(tag, boxNumber);
+		}
+
+		const effectiveDestination = pkg.destination || globalDestination || null;
+
+		const ipacReference = generateIpacReference({
+			destination: effectiveDestination,
+			tag,
+			isCustom,
+			boxNumber,
+			itemNumber: pkg.designation,
+			quantity: pkg.quantity,
+		});
+
 		return {
 			packageNumber: pkg.packageNumber,
 			rowIndex: pkg.rowIndex,
@@ -433,6 +465,9 @@ export const resolvePackages = ({
 			boxTypeLabel: pkg.boxTypeLabel,
 			boxTypeResolved: !!boxType,
 			boxTypeId: boxType?.id || null,
+			destination: effectiveDestination,
+			tag,
+			ipacReference,
 			seiCategoryRaw: pkg.seiCategoryRaw,
 			seiProtectionRaw: pkg.seiProtectionRaw,
 			packingTypeRaw: pkg.packingTypeRaw,
@@ -572,6 +607,7 @@ export const resolvePackages = ({
 			},
 			securing,
 			accessories,
+			instanceOverrides: instanceOverrides[pkg.packageNumber] || {},
 		};
 	});
 
@@ -608,6 +644,9 @@ export const resolvePackages = ({
 			amount: part.quantity,
 			typeLabel: part.typeLabel,
 		})),
+		destination: preview.destination,
+		categoryLabel: preview.tag || null,
+		boxTypeLabel: preview.boxTypeLabel,
 	}));
 
 	const missingBoxTypeCount = previews.filter(

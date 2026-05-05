@@ -94,6 +94,9 @@ export function OrderCreateDialog({
 	const [manufacturingShowAll, setManufacturingShowAll] = useState<
 		Record<string, boolean>
 	>({});
+	const [instanceOverrides, setInstanceOverrides] = useState<
+		Record<number, Record<number, { destination: string | null }>>
+	>({});
 	const [isParsing, setIsParsing] = useState(false);
 	const [fileError, setFileError] = useState<string | null>(null);
 	const [validationErrors, setValidationErrors] = useState<
@@ -106,6 +109,7 @@ export function OrderCreateDialog({
 	const [itemMatchStatusByPackage, setItemMatchStatusByPackage] = useState<
 		Record<number, PackageItemMatchState>
 	>({});
+	const [globalDestination, setGlobalDestination] = useState("");
 	const isCreatingOrderRef = useRef(false);
 
 	const { data: clients = [], isLoading: clientsLoading } = useQuery({
@@ -289,6 +293,8 @@ export function OrderCreateDialog({
 			setIsCreatingOrder(false);
 			setIsFetchingItems(false);
 			setItemMatchStatusByPackage({});
+			setGlobalDestination("");
+			setInstanceOverrides({});
 			isCreatingOrderRef.current = false;
 		}
 	}, [open]);
@@ -304,6 +310,18 @@ export function OrderCreateDialog({
 		},
 		[clientMode, selectedClientId, orderName, clients],
 	);
+
+	useEffect(() => {
+		if (globalDestination) {
+			setRawPackages((prev) =>
+				prev.map((pkg) => ({
+					...pkg,
+					destination: pkg.destination || globalDestination,
+				})),
+			);
+		}
+	}, [globalDestination]);
+
 	useEffect(() => {
 		if (clientMode !== "existing") {
 			setSelectedCategoryIds([]);
@@ -394,6 +412,14 @@ export function OrderCreateDialog({
 		},
 		[materialVariantMap],
 	);
+	const selectedTags = useMemo(
+		() =>
+			selectedCategoryIds.flatMap(
+				(id) => clientCategories.find((cat) => cat.id === id)?.tags || [],
+			),
+		[selectedCategoryIds, clientCategories],
+	);
+
 	const {
 		packagePreviews,
 		resolvedPackages,
@@ -417,6 +443,9 @@ export function OrderCreateDialog({
 				packingTypeShowAll,
 				manufacturingTypeOverrides,
 				manufacturingShowAll,
+				instanceOverrides,
+				globalDestination,
+				orderCategoryTags: selectedTags,
 			}),
 		[
 			appliedTemplateMode,
@@ -434,6 +463,9 @@ export function OrderCreateDialog({
 			packingTypeShowAll,
 			manufacturingTypeOverrides,
 			manufacturingShowAll,
+			instanceOverrides,
+			globalDestination,
+			selectedTags,
 		],
 	);
 
@@ -1445,6 +1477,8 @@ export function OrderCreateDialog({
 				isParsing={isParsing}
 				fileError={fileError}
 				hasUnresolvedMappings={hasUnresolvedMappings}
+				globalDestination={globalDestination}
+				setGlobalDestination={setGlobalDestination}
 				onFileSelected={handleFileSelected}
 				onExcelVersionModeChange={async (mode) => {
 					setExcelVersionMode(mode);
@@ -1463,6 +1497,7 @@ export function OrderCreateDialog({
 					setSeiCategoryOverrides({});
 					setSeiProtectionOverrides({});
 					setPackingTypeShowAll({});
+					setInstanceOverrides({});
 					setFileError(null);
 				}}
 				setFileError={setFileError}
@@ -1574,6 +1609,22 @@ export function OrderCreateDialog({
 				}
 				onManufacturingPartAdd={handleManufacturingPartAdd}
 				onManufacturingPartRemove={handleManufacturingPartRemove}
+				onInstanceOverrideChange={(
+					packageNumber,
+					instanceNumber,
+					destination,
+				) =>
+					setInstanceOverrides((prev) => {
+						const pkgOverrides = prev[packageNumber] || {};
+						return {
+							...prev,
+							[packageNumber]: {
+								...pkgOverrides,
+								[instanceNumber]: { destination },
+							},
+						};
+					})
+				}
 				onFetchItems={handleFetchItems}
 				isFetchingItems={isFetchingItems}
 				fetchItemsDisabled={Boolean(fetchItemsDisabledReason)}

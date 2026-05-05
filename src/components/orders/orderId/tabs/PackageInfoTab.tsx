@@ -1,4 +1,14 @@
 import { type UseMutationResult, useQuery } from "@tanstack/react-query";
+import {
+	Check,
+	Edit2,
+	Loader2,
+	Package,
+	RefreshCw,
+	Trash2,
+	X,
+} from "lucide-react";
+import { useState } from "react";
 import { supabase } from "../../../../lib/supabase";
 import type {
 	OrderPackage,
@@ -20,13 +30,39 @@ interface PackageInfoTabProps {
 			updates: Partial<PackageInfo>;
 		}
 	>;
+	duplicatePackageMutation: UseMutationResult<any, Error, string>;
+	removePackageMutation: UseMutationResult<any, Error, string>;
+	updateInstanceMutation: UseMutationResult<
+		any,
+		Error,
+		{ instanceId: string; updates: Partial<PackageInstance> }
+	>;
+	regenerateReferenceMutation: UseMutationResult<
+		any,
+		Error,
+		{
+			instanceId: string;
+			isCustom: boolean;
+			itemNumber?: string;
+			categoryLabel?: string;
+		}
+	>;
 }
 
 export function PackageInfoTab({
 	selectedPackage,
 	selectedPackageInstances,
 	updatePackageInfoMutation,
+	duplicatePackageMutation,
+	removePackageMutation,
+	updateInstanceMutation,
+	regenerateReferenceMutation,
 }: PackageInfoTabProps) {
+	const [editingInstanceId, setEditingInstanceId] = useState<string | null>(
+		null,
+	);
+	const [referenceDraft, setReferenceDraft] = useState("");
+
 	const { data: packingTypes } = useQuery({
 		queryKey: ["packingTypes"],
 		queryFn: async () => {
@@ -115,15 +151,17 @@ export function PackageInfoTab({
 		return entry ? `${entry.code ?? entry.id} - ${entry.name}` : String(id);
 	};
 
-	const handleUpdate = (field: keyof PackageInfo, value: any) => {
+	const handleUpdate = (
+		field: keyof PackageInfo,
+		value: any,
+		infoType: "original" | "final" = "original",
+	) => {
 		updatePackageInfoMutation.mutate({
 			packageId: selectedPackage.id,
-			infoType: "final",
+			infoType,
 			updates: { [field]: value },
 		});
 	};
-
-	const isPacked = selectedPackage.status === "packed";
 
 	return (
 		<div className="space-y-4">
@@ -138,7 +176,52 @@ export function PackageInfoTab({
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
-					{/* Status Badge/Select could go here if needed, but sticking to UI replication */}
+					<button
+						onClick={() => {
+							if (
+								window.confirm(
+									"Are you sure you want to duplicate this box? This will create a new empty box with the same original dimensions.",
+								)
+							) {
+								duplicatePackageMutation.mutate(selectedPackage.id);
+							}
+						}}
+						disabled={duplicatePackageMutation.isPending}
+						className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors disabled:opacity-50"
+					>
+						{duplicatePackageMutation.isPending ? (
+							<Loader2 className="w-4 h-4 animate-spin" />
+						) : (
+							<Package className="w-4 h-4" />
+						)}
+						Duplicate Box
+					</button>
+					<button
+						onClick={() => {
+							if (
+								window.confirm(
+									"Are you sure you want to PERMANENTLY REMOVE this box? This will delete all items, materials, and references associated with it. This action cannot be undone.",
+								)
+							) {
+								if (
+									window.confirm(
+										"FINAL CONFIRMATION: Are you absolutely sure? All data for this box will be lost.",
+									)
+								) {
+									removePackageMutation.mutate(selectedPackage.id);
+								}
+							}
+						}}
+						disabled={removePackageMutation.isPending}
+						className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors disabled:opacity-50"
+					>
+						{removePackageMutation.isPending ? (
+							<Loader2 className="w-4 h-4 animate-spin" />
+						) : (
+							<Trash2 className="w-4 h-4" />
+						)}
+						Remove Box
+					</button>
 				</div>
 			</div>
 
@@ -164,6 +247,9 @@ export function PackageInfoTab({
 										IPAC Reference
 									</th>
 									<th className="text-left px-4 py-2.5 font-medium">Status</th>
+									<th className="text-right px-4 py-2.5 font-medium">
+										Actions
+									</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -173,10 +259,94 @@ export function PackageInfoTab({
 											{instance.instance_number ?? "-"}
 										</td>
 										<td className="px-4 py-2.5 text-gray-800">
-											{instance.ipac_reference || "-"}
+											{editingInstanceId === instance.id ? (
+												<input
+													className="border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-blue-500"
+													value={referenceDraft}
+													onChange={(e) => setReferenceDraft(e.target.value)}
+												/>
+											) : (
+												instance.ipac_reference || "-"
+											)}
 										</td>
 										<td className="px-4 py-2.5 text-gray-600">
 											{instance.status || "design"}
+										</td>
+										<td className="px-4 py-2.5 text-right">
+											<div className="flex items-center justify-end gap-2">
+												{editingInstanceId === instance.id ? (
+													<>
+														<button
+															onClick={() => {
+																updateInstanceMutation.mutate({
+																	instanceId: instance.id,
+																	updates: { ipac_reference: referenceDraft },
+																});
+																setEditingInstanceId(null);
+															}}
+															className="p-1 text-green-600 hover:bg-green-50 rounded"
+															title="Save"
+														>
+															<Check className="w-4 h-4" />
+														</button>
+														<button
+															onClick={() => setEditingInstanceId(null)}
+															className="p-1 text-red-600 hover:bg-red-50 rounded"
+															title="Cancel"
+														>
+															<X className="w-4 h-4" />
+														</button>
+													</>
+												) : (
+													<>
+														<button
+															onClick={() => {
+																setEditingInstanceId(instance.id);
+																setReferenceDraft(
+																	instance.ipac_reference || "",
+																);
+															}}
+															className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+															title="Edit Reference"
+														>
+															<Edit2 className="w-4 h-4" />
+														</button>
+														<button
+															onClick={() => {
+																const isCustom = window.confirm(
+																	"Regenerate as a CUSTOM box reference? (Cancel for Standard)",
+																);
+																let itemNumber: string | undefined;
+																if (isCustom) {
+																	const promptVal = window.prompt(
+																		"Enter Item Number for reference (optional, will use first item if empty):",
+																	);
+																	if (promptVal === null) return; // User cancelled prompt
+																	itemNumber = promptVal || undefined;
+																}
+																regenerateReferenceMutation.mutate({
+																	instanceId: instance.id,
+																	isCustom,
+																	itemNumber,
+																	categoryLabel: getSeiCategoryName(
+																		selectedPackage.original_pkg_info
+																			?.sei_category,
+																	) as string,
+																});
+															}}
+															disabled={regenerateReferenceMutation.isPending}
+															className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded disabled:opacity-50"
+															title="Regenerate Reference"
+														>
+															{regenerateReferenceMutation.isPending ? (
+																<Loader2 className="w-4 h-4 animate-spin" />
+															) : (
+																<RefreshCw className="w-4 h-4" />
+															)}
+														</button>
+													</>
+												)}
+											</div>
 										</td>
 									</tr>
 								))}
@@ -197,8 +367,9 @@ export function PackageInfoTab({
 					original={selectedPackage.original_pkg_info?.quantity}
 					final={selectedPackage.final_pkg_info?.quantity}
 					type="number"
-					onChange={(v) => handleUpdate("quantity", v)}
-					editable={!isPacked}
+					onChangeOriginal={(v) => handleUpdate("quantity", v, "original")}
+					originalEditable={true}
+					finalEditable={false}
 				/>
 				<TwoTierCard
 					label="S.E.I"
@@ -208,8 +379,11 @@ export function PackageInfoTab({
 					final={selectedPackage.final_pkg_info?.packing_type_id}
 					type="select"
 					selectItems={packingTypeOptions}
-					onChange={(v) => handleUpdate("packing_type_id", v)}
-					editable={!isPacked}
+					onChangeOriginal={(v) =>
+						handleUpdate("packing_type_id", v, "original")
+					}
+					originalEditable={true}
+					finalEditable={false}
 				/>
 				<TwoTierCard
 					label="SEI Category"
@@ -219,8 +393,11 @@ export function PackageInfoTab({
 					final={selectedPackage.final_pkg_info?.sei_category}
 					type="select"
 					selectItems={seiCategoryOptions}
-					onChange={(v) => handleUpdate("sei_category", v ? Number(v) : null)}
-					editable={!isPacked}
+					onChangeOriginal={(v) =>
+						handleUpdate("sei_category", v ? Number(v) : null, "original")
+					}
+					originalEditable={true}
+					finalEditable={false}
 				/>
 				<TwoTierCard
 					label="SEI Protection"
@@ -230,8 +407,11 @@ export function PackageInfoTab({
 					final={selectedPackage.final_pkg_info?.sei_protection}
 					type="select"
 					selectItems={seiProtectionOptions}
-					onChange={(v) => handleUpdate("sei_protection", v ? Number(v) : null)}
-					editable={!isPacked}
+					onChangeOriginal={(v) =>
+						handleUpdate("sei_protection", v ? Number(v) : null, "original")
+					}
+					originalEditable={true}
+					finalEditable={false}
 				/>
 				<TwoTierCard
 					label="Box Type"
@@ -241,8 +421,9 @@ export function PackageInfoTab({
 					final={selectedPackage.final_pkg_info?.box_type_id}
 					type="select"
 					selectItems={boxTypeOptions}
-					onChange={(v) => handleUpdate("box_type_id", v)}
-					editable={!isPacked}
+					onChangeOriginal={(v) => handleUpdate("box_type_id", v, "original")}
+					originalEditable={true}
+					finalEditable={false}
 					className="flex-[1.3]"
 				/>
 				<TwoTierCard
@@ -250,8 +431,9 @@ export function PackageInfoTab({
 					original={selectedPackage.original_pkg_info?.tare}
 					final={selectedPackage.final_pkg_info?.tare}
 					type="number"
-					onChange={(v) => handleUpdate("tare", v)}
-					editable={!isPacked}
+					onChangeOriginal={(v) => handleUpdate("tare", v, "original")}
+					originalEditable={true}
+					finalEditable={false}
 					className="flex-[1.2]"
 				/>
 				<TwoTierCard
@@ -259,8 +441,9 @@ export function PackageInfoTab({
 					original={selectedPackage.original_pkg_info?.net_weight}
 					final={selectedPackage.final_pkg_info?.net_weight}
 					type="number"
-					onChange={(v) => handleUpdate("net_weight", v)}
-					editable={!isPacked}
+					onChangeOriginal={(v) => handleUpdate("net_weight", v, "original")}
+					originalEditable={true}
+					finalEditable={false}
 					className="flex-[1.3]"
 				/>
 				<TwoTierCard
@@ -268,8 +451,9 @@ export function PackageInfoTab({
 					original={selectedPackage.original_pkg_info?.gross_weight}
 					final={selectedPackage.final_pkg_info?.gross_weight}
 					type="number"
-					onChange={(v) => handleUpdate("gross_weight", v)}
-					editable={!isPacked}
+					onChangeOriginal={(v) => handleUpdate("gross_weight", v, "original")}
+					originalEditable={true}
+					finalEditable={false}
 					className="flex-[1.3]"
 				/>
 				<TwoTierCard
@@ -285,8 +469,11 @@ export function PackageInfoTab({
 							: null
 					}
 					type="switch"
-					onChange={(v) => handleUpdate("center_of_gravity", v)}
-					editable={!isPacked}
+					onChangeOriginal={(v) =>
+						handleUpdate("center_of_gravity", v, "original")
+					}
+					originalEditable={true}
+					finalEditable={false}
 				/>
 			</div>
 
@@ -304,13 +491,15 @@ export function PackageInfoTab({
 						width: selectedPackage.final_pkg_info?.internal_width ?? null,
 						height: selectedPackage.final_pkg_info?.internal_height ?? null,
 					}}
-					onChangeFinal={(patch) => {
+					originalEditable={true}
+					finalEditable={false}
+					onChangeOriginal={(patch) => {
 						if (patch.length !== undefined)
-							handleUpdate("internal_length", patch.length);
+							handleUpdate("internal_length", patch.length, "original");
 						if (patch.width !== undefined)
-							handleUpdate("internal_width", patch.width);
+							handleUpdate("internal_width", patch.width, "original");
 						if (patch.height !== undefined)
-							handleUpdate("internal_height", patch.height);
+							handleUpdate("internal_height", patch.height, "original");
 					}}
 				/>
 				<DimensionsCard
@@ -325,13 +514,15 @@ export function PackageInfoTab({
 						width: selectedPackage.final_pkg_info?.external_width ?? null,
 						height: selectedPackage.final_pkg_info?.external_height ?? null,
 					}}
-					onChangeFinal={(patch) => {
+					originalEditable={true}
+					finalEditable={false}
+					onChangeOriginal={(patch) => {
 						if (patch.length !== undefined)
-							handleUpdate("external_length", patch.length);
+							handleUpdate("external_length", patch.length, "original");
 						if (patch.width !== undefined)
-							handleUpdate("external_width", patch.width);
+							handleUpdate("external_width", patch.width, "original");
 						if (patch.height !== undefined)
-							handleUpdate("external_height", patch.height);
+							handleUpdate("external_height", patch.height, "original");
 					}}
 				/>
 			</div>

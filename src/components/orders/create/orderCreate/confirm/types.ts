@@ -40,7 +40,7 @@ export interface ManufacturingPartPreview {
 export interface PackagePreview {
 	packageNumber: number;
 	rowIndex: number;
-	designation: string;
+	designation: string | null;
 	quantity: number | null;
 	boxTypeLabel: string | null;
 	boxTypeResolved: boolean;
@@ -98,6 +98,10 @@ export interface PackagePreview {
 	};
 	securing: ManufacturingPartPreview[];
 	accessories: ManufacturingPartPreview[];
+	destination: string | null;
+	tag: string;
+	ipacReference: string | null;
+	instanceOverrides?: Record<number, { destination: string | null }>;
 }
 
 export interface PackageItemMatchStatus {
@@ -142,6 +146,11 @@ export interface OrderCreateConfirmDialogProps {
 	onManufacturingOptionsToggle: (key: string) => void;
 	onManufacturingPartAdd: (key: string) => void;
 	onManufacturingPartRemove: (key: string) => void;
+	onInstanceOverrideChange: (
+		packageNumber: number,
+		instanceNumber: number,
+		destination: string | null,
+	) => void;
 	onFetchItems: () => void;
 	isFetchingItems?: boolean;
 	fetchItemsDisabled?: boolean;

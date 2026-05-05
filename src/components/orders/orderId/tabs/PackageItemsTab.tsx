@@ -4,18 +4,22 @@ import { useState } from "react";
 
 export interface PackageItem {
 	id: string;
-	order_package_id: string;
+	order_package_id?: string;
 	quantity: number;
 	designation: string;
 	length: number | null;
 	width: number | null;
 	height: number | null;
+	source: "custom" | "inventory";
+	instance_number?: number;
+	warehouse_location?: string;
+	item_num?: string;
 }
 
 interface PackageItemsTabProps {
 	selectedPackageItems: PackageItem[];
 	updatePackageItemMutation: UseMutationResult<
-		PackageItem,
+		any,
 		Error,
 		{
 			id: string;
@@ -27,6 +31,7 @@ interface PackageItemsTabProps {
 		}
 	>;
 	deletePackageItemMutation: UseMutationResult<void, Error, string>;
+	deletePkdItemMutation?: UseMutationResult<void, Error, string>;
 	setShowAddItemModal: (show: boolean) => void;
 }
 
@@ -42,6 +47,7 @@ export function PackageItemsTab({
 	selectedPackageItems,
 	updatePackageItemMutation,
 	deletePackageItemMutation,
+	deletePkdItemMutation,
 	setShowAddItemModal,
 }: PackageItemsTabProps) {
 	const [editingItem, setEditingItem] = useState<PackageItem | null>(null);
@@ -80,9 +86,13 @@ export function PackageItemsTab({
 		resetItemForm();
 	};
 
-	const handleDeleteItem = async (id: string) => {
+	const handleDeleteItem = async (item: PackageItem) => {
 		if (confirm("Are you sure you want to delete this item?")) {
-			await deletePackageItemMutation.mutateAsync(id);
+			if (item.source === "inventory") {
+				await deletePkdItemMutation?.mutateAsync(item.id);
+			} else {
+				await deletePackageItemMutation.mutateAsync(item.id);
+			}
 		}
 	};
 
@@ -117,7 +127,7 @@ export function PackageItemsTab({
 				<div className="p-2 space-y-2 max-h-[400px] overflow-y-auto">
 					{selectedPackageItems.map((item, idx) => (
 						<div
-							key={item.id}
+							key={`${item.source}-${item.id}`}
 							className={`flex flex-col md:flex-row md:items-center justify-between p-3 rounded-lg border border-gray-400 ${
 								idx % 2 === 0 ? "bg-white" : "bg-slate-50"
 							}`}
@@ -204,36 +214,84 @@ export function PackageItemsTab({
 								</div>
 							) : (
 								<>
-									<div className="flex items-baseline gap-2 mb-2 md:mb-0">
-										<span className="text-gray-700 font-semibold">Item;</span>
-										<span className="text-gray-800 font-medium">
-											{item.quantity ?? "—"}
-										</span>
-										<span className="text-gray-700">
-											{item.designation || "—"}
-										</span>
-										{(item.length || item.width || item.height) && (
-											<span className="text-xs text-gray-500 ml-2">
-												({item.length ?? "-"}×{item.width ?? "-"}×
-												{item.height ?? "-"})
+									<div className="flex flex-col gap-1 flex-1">
+										<div className="flex items-baseline gap-2">
+											<span className="text-gray-700 font-semibold">Item;</span>
+											<span className="text-gray-800 font-medium">
+												{item.quantity ?? "—"}
 											</span>
-										)}
+											<span className="text-gray-700">
+												{item.designation || "—"}
+											</span>
+											{item.source === "inventory" && (
+												<span className="px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-700 rounded uppercase font-bold">
+													Inventory
+												</span>
+											)}
+											{(item.length || item.width || item.height) && (
+												<span className="text-xs text-gray-500">
+													({item.length ?? "-"}×{item.width ?? "-"}×
+													{item.height ?? "-"})
+												</span>
+											)}
+										</div>
+										<div className="flex items-center gap-3 text-xs text-gray-500">
+											<div className="flex items-center gap-1">
+												<span className="font-semibold text-gray-400">
+													Box:
+												</span>
+												<span
+													className={
+														item.source === "inventory"
+															? "text-blue-600 font-bold"
+															: ""
+													}
+												>
+													{item.instance_number
+														? `#${item.instance_number}`
+														: "All"}
+												</span>
+											</div>
+											{item.item_num && (
+												<div className="flex items-center gap-1">
+													<span className="font-semibold text-gray-400">
+														Ref:
+													</span>
+													<span>{item.item_num}</span>
+												</div>
+											)}
+											{item.warehouse_location && (
+												<div className="flex items-center gap-1">
+													<span className="font-semibold text-gray-400">
+														Loc:
+													</span>
+													<span className="bg-gray-100 px-1 rounded">
+														{item.warehouse_location}
+													</span>
+												</div>
+											)}
+										</div>
 									</div>
 
-									<div className="flex items-center gap-2 self-end md:self-auto">
+									<div className="flex items-center gap-2 self-end md:self-auto mt-2 md:mt-0">
 										<button className="p-2 rounded bg-blue-600 text-white hover:bg-blue-700 shadow-sm">
 											<Camera size={18} />
 										</button>
 										<div className="h-6 w-px bg-gray-300 mx-1"></div>
+										{item.source === "custom" && (
+											<button
+												onClick={() => startEditItem(item)}
+												className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+											>
+												<Edit size={16} />
+											</button>
+										)}
 										<button
-											onClick={() => startEditItem(item)}
-											className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-										>
-											<Edit size={16} />
-										</button>
-										<button
-											onClick={() => handleDeleteItem(item.id)}
-											disabled={deletePackageItemMutation.isPending}
+											onClick={() => handleDeleteItem(item)}
+											disabled={
+												deletePackageItemMutation.isPending ||
+												deletePkdItemMutation?.isPending
+											}
 											className="p-1.5 text-red-600 hover:bg-red-50 rounded"
 										>
 											<Trash2 size={16} />

@@ -162,15 +162,18 @@ export const parsePackageRows = (
 		);
 
 	for (let row = 4; row < 1000; row += 1) {
-		const currentLabel = getText("B", row);
+		const rawDesignation = getText("B", row);
+		const isStandardByDesignation =
+			rawDesignation.trim().toLowerCase() === "standard box";
+		const hasDesignation =
+			rawDesignation.trim().length > 0 || isStandardByDesignation;
 		const quantity = parseNumberText(getText("A", row));
-		const hasDesignation = currentLabel.trim().length > 0;
 		const hasValidQuantity =
 			quantity !== null && quantity > 0 && Number.isInteger(quantity);
 
 		// Ignore header/noise rows. A package row is valid only when:
 		// - Column A has a positive whole number
-		// - Column B has a designation
+		// - Column B has a designation (or is a Standard Box row)
 		if (!hasDesignation || !hasValidQuantity) {
 			continue;
 		}
@@ -188,13 +191,19 @@ export const parsePackageRows = (
 		const tare = parseNumberText(getText("BAB", row));
 		const grossWeight =
 			netWeight !== null && tare !== null ? netWeight + tare : null;
-		const boxTypeLabel = getText("C", row) || null;
+
+		const designation = isStandardByDesignation ? null : rawDesignation;
+		const boxTypeLabel = isStandardByDesignation
+			? "Standard Box"
+			: getText("C", row) || null;
+
 		const packingTypeRaw = getText("AB", row) || null;
 		const packingTypeCode = normalizePackingTypeCode(packingTypeRaw);
 		const seiCategoryRaw =
 			columnOffset === 2 ? getLiteralText("C", row) || null : null;
 		const seiProtectionRaw =
 			columnOffset === 2 ? getLiteralText("D", row) || null : null;
+		const categoryLabel = null;
 
 		const bigTypeLabel = getText("BK", row) || null;
 		const bigQuantity = parseNumberText(getText("BM", row));
@@ -425,8 +434,9 @@ export const parsePackageRows = (
 		rows.push({
 			rowIndex: row,
 			packageNumber,
-			designation: currentLabel,
+			designation,
 			quantity,
+
 			item_length: itemLength,
 			item_width: itemWidth,
 			item_height: itemHeight,
@@ -447,6 +457,9 @@ export const parsePackageRows = (
 			manufacturing,
 			securing,
 			accessories,
+			categoryLabel,
+			destination: null,
+			ipacReference: null,
 		});
 
 		packageNumber += 1;

@@ -555,6 +555,50 @@ export const db = {
 		});
 	},
 
+	getOrdersWithTeams: async () => {
+		return supabase
+			.from("orders")
+			.select(
+				"id, order_name, production_status, order_team_members(id, is_team_lead, packer:profiles(id, full_name, username))",
+			)
+			.neq("production_status", "completed")
+			.order("created_at", { ascending: false });
+	},
+
+	assignPackerToOrder: async (orderId: string, packerId: string) => {
+		return supabase
+			.from("order_team_members")
+			.insert({ order_id: orderId, packer_id: packerId });
+	},
+
+	removePackerFromOrder: async (orderId: string, packerId: string) => {
+		return supabase
+			.from("order_team_members")
+			.delete()
+			.match({ order_id: orderId, packer_id: packerId });
+	},
+
+	removeAllPackersFromOrder: async (orderId: string) => {
+		return supabase
+			.from("order_team_members")
+			.delete()
+			.match({ order_id: orderId });
+	},
+
+	addTeamLead: async (orderId: string, packerId: string) => {
+		return supabase.rpc("add_team_lead", {
+			order_uuid: orderId,
+			packer_uuid: packerId,
+		});
+	},
+
+	removeTeamLead: async (orderId: string, packerId: string) => {
+		return supabase.rpc("remove_team_lead", {
+			order_uuid: orderId,
+			packer_uuid: packerId,
+		});
+	},
+
 	getRoles: async () => {
 		return supabase
 			.from("roles")

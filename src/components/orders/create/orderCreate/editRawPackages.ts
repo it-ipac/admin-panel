@@ -34,6 +34,7 @@ export const applyPackageFieldChange = (
 			next.external_height = value as number | null;
 		if (field === "netWeight") next.net_weight = value as number | null;
 		if (field === "tare") next.tare = value as number | null;
+		if (field === "destination") next.destination = value as string | null;
 		next.gross_weight =
 			next.net_weight !== null && next.tare !== null
 				? next.net_weight + next.tare

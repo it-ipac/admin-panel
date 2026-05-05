@@ -81,7 +81,7 @@ export interface RawBaseManufacturing extends RawManufacturingTemplate {
 export interface RawPackageRow {
 	rowIndex: number;
 	packageNumber: number;
-	designation: string;
+	designation: string | null;
 	quantity: number | null;
 	item_length: number | null;
 	item_width: number | null;
@@ -116,11 +116,14 @@ export interface RawPackageRow {
 		typeLabel: string | null;
 		amount: number | null;
 	}>;
+	destination: string | null;
+	categoryLabel: string | null;
+	ipacReference: string | null;
 }
 
 export interface ResolvedPackageRow {
 	packageNumber: number;
-	designation: string;
+	designation: string | null;
 	quantity: number | null;
 	item_length: number | null;
 	item_width: number | null;
@@ -151,6 +154,10 @@ export interface ResolvedPackageRow {
 		amount: number | null;
 		typeLabel: string | null;
 	}>;
+	destination: string | null;
+	categoryLabel: string | null;
+	boxTypeLabel: string | null;
+	instanceOverrides?: Record<number, { destination: string | null }>;
 }
 
 export const WOOD_OUT_OF_RANGE_ID = "c69cd6d0-d56f-441a-951c-6560d3b34d70";
@@ -178,4 +185,5 @@ export type PackageEditableField =
 	| "external.width"
 	| "external.height"
 	| "netWeight"
-	| "tare";
+	| "tare"
+	| "destination";

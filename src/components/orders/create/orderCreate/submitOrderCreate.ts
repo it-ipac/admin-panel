@@ -5,6 +5,7 @@ import {
 	matchPackageDesignations,
 } from "./itemNumberMatching";
 import type { MaterialVariantOption, ResolvedPackageRow } from "./types";
+import { generateIpacReference, mapCategoryToTag } from "./utils";
 
 interface SubmitParams {
 	resolvedPackages: ResolvedPackageRow[];
@@ -272,7 +273,8 @@ export const submitOrderCreate = async ({
 	const latestIpacReference = Array.isArray(latestIpacRefRows)
 		? (latestIpacRefRows[0] as any)?.ipac_reference
 		: null;
-	let nextIpacSequence = parseIpacSequence(latestIpacReference, ipacPrefix) + 1;
+	const nextIpacSequence =
+		parseIpacSequence(latestIpacReference, ipacPrefix) + 1;
 
 	logStep("IPAC reference seed resolved", {
 		clientId,
@@ -413,7 +415,9 @@ export const submitOrderCreate = async ({
 				height: pkg.item_height,
 			};
 		})
-		.filter((row): row is NonNullable<typeof row> => !!row);
+		.filter(
+			(row): row is NonNullable<typeof row> => !!row && !!row.designation,
+		);
 
 	if (fallbackPackageItems.length > 0) {
 		logStep("Step 10/14 - Creating fallback package_items rows", {
@@ -484,7 +488,10 @@ export const submitOrderCreate = async ({
 		ipac_reference: string;
 		status: "design";
 		packed_at: null;
+		destination: string | null;
 	}> = [];
+
+	const sequenceByTag = new Map<string, number>();
 
 	for (const pkg of resolvedPackages) {
 		const orderPackage = packageByNumber.get(pkg.packageNumber);
@@ -503,10 +510,25 @@ export const submitOrderCreate = async ({
 			instanceNumber <= instanceCount;
 			instanceNumber += 1
 		) {
-			const generatedIpacReference = `${ipacPrefix}-${String(
-				nextIpacSequence,
-			).padStart(4, "0")}`;
-			nextIpacSequence += 1;
+			const override = pkg.instanceOverrides?.[instanceNumber];
+			const instanceDestination = override?.destination || pkg.destination;
+
+			const isCustom = pkg.boxTypeLabel !== "Standard Box";
+			const tag = mapCategoryToTag(pkg.categoryLabel);
+			let boxNumber = 1;
+			if (!isCustom) {
+				boxNumber = (sequenceByTag.get(tag) || 0) + 1;
+				sequenceByTag.set(tag, boxNumber);
+			}
+
+			const generatedIpacReference = generateIpacReference({
+				destination: instanceDestination,
+				tag: pkg.categoryLabel || "TAG",
+				isCustom,
+				boxNumber,
+				itemNumber: pkg.designation,
+				quantity: pkg.quantity,
+			});
 
 			instanceRows.push({
 				order_pkg_overview_id: overviewId,
@@ -515,6 +537,7 @@ export const submitOrderCreate = async ({
 				ipac_reference: generatedIpacReference,
 				status: "design",
 				packed_at: null,
+				destination: instanceDestination,
 			});
 		}
 	}
