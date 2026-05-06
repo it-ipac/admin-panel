@@ -8,18 +8,152 @@ import {
 import {
 	AlertCircle,
 	ArrowLeft,
+	Box,
+	ChevronLeft,
+	ChevronRight,
+	Image,
 	Info,
 	Loader2,
 	MapPin,
 	PackageX,
 	Ruler,
 	Scale,
+	X,
 } from "lucide-react";
+import { useState } from "react";
 import { supabase } from "../../../lib/supabase";
 
 export const Route = createFileRoute("/portal/item/$id")({
 	component: ItemView,
 });
+
+function PhotoGallery({
+	photos,
+}: {
+	photos: { id: string; image_url: string; notes: string | null }[];
+}) {
+	const [active, setActive] = useState(0);
+	const [lightbox, setLightbox] = useState<number | null>(null);
+
+	if (!photos.length) return null;
+
+	const prev = () => setActive((a) => (a - 1 + photos.length) % photos.length);
+	const next = () => setActive((a) => (a + 1) % photos.length);
+
+	return (
+		<section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+			<div className="relative aspect-video bg-gray-900">
+				<img
+					src={photos[active].image_url}
+					alt={photos[active].notes || `Photo ${active + 1}`}
+					className="w-full h-full object-contain cursor-zoom-in"
+					onClick={() => setLightbox(active)}
+				/>
+				{photos.length > 1 && (
+					<>
+						<button
+							onClick={prev}
+							className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white transition-colors"
+						>
+							<ChevronLeft className="w-5 h-5" />
+						</button>
+						<button
+							onClick={next}
+							className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white transition-colors"
+						>
+							<ChevronRight className="w-5 h-5" />
+						</button>
+						<div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+							{photos.map((photo, i) => (
+								<button
+									key={photo.id || i}
+									onClick={() => setActive(i)}
+									className={`w-2 h-2 rounded-full transition-colors ${i === active ? "bg-white" : "bg-white/40"}`}
+								/>
+							))}
+						</div>
+					</>
+				)}
+				<div className="absolute top-3 right-3 bg-black/50 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
+					<Image className="w-3 h-3" />
+					{photos.length} photo{photos.length !== 1 ? "s" : ""}
+				</div>
+			</div>
+
+			{photos.length > 1 && (
+				<div className="flex gap-2 p-3 overflow-x-auto">
+					{photos.map((photo, i) => (
+						<button
+							key={photo.id}
+							onClick={() => setActive(i)}
+							className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === active ? "border-blue-500" : "border-gray-200"}`}
+						>
+							<img
+								src={photo.image_url}
+								alt=""
+								className="w-full h-full object-cover"
+							/>
+						</button>
+					))}
+				</div>
+			)}
+
+			{photos[active].notes && (
+				<p className="text-xs text-gray-500 px-4 pb-3">
+					{photos[active].notes}
+				</p>
+			)}
+
+			{/* Lightbox */}
+			{lightbox !== null && (
+				<div
+					className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+					onClick={(e) => {
+						if (e.target === e.currentTarget) setLightbox(null);
+					}}
+					onKeyDown={(e) => e.key === "Escape" && setLightbox(null)}
+					role="dialog"
+					aria-modal="true"
+					tabIndex={-1}
+				>
+					<button
+						className="absolute top-4 right-4 text-white/70 hover:text-white"
+						onClick={() => setLightbox(null)}
+					>
+						<X className="w-7 h-7" />
+					</button>
+					<img
+						src={photos[lightbox].image_url}
+						alt=""
+						className="max-w-full max-h-full object-contain"
+					/>
+					{photos.length > 1 && (
+						<>
+							<button
+								onClick={(e) => {
+									e.stopPropagation();
+									setLightbox((l) => (l! - 1 + photos.length) % photos.length);
+								}}
+								className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white"
+							>
+								<ChevronLeft className="w-6 h-6" />
+							</button>
+							<button
+								onClick={(e) => {
+									e.stopPropagation();
+									setLightbox((l) => (l! + 1) % photos.length);
+								}}
+								className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white"
+							>
+								<ChevronRight className="w-6 h-6" />
+							</button>
+						</>
+					)}
+				</div>
+			)}
+		</section>
+	);
+}
 
 function ItemView() {
 	const { id } = useParams({ from: "/portal/item/$id" });
@@ -30,9 +164,65 @@ function ItemView() {
 		isLoading,
 		error: queryError,
 	} = useQuery({
-		queryKey: ["portal-item", id],
+		queryKey: ["portal-item-v2", id],
 		queryFn: async () => {
-			const { data, error } = await supabase
+			// Try new pkd_item path first
+			const { data: pkdData, error: pkdError } = await supabase
+				.from("pkd_item")
+				.select(`
+					id,
+					quantity,
+					created_at,
+					items_db:maintenance_db_id (
+						id,
+						item_num,
+						reference,
+						description,
+						length,
+						width,
+						height,
+						net_weight,
+						expected_qty,
+						packed_qty,
+						warehouse_location,
+						ipac_comments,
+						pkg_category (label)
+					),
+					order_pkg_instance:pkg_instance_id (
+						id,
+						instance_number,
+						status,
+						ipac_reference,
+						order_packages:order_package_id (
+							id,
+							package_number,
+							reference,
+							reference_number,
+							status,
+							orders:order_id (order_name)
+						),
+						order_pkg_overview:order_pkg_overview_id (
+							id,
+							pkg_number,
+							description
+						)
+					),
+					media (
+						id,
+						image_url,
+						notes,
+						created_at
+					)
+				`)
+				.eq("id", id)
+				.maybeSingle();
+
+			if (!pkdError && pkdData) {
+				return { source: "pkd_item" as const, data: pkdData };
+			}
+
+			// Legacy fallback: token still points to items_db
+			const { data: legacyData, error: legacyError } = await supabase
 				.from("items_db")
 				.select(`
 					*,
@@ -44,30 +234,17 @@ function ItemView() {
 							id,
 							instance_number,
 							status,
-							order_pkg_overview (
-								id,
-								pkg_number,
-								quantity,
-								description
-							),
-							order_packages (
-								id,
-								package_number,
-								reference,
-								status,
-								orders (order_name)
-							)
+							order_pkg_overview (id, pkg_number, quantity, description),
+							order_packages (id, package_number, reference, status, orders (order_name))
 						)
 					)
 				`)
 				.eq("id", id)
 				.maybeSingle();
 
-			if (error) {
-				console.error("Portal Item Query Error:", error);
-				throw error;
-			}
-			return data;
+			if (legacyError) throw legacyError;
+			if (!legacyData) return null;
+			return { source: "legacy" as const, data: legacyData };
 		},
 		enabled: !!id,
 	});
@@ -109,54 +286,91 @@ function ItemView() {
 		);
 	}
 
-	const item = record;
-	const packingHistory = (record.pkd_item || [])
-		.map((entry: any) => {
-			const pkgInstance = entry?.order_pkg_instance;
-			const pkgOverview = pkgInstance?.order_pkg_overview;
-			const orderPackage = pkgInstance?.order_packages;
+	// Normalise between pkd_item and legacy path
+	let item: any;
+	let photos: { id: string; image_url: string; notes: string | null }[] = [];
+	let packageInfo: {
+		id: string;
+		reference: string | null;
+		instanceNumber: number | null;
+		orderName: string | null;
+	} | null = null;
 
-			const packageId = pkgInstance?.id || orderPackage?.id || null;
-			if (!packageId) return null;
+	if (record.source === "pkd_item") {
+		const d = record.data as any;
+		const catalog = Array.isArray(d.items_db) ? d.items_db[0] : d.items_db;
+		const pkgInstance = Array.isArray(d.order_pkg_instance)
+			? d.order_pkg_instance[0]
+			: d.order_pkg_instance;
+		const orderPackage = pkgInstance
+			? Array.isArray(pkgInstance.order_packages)
+				? pkgInstance.order_packages[0]
+				: pkgInstance.order_packages
+			: null;
+		const overview = pkgInstance
+			? Array.isArray(pkgInstance.order_pkg_overview)
+				? pkgInstance.order_pkg_overview[0]
+				: pkgInstance.order_pkg_overview
+			: null;
 
-			const packageNumber =
-				pkgOverview?.pkg_number ?? orderPackage?.package_number ?? null;
-
-			return {
-				id: entry.id,
-				quantity: entry.quantity,
-				packageId,
-				packageNumber,
-				instanceNumber: pkgInstance?.instance_number ?? null,
-				pkdItemRow: entry,
-				pkgInstanceRow: pkgInstance || null,
-				label:
+		item = {
+			...catalog,
+			_packedQty: d.quantity,
+		};
+		photos = (d.media || []).filter((m: any) => !!m.image_url);
+		if (pkgInstance) {
+			packageInfo = {
+				id: pkgInstance.id,
+				reference:
+					pkgInstance.ipac_reference ||
 					orderPackage?.reference ||
-					(packageNumber ? `Package ${packageNumber}` : "Package"),
+					orderPackage?.reference_number ||
+					(overview?.pkg_number ? `Package ${overview.pkg_number}` : null),
+				instanceNumber: pkgInstance.instance_number ?? null,
 				orderName: orderPackage?.orders?.order_name || null,
 			};
-		})
-		.filter(Boolean) as Array<{
-		id: string;
-		quantity: number;
-		packageId: string;
-		packageNumber: number | null;
-		instanceNumber: number | null;
-		pkdItemRow: Record<string, any>;
-		pkgInstanceRow: Record<string, any> | null;
-		label: string;
-		orderName: string | null;
-	}>;
+		}
+	} else {
+		const d = record.data as any;
+		item = d;
+		const firstPkd = (d.pkd_item || [])[0];
+		if (firstPkd) {
+			const pkgInstance = firstPkd.order_pkg_instance;
+			const orderPackage = pkgInstance?.order_packages;
+			packageInfo = {
+				id: pkgInstance?.id || null,
+				reference:
+					orderPackage?.reference ||
+					(pkgInstance?.order_pkg_overview?.pkg_number
+						? `Package ${pkgInstance.order_pkg_overview.pkg_number}`
+						: "Package"),
+				instanceNumber: pkgInstance?.instance_number ?? null,
+				orderName: orderPackage?.orders?.order_name || null,
+			};
+		}
+	}
+
+	const packedQty =
+		record.source === "pkd_item" ? (record.data as any).quantity : null;
 
 	return (
 		<div className="min-h-screen bg-gray-50 pb-24">
-			{/* Brand Header */}
+			{/* Header */}
 			<header className="bg-white border-b border-gray-200 sticky top-0 z-30">
 				<div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="flex justify-between items-center h-16">
 						<div className="flex items-center gap-3">
 							<button
-								onClick={() => navigate({ to: "/portal/projects" })}
+								onClick={() => {
+									if (
+										typeof window !== "undefined" &&
+										window.history.length > 1
+									) {
+										window.history.back();
+										return;
+									}
+									navigate({ to: "/portal/projects" });
+								}}
 								className="p-2 -ml-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
 							>
 								<ArrowLeft className="w-5 h-5" />
@@ -170,85 +384,141 @@ function ItemView() {
 				</div>
 			</header>
 
-			<main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-5">
-					<div className="flex flex-wrap items-center gap-3">
-						<button
-							onClick={() => {
-								if (
-									typeof window !== "undefined" &&
-									window.history.length > 1
-								) {
-									window.history.back();
-									return;
-								}
-								navigate({ to: "/portal/projects" });
-							}}
-							className="inline-flex items-center justify-center py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-sm font-semibold transition-colors"
-						>
-							Go Back
-						</button>
-						<Link
-							to="/portal/projects"
-							className="inline-flex items-center justify-center py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors"
-						>
-							View All Items
-						</Link>
+			<main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+				{/* Photo gallery */}
+				{photos.length > 0 && <PhotoGallery photos={photos} />}
+
+				{/* Item Hero Card */}
+				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+					<div className="mb-6">
+						<div className="flex flex-wrap items-center gap-2 mb-3">
+							<span className="bg-gray-100 text-gray-700 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
+								{item?.pkg_category?.label || "General"}
+							</span>
+							{item?.item_num && (
+								<span className="text-sm font-mono font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full">
+									#{item.item_num}
+								</span>
+							)}
+						</div>
+						<h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-tight">
+							{item?.description || item?.reference || "Unnamed Item"}
+						</h2>
+						<div className="mt-4 flex flex-wrap gap-3 text-sm font-medium">
+							<div className="bg-gray-100 px-3 py-1.5 rounded-lg text-gray-700">
+								Expected:{" "}
+								<span className="font-bold">{item?.expected_qty ?? "--"}</span>
+							</div>
+							{packedQty != null && (
+								<div className="bg-blue-100 px-3 py-1.5 rounded-lg text-blue-700">
+									Packed in this box:{" "}
+									<span className="font-bold">{packedQty}</span>
+								</div>
+							)}
+						</div>
 					</div>
-					<p className="text-sm text-gray-600 mt-3">
-						Need another box? Use the package links below to browse other boxes
-						this item appears in.
-					</p>
+
+					{/* Dimensions */}
+					<div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-5 border-y border-gray-100">
+						{[
+							{
+								label: "Length",
+								value: item?.length,
+								unit: "cm",
+								icon: <Ruler className="w-4 h-4" />,
+							},
+							{
+								label: "Width",
+								value: item?.width,
+								unit: "cm",
+								icon: <Ruler className="w-4 h-4" />,
+							},
+							{
+								label: "Height",
+								value: item?.height,
+								unit: "cm",
+								icon: <Ruler className="w-4 h-4" />,
+							},
+							{
+								label: "Net Weight",
+								value: item?.net_weight,
+								unit: "kg",
+								icon: <Scale className="w-4 h-4" />,
+								accent: true,
+							},
+						].map(({ label, value, unit, icon, accent }) => (
+							<div
+								key={label}
+								className={`rounded-xl p-4 border ${accent ? "bg-emerald-50 border-emerald-100" : "bg-gray-50 border-gray-200/60"}`}
+							>
+								<div
+									className={`flex items-center gap-2 mb-1 ${accent ? "text-emerald-600" : "text-gray-500"}`}
+								>
+									{icon}
+									<span className="text-xs font-semibold uppercase">
+										{label}
+									</span>
+								</div>
+								<div
+									className={`text-xl font-bold ${accent ? "text-emerald-900" : "text-gray-900"}`}
+								>
+									{value ?? "--"}{" "}
+									<span
+										className={`text-sm font-medium ${accent ? "text-emerald-600" : "text-gray-500"}`}
+									>
+										{unit}
+									</span>
+								</div>
+							</div>
+						))}
+					</div>
+
+					{/* IPAC Notes */}
+					{item?.ipac_comments && (
+						<div className="mt-6">
+							<h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-3">
+								IPAC Notes
+							</h3>
+							<div className="bg-amber-50 rounded-xl p-4 border border-amber-100 text-amber-900 text-sm leading-relaxed">
+								{item.ipac_comments}
+							</div>
+						</div>
+					)}
 				</section>
 
-				{/* Location Banner (If packed) */}
-				{packingHistory.length > 0 ? (
-					<div className="space-y-4">
-						<h3 className="text-lg font-bold text-gray-900 px-1">
-							Packing Locations
-						</h3>
-						{packingHistory.map((historyItem) => {
-							return (
-								<div
-									key={historyItem.id}
-									className="bg-blue-50 border border-blue-200 rounded-2xl p-6 sm:p-8 relative overflow-hidden"
-								>
-									<div className="absolute right-0 top-0 -mr-16 -mt-16 w-64 h-64 bg-blue-100 rounded-full opacity-50"></div>
-									<div className="absolute right-0 top-0 mt-8 mr-12 w-32 h-32 bg-blue-200 rounded-full opacity-30"></div>
-
-									<div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-										<div>
-											<div className="flex items-center gap-2 mb-2">
-												<MapPin className="w-5 h-5 text-blue-600" />
-												<span className="text-sm font-bold text-blue-800 uppercase tracking-wide">
-													Packed Qty: {historyItem.quantity}
-												</span>
-											</div>
-											<h3 className="text-xl font-bold text-gray-900">
-												Inside {historyItem.label}
-											</h3>
-											<p className="text-blue-700 mt-1">
-												{historyItem.instanceNumber
-													? `Instance #${historyItem.instanceNumber}`
-													: `Package #${historyItem.packageNumber ?? "-"}`}
-												{historyItem.orderName
-													? ` • Order: ${historyItem.orderName}`
-													: ""}
-											</p>
-										</div>
-
-										<Link
-											to="/portal/package/$id"
-											params={{ id: historyItem.packageId }}
-											className="inline-flex items-center justify-center py-2.5 px-5 bg-white text-blue-700 hover:bg-blue-50 border border-blue-200/60 rounded-xl font-bold shadow-sm transition-colors whitespace-nowrap"
-										>
-											View Package Contents
-										</Link>
-									</div>
+				{/* Package Location */}
+				{packageInfo ? (
+					<section className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-md p-6 sm:p-8 text-white relative overflow-hidden">
+						<div className="absolute -right-12 -top-12 w-48 h-48 bg-blue-500 rounded-full opacity-30" />
+						<div className="absolute -right-4 -bottom-10 w-32 h-32 bg-blue-800 rounded-full opacity-20" />
+						<div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+							<div>
+								<div className="flex items-center gap-2 mb-2">
+									<MapPin className="w-4 h-4 text-blue-200" />
+									<span className="text-xs font-bold text-blue-200 uppercase tracking-wide">
+										Currently Packed In
+									</span>
 								</div>
-							);
-						})}
-					</div>
+								<h3 className="text-2xl font-black">{packageInfo.reference}</h3>
+								<p className="text-blue-200 mt-1 text-sm">
+									{packageInfo.instanceNumber
+										? `Instance #${packageInfo.instanceNumber}`
+										: ""}
+									{packageInfo.orderName ? ` • ${packageInfo.orderName}` : ""}
+								</p>
+							</div>
+							{packageInfo.id && (
+								<Link
+									to="/portal/package/$id"
+									params={{ id: packageInfo.id }}
+									className="inline-flex items-center justify-center gap-2 py-2.5 px-5 bg-white text-blue-700 hover:bg-blue-50 rounded-xl font-bold shadow-sm transition-colors whitespace-nowrap flex-shrink-0"
+								>
+									<Box className="w-4 h-4" />
+									View Box Contents
+								</Link>
+							)}
+						</div>
+					</section>
 				) : (
 					<div className="bg-amber-50 border border-amber-200 text-amber-800 px-6 py-4 rounded-xl flex items-center gap-3">
 						<AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
@@ -260,90 +530,6 @@ function ItemView() {
 						</div>
 					</div>
 				)}
-
-				{/* Item Hero Card */}
-				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
-					<div className="mb-8">
-						<div className="flex items-center gap-2 mb-2">
-							<span className="bg-gray-100 text-gray-700 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
-								{item.pkg_category?.label || "General"}
-							</span>
-							<span className="text-sm font-medium text-gray-500">
-								REF: {item.item_num || "None"}
-							</span>
-						</div>
-						<h2 className="text-3xl font-black text-gray-900 tracking-tight">
-							{item.description || item.reference || "Unnamed Item"}
-						</h2>
-						<div className="mt-4 flex gap-4 text-sm font-medium">
-							<div className="bg-gray-100 px-3 py-1 rounded-lg text-gray-700">
-								Expected: <span className="font-bold">{item.expected_qty}</span>
-							</div>
-							<div className="bg-blue-100 px-3 py-1 rounded-lg text-blue-700">
-								Packed:{" "}
-								<span className="font-bold">{item.packed_qty || 0}</span>
-							</div>
-						</div>
-					</div>
-
-					{/* Dimensions Grid */}
-					<div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6 border-y border-gray-100">
-						<div className="bg-gray-50 rounded-xl p-4 border border-gray-200/60">
-							<div className="flex items-center gap-2 text-gray-500 mb-1">
-								<Ruler className="w-4 h-4" />
-								<span className="text-xs font-semibold uppercase">Length</span>
-							</div>
-							<div className="text-xl font-bold text-gray-900">
-								{item.length || "--"}{" "}
-								<span className="text-sm font-medium text-gray-500">cm</span>
-							</div>
-						</div>
-						<div className="bg-gray-50 rounded-xl p-4 border border-gray-200/60">
-							<div className="flex items-center gap-2 text-gray-500 mb-1">
-								<Ruler className="w-4 h-4" />
-								<span className="text-xs font-semibold uppercase">Width</span>
-							</div>
-							<div className="text-xl font-bold text-gray-900">
-								{item.width || "--"}{" "}
-								<span className="text-sm font-medium text-gray-500">cm</span>
-							</div>
-						</div>
-						<div className="bg-gray-50 rounded-xl p-4 border border-gray-200/60">
-							<div className="flex items-center gap-2 text-gray-500 mb-1">
-								<Ruler className="w-4 h-4 text-rotate-90" />
-								<span className="text-xs font-semibold uppercase">Height</span>
-							</div>
-							<div className="text-xl font-bold text-gray-900">
-								{item.height || "--"}{" "}
-								<span className="text-sm font-medium text-gray-500">cm</span>
-							</div>
-						</div>
-						<div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100/60">
-							<div className="flex items-center gap-2 text-emerald-600 mb-1">
-								<Scale className="w-4 h-4" />
-								<span className="text-xs font-semibold uppercase">
-									Net Weight
-								</span>
-							</div>
-							<div className="text-xl font-bold text-emerald-900">
-								{item.net_weight || "--"}{" "}
-								<span className="text-sm font-medium text-emerald-600">kg</span>
-							</div>
-						</div>
-					</div>
-
-					{/* Notes section if they exist */}
-					{record.ipac_comments && (
-						<div className="mt-8">
-							<h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-3">
-								IPAC Notes
-							</h3>
-							<div className="bg-gray-50/50 rounded-xl p-5 border border-gray-100 italic text-gray-600 shadow-inner">
-								"{record.ipac_comments}"
-							</div>
-						</div>
-					)}
-				</section>
 			</main>
 		</div>
 	);

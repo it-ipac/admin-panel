@@ -5,8 +5,133 @@ import {
 	useNavigate,
 	useParams,
 } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, Maximize, Package, Ruler } from "lucide-react";
+import {
+	ArrowLeft,
+	ChevronLeft,
+	ChevronRight,
+	Loader2,
+	Maximize,
+	Package,
+	Ruler,
+	X,
+} from "lucide-react";
+import { useState } from "react";
 import { supabase } from "../../../lib/supabase";
+
+function BoxPhotoGallery({
+	photos,
+}: {
+	photos: { id: string; image_url: string; notes: string | null }[];
+}) {
+	const [active, setActive] = useState(0);
+	const [lightbox, setLightbox] = useState<number | null>(null);
+	if (!photos.length) return null;
+	const prev = () => setActive((a) => (a - 1 + photos.length) % photos.length);
+	const next = () => setActive((a) => (a + 1) % photos.length);
+	return (
+		<section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+			<div className="relative aspect-video bg-gray-900">
+				<img
+					src={photos[active].image_url}
+					alt={photos[active].notes || `Box photo ${active + 1}`}
+					className="w-full h-full object-contain cursor-zoom-in"
+					onClick={() => setLightbox(active)}
+				/>
+				{photos.length > 1 && (
+					<>
+						<button
+							onClick={prev}
+							className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white transition-colors"
+						>
+							<ChevronLeft className="w-5 h-5" />
+						</button>
+						<button
+							onClick={next}
+							className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white transition-colors"
+						>
+							<ChevronRight className="w-5 h-5" />
+						</button>
+						<div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+							{photos.map((photo, i) => (
+								<button
+									key={photo.id || i}
+									onClick={() => setActive(i)}
+									className={`w-2 h-2 rounded-full transition-colors ${i === active ? "bg-white" : "bg-white/40"}`}
+								/>
+							))}
+						</div>
+					</>
+				)}
+				<div className="absolute top-3 left-3 bg-black/50 text-white text-xs font-semibold px-2 py-1 rounded-full">
+					Box Photos
+				</div>
+			</div>
+			{photos.length > 1 && (
+				<div className="flex gap-2 p-3 overflow-x-auto">
+					{photos.map((photo, i) => (
+						<button
+							key={photo.id}
+							onClick={() => setActive(i)}
+							className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === active ? "border-blue-500" : "border-gray-200"}`}
+						>
+							<img
+								src={photo.image_url}
+								alt=""
+								className="w-full h-full object-cover"
+							/>
+						</button>
+					))}
+				</div>
+			)}
+			{lightbox !== null && (
+				<div
+					className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+					onClick={(e) => {
+						if (e.target === e.currentTarget) setLightbox(null);
+					}}
+					onKeyDown={(e) => e.key === "Escape" && setLightbox(null)}
+					role="dialog"
+					aria-modal="true"
+					tabIndex={-1}
+				>
+					<button
+						className="absolute top-4 right-4 text-white/70 hover:text-white"
+						onClick={() => setLightbox(null)}
+					>
+						<X className="w-7 h-7" />
+					</button>
+					<img
+						src={photos[lightbox].image_url}
+						alt=""
+						className="max-w-full max-h-full object-contain"
+					/>
+					{photos.length > 1 && (
+						<>
+							<button
+								onClick={(e) => {
+									e.stopPropagation();
+									setLightbox((l) => (l! - 1 + photos.length) % photos.length);
+								}}
+								className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white"
+							>
+								<ChevronLeft className="w-6 h-6" />
+							</button>
+							<button
+								onClick={(e) => {
+									e.stopPropagation();
+									setLightbox((l) => (l! + 1) % photos.length);
+								}}
+								className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white"
+							>
+								<ChevronRight className="w-6 h-6" />
+							</button>
+						</>
+					)}
+				</div>
+			)}
+		</section>
+	);
+}
 
 export const Route = createFileRoute("/portal/package/$id")({
 	component: PackageView,
@@ -262,6 +387,21 @@ function PackageView() {
 		},
 	});
 
+	const { data: boxPhotos } = useQuery({
+		queryKey: ["portal-package-photos", id],
+		queryFn: async () => {
+			const { data, error } = await supabase
+				.from("media")
+				.select("id, image_url, notes, created_at")
+				.eq("order_pkg_instance_id", id)
+				.not("image_url", "is", null)
+				.order("created_at", { ascending: true });
+			if (error) throw error;
+			return (data || []).filter((m: any) => !!m.image_url);
+		},
+		enabled: !!id,
+	});
+
 	const { data: siblingBoxes, isLoading: siblingBoxesLoading } = useQuery({
 		queryKey: ["portal-package-siblings", pkg?.orderPkgOverviewId, pkg?.id],
 		queryFn: async () => {
@@ -335,7 +475,12 @@ function PackageView() {
 				</div>
 			</header>
 
-			<main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+			<main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+				{/* Box Photo Gallery */}
+				{boxPhotos && boxPhotos.length > 0 && (
+					<BoxPhotoGallery photos={boxPhotos} />
+				)}
+
 				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-5">
 					<div className="flex flex-wrap items-center gap-3">
 						<button
@@ -544,10 +689,11 @@ function PackageView() {
 
 									return (
 										<li key={entry.id}>
-											{item?.id ? (
+											{/* Use pkd_item.id (entry.id) as the link target — not items_db.id */}
+											{entry.id ? (
 												<Link
 													to="/portal/item/$id"
-													params={{ id: item.id }}
+													params={{ id: entry.id }}
 													className="block p-4 sm:p-6 hover:bg-gray-50 transition-colors"
 												>
 													{rowContent}

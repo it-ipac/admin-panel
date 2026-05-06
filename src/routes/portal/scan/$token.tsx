@@ -107,13 +107,51 @@ function TokenResolver() {
 						id: String(qrData.entity_id),
 					};
 				} else if (qrData.entity_type === "item") {
-					// We need to look up the item in items_db
+					// Legacy: token points to items_db
 					const { data: mDb } = await supabase
 						.from("items_db")
 						.select("client_id")
 						.eq("id", qrData.entity_id)
 						.single();
 					clientId = mDb?.client_id;
+					targetEntity = {
+						type: "item",
+						id: String(qrData.entity_id),
+					};
+				} else if (qrData.entity_type === "pkd_item") {
+					// New flow: token points to a specific pkd_item (physical packed instance)
+					const { data: pkdItem } = await supabase
+						.from("pkd_item")
+						.select(`
+							id,
+							pkg_instance_id,
+							order_pkg_instance:pkg_instance_id (
+								order_packages:order_package_id (
+									order_id
+								)
+							)
+						`)
+						.eq("id", qrData.entity_id)
+						.maybeSingle();
+
+					if (pkdItem) {
+						const pkgInstance = Array.isArray(pkdItem.order_pkg_instance)
+							? pkdItem.order_pkg_instance[0]
+							: pkdItem.order_pkg_instance;
+						const orderPackage = Array.isArray(pkgInstance?.order_packages)
+							? pkgInstance.order_packages[0]
+							: (pkgInstance?.order_packages as any);
+						const orderId = orderPackage?.order_id;
+						if (orderId) {
+							const { data: order } = await supabase
+								.from("orders")
+								.select("client_id")
+								.eq("id", orderId)
+								.single();
+							clientId = order?.client_id;
+						}
+					}
+
 					targetEntity = {
 						type: "item",
 						id: String(qrData.entity_id),

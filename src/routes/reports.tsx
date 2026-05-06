@@ -1,29 +1,46 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { CheckCircle, Clock, Loader2, Package, Users } from "lucide-react";
-import { useEffect } from "react";
 import {
-	Area,
-	AreaChart,
-	Bar,
-	BarChart,
-	CartesianGrid,
-	ResponsiveContainer,
-	Tooltip,
-	XAxis,
-	YAxis,
-} from "recharts";
+	BarChart3,
+	ChevronRight,
+	Filter,
+	Hash,
+	Loader2,
+	Package,
+	Search,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Sidebar } from "../components/Sidebar";
 import { useAuth } from "../hooks/useAuth";
-import { db } from "../lib/supabase";
+import { db, supabase } from "../lib/supabase";
 
 export const Route = createFileRoute("/reports")({
 	component: ReportsPage,
 });
 
+interface ProjectAnalytics {
+	orderId: string;
+	orderName: string;
+	projectType: string;
+	uniqueItems: number;
+	totalQty: number;
+}
+
+interface AggregatedAnalytics {
+	totalUniqueItems: number;
+	totalQty: number;
+	projectBreakdown: ProjectAnalytics[];
+}
+
 function ReportsPage() {
 	const navigate = useNavigate();
 	const { user, loading: authLoading } = useAuth();
+
+	const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+	const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+	const [analytics, setAnalytics] = useState<AggregatedAnalytics | null>(null);
+	const [analyticsLoading, setAnalyticsLoading] = useState(false);
+	const [projectSearch, setProjectSearch] = useState("");
 
 	useEffect(() => {
 		if (!authLoading && !user) {
@@ -31,36 +48,152 @@ function ReportsPage() {
 		}
 	}, [user, authLoading, navigate]);
 
-	const { data: orders, isLoading } = useQuery({
-		queryKey: ["orders"],
+	// Fetch Clients
+	const { data: clients, isLoading: clientsLoading } = useQuery({
+		queryKey: ["clients"],
 		queryFn: async () => {
-			const { data, error } = await db.getOrders();
+			const { data, error } = await db.getClients();
 			if (error) throw error;
 			return data || [];
 		},
 		enabled: !!user,
-		staleTime: 30000,
 	});
 
-	const stats = {
-		total: orders?.length || 0,
-		completed:
-			orders?.filter((o: any) => o.production_status === "completed").length ||
-			0,
-		inProgress:
-			orders?.filter((o: any) => o.production_status === "in_progress")
-				.length || 0,
-		pending:
-			orders?.filter((o: any) => o.production_status === "pending").length || 0,
+	// Fetch Orders for selected client
+	const { data: orders, isLoading: ordersLoading } = useQuery({
+		queryKey: ["orders", selectedClientId],
+		queryFn: async () => {
+			if (!selectedClientId) return [];
+			const { data, error } = await supabase
+				.from("orders")
+				.select("id, order_name, project_type")
+				.eq("client_id", selectedClientId)
+				.order("order_name");
+			if (error) throw error;
+			return data || [];
+		},
+		enabled: !!user && !!selectedClientId,
+	});
+
+	const filteredOrders = useMemo(() => {
+		if (!orders) return [];
+		if (!projectSearch.trim()) return orders;
+		const query = projectSearch.toLowerCase();
+		return orders.filter((o) => o.order_name.toLowerCase().includes(query));
+	}, [orders, projectSearch]);
+
+	const toggleOrder = (orderId: string) => {
+		setSelectedOrderIds((prev) =>
+			prev.includes(orderId)
+				? prev.filter((id) => id !== orderId)
+				: [...prev, orderId],
+		);
 	};
 
-	const completionRate =
-		stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+	const selectAllOrders = () => {
+		if (!orders) return;
+		if (selectedOrderIds.length === orders.length) {
+			setSelectedOrderIds([]);
+		} else {
+			setSelectedOrderIds(orders.map((o) => o.id));
+		}
+	};
 
-	// Monthly and weekly data - empty until real analytics are implemented
-	const monthlyData: { month: string; orders: number; completed: number }[] =
-		[];
-	const weeklyProductivity: { day: string; hours: number }[] = [];
+	async function generateReport() {
+		if (selectedOrderIds.length === 0) return;
+
+		setAnalyticsLoading(true);
+		try {
+			const selectedOrdersInfo =
+				orders?.filter((o) => selectedOrderIds.includes(o.id)) || [];
+
+			// 1. Fetch packed boxes for these orders
+			const { data: boxes, error: boxesError } = await supabase
+				.from("order_pkg_instance")
+				.select(`
+					id,
+					order_package_id,
+					status,
+					order_pkg_overview!inner (
+						order_id
+					)
+				`)
+				.in("order_pkg_overview.order_id", selectedOrderIds);
+
+			if (boxesError) throw boxesError;
+
+			if (!boxes || boxes.length === 0) {
+				setAnalytics({
+					totalUniqueItems: 0,
+					totalQty: 0,
+					projectBreakdown: selectedOrdersInfo.map((o) => ({
+						orderId: o.id,
+						orderName: o.order_name,
+						projectType: o.project_type,
+						uniqueItems: 0,
+						totalQty: 0,
+					})),
+				});
+				return;
+			}
+
+			// 2. Fetch Items from pkd_item for all boxes
+			const boxIds = boxes.map((b) => b.id);
+			const { data: allPkdItems, error: itemsError } = await supabase
+				.from("pkd_item")
+				.select("id, quantity, maintenance_db_id, pkg_instance_id")
+				.in("pkg_instance_id", boxIds);
+
+			if (itemsError) throw itemsError;
+
+			// 3. Aggregate
+			const projectBreakdown: ProjectAnalytics[] = [];
+			const globalUniqueItems = new Set<string>();
+			let globalTotalQty = 0;
+
+			for (const order of selectedOrdersInfo) {
+				const projectUniqueItems = new Set<string>();
+				let projectTotalQty = 0;
+
+				const projectBoxes = boxes.filter(
+					(b) => (b.order_pkg_overview as any)?.order_id === order.id,
+				);
+				const projectBoxIds = projectBoxes.map((b) => b.id);
+				const projectItems =
+					allPkdItems?.filter((i) =>
+						projectBoxIds.includes(i.pkg_instance_id),
+					) || [];
+
+				for (const item of projectItems) {
+					const itemKey = item.maintenance_db_id || `item-${item.id}`;
+					projectUniqueItems.add(itemKey);
+					globalUniqueItems.add(itemKey);
+
+					const qty = Number(item.quantity) || 0;
+					projectTotalQty += qty;
+					globalTotalQty += qty;
+				}
+
+				projectBreakdown.push({
+					orderId: order.id,
+					orderName: order.order_name,
+					projectType: order.project_type,
+					uniqueItems: projectUniqueItems.size,
+					totalQty: projectTotalQty,
+				});
+			}
+
+			setAnalytics({
+				totalUniqueItems: globalUniqueItems.size,
+				totalQty: globalTotalQty,
+				projectBreakdown,
+			});
+		} catch (error) {
+			console.error("Error generating analytics:", error);
+		} finally {
+			setAnalyticsLoading(false);
+		}
+	}
 
 	if (authLoading) {
 		return (
@@ -74,208 +207,263 @@ function ReportsPage() {
 		<div className="flex h-screen bg-gray-50">
 			<Sidebar />
 			<main className="flex-1 overflow-y-auto">
-				<div className="p-8">
-					<div className="mb-8">
-						<h1 className="text-2xl font-bold text-gray-900">
-							Reports & Analytics
-						</h1>
-						<p className="text-gray-500 mt-1">
-							Track performance and productivity metrics
-						</p>
-					</div>
-
-					{/* KPI Cards */}
-					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-						<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-							<div className="flex items-center justify-between mb-4">
-								<div className="p-3 rounded-xl bg-blue-100">
-									<Package className="w-6 h-6 text-blue-600" />
-								</div>
-							</div>
-							<p className="text-sm text-gray-500">Total Orders</p>
-							<p className="text-3xl font-bold text-gray-900">
-								{isLoading ? "-" : stats.total}
+				<div className="p-8 max-w-7xl mx-auto">
+					<div className="flex justify-between items-center mb-8">
+						<div>
+							<h1 className="text-2xl font-bold text-gray-900">
+								Reports & Analytics
+							</h1>
+							<p className="text-gray-500 mt-1">
+								Select clients and projects to view packing performance
 							</p>
 						</div>
-
-						<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-							<div className="flex items-center justify-between mb-4">
-								<div className="p-3 rounded-xl bg-emerald-100">
-									<CheckCircle className="w-6 h-6 text-emerald-600" />
-								</div>
+						<div className="flex items-center space-x-3">
+							<div className="p-2 bg-blue-100 rounded-lg">
+								<BarChart3 className="w-6 h-6 text-blue-600" />
 							</div>
-							<p className="text-sm text-gray-500">Completion Rate</p>
-							<p className="text-3xl font-bold text-gray-900">
-								{completionRate}%
-							</p>
-						</div>
-
-						<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-							<div className="flex items-center justify-between mb-4">
-								<div className="p-3 rounded-xl bg-amber-100">
-									<Clock className="w-6 h-6 text-amber-600" />
-								</div>
-							</div>
-							<p className="text-sm text-gray-500">In Progress</p>
-							<p className="text-3xl font-bold text-gray-900">
-								{isLoading ? "-" : stats.inProgress}
-							</p>
-						</div>
-
-						<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-							<div className="flex items-center justify-between mb-4">
-								<div className="p-3 rounded-xl bg-purple-100">
-									<Users className="w-6 h-6 text-purple-600" />
-								</div>
-							</div>
-							<p className="text-sm text-gray-500">Pending</p>
-							<p className="text-3xl font-bold text-gray-900">
-								{isLoading ? "-" : stats.pending}
-							</p>
 						</div>
 					</div>
 
-					{/* Charts */}
-					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-						<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-							<h2 className="text-lg font-semibold text-gray-900 mb-4">
-								Monthly Orders
-							</h2>
-							<div className="h-80">
-								{monthlyData.length > 0 ? (
-									<ResponsiveContainer width="100%" height="100%">
-										<AreaChart data={monthlyData}>
-											<CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-											<XAxis dataKey="month" stroke="#64748b" fontSize={12} />
-											<YAxis stroke="#64748b" fontSize={12} />
-											<Tooltip />
-											<Area
-												type="monotone"
-												dataKey="orders"
-												name="Total Orders"
-												stroke="#3b82f6"
-												fill="#3b82f6"
-												fillOpacity={0.2}
+					<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+						{/* Filter Sidebar */}
+						<div className="lg:col-span-1 space-y-6">
+							<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+								<h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+									<Filter className="w-5 h-5 mr-2 text-gray-500" />
+									Filters
+								</h2>
+
+								{/* Client Select */}
+								<div className="mb-6">
+									<label
+										htmlFor="client-select"
+										className="block text-sm font-medium text-gray-700 mb-2"
+									>
+										Client
+									</label>
+									{clientsLoading ? (
+										<div className="h-10 bg-gray-50 animate-pulse rounded-lg" />
+									) : (
+										<select
+											id="client-select"
+											className="select select-bordered w-full bg-white"
+											value={selectedClientId || ""}
+											onChange={(e) => {
+												setSelectedClientId(e.target.value);
+												setSelectedOrderIds([]);
+												setAnalytics(null);
+											}}
+										>
+											<option value="">Select a client</option>
+											{clients?.map((c) => (
+												<option key={c.id} value={c.id}>
+													{c.name}
+												</option>
+											))}
+										</select>
+									)}
+								</div>
+
+								{/* Projects Select */}
+								{selectedClientId && (
+									<div className="space-y-4">
+										<div className="flex items-center justify-between">
+											<span className="block text-sm font-medium text-gray-700">
+												Projects
+											</span>
+											<button
+												onClick={selectAllOrders}
+												className="text-xs font-semibold text-blue-600 hover:underline"
+											>
+												{selectedOrderIds.length === (orders?.length || 0)
+													? "Deselect All"
+													: "Select All"}
+											</button>
+										</div>
+
+										<div className="relative">
+											<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+											<input
+												type="text"
+												placeholder="Search projects..."
+												className="input input-bordered w-full pl-10 h-10 bg-white text-sm"
+												value={projectSearch}
+												onChange={(e) => setProjectSearch(e.target.value)}
 											/>
-											<Area
-												type="monotone"
-												dataKey="completed"
-												name="Completed"
-												stroke="#10b981"
-												fill="#10b981"
-												fillOpacity={0.2}
-											/>
-										</AreaChart>
-									</ResponsiveContainer>
-								) : (
-									<div className="flex items-center justify-center h-full text-gray-400">
-										<p>Monthly orders chart coming soon</p>
+										</div>
+
+										<div className="max-h-[300px] overflow-y-auto border border-gray-100 rounded-lg p-2 bg-gray-50">
+											{ordersLoading ? (
+												<div className="flex justify-center py-4">
+													<Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+												</div>
+											) : (
+												<div className="space-y-1">
+													{filteredOrders.length === 0 ? (
+														<p className="text-center py-4 text-sm text-gray-500">
+															No projects found
+														</p>
+													) : (
+														filteredOrders.map((order) => (
+															<label
+																key={order.id}
+																className={`flex items-center p-2 rounded-lg cursor-pointer transition-colors ${
+																	selectedOrderIds.includes(order.id)
+																		? "bg-blue-50"
+																		: "hover:bg-white"
+																}`}
+															>
+																<input
+																	type="checkbox"
+																	className="checkbox checkbox-sm checkbox-primary mr-3"
+																	checked={selectedOrderIds.includes(order.id)}
+																	onChange={() => toggleOrder(order.id)}
+																/>
+																<span className="text-sm font-medium text-gray-700 truncate">
+																	{order.order_name}
+																</span>
+															</label>
+														))
+													)}
+												</div>
+											)}
+										</div>
+
+										<button
+											onClick={generateReport}
+											disabled={
+												selectedOrderIds.length === 0 || analyticsLoading
+											}
+											className="btn btn-primary w-full shadow-md text-white"
+										>
+											{analyticsLoading ? (
+												<Loader2 className="w-5 h-5 animate-spin" />
+											) : (
+												"Generate Report"
+											)}
+										</button>
 									</div>
 								)}
 							</div>
 						</div>
 
-						<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-							<h2 className="text-lg font-semibold text-gray-900 mb-4">
-								Weekly Productivity
-							</h2>
-							<div className="h-80">
-								{weeklyProductivity.length > 0 ? (
-									<ResponsiveContainer width="100%" height="100%">
-										<BarChart data={weeklyProductivity}>
-											<CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-											<XAxis dataKey="day" stroke="#64748b" fontSize={12} />
-											<YAxis stroke="#64748b" fontSize={12} />
-											<Tooltip />
-											<Bar
-												dataKey="hours"
-												name="Hours"
-												fill="#8b5cf6"
-												radius={[4, 4, 0, 0]}
-											/>
-										</BarChart>
-									</ResponsiveContainer>
-								) : (
-									<div className="flex items-center justify-center h-full text-gray-400">
-										<p>Weekly productivity chart coming soon</p>
+						{/* Results Area */}
+						<div className="lg:col-span-2 space-y-6">
+							{!analytics ? (
+								<div className="h-full flex flex-col items-center justify-center bg-white rounded-xl border border-dashed border-gray-300 py-20 px-6 text-center">
+									<div className="p-4 bg-gray-100 rounded-full mb-4">
+										<Filter className="w-10 h-10 text-gray-400" />
 									</div>
-								)}
-							</div>
-						</div>
-					</div>
+									<h3 className="text-lg font-semibold text-gray-900">
+										No Analytics Generated
+									</h3>
+									<p className="text-gray-500 max-w-xs mt-1">
+										Select a client and at least one project from the sidebar to
+										view the report.
+									</p>
+								</div>
+							) : (
+								<>
+									{/* KPI Cards */}
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+										<div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
+											<div className="p-4 bg-indigo-100 rounded-xl">
+												<Package className="w-8 h-8 text-indigo-600" />
+											</div>
+											<div>
+												<p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+													Unique Items
+												</p>
+												<p className="text-3xl font-bold text-gray-900">
+													{analytics.totalUniqueItems}
+												</p>
+											</div>
+										</div>
+										<div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
+											<div className="p-4 bg-emerald-100 rounded-xl">
+												<Hash className="w-8 h-8 text-emerald-600" />
+											</div>
+											<div>
+												<p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+													Total Quantity
+												</p>
+												<p className="text-3xl font-bold text-gray-900">
+													{analytics.totalQty}
+												</p>
+											</div>
+										</div>
+									</div>
 
-					{/* Summary Table */}
-					<div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-						<div className="px-6 py-4 border-b border-gray-100">
-							<h2 className="text-lg font-semibold text-gray-900">
-								Order Status Summary
-							</h2>
+									{/* Breakdown Table */}
+									<div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+										<div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+											<h3 className="font-semibold text-gray-900">
+												Project Breakdown
+											</h3>
+										</div>
+										<div className="overflow-x-auto">
+											<table className="w-full text-left">
+												<thead>
+													<tr className="bg-gray-50">
+														<th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+															Project Name
+														</th>
+														<th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+															Type
+														</th>
+														<th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
+															Items
+														</th>
+														<th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
+															Total Qty
+														</th>
+														<th className="px-6 py-3 w-10"></th>
+													</tr>
+												</thead>
+												<tbody className="divide-y divide-gray-100">
+													{analytics.projectBreakdown.map((project) => (
+														<tr
+															key={project.orderId}
+															className="hover:bg-gray-50 transition-colors group"
+														>
+															<td className="px-6 py-4">
+																<span className="font-medium text-gray-900">
+																	{project.orderName}
+																</span>
+															</td>
+															<td className="px-6 py-4">
+																<span
+																	className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${
+																		project.projectType === "maintenance"
+																			? "bg-orange-100 text-orange-700"
+																			: "bg-blue-100 text-blue-700"
+																	}`}
+																>
+																	{project.projectType}
+																</span>
+															</td>
+															<td className="px-6 py-4 text-center">
+																<span className="text-gray-900 font-semibold">
+																	{project.uniqueItems}
+																</span>
+															</td>
+															<td className="px-6 py-4 text-center">
+																<span className="text-gray-900 font-semibold">
+																	{project.totalQty}
+																</span>
+															</td>
+															<td className="px-6 py-4">
+																<ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 transition-colors" />
+															</td>
+														</tr>
+													))}
+												</tbody>
+											</table>
+										</div>
+									</div>
+								</>
+							)}
 						</div>
-						<table className="w-full">
-							<thead className="bg-gray-50">
-								<tr>
-									<th className="text-left py-3 px-6 text-sm font-medium text-gray-500">
-										Status
-									</th>
-									<th className="text-left py-3 px-6 text-sm font-medium text-gray-500">
-										Count
-									</th>
-									<th className="text-left py-3 px-6 text-sm font-medium text-gray-500">
-										Percentage
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								<tr className="border-b border-gray-50">
-									<td className="py-4 px-6">
-										<span className="inline-flex px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">
-											Completed
-										</span>
-									</td>
-									<td className="py-4 px-6 text-sm text-gray-600">
-										{stats.completed}
-									</td>
-									<td className="py-4 px-6 text-sm text-gray-600">
-										{stats.total > 0
-											? Math.round((stats.completed / stats.total) * 100)
-											: 0}
-										%
-									</td>
-								</tr>
-								<tr className="border-b border-gray-50">
-									<td className="py-4 px-6">
-										<span className="inline-flex px-2.5 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
-											In Progress
-										</span>
-									</td>
-									<td className="py-4 px-6 text-sm text-gray-600">
-										{stats.inProgress}
-									</td>
-									<td className="py-4 px-6 text-sm text-gray-600">
-										{stats.total > 0
-											? Math.round((stats.inProgress / stats.total) * 100)
-											: 0}
-										%
-									</td>
-								</tr>
-								<tr>
-									<td className="py-4 px-6">
-										<span className="inline-flex px-2.5 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
-											Pending
-										</span>
-									</td>
-									<td className="py-4 px-6 text-sm text-gray-600">
-										{stats.pending}
-									</td>
-									<td className="py-4 px-6 text-sm text-gray-600">
-										{stats.total > 0
-											? Math.round((stats.pending / stats.total) * 100)
-											: 0}
-										%
-									</td>
-								</tr>
-							</tbody>
-						</table>
 					</div>
 				</div>
 			</main>
