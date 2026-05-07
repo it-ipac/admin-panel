@@ -207,7 +207,7 @@ function ItemView() {
 							description
 						)
 					),
-					media (
+					media!pkd_item_id (
 						id,
 						image_url,
 						notes,
