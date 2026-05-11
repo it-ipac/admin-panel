@@ -34,4 +34,9 @@ export type ReportInstanceData = {
 		item_name: string | null;
 		item_num: string | null;
 	}>;
+	is_continuation?: boolean;
+	has_more?: boolean;
+	line_offset?: number;
+	overall_lines?: number;
+	overall_qty?: number;
 };

@@ -6,7 +6,29 @@ import type { ReportInstanceData } from "./types";
 
 // Estimated heights in pixels at 96dpi
 const FONT_SCALE = { small: 0.82, medium: 1, large: 1.18 };
-const PAGE_USABLE_H = { portrait: 800, landscape: 500 }; // px usable after header/footer
+const PAGE_USABLE_H = { portrait: 750, landscape: 450 }; // px usable after header/footer
+
+function getBoxBaseHeight(
+	pkg: ReportPkgDetailsSettings,
+	fs: "small" | "medium" | "large",
+	isContinuation: boolean,
+): number {
+	const fm = FONT_SCALE[fs];
+	if (isContinuation) {
+		return 50 * fm + 14;
+	}
+	let h = 70 * fm; // box header + meta rows
+	if (pkg.show_dimensions || pkg.show_weights) h += 22 * fm;
+	if (pkg.show_items && pkg.items_detail_level === "full") {
+		h += 28 * fm; // table header
+	}
+	h += 14; // card padding/margin
+	return h;
+}
+
+function getRowHeight(fs: "small" | "medium" | "large"): number {
+	return 22 * FONT_SCALE[fs];
+}
 
 function estimateBoxHeight(
 	inst: ReportInstanceData,
@@ -73,14 +95,89 @@ export function paginateInstances(
 		let current: ReportInstanceData[] = [];
 		let currentH = 0;
 		for (const inst of group.items) {
-			const boxH = estimateBoxHeight(inst, pkg, fs);
-			if (currentH + boxH > maxH && current.length > 0) {
-				pages.push({ label: group.label, items: current });
-				current = [inst];
-				currentH = boxH;
+			if (
+				pkg.show_items &&
+				pkg.items_detail_level === "full" &&
+				inst.pkd_items.length > 0
+			) {
+				const overallLines = inst.pkd_items.length;
+				const overallQty = inst.pkd_items.reduce(
+					(sum, item) => sum + item.quantity,
+					0,
+				);
+
+				let itemsRemaining = [...inst.pkd_items];
+				let isFirstPageForBox = true;
+				let lineOffset = 0;
+
+				while (itemsRemaining.length > 0) {
+					const baseH = getBoxBaseHeight(pkg, fs, !isFirstPageForBox);
+					const rowH = getRowHeight(fs);
+					const availH = maxH - currentH;
+
+					if (availH < baseH + rowH) {
+						// Not enough space for header + at least 1 item
+						if (current.length > 0) {
+							pages.push({ label: group.label, items: current });
+							current = [];
+							currentH = 0;
+						}
+					}
+
+					const usableH = maxH - currentH;
+					const headerH = getBoxBaseHeight(pkg, fs, !isFirstPageForBox);
+					const itemsSpace = usableH - headerH;
+					const itemsToFit = Math.floor(itemsSpace / rowH);
+
+					if (itemsToFit <= 0) {
+						// Force at least 1 item to avoid infinite loop
+						const slice = itemsRemaining.slice(0, 1);
+						itemsRemaining = itemsRemaining.slice(1);
+						const partInst: ReportInstanceData = {
+							...inst,
+							pkd_items: slice,
+							is_continuation: !isFirstPageForBox,
+							has_more: itemsRemaining.length > 0,
+							line_offset: lineOffset,
+							overall_lines: overallLines,
+							overall_qty: overallQty,
+						};
+						current.push(partInst);
+						currentH += headerH + rowH;
+						isFirstPageForBox = false;
+						lineOffset += slice.length;
+						continue;
+					}
+
+					const slice = itemsRemaining.slice(0, itemsToFit);
+					itemsRemaining = itemsRemaining.slice(itemsToFit);
+
+					const partInst: ReportInstanceData = {
+						...inst,
+						pkd_items: slice,
+						is_continuation: !isFirstPageForBox,
+						has_more: itemsRemaining.length > 0,
+						line_offset: lineOffset,
+						overall_lines: overallLines,
+						overall_qty: overallQty,
+					};
+
+					current.push(partInst);
+					currentH += headerH + slice.length * rowH;
+					isFirstPageForBox = false;
+					lineOffset += slice.length;
+				}
 			} else {
-				current.push(inst);
-				currentH += boxH;
+				// Summary or no items
+				const boxH = estimateBoxHeight(inst, pkg, fs);
+				if (currentH + boxH > maxH && current.length > 0) {
+					pages.push({ label: group.label, items: current });
+					current = [inst];
+					currentH = boxH;
+				} else {
+					current.push(inst);
+					currentH += boxH;
+				}
 			}
 		}
 		if (current.length > 0) {

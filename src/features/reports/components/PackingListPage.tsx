@@ -243,6 +243,7 @@ export const PackingListPage = React.forwardRef<
 											{inst.instance_number > 1
 												? ` — Instance ${inst.instance_number}`
 												: ""}
+											{inst.is_continuation ? " (Continued)" : ""}
 										</div>
 										<div
 											style={{
@@ -301,49 +302,66 @@ export const PackingListPage = React.forwardRef<
 								</div>
 
 								{/* Meta row */}
-								<div
-									style={{
-										padding: "4px 10px",
-										background: "#fafcff",
-										borderBottom: "1px solid #eef",
-										display: "flex",
-										flexWrap: "wrap",
-										gap: "2px 16px",
-										fontSize: 9.5,
-									}}
-								>
-									{pkg.show_item_count_summary && (
-										<span>
-											Items: <strong>{inst.item_count}</strong>
-										</span>
-									)}
-									{pkg.show_last_packed_date && inst.last_packed_at && (
-										<span>
-											Packed:{" "}
-											<strong>
-												{new Date(inst.last_packed_at).toLocaleDateString()}
-											</strong>
-										</span>
-									)}
-									{pkg.show_weights && (
-										<span>
-											Weight: <strong>—</strong>
-										</span>
-									)}
-									{pkg.show_dimensions && (
-										<span>
-											Dims: <strong>— × — × — cm</strong>
-										</span>
-									)}
-									{pkg.show_status && (
-										<span>
-											Status:{" "}
-											<strong style={{ textTransform: "capitalize" }}>
-												{inst.status}
-											</strong>
-										</span>
-									)}
-								</div>
+								{true && (
+									<div
+										style={{
+											padding: "4px 10px",
+											background: "#fafcff",
+											borderBottom: "1px solid #eef",
+											display: "flex",
+											flexWrap: "wrap",
+											gap: "2px 16px",
+											fontSize: 9.5,
+										}}
+									>
+										{pkg.show_item_count_summary && (
+											<>
+												<span>
+													Lines:{" "}
+													<strong>
+														{inst.overall_lines ?? inst.pkd_items.length}
+													</strong>
+												</span>
+												<span>
+													Total Qty:{" "}
+													<strong>
+														{inst.overall_qty ??
+															inst.pkd_items.reduce(
+																(sum, item) => sum + item.quantity,
+																0,
+															)}
+													</strong>
+												</span>
+											</>
+										)}
+										{pkg.show_last_packed_date && inst.last_packed_at && (
+											<span>
+												Packed:{" "}
+												<strong>
+													{new Date(inst.last_packed_at).toLocaleDateString()}
+												</strong>
+											</span>
+										)}
+										{pkg.show_weights && (
+											<span>
+												Weight: <strong>—</strong>
+											</span>
+										)}
+										{pkg.show_dimensions && (
+											<span>
+												Dims: <strong>— × — × — cm</strong>
+											</span>
+										)}
+										{pkg.show_status && (
+											<span>
+												Status:{" "}
+												<strong style={{ textTransform: "capitalize" }}>
+													{inst.status}
+												</strong>
+											</span>
+										)}
+									</div>
+								)}
 
 								{/* Items table */}
 								{pkg.show_items && inst.pkd_items.length > 0 && (
@@ -370,6 +388,20 @@ export const PackingListPage = React.forwardRef<
 											>
 												<thead>
 													<tr style={{ background: tc }}>
+														{pkg.show_line_num_col && (
+															<th
+																style={{
+																	padding: "3px 8px",
+																	textAlign: "left",
+																	color: "#fff",
+																	fontWeight: 600,
+																	fontSize: 9,
+																	width: 40,
+																}}
+															>
+																No.
+															</th>
+														)}
 														{pkg.show_item_num_col && (
 															<th
 																style={{
@@ -427,6 +459,17 @@ export const PackingListPage = React.forwardRef<
 																	: undefined,
 															}}
 														>
+															{pkg.show_line_num_col && (
+																<td
+																	style={{
+																		padding: "2.5px 8px",
+																		color: "#555",
+																		fontSize: 9.5,
+																	}}
+																>
+																	{(inst.line_offset || 0) + i + 1}
+																</td>
+															)}
 															{pkg.show_item_num_col && (
 																<td
 																	style={{
@@ -468,6 +511,19 @@ export const PackingListPage = React.forwardRef<
 													))}
 												</tbody>
 											</table>
+										)}
+										{inst.has_more && (
+											<div
+												style={{
+													padding: "4px 10px",
+													fontSize: 9,
+													color: "#666",
+													fontStyle: "italic",
+													textAlign: "right",
+												}}
+											>
+												Continued on next page...
+											</div>
 										)}
 									</div>
 								)}

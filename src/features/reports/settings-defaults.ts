@@ -32,7 +32,7 @@ export const DEFAULT_DISPLAY_SETTINGS: ReportDisplaySettings = {
 	header_layout: "standard",
 	show_company_logo: true,
 	show_company_name: true,
-	theme_color: "#1e3a5f",
+	theme_color: "#d9e4f2",
 	accent_color: "#dbeafe",
 	show_report_number: true,
 	show_report_date: true,
@@ -73,6 +73,7 @@ export type ReportPkgDetailsSettings = {
 	show_item_num_col: boolean;
 	show_description_col: boolean;
 	show_qty_col: boolean;
+	show_line_num_col: boolean;
 };
 
 export const DEFAULT_PKG_DETAILS_SETTINGS: ReportPkgDetailsSettings = {
@@ -96,6 +97,7 @@ export const DEFAULT_PKG_DETAILS_SETTINGS: ReportPkgDetailsSettings = {
 	show_item_num_col: true,
 	show_description_col: true,
 	show_qty_col: true,
+	show_line_num_col: false,
 };
 
 export function resolveDisplaySettings(saved: any): ReportDisplaySettings {

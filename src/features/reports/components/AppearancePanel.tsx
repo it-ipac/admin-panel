@@ -327,6 +327,11 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 									Columns
 								</div>
 								<Toggle
+									label="Line # column"
+									checked={pkgDetails.show_line_num_col}
+									onChange={(v) => setP("show_line_num_col", v)}
+								/>
+								<Toggle
 									label="Item # column"
 									checked={pkgDetails.show_item_num_col}
 									onChange={(v) => setP("show_item_num_col", v)}
