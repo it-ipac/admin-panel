@@ -3,10 +3,15 @@ export type FilterParams = {
 	orderId: string | null;
 	dateFrom: string | null;
 	dateTo: string | null;
-	dateFilterMode: "packed_at" | "created_at"; // Default packed_at
+	// 'instance_created_at' uses order_pkg_instance.created_at
+	// 'item_packed_at' uses MAX(pkd_item.created_at) — the real "packed" date
+	dateFilterMode: "item_packed_at" | "instance_created_at";
 	tags: string[];
 	destinations: string[];
-	statuses: string[];
+	// "has_items" means the box has at least one packed item (the main use-case)
+	hasItemsOnly: boolean;
+	// Split mode for batch printing
+	splitBy: "none" | "destination" | "order";
 };
 
 export type ReportInstanceData = {
@@ -15,16 +20,18 @@ export type ReportInstanceData = {
 	ipac_reference: string | null;
 	destination: string | null;
 	status: string;
-	packed_at: string | null;
-	order_pkg_overview_id: string;
-	order_package_id: string;
-	// relations
-	order_pkg_overview: {
-		order_id: string;
-		description: string | null;
-	};
-	order_package: {
-		package_number: number;
-		reference: string | null;
-	};
+	created_at: string;
+	last_packed_at: string | null; // derived: MAX(pkd_item.created_at)
+	item_count: number;
+	order_id: string;
+	order_name: string;
+	order_reference: string | null;
+	package_number: number;
+	package_reference: string | null;
+	pkd_items: Array<{
+		id: string;
+		quantity: number;
+		item_name: string | null;
+		item_num: string | null;
+	}>;
 };

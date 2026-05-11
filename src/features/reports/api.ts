@@ -1,5 +1,5 @@
 import { supabase } from "../../lib/supabase";
-import type { FilterParams } from "./types";
+import type { FilterParams, ReportInstanceData } from "./types";
 
 export const fetchClients = async () => {
 	const { data, error } = await supabase
@@ -53,7 +53,8 @@ export const fetchDestinations = async (
 		query = query.eq("order_pkg_overview.orders.client_id", clientId);
 	}
 
-	const { data, error } = await query;
+	// Only show destinations from instances that have packed items
+	const { data, error } = await query.not("destination", "is", null);
 	if (error) throw error;
 
 	const uniqueDestinations = new Set<string>();
@@ -66,94 +67,72 @@ export const fetchDestinations = async (
 	return Array.from(uniqueDestinations).sort();
 };
 
-export const fetchReportInstances = async (filters: FilterParams) => {
+export const fetchReportInstances = async (
+	filters: FilterParams,
+): Promise<ReportInstanceData[]> => {
 	if (!filters.clientId && !filters.orderId) return [];
 
-	let query = supabase.from("order_pkg_instance").select(`
-      id,
-      instance_number,
-      ipac_reference,
-      destination,
-      status,
-      packed_at,
-      created_at,
-      order_pkg_overview_id,
-      order_package_id,
-      order_pkg_overview!inner (
-        order_id,
-        description,
-        orders!inner (
-          client_id
-        ),
-        category_order_map (
-          category_tag_map (
-            tag_id
-          )
-        )
-      ),
-      order_packages (
-        package_number,
-        reference
-      )
-    `);
+	// Build date params — ensure the "To" date includes the full day by appending end-of-day time
+	const dateTo = filters.dateTo ? `${filters.dateTo}T23:59:59+00:00` : null;
+	const dateFrom = filters.dateFrom
+		? `${filters.dateFrom}T00:00:00+00:00`
+		: null;
 
-	if (filters.orderId) {
-		query = query.eq("order_pkg_overview.order_id", filters.orderId);
-	} else if (filters.clientId) {
-		query = query.eq("order_pkg_overview.orders.client_id", filters.clientId);
-	}
+	const { data, error } = await supabase.rpc("fetch_report_instances", {
+		p_client_id: filters.clientId || null,
+		p_order_id: filters.orderId || null,
+		p_date_from: dateFrom,
+		p_date_to: dateTo,
+		p_date_mode: filters.dateFilterMode,
+		p_destinations:
+			filters.destinations.length > 0 ? filters.destinations : null,
+		p_has_items_only: filters.hasItemsOnly,
+	});
 
-	if (filters.destinations.length > 0) {
-		query = query.in("destination", filters.destinations);
-	}
-
-	if (filters.statuses.length > 0) {
-		query = query.in("status", filters.statuses);
-	}
-
-	// Date filtering
-	if (filters.dateFrom) {
-		query = query.gte(filters.dateFilterMode, filters.dateFrom);
-	}
-	if (filters.dateTo) {
-		// Add 1 day if dateTo is just a date, to include the whole day. Assuming ISO strings.
-		// For now just doing simple <= since we might pass a time as well.
-		query = query.lte(filters.dateFilterMode, filters.dateTo);
-	}
-
-	const { data, error } = await query;
 	if (error) throw error;
+	if (!data || data.length === 0) return [];
 
-	// Client-side filtering for tags, since it's a deep relation and difficult to filter cleanly with inner joins in Supabase sometimes without duplicate rows or missing rows if multiple tags.
-	let filteredData = data;
-	if (filters.tags.length > 0) {
-		filteredData = data.filter((instance) => {
-			// Find tags associated with this instance's order
-			// Note: tags are usually on category level. Wait, order -> category_order_map -> category_tag_map -> tag.
-			// The old Taqa logic is complex, let's see if the tag_id matches any of the filter tags.
-			const overview = Array.isArray(instance.order_pkg_overview)
-				? instance.order_pkg_overview[0]
-				: (instance.order_pkg_overview as any);
-			const categoryOrderMaps = overview?.category_order_map;
-			if (!categoryOrderMaps || !Array.isArray(categoryOrderMaps)) return false;
+	// Fetch items for all instances (if show_items is needed, the component will handle it)
+	const instanceIds = data.map((d: any) => d.id);
+	const { data: itemData, error: itemError } = await supabase.rpc(
+		"fetch_instance_items",
+		{ p_instance_ids: instanceIds },
+	);
+	if (itemError) throw itemError;
 
-			let hasTag = false;
-			for (const com of categoryOrderMaps) {
-				const categoryTagMaps = (com as any).category_tag_map;
-				if (!categoryTagMaps || !Array.isArray(categoryTagMaps)) continue;
-				for (const ctm of categoryTagMaps) {
-					if (filters.tags.includes(ctm.tag_id)) {
-						hasTag = true;
-						break;
-					}
-				}
-				if (hasTag) break;
-			}
-			return hasTag;
-		});
+	// Group items by instance
+	const itemsByInstance = new Map<string, any[]>();
+	for (const item of itemData || []) {
+		if (!itemsByInstance.has(item.pkg_instance_id)) {
+			itemsByInstance.set(item.pkg_instance_id, []);
+		}
+		itemsByInstance.get(item.pkg_instance_id)!.push(item);
 	}
 
-	return filteredData as any[]; // Type assertion for now to handle complex nested types
+	// Map to the ReportInstanceData shape
+	return data.map(
+		(inst: any): ReportInstanceData => ({
+			id: inst.id,
+			instance_number: inst.instance_number,
+			ipac_reference: inst.ipac_reference,
+			destination: inst.destination,
+			status: inst.status,
+			created_at: inst.created_at,
+			last_packed_at: inst.last_packed_at,
+			item_count: Number(inst.item_count),
+			order_id: inst.order_id,
+			order_name: inst.order_name,
+			order_reference: inst.order_reference,
+			package_number: inst.package_number,
+			package_reference: inst.package_reference,
+			pkd_items: (itemsByInstance.get(inst.id) || []).map((i) => ({
+				id: i.pkd_item_id,
+				quantity: Number(i.quantity),
+				item_name: i.description,
+				item_num: i.item_num,
+			})),
+		}),
+	);
 };
 
 export const fetchTemplates = async () => {

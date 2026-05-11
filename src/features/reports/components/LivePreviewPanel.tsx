@@ -1,19 +1,23 @@
-import type React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
 	useCompanyProfileQuery,
 	useReportInstancesQuery,
 } from "../hooks/useReportBuilderQueries";
+import { paginateInstances } from "../paginateInstances";
 import type {
 	ReportDisplaySettings,
 	ReportPkgDetailsSettings,
 } from "../settings-defaults";
 import type { FilterParams } from "../types";
+import { PackingListPage } from "./PackingListPage";
 
 interface LivePreviewPanelProps {
 	filters: FilterParams;
 	displaySettings: ReportDisplaySettings;
 	pkgSettings: ReportPkgDetailsSettings;
 	headerData: any;
+	printRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
@@ -21,181 +25,216 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 	displaySettings,
 	pkgSettings,
 	headerData,
+	printRef,
 }) => {
-	const { data: instances, isLoading } = useReportInstancesQuery(filters);
+	const {
+		data: instances,
+		isLoading,
+		error,
+	} = useReportInstancesQuery(filters);
 	const { data: companyProfile } = useCompanyProfileQuery();
 
-	if (isLoading) {
+	const [currentPage, setCurrentPage] = useState(0);
+	const [scale, setScale] = useState(0.7);
+	const containerRef = useRef<HTMLDivElement>(null);
+
+	// Reset to page 0 whenever filter changes produce new results
+	useEffect(() => {
+		if (instances) {
+			setCurrentPage(0);
+		}
+	}, [instances]);
+
+	// Paginate instances into pages
+	const pages = React.useMemo(() => {
+		if (!instances) return [];
+		return paginateInstances(
+			instances,
+			displaySettings,
+			pkgSettings,
+			filters.splitBy,
+		);
+	}, [instances, displaySettings, pkgSettings, filters.splitBy]);
+
+	const totalPages = pages.length;
+
+	// Compute scale to fit page in container
+	const updateScale = useCallback(() => {
+		if (!containerRef.current) return;
+		const { clientWidth: cw, clientHeight: ch } = containerRef.current;
+		const isLandscape = displaySettings.orientation === "landscape";
+		// A4 at 96dpi: 794×1123, landscape: 1123×794
+		const pageW = isLandscape ? 1123 : 794;
+		const pageH = isLandscape ? 794 : 1123;
+		const padding = 64;
+		const sx = (cw - padding) / pageW;
+		const sy = (ch - padding) / pageH;
+		setScale(Math.min(sx, sy, 1));
+	}, [displaySettings.orientation]);
+
+	useEffect(() => {
+		updateScale();
+		const obs = new ResizeObserver(updateScale);
+		if (containerRef.current) obs.observe(containerRef.current);
+		return () => obs.disconnect();
+	}, [updateScale]);
+
+	const isLandscape = displaySettings.orientation === "landscape";
+	const pageW = isLandscape ? "297mm" : "210mm";
+	const pageH = isLandscape ? "210mm" : "297mm";
+	const pagePad = "12mm";
+
+	if (!filters.clientId && !filters.orderId) {
 		return (
-			<div className="p-8 text-center text-gray-500">
-				Loading preview data...
+			<div className="flex items-center justify-center h-full text-gray-400 text-sm italic">
+				Select a client to preview the report.
 			</div>
 		);
 	}
 
-	const {
-		theme_color,
-		header_layout,
-		show_company_logo,
-		show_qr_codes,
-		include_signatures,
-		footer_text,
-	} = displaySettings;
-	const { show_dimensions, show_weights, show_items, items_detail_level } =
-		pkgSettings;
+	if (isLoading) {
+		return (
+			<div className="flex items-center justify-center h-full flex-col gap-3 text-gray-500">
+				<div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+				<span className="text-sm">Loading packages...</span>
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className="flex items-center justify-center h-full text-red-500 text-sm">
+				Error loading data. Check console.
+			</div>
+		);
+	}
+
+	const page = pages[currentPage];
 
 	return (
-		<div
-			className="flex flex-col h-full bg-white text-black font-sans text-sm p-8"
-			style={{ color: "#333" }}
-		>
-			{/* Header */}
-			<header
-				className={`flex ${header_layout === "compact" ? "items-center justify-between" : "flex-col gap-4"} mb-8 border-b-2 pb-4`}
-				style={{ borderColor: theme_color }}
-			>
-				{show_company_logo && companyProfile?.logo_url && (
-					<img
-						src={companyProfile.logo_url}
-						alt="Company Logo"
-						className="h-16 object-contain"
-					/>
-				)}
-				<div
-					className={`flex flex-col ${header_layout === "compact" ? "text-right" : "text-center"}`}
-				>
-					<h1
-						className="text-2xl font-bold uppercase tracking-wider"
-						style={{ color: theme_color }}
+		<div className="flex flex-col h-full">
+			{/* ─── Page Nav Toolbar ─── */}
+			<div className="flex items-center justify-between px-4 py-2 bg-gray-100 border-b shrink-0 gap-4">
+				<div className="flex items-center gap-2">
+					<button
+						type="button"
+						onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+						disabled={currentPage === 0}
+						className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 transition-colors"
 					>
-						{headerData.reportName || "Client Report"}
-					</h1>
-					<div className="flex flex-col text-xs text-gray-600 mt-2">
-						{headerData.reportNumber && (
-							<span>Report No: {headerData.reportNumber}</span>
-						)}
-						{headerData.reportDate && (
-							<span>Date: {headerData.reportDate}</span>
-						)}
-						{headerData.projectReference && (
-							<span>Project Ref: {headerData.projectReference}</span>
-						)}
-						{headerData.finalDestinationCountry && (
-							<span>Destination: {headerData.finalDestinationCountry}</span>
-						)}
-					</div>
+						<ChevronLeft className="w-4 h-4" />
+					</button>
+					<span className="text-sm font-medium text-gray-700 min-w-[90px] text-center">
+						{totalPages === 0
+							? "0 pages"
+							: `Page ${currentPage + 1} of ${totalPages}`}
+					</span>
+					<button
+						type="button"
+						onClick={() =>
+							setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
+						}
+						disabled={currentPage >= totalPages - 1}
+						className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 transition-colors"
+					>
+						<ChevronRight className="w-4 h-4" />
+					</button>
 				</div>
-			</header>
 
-			{/* Body / Instances List */}
-			<main className="flex-1">
-				{!instances || instances.length === 0 ? (
-					<div className="text-center text-gray-400 my-10 italic">
-						No packages match the current filters.
+				{/* Page dots */}
+				{totalPages > 1 && totalPages <= 10 && (
+					<div className="flex gap-1.5">
+						{Array.from({ length: totalPages }).map((_, i) => {
+							const pageKey = `page-dot-${i}`;
+							return (
+								<button
+									key={pageKey}
+									type="button"
+									onClick={() => setCurrentPage(i)}
+									className={`w-2 h-2 rounded-full transition-colors ${i === currentPage ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"}`}
+								/>
+							);
+						})}
 					</div>
+				)}
+
+				{/* Info */}
+				<div className="text-xs text-gray-400">
+					{instances?.length ?? 0} boxes ·{" "}
+					{isLandscape ? "Landscape" : "Portrait"}
+					{page?.label && (
+						<span className="ml-2 text-blue-600 font-medium">{page.label}</span>
+					)}
+				</div>
+			</div>
+
+			{/* ─── Page Viewer ─── */}
+			<div
+				ref={containerRef}
+				className="flex-1 bg-gray-300 overflow-hidden flex items-center justify-center relative"
+			>
+				{totalPages === 0 ? (
+					<div className="text-gray-500 text-sm italic">No packages match.</div>
 				) : (
-					<div className="flex flex-col gap-6">
-						{instances.map((inst) => (
-							<div
-								key={inst.id}
-								className="border border-gray-200 rounded p-4 flex flex-col gap-2 page-break-inside-avoid"
-							>
-								<div className="flex justify-between items-start border-b border-gray-100 pb-2 mb-2">
-									<div>
-										<h3
-											className="font-semibold text-lg"
-											style={{ color: theme_color }}
-										>
-											Package {inst.order_package?.package_number || "?"} (Inst:{" "}
-											{inst.instance_number})
-										</h3>
-										<div className="text-xs text-gray-500">
-											Ref: {inst.order_package?.reference || "N/A"} | IPAC Ref:{" "}
-											{inst.ipac_reference || "N/A"}
-										</div>
+					<div
+						style={{
+							transform: `scale(${scale})`,
+							transformOrigin: "center center",
+							transition: "transform 0.15s ease",
+							width: pageW,
+							height: pageH,
+							padding: pagePad,
+							background: "white",
+							boxShadow:
+								"0 4px 24px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.12)",
+						}}
+					>
+						{/* Hidden all-pages ref for printing */}
+						<div ref={printRef} style={{ display: "none" }}>
+							{pages.map((pg, idx) => {
+								const pagePrintKey = `print-page-${idx}`;
+								return (
+									<div
+										key={pagePrintKey}
+										style={{
+											width: pageW,
+											height: pageH,
+											padding: pagePad,
+											background: "white",
+											pageBreakAfter:
+												idx < pages.length - 1 ? "always" : "auto",
+										}}
+									>
+										<PackingListPage
+											items={pg.items}
+											groupLabel={pg.label}
+											pageIndex={idx}
+											totalPages={pages.length}
+											display={displaySettings}
+											pkg={pkgSettings}
+											headerData={headerData}
+											companyProfile={companyProfile}
+										/>
 									</div>
-									{show_qr_codes && (
-										<div className="w-16 h-16 bg-gray-100 border border-gray-300 flex items-center justify-center text-[8px] text-center text-gray-400">
-											QR Code
-											<br />
-											[Placeholder]
-										</div>
-									)}
-								</div>
+								);
+							})}
+						</div>
 
-								<div className="grid grid-cols-2 gap-4 text-xs">
-									<div>
-										<strong>Destination:</strong> {inst.destination || "N/A"}
-									</div>
-									<div>
-										<strong>Status:</strong>{" "}
-										<span className="capitalize">{inst.status}</span>
-									</div>
-									<div>
-										<strong>Packed Date:</strong>{" "}
-										{inst.packed_at
-											? new Date(inst.packed_at).toLocaleDateString()
-											: "N/A"}
-									</div>
-								</div>
-
-								{/* Conditional Package Details */}
-								{(show_dimensions || show_weights) && (
-									<div className="bg-gray-50 p-2 rounded text-xs grid grid-cols-2 mt-2">
-										{show_dimensions && (
-											<div>
-												<strong>Dimensions:</strong> (H x W x L) cm
-											</div>
-										)}
-										{show_weights && (
-											<div>
-												<strong>Weight:</strong> 0 kg
-											</div>
-										)}
-									</div>
-								)}
-
-								{show_items && (
-									<div className="mt-2">
-										<h4 className="text-xs font-semibold mb-1">Box Contents</h4>
-										{items_detail_level === "summary" ? (
-											<div className="text-xs text-gray-600 italic">
-												Total Items: [Qty]
-											</div>
-										) : (
-											<ul className="text-xs text-gray-600 list-disc list-inside">
-												<li>Item 1 (Qty: 2)</li>
-												<li>Item 2 (Qty: 5)</li>
-											</ul>
-										)}
-									</div>
-								)}
-							</div>
-						))}
+						{/* Visible current page */}
+						<PackingListPage
+							key={`visible-${currentPage}`}
+							items={page?.items ?? []}
+							groupLabel={page?.label}
+							pageIndex={currentPage}
+							totalPages={totalPages}
+							display={displaySettings}
+							pkg={pkgSettings}
+							headerData={headerData}
+							companyProfile={companyProfile}
+						/>
 					</div>
 				)}
-			</main>
-
-			{/* Footer */}
-			<footer className="mt-8 pt-4 border-t border-gray-200 flex flex-col gap-6 text-xs text-gray-500">
-				{include_signatures && (
-					<div className="flex justify-between mt-4">
-						<div className="flex flex-col items-center gap-1 w-1/3">
-							<div className="border-b border-gray-400 w-full h-12 mb-1"></div>
-							<span>Prepared By</span>
-						</div>
-						<div className="flex flex-col items-center gap-1 w-1/3">
-							<div className="border-b border-gray-400 w-full h-12 mb-1"></div>
-							<span>Checked By</span>
-						</div>
-					</div>
-				)}
-
-				{footer_text && (
-					<div className="text-center italic mt-2">{footer_text}</div>
-				)}
-				<div className="text-center mt-2">Page 1 of 1</div>
-			</footer>
+			</div>
 		</div>
 	);
 };
