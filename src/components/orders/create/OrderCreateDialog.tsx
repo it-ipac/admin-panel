@@ -110,6 +110,7 @@ export function OrderCreateDialog({
 		Record<number, PackageItemMatchState>
 	>({});
 	const [globalDestination, setGlobalDestination] = useState("");
+	const [generateRandomBoxIds, setGenerateRandomBoxIds] = useState(false);
 	const isCreatingOrderRef = useRef(false);
 
 	const { data: clients = [], isLoading: clientsLoading } = useQuery({
@@ -446,6 +447,7 @@ export function OrderCreateDialog({
 				instanceOverrides,
 				globalDestination,
 				orderCategoryTags: selectedTags,
+				generateRandomBoxIds,
 			}),
 		[
 			appliedTemplateMode,
@@ -466,6 +468,7 @@ export function OrderCreateDialog({
 			instanceOverrides,
 			globalDestination,
 			selectedTags,
+			generateRandomBoxIds,
 		],
 	);
 
@@ -1415,6 +1418,7 @@ export function OrderCreateDialog({
 				materialVariantMap,
 				queryClient,
 				preferredItemLinksByPackage,
+				generateRandomBoxIds,
 			});
 			console.log("[OrderCreate] UI - submitOrderCreate completed");
 			onOpenChange(false);
@@ -1479,6 +1483,8 @@ export function OrderCreateDialog({
 				hasUnresolvedMappings={hasUnresolvedMappings}
 				globalDestination={globalDestination}
 				setGlobalDestination={setGlobalDestination}
+				generateRandomBoxIds={generateRandomBoxIds}
+				setGenerateRandomBoxIds={setGenerateRandomBoxIds}
 				onFileSelected={handleFileSelected}
 				onExcelVersionModeChange={async (mode) => {
 					setExcelVersionMode(mode);

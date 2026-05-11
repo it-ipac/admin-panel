@@ -433,6 +433,7 @@ export const parsePackageRows = (
 
 		rows.push({
 			rowIndex: row,
+			randomSuffix: Math.random().toString(36).substring(2, 10).toUpperCase(),
 			packageNumber,
 			designation,
 			quantity,

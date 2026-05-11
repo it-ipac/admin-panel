@@ -239,16 +239,21 @@ function DataImportPage() {
 		mutationFn: async () => {
 			if (!parsedData.length) throw new Error("No data to upload");
 
-			// Chunking the insert to prevent Supabase payload limits
 			const CHUNK_SIZE = 500;
 			for (let i = 0; i < parsedData.length; i += CHUNK_SIZE) {
 				const chunk = parsedData.slice(i, i + CHUNK_SIZE);
-				// Remove _source_sheet before insert
+				// Strip _source_sheet and packed_qty — never overwrite
+				// real packing progress with 0 from a fresh Excel import.
 				const cleanChunk = chunk.map((item) => {
-					const { _source_sheet, ...pushData } = item;
+					const { _source_sheet, packed_qty: _packed_qty, ...pushData } = item;
 					return pushData;
 				});
-				const { error } = await supabase.from("items_db").insert(cleanChunk);
+				const { error } = await supabase
+					.from("items_db")
+					.upsert(cleanChunk, {
+						onConflict: "client_id,item_num",
+						ignoredDuplicates: false,
+					});
 				if (error) throw error;
 			}
 		},
@@ -257,7 +262,7 @@ function DataImportPage() {
 			setParsedData([]);
 			setParsingError("");
 			if (fileInputRef.current) fileInputRef.current.value = "";
-			alert(`Successfully imported ${parsedData.length} items into items_db!`);
+			alert(`Successfully upserted ${parsedData.length} items into items_db!`);
 		},
 		onError: (err: any) => {
 			setParsingError(err.message || "Failed to upload to database");

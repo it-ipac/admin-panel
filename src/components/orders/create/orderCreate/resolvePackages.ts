@@ -44,6 +44,7 @@ interface ResolveParams {
 	>;
 	globalDestination?: string;
 	orderCategoryTags?: string[];
+	generateRandomBoxIds?: boolean;
 }
 
 export const resolvePackages = ({
@@ -65,6 +66,7 @@ export const resolvePackages = ({
 	instanceOverrides,
 	globalDestination = "",
 	orderCategoryTags = [],
+	generateRandomBoxIds = false,
 }: ResolveParams) => {
 	const normalizeBoxTypeValue = (value: string | null | undefined): string =>
 		(value || "")
@@ -455,6 +457,8 @@ export const resolvePackages = ({
 			boxNumber,
 			itemNumber: pkg.designation,
 			quantity: pkg.quantity,
+			generateRandomId: generateRandomBoxIds,
+			randomSuffix: pkg.randomSuffix,
 		});
 
 		return {
@@ -462,6 +466,7 @@ export const resolvePackages = ({
 			rowIndex: pkg.rowIndex,
 			designation: pkg.designation,
 			quantity: pkg.quantity,
+			randomSuffix: pkg.randomSuffix,
 			boxTypeLabel: pkg.boxTypeLabel,
 			boxTypeResolved: !!boxType,
 			boxTypeId: boxType?.id || null,
@@ -615,6 +620,7 @@ export const resolvePackages = ({
 		packageNumber: preview.packageNumber,
 		designation: preview.designation,
 		quantity: preview.quantity,
+		randomSuffix: preview.randomSuffix,
 		item_length: preview.item.length,
 		item_width: preview.item.width,
 		item_height: preview.item.height,

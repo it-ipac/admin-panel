@@ -304,7 +304,18 @@ export const generateIpacReference = (params: {
 	boxNumber: number;
 	itemNumber?: string | null;
 	quantity?: number | null;
+	generateRandomId?: boolean;
+	randomSuffix?: string;
 }) => {
+	if (params.generateRandomId) {
+		const dateObj = new Date();
+		const dd = String(dateObj.getDate()).padStart(2, "0");
+		const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
+		const yyyy = dateObj.getFullYear();
+		const suffix = params.randomSuffix || Math.random().toString(36).substring(2, 10).toUpperCase();
+		return `${dd}${mm}${yyyy}-${suffix}`;
+	}
+
 	const dest = (params.destination || "XXX").toUpperCase().slice(0, 3);
 	const tag = params.tag;
 

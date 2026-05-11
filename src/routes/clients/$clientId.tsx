@@ -172,7 +172,6 @@ function ItemPackagesList({ itemId }: { itemId?: string }) {
 
 				return (
 					<div
-						// biome-ignore lint/suspicious/noArrayIndexKey: No unique ID available
 						key={idx}
 						className="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-200"
 					>
@@ -512,7 +511,6 @@ function ClientWorkspacePage() {
 	]);
 
 	// Reset page when filters change
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset page on filter change
 	useEffect(() => {
 		setItemsPage(1);
 	}, [itemNumberFilter, selectedProjectFilter, selectedAcFilter]);

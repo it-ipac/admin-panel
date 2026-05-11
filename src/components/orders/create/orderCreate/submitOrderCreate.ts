@@ -25,6 +25,7 @@ interface SubmitParams {
 		number,
 		{ itemId: string; itemNumber: string }
 	>;
+	generateRandomBoxIds?: boolean;
 }
 
 const wait = (ms: number) =>
@@ -114,6 +115,7 @@ export const submitOrderCreate = async ({
 	materialVariantMap,
 	queryClient,
 	preferredItemLinksByPackage,
+	generateRandomBoxIds,
 }: SubmitParams) => {
 	const logStep = (step: string, payload?: unknown) => {
 		if (payload !== undefined) {
@@ -528,6 +530,8 @@ export const submitOrderCreate = async ({
 				boxNumber,
 				itemNumber: pkg.designation,
 				quantity: pkg.quantity,
+				generateRandomId: generateRandomBoxIds,
+				randomSuffix: Math.random().toString(36).substring(2, 10).toUpperCase(),
 			});
 
 			instanceRows.push({

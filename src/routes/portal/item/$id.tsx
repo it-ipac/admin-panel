@@ -197,7 +197,6 @@ function ItemView() {
 							id,
 							package_number,
 							reference,
-							reference_number,
 							status,
 							orders:order_id (order_name)
 						),

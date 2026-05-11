@@ -80,6 +80,7 @@ export interface RawBaseManufacturing extends RawManufacturingTemplate {
 
 export interface RawPackageRow {
 	rowIndex: number;
+	randomSuffix: string;
 	packageNumber: number;
 	designation: string | null;
 	quantity: number | null;
@@ -123,6 +124,7 @@ export interface RawPackageRow {
 
 export interface ResolvedPackageRow {
 	packageNumber: number;
+	randomSuffix?: string;
 	designation: string | null;
 	quantity: number | null;
 	item_length: number | null;

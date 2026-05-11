@@ -560,27 +560,39 @@ export function TaqaDataImportPanel({
 			}
 
 			const CHUNK_SIZE = 500;
-			let insertedCount = 0;
+			let upsertedCount = 0;
 			for (let i = 0; i < parsedRows.length; i += CHUNK_SIZE) {
 				const chunk = parsedRows.slice(i, i + CHUNK_SIZE).map((row) => {
-					const { _source_sheet, _row_id, _source_row_number, ...payload } =
-						row;
+					// Strip internal tracking fields AND packed_qty — never overwrite
+					// real packing progress with 0 from a fresh Excel import.
+					const {
+						_source_sheet,
+						_row_id,
+						_source_row_number,
+						packed_qty: _packed_qty,
+						...payload
+					} = row;
 					return payload;
 				});
 
-				const { error } = await supabase.from("items_db").insert(chunk);
+				const { error } = await supabase
+					.from("items_db")
+					.upsert(chunk, {
+						onConflict: "client_id,item_num",
+						ignoredDuplicates: false,
+					});
 				if (error) {
 					throw new Error(
-						`${error.message} (Inserted ${insertedCount} rows before failure.)`,
+						`${error.message} (Upserted ${upsertedCount} rows before failure.)`,
 					);
 				}
-				insertedCount += chunk.length;
+				upsertedCount += chunk.length;
 			}
 		},
 		onSuccess: () => {
 			toast({
 				title: "Import completed",
-				description: `Inserted ${parsedRows.length} rows into items_db for ${clientName}.`,
+				description: `Upserted ${parsedRows.length} rows into items_db for ${clientName}.`,
 				variant: "success",
 			});
 			setFile(null);
