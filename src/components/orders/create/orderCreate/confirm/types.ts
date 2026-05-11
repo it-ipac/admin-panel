@@ -42,6 +42,7 @@ export interface PackagePreview {
 	rowIndex: number;
 	designation: string | null;
 	quantity: number | null;
+	randomSuffix?: string;
 	boxTypeLabel: string | null;
 	boxTypeResolved: boolean;
 	seiCategoryRaw: string | null;

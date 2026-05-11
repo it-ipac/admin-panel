@@ -4474,7 +4474,10 @@ function OrderDetailPage() {
 												{itemSource === "inventory" ? (
 													<>
 														<div>
-															<label htmlFor="inventoryTargetItem" className="block text-sm font-medium text-gray-700 mb-1">
+															<label
+																htmlFor="inventoryTargetItem"
+																className="block text-sm font-medium text-gray-700 mb-1"
+															>
 																Select Item from Inventory
 															</label>
 															<select
@@ -4523,7 +4526,10 @@ function OrderDetailPage() {
 														</div>
 
 														<div>
-															<label htmlFor="boxInstanceSelect" className="block text-sm font-medium text-gray-700 mb-1">
+															<label
+																htmlFor="boxInstanceSelect"
+																className="block text-sm font-medium text-gray-700 mb-1"
+															>
 																Box Instance
 															</label>
 															<select

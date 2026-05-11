@@ -112,6 +112,7 @@ function ItemPackagesList({ itemId }: { itemId?: string }) {
 			const { data, error } = await supabase
 				.from("pkd_item")
 				.select(`
+					id,
 					quantity,
 					order_pkg_instance (
 						ipac_reference,
@@ -156,7 +157,7 @@ function ItemPackagesList({ itemId }: { itemId?: string }) {
 
 	return (
 		<div className="space-y-2 max-h-[60vh] overflow-y-auto">
-			{boxes.map((pi: any, idx: number) => {
+			{boxes.map((pi: any) => {
 				const instance = pi.order_pkg_instance;
 				const pkg = instance?.order_packages;
 				const order = pkg?.orders;
@@ -172,7 +173,7 @@ function ItemPackagesList({ itemId }: { itemId?: string }) {
 
 				return (
 					<div
-						key={idx}
+						key={pi.id}
 						className="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-200"
 					>
 						<div className="font-medium text-gray-800">{name}</div>
@@ -511,9 +512,10 @@ function ClientWorkspacePage() {
 	]);
 
 	// Reset page when filters change
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset page when filters change
 	useEffect(() => {
 		setItemsPage(1);
-	}, [itemNumberFilter, selectedProjectFilter, selectedAcFilter]);
+	}, [filteredSnapshotRows]);
 
 	const totalPages = Math.ceil(filteredSnapshotRows.length / itemsPerPage) || 1;
 	const paginatedRows = useMemo(() => {

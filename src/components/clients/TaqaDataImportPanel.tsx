@@ -575,12 +575,10 @@ export function TaqaDataImportPanel({
 					return payload;
 				});
 
-				const { error } = await supabase
-					.from("items_db")
-					.upsert(chunk, {
-						onConflict: "client_id,item_num",
-						ignoredDuplicates: false,
-					});
+				const { error } = await supabase.from("items_db").upsert(chunk, {
+					onConflict: "client_id,item_num",
+					ignoreDuplicates: false,
+				});
 				if (error) {
 					throw new Error(
 						`${error.message} (Upserted ${upsertedCount} rows before failure.)`,

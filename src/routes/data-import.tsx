@@ -248,12 +248,10 @@ function DataImportPage() {
 					const { _source_sheet, packed_qty: _packed_qty, ...pushData } = item;
 					return pushData;
 				});
-				const { error } = await supabase
-					.from("items_db")
-					.upsert(cleanChunk, {
-						onConflict: "client_id,item_num",
-						ignoredDuplicates: false,
-					});
+				const { error } = await supabase.from("items_db").upsert(cleanChunk, {
+					onConflict: "client_id,item_num",
+					ignoreDuplicates: false,
+				});
 				if (error) throw error;
 			}
 		},

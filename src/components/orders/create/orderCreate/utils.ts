@@ -312,7 +312,9 @@ export const generateIpacReference = (params: {
 		const dd = String(dateObj.getDate()).padStart(2, "0");
 		const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
 		const yyyy = dateObj.getFullYear();
-		const suffix = params.randomSuffix || Math.random().toString(36).substring(2, 10).toUpperCase();
+		const suffix =
+			params.randomSuffix ||
+			Math.random().toString(36).substring(2, 10).toUpperCase();
 		return `${dd}${mm}${yyyy}-${suffix}`;
 	}
 
