@@ -23,6 +23,12 @@ import {
 import { useState } from "react";
 import { supabase } from "../../../lib/supabase";
 
+const getPublicUrl = (path: string | null) => {
+	if (!path) return "";
+	if (path.startsWith("http")) return path;
+	return `https://fqynbudvpvpiljdrrvem.supabase.co/storage/v1/object/public/media/${path}`;
+};
+
 export const Route = createFileRoute("/portal/item/$id")({
 	component: ItemView,
 });
@@ -44,7 +50,7 @@ function PhotoGallery({
 		<section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 			<div className="relative aspect-video bg-gray-900">
 				<img
-					src={photos[active].image_url}
+					src={getPublicUrl(photos[active].image_url)}
 					alt={photos[active].notes || `Photo ${active + 1}`}
 					className="w-full h-full object-contain cursor-zoom-in"
 					onClick={() => setLightbox(active)}
@@ -89,7 +95,7 @@ function PhotoGallery({
 							className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === active ? "border-blue-500" : "border-gray-200"}`}
 						>
 							<img
-								src={photo.image_url}
+								src={getPublicUrl(photo.image_url)}
 								alt=""
 								className="w-full h-full object-cover"
 							/>
@@ -123,7 +129,7 @@ function PhotoGallery({
 						<X className="w-7 h-7" />
 					</button>
 					<img
-						src={photos[lightbox].image_url}
+						src={getPublicUrl(photos[lightbox].image_url)}
 						alt=""
 						className="max-w-full max-h-full object-contain"
 					/>

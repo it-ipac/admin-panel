@@ -18,6 +18,12 @@ import {
 import { useState } from "react";
 import { supabase } from "../../../lib/supabase";
 
+const getPublicUrl = (path: string | null) => {
+	if (!path) return "";
+	if (path.startsWith("http")) return path;
+	return `https://fqynbudvpvpiljdrrvem.supabase.co/storage/v1/object/public/media/${path}`;
+};
+
 function BoxPhotoGallery({
 	photos,
 }: {
@@ -32,7 +38,7 @@ function BoxPhotoGallery({
 		<section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 			<div className="relative aspect-video bg-gray-900">
 				<img
-					src={photos[active].image_url}
+					src={getPublicUrl(photos[active].image_url)}
 					alt={photos[active].notes || `Box photo ${active + 1}`}
 					className="w-full h-full object-contain cursor-zoom-in"
 					onClick={() => setLightbox(active)}
@@ -75,7 +81,7 @@ function BoxPhotoGallery({
 							className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === active ? "border-blue-500" : "border-gray-200"}`}
 						>
 							<img
-								src={photo.image_url}
+								src={getPublicUrl(photo.image_url)}
 								alt=""
 								className="w-full h-full object-cover"
 							/>
@@ -101,7 +107,7 @@ function BoxPhotoGallery({
 						<X className="w-7 h-7" />
 					</button>
 					<img
-						src={photos[lightbox].image_url}
+						src={getPublicUrl(photos[lightbox].image_url)}
 						alt=""
 						className="max-w-full max-h-full object-contain"
 					/>
@@ -169,16 +175,17 @@ function PackageView() {
 						reference_number,
 						description,
 						status,
-						box_type (name),
 						original_pkg_info:package_info!order_packages_original_pkg_info_fkey (
 							external_length,
 							external_width,
-							external_height
+							external_height,
+							box_type (name)
 						),
 						final_pkg_info:package_info!order_packages_final_pkg_info_fkey (
 							external_length,
 							external_width,
-							external_height
+							external_height,
+							box_type (name)
 						)
 					),
 					pkd_item (
@@ -243,7 +250,7 @@ function PackageView() {
 					reference_number:
 						orderPackage?.reference || orderPackage?.reference_number || null,
 					status: instanceData.status || orderPackage?.status || null,
-					box_type: orderPackage?.box_type || null,
+					box_type: finalInfo?.box_type ?? originalInfo?.box_type ?? null,
 					actual_length:
 						finalInfo?.external_length ?? originalInfo?.external_length ?? null,
 					actual_width:

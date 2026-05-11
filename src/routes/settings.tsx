@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
 	Bell,
+	Building,
 	Check,
 	GitBranch,
 	Loader2,
@@ -58,6 +59,7 @@ function SettingsPage() {
 
 	const tabs = [
 		{ id: "profile", label: "Profile", icon: User },
+		{ id: "company", label: "Company", icon: Building },
 		{ id: "notifications", label: "Notifications", icon: Bell },
 		{ id: "security", label: "Security", icon: Shield },
 		{ id: "appearance", label: "Appearance", icon: Palette },
@@ -99,6 +101,66 @@ function SettingsPage() {
 
 						{/* Content */}
 						<div className="p-6">
+							{activeTab === "company" && (
+								<div className="space-y-6 max-w-2xl">
+									<div>
+										<h2 className="text-lg font-medium text-gray-900 mb-4">
+											Company Profile
+										</h2>
+										<p className="text-sm text-gray-500 mb-6">
+											Update your company details and logo for use in report
+											headers.
+										</p>
+									</div>
+									<div className="grid grid-cols-1 gap-6">
+										<div>
+											<label
+												htmlFor="company-name"
+												className="block text-sm font-medium text-gray-700 mb-2"
+											>
+												Company Name
+											</label>
+											<input
+												id="company-name"
+												type="text"
+												className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+												placeholder="Your Company Name"
+											/>
+										</div>
+										<div>
+											<label
+												htmlFor="logo-url"
+												className="block text-sm font-medium text-gray-700 mb-2"
+											>
+												Logo URL
+											</label>
+											<input
+												id="logo-url"
+												type="text"
+												className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+												placeholder="https://example.com/logo.png"
+											/>
+										</div>
+									</div>
+									<div className="pt-6 border-t border-gray-100 flex justify-end">
+										<button
+											onClick={handleSave}
+											type="button"
+											className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+										>
+											{saved ? (
+												<span className="flex items-center gap-2">
+													<Check className="w-4 h-4" /> Saved
+												</span>
+											) : (
+												<span className="flex items-center gap-2">
+													<Save className="w-4 h-4" /> Save Company Profile
+												</span>
+											)}
+										</button>
+									</div>
+								</div>
+							)}
 							{activeTab === "profile" && (
 								<div className="space-y-6 max-w-2xl">
 									<div className="flex items-center gap-6">
