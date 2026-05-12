@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+	fetchClientDetails,
 	fetchClients,
 	fetchCompanyProfile,
 	fetchDestinations,
@@ -14,6 +15,14 @@ export const useClientsQuery = () => {
 	return useQuery({
 		queryKey: ["report_clients"],
 		queryFn: fetchClients,
+	});
+};
+
+export const useClientDetailsQuery = (clientId: string | null) => {
+	return useQuery({
+		queryKey: ["client_details", clientId],
+		queryFn: () => fetchClientDetails(clientId!),
+		enabled: !!clientId,
 	});
 };
 

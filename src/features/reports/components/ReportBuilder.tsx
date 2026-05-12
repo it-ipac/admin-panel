@@ -8,7 +8,8 @@ import {
 	Printer,
 } from "lucide-react";
 import type React from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useClientDetailsQuery } from "../hooks/useReportBuilderQueries";
 import {
 	DEFAULT_DISPLAY_SETTINGS,
 	DEFAULT_PKG_DETAILS_SETTINGS,
@@ -51,6 +52,35 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 		DEFAULT_DISPLAY_SETTINGS,
 	);
 	const [pkgSettings, setPkgSettings] = useState(DEFAULT_PKG_DETAILS_SETTINGS);
+
+	const [clientData, setClientData] = useState<any>(null);
+	const [clientOrderData, setClientOrderData] = useState<any>(null);
+	const [clientShipmentData, setClientShipmentData] = useState<any>(null);
+	const [companyData, setCompanyData] = useState<any>({
+		name: "IPAC Valsem International",
+		tel: "+971 2 632 11 07",
+		poBox: "44291",
+		street: "Ar Rasin - 2nd Street",
+		area: "Mussafah M4",
+		city: "Abu Dhabi",
+		country: "UAE",
+		website: "www.IPAC.ae",
+	});
+	const [isTemplateMode, setIsTemplateMode] = useState(false);
+
+	const { data: fetchedClientDetails } = useClientDetailsQuery(
+		filters.clientId,
+	);
+
+	useEffect(() => {
+		if (fetchedClientDetails) {
+			setClientData(fetchedClientDetails);
+			setClientOrderData((prev: any) => ({
+				...prev,
+				customer_trn: fetchedClientDetails.trn,
+			}));
+		}
+	}, [fetchedClientDetails]);
 
 	const [headerData, setHeaderData] = useState({
 		reportName: "Packing List",
@@ -155,7 +185,20 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:white}
 							/>
 						)}
 						{activeTab === "header" && (
-							<HeaderDataPanel data={headerData} setData={setHeaderData} />
+							<HeaderDataPanel
+								data={headerData}
+								setData={setHeaderData}
+								clientData={clientData}
+								setClientData={setClientData}
+								clientOrderData={clientOrderData}
+								setClientOrderData={setClientOrderData}
+								clientShipmentData={clientShipmentData}
+								setClientShipmentData={setClientShipmentData}
+								companyData={companyData}
+								setCompanyData={setCompanyData}
+								isTemplateMode={isTemplateMode}
+								setIsTemplateMode={setIsTemplateMode}
+							/>
 						)}
 					</div>
 
@@ -224,6 +267,10 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:white}
 						displaySettings={displaySettings}
 						pkgSettings={pkgSettings}
 						headerData={headerData}
+						clientData={clientData}
+						clientOrderData={clientOrderData}
+						clientShipmentData={clientShipmentData}
+						companyData={companyData}
 						printRef={printRef}
 					/>
 				</div>

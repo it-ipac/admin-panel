@@ -10,6 +10,16 @@ export const fetchClients = async () => {
 	return data;
 };
 
+export const fetchClientDetails = async (clientId: string) => {
+	const { data, error } = await supabase
+		.from("clients")
+		.select("*")
+		.eq("id", clientId)
+		.single();
+	if (error) throw error;
+	return data;
+};
+
 export const fetchOrders = async (clientId: string | null) => {
 	let query = supabase.from("orders").select("id, order_name, reference");
 	if (clientId) {

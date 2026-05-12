@@ -10,9 +10,14 @@ interface PackingListPageProps {
 	pageIndex: number;
 	totalPages: number;
 	groupLabel?: string;
+	isFirstPageOfGroup?: boolean;
 	display: ReportDisplaySettings;
 	pkg: ReportPkgDetailsSettings;
 	headerData: any;
+	clientData: any;
+	clientOrderData: any;
+	clientShipmentData: any;
+	companyData: any;
 	companyProfile: any;
 }
 
@@ -29,9 +34,14 @@ export const PackingListPage = React.forwardRef<
 			pageIndex,
 			totalPages,
 			groupLabel,
+			isFirstPageOfGroup,
 			display,
 			pkg,
 			headerData,
+			clientData,
+			clientOrderData,
+			clientShipmentData,
+			companyData,
 			companyProfile,
 		},
 		ref,
@@ -52,6 +62,314 @@ export const PackingListPage = React.forwardRef<
 		};
 
 		const totalBoxItems = items.reduce((s, i) => s + i.item_count, 0);
+
+		if (isFirstPageOfGroup) {
+			return (
+				<div
+					ref={ref}
+					style={{
+						fontFamily: "'Segoe UI', 'Inter', sans-serif",
+						fontSize: baseFontSize,
+						color: "#1a1a2e",
+						display: "flex",
+						flexDirection: "column",
+						width: "100%",
+						height: "100%",
+						overflow: "hidden",
+						background: "white",
+						padding: "40px",
+					}}
+				>
+					{/* Header */}
+					<div
+						style={{
+							display: "flex",
+							justifyContent: "space-between",
+							alignItems: "flex-start",
+							borderBottom: `2px solid ${tc}`,
+							paddingBottom: "20px",
+							marginBottom: "40px",
+						}}
+					>
+						<div>
+							{display.show_company_logo && companyProfile?.logo_url && (
+								<img
+									src={companyProfile.logo_url}
+									alt="Logo"
+									style={{ height: "50px", objectFit: "contain" }}
+								/>
+							)}
+							<div
+								style={{
+									fontSize: "14px",
+									fontWeight: "bold",
+									color: tc,
+									marginTop: "5px",
+								}}
+							>
+								{companyData?.name || "IPAC Valsem International"}
+							</div>
+						</div>
+						<div
+							style={{ textAlign: "right", fontSize: "11px", color: "#666" }}
+						>
+							<div>Tel: {companyData?.tel}</div>
+							<div>PO Box: {companyData?.poBox}</div>
+							<div>
+								{companyData?.street}, {companyData?.area}
+							</div>
+							<div>
+								{companyData?.city}, {companyData?.country}
+							</div>
+							<div>{companyData?.website}</div>
+						</div>
+					</div>
+
+					{/* Title */}
+					<div style={{ textAlign: "center", marginBottom: "40px" }}>
+						<div
+							style={{
+								fontSize: "28px",
+								fontWeight: "bold",
+								color: tc,
+								letterSpacing: "2px",
+								textTransform: "uppercase",
+							}}
+						>
+							{headerData.reportName || "PACKING LIST"}
+						</div>
+						<div
+							style={{
+								fontSize: "16px",
+								fontWeight: "600",
+								color: "#333",
+								marginTop: "5px",
+							}}
+						>
+							Order: {clientOrderData?.customer_order_ref || "N/A"}
+						</div>
+						{headerData.reportNumber && (
+							<div
+								style={{ fontSize: "14px", color: "#666", marginTop: "5px" }}
+							>
+								Ref: <strong>{headerData.reportNumber}</strong>
+							</div>
+						)}
+					</div>
+
+					{/* Content Grid */}
+					<div
+						style={{
+							display: "grid",
+							gridTemplateColumns: "1fr 1fr",
+							gap: "30px",
+							fontSize: "12px",
+						}}
+					>
+						{/* Left Column: Client & Order */}
+						<div
+							style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+						>
+							{/* Client Info */}
+							<div
+								style={{
+									border: "1px solid #e0e0e0",
+									borderRadius: "6px",
+									padding: "15px",
+								}}
+							>
+								<div
+									style={{
+										fontSize: "13px",
+										fontWeight: "bold",
+										color: tc,
+										marginBottom: "10px",
+										borderBottom: "1px solid #e0e0e0",
+										paddingBottom: "5px",
+									}}
+								>
+									Customer Info
+								</div>
+								<div
+									style={{
+										display: "flex",
+										flexDirection: "column",
+										gap: "5px",
+									}}
+								>
+									<div>
+										<span style={{ fontWeight: "600" }}>Name:</span>{" "}
+										{clientData?.name}
+									</div>
+									<div>
+										<span style={{ fontWeight: "600" }}>TRN:</span>{" "}
+										{clientData?.trn}
+									</div>
+									<div>
+										<span style={{ fontWeight: "600" }}>Address:</span>{" "}
+										{clientData?.address_line_1}
+									</div>
+									<div>
+										{clientData?.city}, {clientData?.country}
+									</div>
+								</div>
+							</div>
+
+							{/* Order Info */}
+							<div
+								style={{
+									border: "1px solid #e0e0e0",
+									borderRadius: "6px",
+									padding: "15px",
+								}}
+							>
+								<div
+									style={{
+										fontSize: "13px",
+										fontWeight: "bold",
+										color: tc,
+										marginBottom: "10px",
+										borderBottom: "1px solid #e0e0e0",
+										paddingBottom: "5px",
+									}}
+								>
+									Order Details
+								</div>
+								<div
+									style={{
+										display: "flex",
+										flexDirection: "column",
+										gap: "5px",
+									}}
+								>
+									<div>
+										<span style={{ fontWeight: "600" }}>Cust. Order #:</span>{" "}
+										{clientOrderData?.customer_order_ref}
+									</div>
+									<div>
+										<span style={{ fontWeight: "600" }}>Quotation Ref:</span>{" "}
+										{clientOrderData?.quotation_ref}
+									</div>
+									<div>
+										<span style={{ fontWeight: "600" }}>Cust. TRN:</span>{" "}
+										{clientOrderData?.customer_trn}
+									</div>
+									<div>
+										<span style={{ fontWeight: "600" }}>IPAC TRN:</span>{" "}
+										{clientOrderData?.ipac_valsem_trn}
+									</div>
+									<div>
+										<span style={{ fontWeight: "600" }}>Project Ref:</span>{" "}
+										{headerData.projectReference}
+									</div>
+								</div>
+							</div>
+						</div>
+
+						{/* Right Column: Shipment & Summary */}
+						<div
+							style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+						>
+							{/* Shipment Info */}
+							<div
+								style={{
+									border: "1px solid #e0e0e0",
+									borderRadius: "6px",
+									padding: "15px",
+								}}
+							>
+								<div
+									style={{
+										fontSize: "13px",
+										fontWeight: "bold",
+										color: tc,
+										marginBottom: "10px",
+										borderBottom: "1px solid #e0e0e0",
+										paddingBottom: "5px",
+									}}
+								>
+									Shipment Details
+								</div>
+								<div
+									style={{
+										display: "flex",
+										flexDirection: "column",
+										gap: "5px",
+									}}
+								>
+									<div>
+										<span style={{ fontWeight: "600" }}>Consignee:</span>{" "}
+										{clientShipmentData?.consignee}
+									</div>
+									<div>
+										<span style={{ fontWeight: "600" }}>Shipping Date:</span>{" "}
+										{clientShipmentData?.shipping_date}
+									</div>
+									<div>
+										<span style={{ fontWeight: "600" }}>Destination:</span>{" "}
+										{clientShipmentData?.city}, {clientShipmentData?.country}
+									</div>
+								</div>
+							</div>
+
+							{/* Summary Info (from items) */}
+							<div
+								style={{
+									border: "1px solid #e0e0e0",
+									borderRadius: "6px",
+									padding: "15px",
+								}}
+							>
+								<div
+									style={{
+										fontSize: "13px",
+										fontWeight: "bold",
+										color: tc,
+										marginBottom: "10px",
+										borderBottom: "1px solid #e0e0e0",
+										paddingBottom: "5px",
+									}}
+								>
+									Summary
+								</div>
+								<div
+									style={{
+										display: "flex",
+										flexDirection: "column",
+										gap: "5px",
+									}}
+								>
+									<div>
+										<span style={{ fontWeight: "600" }}>Total Boxes:</span>{" "}
+										{items.length}
+									</div>
+									<div>
+										<span style={{ fontWeight: "600" }}>
+											Final Destination:
+										</span>{" "}
+										{headerData.finalDestinationCountry}
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					{/* Footer */}
+					<div
+						style={{
+							marginTop: "auto",
+							textAlign: "center",
+							fontSize: "10px",
+							color: "#999",
+							borderTop: "1px solid #e0e0e0",
+							paddingTop: "10px",
+						}}
+					>
+						Page 1 of {totalPages}
+					</div>
+				</div>
+			);
+		}
 
 		return (
 			<div

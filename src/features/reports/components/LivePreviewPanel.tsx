@@ -17,6 +17,10 @@ interface LivePreviewPanelProps {
 	displaySettings: ReportDisplaySettings;
 	pkgSettings: ReportPkgDetailsSettings;
 	headerData: any;
+	clientData: any;
+	clientOrderData: any;
+	clientShipmentData: any;
+	companyData: any;
 	printRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -25,6 +29,10 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 	displaySettings,
 	pkgSettings,
 	headerData,
+	clientData,
+	clientOrderData,
+	clientShipmentData,
+	companyData,
 	printRef,
 }) => {
 	const {
@@ -210,9 +218,16 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 											groupLabel={pg.label}
 											pageIndex={idx}
 											totalPages={pages.length}
+											isFirstPageOfGroup={
+												pages.findIndex((p) => p.label === pg.label) === idx
+											}
 											display={displaySettings}
 											pkg={pkgSettings}
 											headerData={headerData}
+											clientData={clientData}
+											clientOrderData={clientOrderData}
+											clientShipmentData={clientShipmentData}
+											companyData={companyData}
 											companyProfile={companyProfile}
 										/>
 									</div>
@@ -227,9 +242,16 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 							groupLabel={page?.label}
 							pageIndex={currentPage}
 							totalPages={totalPages}
+							isFirstPageOfGroup={
+								pages.findIndex((p) => p.label === page?.label) === currentPage
+							}
 							display={displaySettings}
 							pkg={pkgSettings}
 							headerData={headerData}
+							clientData={clientData}
+							clientOrderData={clientOrderData}
+							clientShipmentData={clientShipmentData}
+							companyData={companyData}
 							companyProfile={companyProfile}
 						/>
 					</div>
