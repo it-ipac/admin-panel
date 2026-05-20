@@ -1,8 +1,10 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Image } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
 	useCompanyProfileQuery,
 	useReportInstancesQuery,
+	useOrderDetailsQuery,
+	useOrderTotalsQuery,
 } from "../hooks/useReportBuilderQueries";
 import { paginateInstances } from "../paginateInstances";
 import type {
@@ -11,6 +13,7 @@ import type {
 } from "../settings-defaults";
 import type { FilterParams } from "../types";
 import { PackingListPage } from "./PackingListPage";
+import { useSignatures } from "../hooks/useSignatures";
 
 const HorizontalRuler: React.FC<{ widthMm: number }> = ({ widthMm }) => {
 	const ticks = [];
@@ -166,6 +169,8 @@ interface LivePreviewPanelProps {
 	clientShipmentData: any;
 	companyData: any;
 	printRef: React.RefObject<HTMLDivElement | null>;
+	hiddenMediaUrls: string[];
+	setHiddenMediaUrls: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
@@ -178,6 +183,8 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 	clientShipmentData,
 	companyData,
 	printRef,
+	hiddenMediaUrls,
+	setHiddenMediaUrls,
 }) => {
 	const {
 		data: instances,
@@ -185,11 +192,18 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		error,
 	} = useReportInstancesQuery(filters);
 	const { data: companyProfile } = useCompanyProfileQuery();
+	const { query: sigsQuery } = useSignatures();
+	const signatures = sigsQuery.data ?? [];
 
 	const [currentPage, setCurrentPage] = useState(0);
+	const [currentReportIndex, setCurrentReportIndex] = useState(0);
 	const [scale, setScale] = useState(0.7);
 	const [showRuler, setShowRuler] = useState(true);
+	const [mediaManagerOpen, setMediaManagerOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
+
+
+	const isReportPerOrder = filters.splitBy === "report_per_order";
 
 	// Filter and sort instances
 	const filteredAndSortedInstances = React.useMemo(() => {
@@ -231,29 +245,80 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		return result;
 	}, [instances, filters.packedOnly, pkgSettings.boxes_sort]);
 
-	// Reset to page 0 whenever filter changes produce new results
-	useEffect(() => {
-		if (filteredAndSortedInstances) {
-			setCurrentPage(0);
+	// For report_per_order: group by order → array of { orderId, orderName, instances[] }
+	const reportGroups = React.useMemo(() => {
+		if (!isReportPerOrder) return null;
+		const groupMap = new Map<string, { orderId: string; orderName: string; instances: typeof filteredAndSortedInstances }>();
+		for (const inst of filteredAndSortedInstances) {
+			if (!groupMap.has(inst.order_id)) {
+				groupMap.set(inst.order_id, { orderId: inst.order_id, orderName: inst.order_name, instances: [] });
+			}
+			groupMap.get(inst.order_id)!.instances.push(inst);
 		}
+		return Array.from(groupMap.values());
+	}, [isReportPerOrder, filteredAndSortedInstances]);
+
+	// Reset navigation when instances change
+	useEffect(() => {
+		setCurrentPage(0);
+		setCurrentReportIndex(0);
 	}, [filteredAndSortedInstances]);
+
+	// Active instances: all (normal mode) or current report group's instances (per-order mode)
+	const activeInstances = isReportPerOrder && reportGroups
+		? (reportGroups[currentReportIndex]?.instances ?? [])
+		: filteredAndSortedInstances;
 
 	// Paginate instances into pages
 	const pages = React.useMemo(() => {
+		const splitMode = isReportPerOrder ? "none" : filters.splitBy;
 		return paginateInstances(
-			filteredAndSortedInstances,
+			activeInstances,
 			displaySettings,
 			pkgSettings,
-			filters.splitBy,
+			splitMode,
+			hiddenMediaUrls,
 		);
 	}, [
-		filteredAndSortedInstances,
+		activeInstances,
 		displaySettings,
 		pkgSettings,
 		filters.splitBy,
+		isReportPerOrder,
+		hiddenMediaUrls,
 	]);
 
 	const totalPages = pages.length;
+	const totalReports = reportGroups?.length ?? 1;
+	const currentReportGroup = reportGroups?.[currentReportIndex];
+
+	const activeOrderId = isReportPerOrder && currentReportGroup
+		? currentReportGroup.orderId
+		: (filters.orderIds.length === 1 ? filters.orderIds[0] : null);
+
+	const { data: activeOrderDetails } = useOrderDetailsQuery(activeOrderId);
+	const { data: activeOrderTotals } = useOrderTotalsQuery(activeOrderId);
+
+	const effectiveClientOrderData = React.useMemo(() => {
+		if (!activeOrderId || !activeOrderDetails) return clientOrderData;
+		return {
+			...clientOrderData,
+			customer_order_ref: activeOrderDetails.reference || activeOrderDetails.order_name || "",
+			order_name: activeOrderDetails.order_name || "",
+		};
+	}, [activeOrderId, activeOrderDetails, clientOrderData]);
+
+	const effectiveHeaderData = React.useMemo(() => {
+		if (!activeOrderId) return headerData;
+		return {
+			...headerData,
+			reportName: activeOrderDetails?.order_name || headerData.reportName || "Packing List",
+			nw: activeOrderTotals && activeOrderTotals.totalNW !== undefined && activeOrderTotals.totalNW > 0 ? String(activeOrderTotals.totalNW) : headerData.nw,
+			gw: activeOrderTotals && activeOrderTotals.totalGW !== undefined && activeOrderTotals.totalGW > 0 ? String(activeOrderTotals.totalGW) : headerData.gw,
+			totalVolume: activeOrderTotals && activeOrderTotals.totalVolume !== undefined && activeOrderTotals.totalVolume > 0 ? String(activeOrderTotals.totalVolume) : headerData.totalVolume,
+		};
+	}, [activeOrderId, activeOrderDetails, activeOrderTotals, headerData]);
+
 
 	// Compute scale to fit page in container
 	const updateScale = useCallback(() => {
@@ -281,7 +346,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 	const pageH = isLandscape ? "210mm" : "297mm";
 	const pagePad = "12mm";
 
-	if (!filters.clientId && !filters.orderId) {
+	if (!filters.clientId && filters.orderIds.length === 0) {
 		return (
 			<div className="flex items-center justify-center h-full text-gray-400 text-sm italic">
 				Select a client to preview the report.
@@ -310,6 +375,54 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 
 	return (
 		<div className="flex flex-col h-full">
+			{/* ─── Report Switcher (report_per_order mode) ─── */}
+			{isReportPerOrder && totalReports > 1 && (
+				<div className="flex items-center gap-2 px-4 py-1.5 bg-purple-50 border-b border-purple-200 shrink-0">
+					<span className="text-xs font-semibold text-purple-700 mr-1">Report:</span>
+					<button
+						type="button"
+						onClick={() => {
+							setCurrentReportIndex((r) => Math.max(0, r - 1));
+							setCurrentPage(0);
+						}}
+						disabled={currentReportIndex === 0}
+						className="p-1 rounded hover:bg-purple-100 disabled:opacity-30 transition-colors"
+					>
+						<ChevronLeft className="w-3.5 h-3.5 text-purple-700" />
+					</button>
+					<span className="text-xs font-medium text-purple-800 min-w-[100px] text-center">
+						{currentReportGroup?.orderName ?? `Report ${currentReportIndex + 1}`}
+					</span>
+					<button
+						type="button"
+						onClick={() => {
+							setCurrentReportIndex((r) => Math.min(totalReports - 1, r + 1));
+							setCurrentPage(0);
+						}}
+						disabled={currentReportIndex >= totalReports - 1}
+						className="p-1 rounded hover:bg-purple-100 disabled:opacity-30 transition-colors"
+					>
+						<ChevronRight className="w-3.5 h-3.5 text-purple-700" />
+					</button>
+					<div className="flex gap-1 ml-1">
+						{reportGroups?.map((rg, i) => (
+							<button
+								key={rg.orderId}
+								type="button"
+								onClick={() => { setCurrentReportIndex(i); setCurrentPage(0); }}
+								className={`w-2 h-2 rounded-full transition-colors ${
+									i === currentReportIndex ? "bg-purple-600" : "bg-purple-200 hover:bg-purple-400"
+								}`}
+								title={rg.orderName}
+							/>
+						))}
+					</div>
+					<span className="text-xs text-purple-500 ml-auto">
+						{currentReportIndex + 1} / {totalReports}
+					</span>
+				</div>
+			)}
+
 			{/* ─── Page Nav Toolbar ─── */}
 			<div className="flex items-center justify-between px-4 py-2 bg-gray-100 border-b shrink-0 gap-4">
 				<div className="flex items-center gap-2">
@@ -355,8 +468,16 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 					</div>
 				)}
 
-				{/* Ruler Toggle */}
+				{/* Ruler & Photos Manage */}
 				<div className="flex items-center gap-2">
+					<button
+						type="button"
+						onClick={() => setMediaManagerOpen(true)}
+						className="flex items-center gap-1.5 text-xs text-gray-700 font-semibold bg-white border border-gray-300 rounded px-2.5 py-1.5 shadow-sm hover:bg-gray-50 transition-colors cursor-pointer"
+					>
+						<Image className="w-3.5 h-3.5 text-blue-600" />
+						Manage Photos
+					</button>
 					<label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer font-medium select-none bg-white border border-gray-300 rounded px-2.5 py-1 shadow-sm hover:bg-gray-50 transition-colors">
 						<input
 							type="checkbox"
@@ -364,13 +485,13 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 							onChange={(e) => setShowRuler(e.target.checked)}
 							className="rounded text-blue-600 accent-blue-600 cursor-pointer w-3.5 h-3.5"
 						/>
-						📏 Ruler & Grid
+						Ruler & Grid
 					</label>
 				</div>
 
 				{/* Info */}
 				<div className="text-xs text-gray-400">
-					{filteredAndSortedInstances.length} boxes ·{" "}
+					{activeInstances.length} boxes ·{" "}
 					{isLandscape ? "Landscape" : "Portrait"}
 					{page?.label && (
 						<span className="ml-2 text-blue-600 font-medium">{page.label}</span>
@@ -425,6 +546,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 									>
 										<PackingListPage
 											items={pg.items}
+											allInstances={filteredAndSortedInstances}
 											groupLabel={pg.label}
 											pageIndex={idx}
 											totalPages={pages.length}
@@ -433,12 +555,14 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 											}
 											display={displaySettings}
 											pkg={pkgSettings}
-											headerData={headerData}
+											headerData={effectiveHeaderData}
 											clientData={clientData}
-											clientOrderData={clientOrderData}
+											clientOrderData={effectiveClientOrderData}
 											clientShipmentData={clientShipmentData}
 											companyData={companyData}
 											companyProfile={companyProfile}
+											signatures={signatures}
+											hiddenMediaUrls={hiddenMediaUrls}
 										/>
 									</div>
 								);
@@ -449,6 +573,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 						<PackingListPage
 							key={`visible-${currentPage}`}
 							items={page?.items ?? []}
+							allInstances={filteredAndSortedInstances}
 							groupLabel={page?.label}
 							pageIndex={currentPage}
 							totalPages={totalPages}
@@ -457,15 +582,279 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 							}
 							display={displaySettings}
 							pkg={pkgSettings}
-							headerData={headerData}
+							headerData={effectiveHeaderData}
 							clientData={clientData}
-							clientOrderData={clientOrderData}
+							clientOrderData={effectiveClientOrderData}
 							clientShipmentData={clientShipmentData}
 							companyData={companyData}
 							companyProfile={companyProfile}
+							signatures={signatures}
 						/>
 					</div>
 				)}
+			</div>
+			{mediaManagerOpen && (
+				<MediaManagerModal
+					instances={filteredAndSortedInstances}
+					hiddenMediaUrls={hiddenMediaUrls}
+					onUpdateHiddenUrls={setHiddenMediaUrls}
+					onClose={() => setMediaManagerOpen(false)}
+				/>
+			)}
+		</div>
+	);
+};
+
+interface MediaManagerModalProps {
+	instances: any[];
+	hiddenMediaUrls: string[];
+	onUpdateHiddenUrls: (urls: string[]) => void;
+	onClose: () => void;
+}
+
+const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
+	instances,
+	hiddenMediaUrls,
+	onUpdateHiddenUrls,
+	onClose,
+}) => {
+	const mediaInstances = React.useMemo(() => {
+		return instances.filter(
+			(inst) =>
+				(inst.box_photo_urls && inst.box_photo_urls.length > 0) ||
+				inst.pkd_items?.some((item: any) => item.photo_urls && item.photo_urls.length > 0)
+		);
+	}, [instances]);
+
+	const [activeTabIdx, setActiveTabIdx] = useState(0);
+	const [localHiddenUrls, setLocalHiddenUrls] = useState<string[]>(hiddenMediaUrls);
+
+	const handleToggleLocal = useCallback((url: string) => {
+		setLocalHiddenUrls((prev) =>
+			prev.includes(url) ? prev.filter((u) => u !== url) : [...prev, url]
+		);
+	}, []);
+
+	const handleCloseAndSave = useCallback(() => {
+		onUpdateHiddenUrls(localHiddenUrls);
+		onClose();
+	}, [localHiddenUrls, onUpdateHiddenUrls, onClose]);
+
+	if (mediaInstances.length === 0) {
+		return (
+			<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[99999] p-4">
+				<div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden transform transition-all duration-300 scale-100 flex flex-col p-6 text-center">
+					<div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+						<Image className="w-8 h-8 text-indigo-600 animate-pulse" />
+					</div>
+					<h3 className="text-lg font-bold text-slate-800 mb-2">No Media Available</h3>
+					<p className="text-sm text-slate-500 mb-6 font-medium">
+						None of the selected packages or items have associated photos in the database.
+					</p>
+					<button
+						type="button"
+						onClick={onClose}
+						className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-md cursor-pointer"
+					>
+						Close
+					</button>
+				</div>
+			</div>
+		);
+	}
+
+	const activeInst = mediaInstances[activeTabIdx];
+	const boxPhotos = activeInst?.box_photo_urls || [];
+	const itemsWithPhotos = activeInst?.pkd_items?.filter((i: any) => i.photo_urls && i.photo_urls.length > 0) || [];
+
+	return (
+		<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[99999] p-4">
+			<div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full h-[80vh] overflow-hidden flex flex-col transform transition-all duration-300">
+				{/* Modal Header */}
+				<div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50 shrink-0">
+					<div className="flex items-center gap-2">
+						<Image className="w-5 h-5 text-indigo-600" />
+						<h3 className="text-base font-bold text-slate-800">Manage Photos for Report</h3>
+					</div>
+					<button
+						type="button"
+						onClick={handleCloseAndSave}
+						className="text-slate-400 hover:text-slate-700 transition-colors p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
+					>
+						✕
+					</button>
+				</div>
+
+				{/* Modal Body */}
+				<div className="flex-1 flex overflow-hidden">
+					{/* Left Sidebar Tabs */}
+					<div className="w-1/3 border-r bg-slate-50 overflow-y-auto p-3 flex flex-col gap-1 shrink-0">
+						<div className="text-[10px] font-bold text-slate-400 px-3 py-1.5 uppercase tracking-wider">
+							Packages
+						</div>
+						{mediaInstances.map((inst, idx) => {
+							const isSelected = idx === activeTabIdx;
+							const boxPhotosCount = inst.box_photo_urls?.length ?? 0;
+							const itemPhotosCount = inst.pkd_items?.reduce((sum: number, item: any) => sum + (item.photo_urls?.length ?? 0), 0) ?? 0;
+							const totalPhotosCount = boxPhotosCount + itemPhotosCount;
+
+							const allUrls = [
+								...(inst.box_photo_urls || []),
+								...(inst.pkd_items?.flatMap((i: any) => i.photo_urls || []) || [])
+							];
+							const visibleCount = allUrls.filter((url) => !localHiddenUrls.includes(url)).length;
+
+							return (
+								<button
+									key={inst.id}
+									type="button"
+									onClick={() => setActiveTabIdx(idx)}
+									className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center justify-between transition-all cursor-pointer ${
+										isSelected
+											? "bg-indigo-50 text-indigo-700 font-semibold shadow-sm border border-indigo-100"
+											: "text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-transparent"
+									}`}
+								>
+									<span className="text-xs truncate">
+										📦 Box {inst.package_number} {inst.instance_number > 1 ? `(Inst ${inst.instance_number})` : ""}
+									</span>
+									<span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold transition-all ${
+										isSelected
+											? visibleCount === 0
+												? "bg-slate-200 text-slate-700"
+												: "bg-indigo-600 text-white"
+											: visibleCount === 0
+												? "bg-slate-200 text-slate-500"
+												: "bg-slate-200 text-slate-700"
+									}`}>
+										{visibleCount}/{totalPhotosCount}
+									</span>
+								</button>
+							);
+						})}
+					</div>
+
+					{/* Right Content Area */}
+					<div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+						{activeInst && (
+							<>
+								<div className="border-b pb-3">
+									<h4 className="text-sm font-bold text-slate-800">
+										Box {activeInst.package_number} Details
+									</h4>
+									<p className="text-xs text-slate-500 mt-1">
+										Select or deselect pictures to show or hide them in the final report.
+									</p>
+								</div>
+
+								{/* Box Photos Section */}
+								<div>
+									<h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+										📷 Box Photos ({boxPhotos.length})
+									</h5>
+									{boxPhotos.length === 0 ? (
+										<p className="text-xs text-slate-400 italic">No box-level photos.</p>
+									) : (
+										<div className="grid grid-cols-3 gap-4">
+											{boxPhotos.map((url: string, uidx: number) => {
+												const isHidden = localHiddenUrls.includes(url);
+												return (
+													<button
+														key={`box-manage-photo-${uidx}`}
+														type="button"
+														onClick={() => handleToggleLocal(url)}
+														className={`relative group rounded-lg overflow-hidden border-2 text-left cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+															isHidden
+																? "border-slate-200 opacity-60 bg-slate-50"
+																: "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/5"
+														}`}
+													>
+														<img
+															src={url}
+															alt={`Box photo ${uidx + 1}`}
+															className="w-full h-28 object-cover"
+														/>
+														<div className={`absolute bottom-0 inset-x-0 py-1.5 px-2 text-[10px] font-semibold text-center select-none transition-colors ${
+															isHidden ? "bg-slate-500 text-white" : "bg-emerald-600 text-white"
+														}`}>
+															{isHidden ? "🚫 Hidden" : "✅ Shown"}
+														</div>
+													</button>
+												);
+											})}
+										</div>
+									)}
+								</div>
+
+								{/* Items with Photos Sections */}
+								{itemsWithPhotos.length > 0 && (
+									<div className="flex flex-col gap-6">
+										<h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider border-t pt-4">
+											🏷️ Item Photos
+										</h5>
+										{itemsWithPhotos.map((item: any, idx: number) => {
+											const itemPhotos = item.photo_urls || [];
+											return (
+												<div key={`item-photos-section-${item.id}-${idx}`} className="bg-slate-50/50 p-4 rounded-lg border border-slate-100">
+													<div className="mb-3">
+														<span className="text-xs font-bold text-slate-700 block">
+															Item {idx + 1}: {item.item_num || "No #"}
+														</span>
+														<span className="text-xs text-slate-600 block mt-0.5 italic">
+															{item.item_name || "No Description"}
+														</span>
+														<span className="inline-block mt-1 text-[10px] bg-slate-200/60 text-slate-700 px-2 py-0.5 rounded-full font-medium">
+															Quantity: {item.quantity}
+														</span>
+													</div>
+													<div className="grid grid-cols-3 gap-4">
+														{itemPhotos.map((url: string, pidx: number) => {
+															const isHidden = localHiddenUrls.includes(url);
+															return (
+																<button
+																	key={`item-manage-photo-${item.id}-${pidx}`}
+																	type="button"
+																	onClick={() => handleToggleLocal(url)}
+																	className={`relative group rounded-lg overflow-hidden border-2 text-left cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+																		isHidden
+																			? "border-slate-200 opacity-60 bg-slate-50"
+																			: "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/5"
+																	}`}
+																>
+																	<img
+																		src={url}
+																		alt={`Item photo ${pidx + 1}`}
+																		className="w-full h-28 object-cover"
+																	/>
+																	<div className={`absolute bottom-0 inset-x-0 py-1.5 px-2 text-[10px] font-semibold text-center select-none transition-colors ${
+																		isHidden ? "bg-slate-500 text-white" : "bg-emerald-600 text-white"
+																	}`}>
+																		{isHidden ? "🚫 Hidden" : "✅ Shown"}
+																	</div>
+																</button>
+															);
+														})}
+													</div>
+												</div>
+											);
+										})}
+									</div>
+								)}
+							</>
+						)}
+					</div>
+				</div>
+
+				{/* Modal Footer */}
+				<div className="px-6 py-4 border-t bg-slate-50 flex justify-end gap-2 shrink-0">
+					<button
+						type="button"
+						onClick={handleCloseAndSave}
+						className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-md cursor-pointer"
+					>
+						Done
+					</button>
+				</div>
 			</div>
 		</div>
 	);

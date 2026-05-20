@@ -53,12 +53,12 @@ export const useProjectTagsQuery = (clientId: string | null) => {
 
 export const useDestinationsQuery = (
 	clientId: string | null,
-	orderId: string | null,
+	orderIds: string[],
 ) => {
 	return useQuery({
-		queryKey: ["report_destinations", clientId, orderId],
-		queryFn: () => fetchDestinations(clientId, orderId),
-		enabled: !!clientId || !!orderId,
+		queryKey: ["report_destinations", clientId, orderIds],
+		queryFn: () => fetchDestinations(clientId, orderIds),
+		enabled: !!clientId || orderIds.length > 0,
 	});
 };
 
@@ -66,7 +66,7 @@ export const useReportInstancesQuery = (filters: FilterParams) => {
 	return useQuery({
 		queryKey: ["report_instances", filters],
 		queryFn: () => fetchReportInstances(filters),
-		enabled: !!filters.clientId || !!filters.orderId,
+		enabled: !!filters.clientId || filters.orderIds.length > 0,
 	});
 };
 

@@ -1,4 +1,9 @@
-import type React from "react";
+import React, { useState } from "react";
+import { SignaturePickerModal } from "./SignaturePickerModal";
+import {
+	getSignatureUrl,
+	useSignatures,
+} from "../hooks/useSignatures";
 import type {
 	ReportDisplaySettings,
 	ReportPkgDetailsSettings,
@@ -49,7 +54,13 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 	const setP = (key: keyof ReportPkgDetailsSettings, val: any) =>
 		setPkgDetails((p) => ({ ...p, [key]: val }));
 
+	// Index of the signature field whose picker is open, or null
+	const [pickerOpenIndex, setPickerOpenIndex] = useState<number | null>(null);
+	const { query: sigsQuery } = useSignatures();
+	const allSigs = sigsQuery.data ?? [];
+
 	return (
+		<>
 		<div className="flex flex-col gap-1 text-sm">
 			<Section title="Layout">
 				<div className="flex gap-2">
@@ -298,23 +309,57 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 								</option>
 							</select>
 						</div>
-						<div className="pl-4 flex flex-col gap-1 mb-2">
-							<span className="text-xs text-gray-500 font-medium">Labels</span>
+						<div className="pl-4 flex flex-col gap-2 mb-2">
+							<span className="text-xs text-gray-500 font-medium">Signature Fields</span>
 							{display.signature_fields.map((sig, i) => {
-								const sigKey = `sig-input-${i}`;
+								const assignedSig = sig.image_id
+									? allSigs.find((s) => s.id === sig.image_id)
+									: undefined;
 								return (
-									<input
-										key={sigKey}
-										type="text"
-										value={sig.label}
-										onChange={(e) => {
-											const updated = [...display.signature_fields];
-											updated[i] = { label: e.target.value };
-											setD("signature_fields", updated);
-										}}
-										className="border rounded px-2 py-1 text-xs"
-										placeholder={`Signature ${i + 1} label`}
-									/>
+									<div key={`sig-field-${i}`} className="flex flex-col gap-1">
+										<input
+											type="text"
+											value={sig.label}
+											onChange={(e) => {
+												const updated = [...display.signature_fields];
+												updated[i] = { ...updated[i], label: e.target.value };
+												setD("signature_fields", updated);
+											}}
+											className="border rounded px-2 py-1 text-xs"
+											placeholder={`Signature ${i + 1} label`}
+										/>
+										<div className="flex items-center gap-2">
+											{assignedSig ? (
+												<img
+													src={getSignatureUrl(assignedSig.image_path)}
+													alt={assignedSig.label}
+													style={{ height: 26, maxWidth: 90, objectFit: "contain", border: "1px solid #e2e8f0", borderRadius: 4, background: "#f8fafc", padding: 2 }}
+												/>
+											) : (
+												<span className="text-xs text-gray-400 italic">No image</span>
+											)}
+											<button
+												type="button"
+												onClick={() => setPickerOpenIndex(i)}
+												className="text-xs px-2 py-0.5 border border-gray-300 rounded bg-white hover:bg-gray-50 text-gray-600"
+											>
+												{assignedSig ? "Change…" : "Choose…"}
+											</button>
+											{sig.image_id && (
+												<button
+													type="button"
+													onClick={() => {
+														const updated = [...display.signature_fields];
+														updated[i] = { ...updated[i], image_id: null };
+														setD("signature_fields", updated);
+													}}
+													className="text-xs text-red-400 hover:text-red-600"
+												>
+													×
+												</button>
+											)}
+										</div>
+									</div>
 								);
 							})}
 						</div>
@@ -358,27 +403,176 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						className="w-full cursor-pointer accent-blue-600"
 					/>
 				</div>
+				<div className="flex flex-col gap-1 mt-1">
+					<div className="flex justify-between items-center">
+						<label
+							htmlFor="signature-height-slider"
+							className="text-xs text-gray-500"
+						>
+							Signature Line Height
+						</label>
+						<span className="text-xs font-semibold text-gray-700">
+							{display.signature_height_px ?? 30}px
+						</span>
+					</div>
+					<input
+						id="signature-height-slider"
+						type="range"
+						min="15"
+						max="80"
+						step="5"
+						value={display.signature_height_px ?? 30}
+						onChange={(e) =>
+							setD("signature_height_px", parseInt(e.target.value, 10))
+						}
+						className="w-full cursor-pointer accent-blue-600"
+					/>
+				</div>
+				<div className="flex flex-col gap-1 mt-1">
+					<div className="flex justify-between items-center">
+						<label className="text-xs text-gray-500">Signature Image Width</label>
+						<span className="text-xs font-semibold text-gray-700">{display.signature_width_pct ?? 80}%</span>
+					</div>
+					<input
+						type="range" min="20" max="100" step="5"
+						value={display.signature_width_pct ?? 80}
+						onChange={(e) => setD("signature_width_pct", parseInt(e.target.value, 10))}
+						className="w-full cursor-pointer accent-blue-600"
+					/>
+				</div>
+				<div className="flex flex-col gap-1 mt-1">
+					<label className="text-xs text-gray-500">Signature Alignment</label>
+					<div className="flex gap-1">
+						{(["left", "center", "right"] as const).map((a) => (
+							<button
+								key={a}
+								type="button"
+								onClick={() => setD("signature_align", a)}
+								className={`flex-1 py-0.5 text-xs border rounded capitalize ${(display.signature_align ?? "center") === a ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"}`}
+							>
+								{a}
+							</button>
+						))}
+					</div>
+				</div>
+				<div className="flex flex-col gap-1 mt-1">
+					<div className="flex justify-between items-center">
+						<label
+							htmlFor="footer-gap-slider"
+							className="text-xs text-gray-500"
+						>
+							Space Above Footer
+						</label>
+						<span className="text-xs font-semibold text-gray-700">
+							{display.footer_body_gap_px ?? 0}px
+						</span>
+					</div>
+					<input
+						id="footer-gap-slider"
+						type="range"
+						min="0"
+						max="200"
+						step="10"
+						value={display.footer_body_gap_px ?? 0}
+						onChange={(e) =>
+							setD("footer_body_gap_px", parseInt(e.target.value, 10))
+						}
+						className="w-full cursor-pointer accent-blue-600"
+					/>
+				</div>
 			</Section>
 
 			<Section title="Box Card">
 				<div className="flex flex-col gap-1">
-					<label htmlFor="box-header-style" className="text-xs text-gray-500">
-						Box Header Style
+					<label htmlFor="box-display-mode" className="text-xs text-gray-500">
+						Box Display Mode
 					</label>
 					<select
-						id="box-header-style"
+						id="box-display-mode"
 						className="border rounded p-1.5 text-sm bg-white"
-						value={pkgDetails.box_header_style}
-						onChange={(e) => setP("box_header_style", e.target.value)}
+						value={pkgDetails.box_display_mode ?? "detailed"}
+						onChange={(e) => {
+							const val = e.target.value as "compact" | "detailed";
+							setP("box_display_mode", val);
+							setP("box_header_style", val);
+						}}
 					>
-						<option value="compact">Compact</option>
-						<option value="detailed">Detailed</option>
+						<option value="compact">Compact (One line per box, no items)</option>
+						<option value="detailed">Detailed (Card layout with items)</option>
 					</select>
 				</div>
+				<div className="text-xs text-gray-500 font-medium mt-1">
+					Toggles
+				</div>
+				<Toggle
+					label="Line Number"
+					checked={pkgDetails.show_line_number}
+					onChange={(v) => setP("show_line_number", v)}
+				/>
+				<Toggle
+					label="Box Number"
+					checked={pkgDetails.show_box_number}
+					onChange={(v) => setP("show_box_number", v)}
+				/>
+				<Toggle
+					label="Quantity"
+					checked={pkgDetails.show_quantity}
+					onChange={(v) => setP("show_quantity", v)}
+				/>
+				<Toggle
+					label="Internal Dimensions"
+					checked={pkgDetails.show_internal_dims}
+					onChange={(v) => setP("show_internal_dims", v)}
+				/>
+				<Toggle
+					label="External Dimensions"
+					checked={pkgDetails.show_external_dims}
+					onChange={(v) => setP("show_external_dims", v)}
+				/>
+				<Toggle
+					label="Net Weight"
+					checked={pkgDetails.show_net_weight}
+					onChange={(v) => setP("show_net_weight", v)}
+				/>
+				<Toggle
+					label="Gross Weight"
+					checked={pkgDetails.show_gross_weight}
+					onChange={(v) => setP("show_gross_weight", v)}
+				/>
+				<Toggle
+					label="Unit m³"
+					checked={pkgDetails.show_unit_m3}
+					onChange={(v) => setP("show_unit_m3", v)}
+				/>
+				<Toggle
+					label="Total m³"
+					checked={pkgDetails.show_total_m3}
+					onChange={(v) => setP("show_total_m3", v)}
+				/>
+				<Toggle
+					label="Unit m²"
+					checked={pkgDetails.show_unit_m2}
+					onChange={(v) => setP("show_unit_m2", v)}
+				/>
+				<Toggle
+					label="Total m²"
+					checked={pkgDetails.show_total_m2}
+					onChange={(v) => setP("show_total_m2", v)}
+				/>
+				<Toggle
+					label="SEI Info"
+					checked={pkgDetails.show_sei}
+					onChange={(v) => setP("show_sei", v)}
+				/>
 				<Toggle
 					label="IPAC Reference"
 					checked={pkgDetails.show_ipac_reference}
 					onChange={(v) => setP("show_ipac_reference", v)}
+				/>
+				<Toggle
+					label="QR Code"
+					checked={pkgDetails.show_qr_code}
+					onChange={(v) => setP("show_qr_code", v)}
 				/>
 				<Toggle
 					label="Client Reference"
@@ -410,16 +604,6 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 					checked={pkgDetails.show_item_count_summary}
 					onChange={(v) => setP("show_item_count_summary", v)}
 				/>
-				<Toggle
-					label="Dimensions"
-					checked={pkgDetails.show_dimensions}
-					onChange={(v) => setP("show_dimensions", v)}
-				/>
-				<Toggle
-					label="Weight"
-					checked={pkgDetails.show_weights}
-					onChange={(v) => setP("show_weights", v)}
-				/>
 				<div className="flex flex-col gap-1 mt-1">
 					<label htmlFor="boxes-sort" className="text-xs text-gray-500">
 						Sort Boxes By
@@ -434,6 +618,19 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						<option value="packed_date">Packed Date (Most Recent First)</option>
 					</select>
 				</div>
+				<div className="text-xs text-gray-500 font-medium mt-2">
+					Media / Pictures
+				</div>
+				<Toggle
+					label="Box Pictures"
+					checked={pkgDetails.show_box_photos}
+					onChange={(v) => setP("show_box_photos", v)}
+				/>
+				<Toggle
+					label="Item Pictures"
+					checked={pkgDetails.show_item_photos}
+					onChange={(v) => setP("show_item_photos", v)}
+				/>
 			</Section>
 
 			<Section title="Items Table">
@@ -534,5 +731,18 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 				)}
 			</Section>
 		</div>
+		{pickerOpenIndex !== null && (
+			<SignaturePickerModal
+				selectedId={display.signature_fields[pickerOpenIndex]?.image_id}
+				onSelect={(sig) => {
+					const updated = [...display.signature_fields];
+					updated[pickerOpenIndex] = { ...updated[pickerOpenIndex], image_id: sig?.id ?? null };
+					setD("signature_fields", updated);
+					setPickerOpenIndex(null);
+				}}
+				onClose={() => setPickerOpenIndex(null)}
+			/>
+		)}
+		</>
 	);
 };

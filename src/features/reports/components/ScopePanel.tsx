@@ -1,4 +1,5 @@
 import type React from "react";
+import { useMemo, useState } from "react";
 import {
 	useClientsQuery,
 	useDestinationsQuery,
@@ -25,8 +26,11 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 	);
 	const { data: destinations, isLoading: destLoading } = useDestinationsQuery(
 		filters.clientId,
-		filters.orderId,
+		filters.orderIds,
 	);
+
+	// Local state: filter the order picker list by destination
+	const [orderFilterDest, setOrderFilterDest] = useState<string>("");
 
 	const handleChange = (key: keyof FilterParams, value: any) => {
 		setFilters((prev) => ({ ...prev, [key]: value }));
@@ -41,6 +45,59 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 			return { ...prev, [key]: [...current, value] };
 		});
 	};
+
+	// All destinations available across all instances (for order-picker filter)
+	const { data: allDestinations } = useDestinationsQuery(filters.clientId, []);
+
+	// Sorted + filtered order list for the picker
+	const visibleOrders = useMemo(() => {
+		if (!orders) return [];
+		let list = [...orders];
+
+		// Sort
+		if (filters.orderSort === "reference") {
+			list.sort((a, b) =>
+				(a.reference || a.order_name).localeCompare(
+					b.reference || b.order_name,
+				),
+			);
+		} else {
+			list.sort((a, b) => a.order_name.localeCompare(b.order_name));
+		}
+
+		return list;
+	}, [orders, filters.orderSort]);
+
+	const allOrderIds = useMemo(
+		() => visibleOrders.map((o) => o.id),
+		[visibleOrders],
+	);
+
+	const allSelected =
+		allOrderIds.length > 0 &&
+		allOrderIds.every((id) => filters.orderIds.includes(id));
+
+	const toggleAllOrders = () => {
+		if (allSelected) {
+			// Deselect all visible orders
+			setFilters((prev) => ({
+				...prev,
+				orderIds: prev.orderIds.filter((id) => !allOrderIds.includes(id)),
+			}));
+		} else {
+			// Select all visible orders (merge with any already selected from other filters)
+			setFilters((prev) => ({
+				...prev,
+				orderIds: Array.from(new Set([...prev.orderIds, ...allOrderIds])),
+			}));
+		}
+	};
+
+	const toggleOrder = (id: string) => {
+		handleArrayChange("orderIds", id);
+	};
+
+	const selectedCount = filters.orderIds.length;
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -58,7 +115,7 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 					value={filters.clientId || ""}
 					onChange={(e) => {
 						handleChange("clientId", e.target.value || null);
-						handleChange("orderId", null);
+						handleChange("orderIds", []);
 						handleChange("tags", []);
 						handleChange("destinations", []);
 					}}
@@ -73,28 +130,124 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 				</select>
 			</div>
 
-			{/* Order Selection */}
+			{/* Order Picker */}
 			<div className="flex flex-col gap-1">
-				<label
-					htmlFor="order-select"
-					className="text-sm font-medium text-gray-700"
-				>
-					Order / Project
-				</label>
-				<select
-					id="order-select"
-					className="w-full border rounded-md p-2 text-sm bg-white"
-					value={filters.orderId || ""}
-					onChange={(e) => handleChange("orderId", e.target.value || null)}
-					disabled={ordersLoading || !filters.clientId}
-				>
-					<option value="">All Orders</option>
-					{orders?.map((o) => (
-						<option key={o.id} value={o.id}>
-							{o.order_name} {o.reference ? `(${o.reference})` : ""}
-						</option>
-					))}
-				</select>
+				{/* Header row */}
+				<div className="flex items-center justify-between">
+					<span className="text-sm font-medium text-gray-700">
+						Orders / Projects
+						{selectedCount > 0 && (
+							<span className="ml-1.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full px-1.5 py-0.5">
+								{selectedCount}
+							</span>
+						)}
+					</span>
+					<div className="flex items-center gap-2 text-xs">
+						<button
+							type="button"
+							onClick={toggleAllOrders}
+							disabled={!filters.clientId || ordersLoading}
+							className="text-blue-600 hover:underline disabled:opacity-40 font-medium"
+						>
+							{allSelected ? "Deselect All" : "All"}
+						</button>
+						{selectedCount > 0 && (
+							<button
+								type="button"
+								onClick={() => handleChange("orderIds", [])}
+								className="text-gray-500 hover:underline"
+							>
+								None
+							</button>
+						)}
+					</div>
+				</div>
+
+				{/* Sort + filter controls */}
+				{filters.clientId && (
+					<div className="flex gap-2 items-center flex-wrap">
+						<select
+							className="text-xs border rounded px-1.5 py-1 bg-white text-gray-600"
+							value={filters.orderSort}
+							onChange={(e) =>
+								handleChange("orderSort", e.target.value as any)
+							}
+						>
+							<option value="name">Sort: Name</option>
+							<option value="reference">Sort: Reference</option>
+						</select>
+						{allDestinations && allDestinations.length > 0 && (
+							<select
+								className="text-xs border rounded px-1.5 py-1 bg-white text-gray-600"
+								value={orderFilterDest}
+								onChange={(e) => setOrderFilterDest(e.target.value)}
+							>
+								<option value="">All Destinations</option>
+								{allDestinations.map((d) => (
+									<option key={d} value={d}>
+										{d}
+									</option>
+								))}
+							</select>
+						)}
+					</div>
+				)}
+
+				{/* Order list */}
+				{!filters.clientId ? (
+					<div className="text-xs text-gray-400 italic">
+						Select a client first
+					</div>
+				) : ordersLoading ? (
+					<div className="text-xs text-gray-500 animate-pulse">Loading...</div>
+				) : visibleOrders.length === 0 ? (
+					<div className="text-xs text-gray-400 italic">No orders found</div>
+				) : (
+					<div className="flex flex-col gap-0.5 max-h-52 overflow-y-auto border rounded-md bg-gray-50 p-1">
+						{visibleOrders.map((o) => {
+							const isSelected = filters.orderIds.includes(o.id);
+							return (
+								<button
+									key={o.id}
+									type="button"
+									onClick={() => toggleOrder(o.id)}
+									className={`flex items-center justify-between w-full text-left px-2.5 py-1.5 rounded text-sm transition-colors ${
+										isSelected
+											? "bg-blue-100 border border-blue-300 text-blue-900 font-medium"
+											: "hover:bg-gray-100 text-gray-700 border border-transparent"
+									}`}
+								>
+									<span className="truncate">
+										{o.order_name}
+										{o.reference && (
+											<span className="ml-1.5 text-xs text-gray-400 font-normal">
+												({o.reference})
+											</span>
+										)}
+									</span>
+									{isSelected && (
+										<span className="ml-2 shrink-0 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
+											✓
+										</span>
+									)}
+								</button>
+							);
+						})}
+					</div>
+				)}
+
+				{/* Selected orders summary (when multiple) */}
+				{filters.orderIds.length > 1 && (
+					<p className="text-xs text-blue-600 font-medium">
+						{filters.orderIds.length} orders selected — boxes from all will appear
+						in report
+					</p>
+				)}
+				{filters.orderIds.length === 0 && filters.clientId && (
+					<p className="text-xs text-gray-400 italic">
+						No orders selected — showing all orders for client
+					</p>
+				)}
 			</div>
 
 			{/* Date Filtering */}
@@ -269,15 +422,25 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 				>
 					<option value="none">No Split (Single Report)</option>
 					<option value="destination">
-						By Destination (one page per destination)
+						By Destination (one section per destination)
 					</option>
 					<option value="order">By Order (one section per order)</option>
+					<option value="report_per_order">
+						Separate Report per Order (navigate independently)
+					</option>
 				</select>
-				{filters.splitBy !== "none" && (
-					<p className="text-xs text-blue-600 mt-1">
-						Each section will have its own page break when printing.
+				{filters.splitBy === "report_per_order" && (
+					<p className="text-xs text-purple-600 mt-1 font-medium">
+						Each selected order becomes its own independent report. Navigate
+						between them in the preview toolbar.
 					</p>
 				)}
+				{filters.splitBy !== "none" &&
+					filters.splitBy !== "report_per_order" && (
+						<p className="text-xs text-blue-600 mt-1">
+							Each section will have its own page break when printing.
+						</p>
+					)}
 			</div>
 		</div>
 	);

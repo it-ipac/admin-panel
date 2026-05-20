@@ -1,6 +1,7 @@
 export type FilterParams = {
 	clientId: string | null;
-	orderId: string | null;
+	/** Array of selected order IDs. Empty array = all orders for the client. */
+	orderIds: string[];
 	dateFrom: string | null;
 	dateTo: string | null;
 	// 'instance_created_at' uses order_pkg_instance.created_at
@@ -13,7 +14,9 @@ export type FilterParams = {
 	// Only show boxes marked as packed
 	packedOnly: boolean;
 	// Split mode for batch printing
-	splitBy: "none" | "destination" | "order";
+	splitBy: "none" | "destination" | "order" | "report_per_order";
+	// Sort order for the order picker list
+	orderSort: "name" | "reference";
 };
 
 export type ReportInstanceData = {
@@ -35,10 +38,27 @@ export type ReportInstanceData = {
 		quantity: number;
 		item_name: string | null;
 		item_num: string | null;
+		photo_urls?: string[];
 	}>;
 	is_continuation?: boolean;
 	has_more?: boolean;
 	line_offset?: number;
 	overall_lines?: number;
 	overall_qty?: number;
+	internal_length?: number | null;
+	internal_width?: number | null;
+	internal_height?: number | null;
+	external_length?: number | null;
+	external_width?: number | null;
+	external_height?: number | null;
+	net_weight?: number | null;
+	gross_weight?: number | null;
+	sei_category?: number | null;
+	sei_protection?: number | null;
+	qr_token?: string | null;
+	package_qty?: number | null;
+	box_photo_urls?: string[];
 };
+
+
+

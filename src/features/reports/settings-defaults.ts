@@ -1,4 +1,4 @@
-export type SignatureField = { label: string };
+export type SignatureField = { label: string; image_id?: string | null };
 
 export type ReportDisplaySettings = {
 	_v: number;
@@ -28,6 +28,10 @@ export type ReportDisplaySettings = {
 	include_signatures: boolean;
 	signature_fields: SignatureField[];
 	footer_height_px?: number;
+	signature_height_px?: number;
+	signature_width_pct?: number;
+	signature_align?: "left" | "center" | "right";
+	footer_body_gap_px?: number;
 	header_show_mode: "all_pages" | "first_page_only";
 	signatures_scope: "project" | "box";
 };
@@ -59,6 +63,10 @@ export const DEFAULT_DISPLAY_SETTINGS: ReportDisplaySettings = {
 		{ label: "Approved By" },
 	],
 	footer_height_px: 40,
+	signature_height_px: 30,
+	signature_width_pct: 80,
+	signature_align: "center",
+	footer_body_gap_px: 0,
 	header_show_mode: "all_pages",
 	signatures_scope: "project",
 };
@@ -67,6 +75,7 @@ export type ReportPkgDetailsSettings = {
 	_v: number;
 	// Box header info
 	box_header_style: "compact" | "detailed";
+	box_display_mode: "compact" | "detailed";
 	show_ipac_reference: boolean;
 	show_client_reference: boolean;
 	show_order_name: boolean;
@@ -77,6 +86,22 @@ export type ReportPkgDetailsSettings = {
 	// Packaging info
 	show_dimensions: boolean;
 	show_weights: boolean;
+
+	// New granular display settings
+	show_box_number: boolean;
+	show_line_number: boolean;
+	show_quantity: boolean;
+	show_internal_dims: boolean;
+	show_external_dims: boolean;
+	show_net_weight: boolean;
+	show_gross_weight: boolean;
+	show_unit_m3: boolean;
+	show_total_m3: boolean;
+	show_unit_m2: boolean;
+	show_total_m2: boolean;
+	show_sei: boolean;
+	show_qr_code: boolean;
+
 	// Items table
 	show_items: boolean;
 	items_detail_level: "summary" | "full";
@@ -90,11 +115,15 @@ export type ReportPkgDetailsSettings = {
 	show_line_num_col: boolean;
 	// Box sorting
 	boxes_sort: "number" | "packed_date";
+	// Photos
+	show_box_photos: boolean;
+	show_item_photos: boolean;
 };
 
 export const DEFAULT_PKG_DETAILS_SETTINGS: ReportPkgDetailsSettings = {
 	_v: 2,
 	box_header_style: "detailed",
+	box_display_mode: "detailed",
 	show_ipac_reference: true,
 	show_client_reference: false,
 	show_order_name: true,
@@ -104,6 +133,21 @@ export const DEFAULT_PKG_DETAILS_SETTINGS: ReportPkgDetailsSettings = {
 	show_item_count_summary: true,
 	show_dimensions: true,
 	show_weights: true,
+
+	show_box_number: true,
+	show_line_number: false,
+	show_quantity: true,
+	show_internal_dims: false,
+	show_external_dims: true,
+	show_net_weight: true,
+	show_gross_weight: true,
+	show_unit_m3: false,
+	show_total_m3: false,
+	show_unit_m2: false,
+	show_total_m2: false,
+	show_sei: false,
+	show_qr_code: true,
+
 	show_items: true,
 	items_detail_level: "full",
 	items_sort: "item_num",
@@ -115,6 +159,8 @@ export const DEFAULT_PKG_DETAILS_SETTINGS: ReportPkgDetailsSettings = {
 	show_qty_col: true,
 	show_line_num_col: false,
 	boxes_sort: "number",
+	show_box_photos: false,
+	show_item_photos: false,
 };
 
 export function resolveDisplaySettings(saved: any): ReportDisplaySettings {
@@ -128,6 +174,14 @@ export function resolveDisplaySettings(saved: any): ReportDisplaySettings {
 			saved.header_top_margin ?? DEFAULT_DISPLAY_SETTINGS.header_top_margin,
 		footer_height_px:
 			saved.footer_height_px ?? DEFAULT_DISPLAY_SETTINGS.footer_height_px,
+		signature_height_px:
+			saved.signature_height_px ?? DEFAULT_DISPLAY_SETTINGS.signature_height_px,
+		footer_body_gap_px:
+			saved.footer_body_gap_px ?? DEFAULT_DISPLAY_SETTINGS.footer_body_gap_px,
+		signature_width_pct:
+			saved.signature_width_pct ?? DEFAULT_DISPLAY_SETTINGS.signature_width_pct,
+		signature_align:
+			saved.signature_align ?? DEFAULT_DISPLAY_SETTINGS.signature_align,
 	};
 }
 
@@ -135,5 +189,15 @@ export function resolvePkgDetailsSettings(
 	saved: any,
 ): ReportPkgDetailsSettings {
 	if (!saved) return DEFAULT_PKG_DETAILS_SETTINGS;
-	return { ...DEFAULT_PKG_DETAILS_SETTINGS, ...saved };
+	const resolved = { ...DEFAULT_PKG_DETAILS_SETTINGS, ...saved };
+	if (saved.show_dimensions !== undefined && saved.show_external_dims === undefined) {
+		resolved.show_external_dims = saved.show_dimensions;
+	}
+	if (saved.show_weights !== undefined && saved.show_net_weight === undefined) {
+		resolved.show_net_weight = saved.show_weights;
+	}
+	if (saved.box_header_style !== undefined && saved.box_display_mode === undefined) {
+		resolved.box_display_mode = saved.box_header_style;
+	}
+	return resolved;
 }

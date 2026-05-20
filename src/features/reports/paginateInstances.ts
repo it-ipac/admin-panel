@@ -6,28 +6,80 @@ import type { ReportInstanceData } from "./types";
 
 // Estimated heights in pixels at 96dpi
 const FONT_SCALE = { small: 0.82, medium: 1, large: 1.18 };
-const PAGE_USABLE_H = { portrait: 750, landscape: 450 }; // px usable after header/footer
+// Full A4 page heights in px at 96 dpi
+const PAGE_H_PX = { portrait: 1123, landscape: 794 };
+// Page side padding in px (≈20mm * 3.78)
+const PAGE_SIDE_PAD_PX = 76;
 
 function getBoxBaseHeight(
 	pkg: ReportPkgDetailsSettings,
 	fs: "small" | "medium" | "large",
 	isContinuation: boolean,
+	inst?: ReportInstanceData,
+	hiddenMediaUrls: string[] = [],
+	display?: ReportDisplaySettings,
 ): number {
 	const fm = FONT_SCALE[fs];
+	if (pkg.box_display_mode === "compact") {
+		return 24 * fm;
+	}
 	if (isContinuation) {
 		return 50 * fm + 14;
 	}
 	let h = 70 * fm; // box header + meta rows
-	if (pkg.show_dimensions || pkg.show_weights) h += 22 * fm;
+	if (
+		pkg.show_dimensions ||
+		pkg.show_weights ||
+		pkg.show_internal_dims ||
+		pkg.show_external_dims ||
+		pkg.show_net_weight ||
+		pkg.show_gross_weight ||
+		pkg.show_unit_m3 ||
+		pkg.show_unit_m2 ||
+		pkg.show_sei
+	) {
+		h += 22 * fm;
+	}
 	if (pkg.show_items && pkg.items_detail_level === "full") {
 		h += 28 * fm; // table header
 	}
+
+	// Add box photos height if visible
+	let photosH = 0;
+	if (pkg.show_box_photos && !isContinuation && inst?.box_photo_urls) {
+		const visibleBoxPhotos = inst.box_photo_urls.filter(
+			(url) => !hiddenMediaUrls.includes(url)
+		);
+		if (visibleBoxPhotos.length > 0) {
+			const orientation = display?.orientation || "portrait";
+			const cols = orientation === "landscape" ? 11 : 7;
+			const rows = Math.ceil(visibleBoxPhotos.length / cols);
+			photosH = rows * 72 + 16;
+		}
+	}
+	h += photosH;
+
 	h += 14; // card padding/margin
 	return h;
 }
 
-function getRowHeight(fs: "small" | "medium" | "large"): number {
-	return 22 * FONT_SCALE[fs];
+function getItemHeight(
+	item: any,
+	pkg: ReportPkgDetailsSettings,
+	fs: "small" | "medium" | "large",
+	hiddenMediaUrls: string[] = [],
+): number {
+	const fm = FONT_SCALE[fs];
+	let h = 22 * fm; // base row height
+	if (pkg.show_item_photos && item.photo_urls) {
+		const visibleItemPhotos = item.photo_urls.filter(
+			(url: string) => !hiddenMediaUrls.includes(url)
+		);
+		if (visibleItemPhotos.length > 0) {
+			h += 55 * fm; // photo container height (45px img + margins/paddings)
+		}
+	}
+	return h;
 }
 
 function estimateBoxHeight(
@@ -35,21 +87,56 @@ function estimateBoxHeight(
 	pkg: ReportPkgDetailsSettings,
 	fs: "small" | "medium" | "large",
 	display: ReportDisplaySettings,
+	hiddenMediaUrls: string[] = [],
 ): number {
 	const fm = FONT_SCALE[fs];
+	if (pkg.box_display_mode === "compact") {
+		return 24 * fm;
+	}
 	let h = 70 * fm; // box header + meta rows
-	if (pkg.show_dimensions || pkg.show_weights) h += 22 * fm;
+	if (
+		pkg.show_dimensions ||
+		pkg.show_weights ||
+		pkg.show_internal_dims ||
+		pkg.show_external_dims ||
+		pkg.show_net_weight ||
+		pkg.show_gross_weight ||
+		pkg.show_unit_m3 ||
+		pkg.show_unit_m2 ||
+		pkg.show_sei
+	) {
+		h += 22 * fm;
+	}
 	if (pkg.show_items && inst.pkd_items.length > 0) {
 		if (pkg.items_detail_level === "summary") {
 			h += 20 * fm;
 		} else {
 			h += 28 * fm; // table header
-			h += inst.pkd_items.length * 17 * fm; // rows
+			h += inst.pkd_items.reduce(
+				(sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls),
+				0,
+			);
 		}
 	}
+
+	// Add box photos height if visible
+	let photosH = 0;
+	if (pkg.show_box_photos && inst.box_photo_urls) {
+		const visibleBoxPhotos = inst.box_photo_urls.filter(
+			(url) => !hiddenMediaUrls.includes(url)
+		);
+		if (visibleBoxPhotos.length > 0) {
+			const cols = display.orientation === "landscape" ? 11 : 7;
+			const rows = Math.ceil(visibleBoxPhotos.length / cols);
+			photosH = rows * 72 + 16;
+		}
+	}
+	h += photosH;
+
 	h += 14; // card padding/margin
 	if (display.include_signatures && display.signatures_scope === "box") {
-		h += 45 * fm;
+		// signing line height + label text + padding
+		h += (display.signature_height_px ?? 30) + 27;
 	}
 	return h;
 }
@@ -58,15 +145,21 @@ export function paginateInstances(
 	instances: ReportInstanceData[],
 	display: ReportDisplaySettings,
 	pkg: ReportPkgDetailsSettings,
-	splitBy: "none" | "destination" | "order",
+	splitBy: "none" | "destination" | "order" | "report_per_order",
+	hiddenMediaUrls: string[] = [],
 ): Array<{ label?: string; items: ReportInstanceData[] }> {
 	if (!instances.length) return [{ items: [] }];
 
 	const isHeaderHidden = display.header_show_mode === "first_page_only";
-	const maxH = isHeaderHidden
-		? PAGE_USABLE_H[display.orientation] + 140
-		: PAGE_USABLE_H[display.orientation];
 	const fs = display.font_size;
+
+	// Dynamically compute max usable height from actual A4 dimensions
+	// = full page height − top margin − side pad (approx) − header block − footer
+	const topMarginPx = (display.header_top_margin ?? 20) * 3.78;
+	const footerPx = display.footer_height_px ?? 40;
+	const footerGapPx = display.footer_body_gap_px ?? 0;
+	const headerBlockPx = isHeaderHidden ? 0 : 140;
+	const maxH = PAGE_H_PX[display.orientation] - topMarginPx - PAGE_SIDE_PAD_PX - headerBlockPx - footerPx - footerGapPx;
 
 	// First split by group (destination/order) if needed
 	let groups: Array<{ label?: string; items: ReportInstanceData[] }> = [];
@@ -108,6 +201,7 @@ export function paginateInstances(
 		let currentH = 0;
 		for (const inst of group.items) {
 			if (
+				pkg.box_display_mode !== "compact" &&
 				pkg.show_items &&
 				pkg.items_detail_level === "full" &&
 				inst.pkd_items.length > 0
@@ -123,11 +217,13 @@ export function paginateInstances(
 				let lineOffset = 0;
 
 				while (itemsRemaining.length > 0) {
-					const baseH = getBoxBaseHeight(pkg, fs, !isFirstPageForBox);
-					const rowH = getRowHeight(fs);
+					const baseH = getBoxBaseHeight(pkg, fs, !isFirstPageForBox, inst, hiddenMediaUrls, display);
 					const availH = maxH - currentH;
 
-					if (availH < baseH + rowH) {
+					// Find height of the first item to see if it fits
+					const firstItemH = getItemHeight(itemsRemaining[0], pkg, fs, hiddenMediaUrls);
+
+					if (availH < baseH + firstItemH) {
 						// Not enough space for header + at least 1 item
 						if (current.length > 0) {
 							pages.push({ label: group.label, items: current });
@@ -137,14 +233,16 @@ export function paginateInstances(
 					}
 
 					const usableH = maxH - currentH;
-					const headerH = getBoxBaseHeight(pkg, fs, !isFirstPageForBox);
+					const headerH = getBoxBaseHeight(pkg, fs, !isFirstPageForBox, inst, hiddenMediaUrls, display);
 					const sigH =
 						display.include_signatures && display.signatures_scope === "box"
-							? 45 * FONT_SCALE[fs]
+							? (display.signature_height_px ?? 30) + 27
 							: 0;
 
 					// Check if all remaining items fit, including signatures if complete
-					const totalRemainingH = headerH + itemsRemaining.length * rowH + sigH;
+					const itemsH = itemsRemaining.reduce((sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls), 0);
+					const totalRemainingH = headerH + itemsH + sigH;
+
 					if (totalRemainingH <= usableH) {
 						// All remaining items fit!
 						const slice = itemsRemaining;
@@ -169,10 +267,19 @@ export function paginateInstances(
 					// Since we are splitting, this segment will NOT be the last segment,
 					// so we won't render signatures here. Thus, has_more must be true.
 					// To ensure has_more is true, we must leave at least 1 item for the next page.
-					const itemsToFit = Math.min(
-						Math.floor((usableH - headerH) / rowH),
-						itemsRemaining.length - 1,
-					);
+					let itemsToFit = 0;
+					let currentSliceH = 0;
+					for (let i = 0; i < itemsRemaining.length; i++) {
+						const itemH = getItemHeight(itemsRemaining[i], pkg, fs, hiddenMediaUrls);
+						if (headerH + currentSliceH + itemH <= usableH) {
+							currentSliceH += itemH;
+							itemsToFit++;
+						} else {
+							break;
+						}
+					}
+					// Ensure we leave at least 1 item for the next page
+					itemsToFit = Math.min(itemsToFit, itemsRemaining.length - 1);
 
 					if (itemsToFit <= 0) {
 						// Not enough space to fit a split segment on this page.
@@ -197,7 +304,8 @@ export function paginateInstances(
 							current.push(partInst);
 							// If itemsRemaining is now empty, signatures will render
 							const actualSigH = itemsRemaining.length === 0 ? sigH : 0;
-							currentH += headerH + rowH + actualSigH;
+							const sliceH = slice.reduce((sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls), 0);
+							currentH += headerH + sliceH + actualSigH;
 							isFirstPageForBox = false;
 							lineOffset += slice.length;
 						}
@@ -218,13 +326,14 @@ export function paginateInstances(
 					};
 
 					current.push(partInst);
-					currentH += headerH + slice.length * rowH; // has_more is guaranteed true, so no sigH added
+					const sliceH = slice.reduce((sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls), 0);
+					currentH += headerH + sliceH; // has_more is guaranteed true, so no sigH added
 					isFirstPageForBox = false;
 					lineOffset += slice.length;
 				}
 			} else {
 				// Summary or no items
-				const boxH = estimateBoxHeight(inst, pkg, fs, display);
+				const boxH = estimateBoxHeight(inst, pkg, fs, display, hiddenMediaUrls);
 				if (currentH + boxH > maxH && current.length > 0) {
 					pages.push({ label: group.label, items: current });
 					current = [inst];

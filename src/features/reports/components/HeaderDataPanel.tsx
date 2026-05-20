@@ -29,6 +29,7 @@ interface HeaderDataPanelProps {
 	companyData: any;
 	setCompanyData: React.Dispatch<React.SetStateAction<any>>;
 	onSaveCompanyProfile: () => Promise<void>;
+	onSaveClientDetails?: () => Promise<void>;
 	isTemplateMode: boolean;
 	setIsTemplateMode: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -45,6 +46,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 	companyData,
 	setCompanyData,
 	onSaveCompanyProfile,
+	onSaveClientDetails,
 	isTemplateMode,
 	setIsTemplateMode,
 }) => {
@@ -79,6 +81,21 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 			setTimeout(() => setSaved(false), 2000);
 		} finally {
 			setSaving(false);
+		}
+	};
+
+	const [clientSaving, setClientSaving] = React.useState(false);
+	const [clientSaved, setClientSaved] = React.useState(false);
+	const handleSaveClient = async () => {
+		if (!onSaveClientDetails) return;
+		setClientSaving(true);
+		setClientSaved(false);
+		try {
+			await onSaveClientDetails();
+			setClientSaved(true);
+			setTimeout(() => setClientSaved(false), 2000);
+		} finally {
+			setClientSaving(false);
 		}
 	};
 
@@ -321,9 +338,11 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					Client Info
 					<button
 						type="button"
-						className="text-xs text-blue-600 hover:underline font-normal"
+						onClick={handleSaveClient}
+						disabled={clientSaving || !onSaveClientDetails}
+						className="text-xs font-normal text-blue-600 hover:underline disabled:opacity-50"
 					>
-						Save to DB
+						{clientSaving ? "Saving…" : clientSaved ? "✓ Saved" : "Save to DB"}
 					</button>
 				</h3>
 				<div className="flex flex-col gap-1">
@@ -599,64 +618,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 						onChange={(e) => handleOrderChange("quotation_ref", e.target.value)}
 					/>
 				</div>
-				<div className="flex flex-col gap-1">
-					<div className="flex items-center justify-between">
-						<label
-							htmlFor="custTrn"
-							className="text-xs font-medium text-gray-600"
-						>
-							Customer TRN
-						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
-							<input
-								type="checkbox"
-								checked={clientOrderData?.showCustomerTrn !== false}
-								onChange={(e) =>
-									handleOrderChange("showCustomerTrn", e.target.checked)
-								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
-							/>
-							Show on report
-						</label>
-					</div>
-					<input
-						id="custTrn"
-						type="text"
-						className="border rounded-md p-2 text-sm w-full"
-						value={clientOrderData?.customer_trn || ""}
-						onChange={(e) => handleOrderChange("customer_trn", e.target.value)}
-					/>
-				</div>
-				<div className="flex flex-col gap-1">
-					<div className="flex items-center justify-between">
-						<label
-							htmlFor="valsemTrn"
-							className="text-xs font-medium text-gray-600"
-						>
-							IPAC-Valsem TRN
-						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
-							<input
-								type="checkbox"
-								checked={clientOrderData?.showIpacValsemTrn !== false}
-								onChange={(e) =>
-									handleOrderChange("showIpacValsemTrn", e.target.checked)
-								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
-							/>
-							Show on report
-						</label>
-					</div>
-					<input
-						id="valsemTrn"
-						type="text"
-						className="border rounded-md p-2 text-sm w-full"
-						value={clientOrderData?.ipac_valsem_trn || ""}
-						onChange={(e) =>
-							handleOrderChange("ipac_valsem_trn", e.target.value)
-						}
-					/>
-				</div>
+
 				<div className="flex flex-col gap-1">
 					<label className="text-xs font-medium text-gray-600">
 						Delivery Note #
@@ -1167,6 +1129,34 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 						className="border rounded-md p-2 text-sm w-full"
 						value={companyData?.website || ""}
 						onChange={(e) => handleCompanyChange("website", e.target.value)}
+					/>
+				</div>
+				<div className="flex flex-col gap-1">
+					<div className="flex items-center justify-between">
+						<label
+							htmlFor="compTrn"
+							className="text-xs font-medium text-gray-600"
+						>
+							TRN
+						</label>
+						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+							<input
+								type="checkbox"
+								checked={companyData?.showTrn !== false}
+								onChange={(e) =>
+									handleCompanyChange("showTrn", e.target.checked)
+								}
+								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+							/>
+							Show on report
+						</label>
+					</div>
+					<input
+						id="compTrn"
+						type="text"
+						className="border rounded-md p-2 text-sm w-full"
+						value={companyData?.trn || ""}
+						onChange={(e) => handleCompanyChange("trn", e.target.value)}
 					/>
 				</div>
 			</div>

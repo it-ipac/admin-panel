@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
-import { saveCompanyProfile } from "../api";
+import { saveCompanyProfile, updateClientDetails } from "../api";
 import {
 	useClientDetailsQuery,
 	useCompanyProfileQuery,
@@ -44,7 +44,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 
 	const [filters, setFilters] = useState<FilterParams>({
 		clientId: null,
-		orderId: null,
+		orderIds: [],
 		dateFrom: null,
 		dateTo: null,
 		dateFilterMode: "item_packed_at",
@@ -53,6 +53,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 		hasItemsOnly: true,
 		packedOnly: false,
 		splitBy: "none",
+		orderSort: "name",
 	});
 
 	const [displaySettings, setDisplaySettings] = useState(
@@ -65,6 +66,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 	const [clientShipmentData, setClientShipmentData] = useState<any>(null);
 	const [companyData, setCompanyData] = useState<any>(null);
 	const [isTemplateMode, setIsTemplateMode] = useState(false);
+	const [hiddenMediaUrls, setHiddenMediaUrls] = useState<string[]>([]);
 
 	const { data: fetchedCompanyProfile } = useCompanyProfileQuery();
 
@@ -81,6 +83,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 				country: fetchedCompanyProfile.country || "",
 				website: fetchedCompanyProfile.website || "",
 				logoUrl: fetchedCompanyProfile.logo_url || null,
+				trn: fetchedCompanyProfile.trn || "",
 				showLogo: fetchedCompanyProfile.show_logo !== false,
 				showName: fetchedCompanyProfile.show_name !== false,
 				showTel: fetchedCompanyProfile.show_tel !== false,
@@ -90,6 +93,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 				showCity: fetchedCompanyProfile.show_city !== false,
 				showCountry: fetchedCompanyProfile.show_country !== false,
 				showWebsite: fetchedCompanyProfile.show_website !== false,
+				showTrn: fetchedCompanyProfile.show_trn !== false,
 			});
 		}
 	}, [fetchedCompanyProfile, companyData]);
@@ -108,7 +112,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 			website: companyData.website || "",
 			logo_url: companyData.logoUrl || "",
 			email: "",
-			trn: "",
+			trn: companyData.trn || "",
 			show_logo: companyData.showLogo !== false,
 			show_name: companyData.showName !== false,
 			show_tel: companyData.showTel !== false,
@@ -118,6 +122,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 			show_city: companyData.showCity !== false,
 			show_country: companyData.showCountry !== false,
 			show_website: companyData.showWebsite !== false,
+			show_trn: companyData.showTrn !== false,
 		});
 	};
 
@@ -141,22 +146,38 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 				city: fetchedClientDetails.city || "",
 				country: fetchedClientDetails.country || "",
 				trn: fetchedClientDetails.trn || "",
+				showTrn: true,
 			});
-			setClientOrderData((prev: any) => ({
-				...(prev || {}),
-				customer_trn: fetchedClientDetails.trn,
-			}));
 		}
 	}, [fetchedClientDetails]);
 
-	const { data: fetchedOrderDetails } = useOrderDetailsQuery(filters.orderId);
+	const handleSaveClientDetails = async () => {
+		if (!clientData || !filters.clientId) return;
+		await updateClientDetails(filters.clientId, {
+			name: clientData.name || "",
+			contact_person: clientData.contact_person || null,
+			email: clientData.email || null,
+			phone: clientData.phone || null,
+			address_line_1: clientData.address_line_1 || null,
+			address_line_2: clientData.address_line_2 || null,
+			address_line_3: clientData.address_line_3 || null,
+			post_code: clientData.post_code || null,
+			city: clientData.city || null,
+			country: clientData.country || null,
+			trn: clientData.trn || null,
+		});
+	};
+
+	// When a single order is selected, auto-seed order ref and header name
+	const firstOrderId = filters.orderIds.length === 1 ? filters.orderIds[0] : null;
+	const { data: fetchedOrderDetails } = useOrderDetailsQuery(firstOrderId);
 
 	const lastLoadedOrderId = useRef<string | null>(null);
 
 	useEffect(() => {
-		if (fetchedOrderDetails) {
-			if (lastLoadedOrderId.current !== filters.orderId) {
-				lastLoadedOrderId.current = filters.orderId;
+		if (fetchedOrderDetails && firstOrderId) {
+			if (lastLoadedOrderId.current !== firstOrderId) {
+				lastLoadedOrderId.current = firstOrderId;
 				setClientOrderData((prev: any) => ({
 					...(prev || {}),
 					customer_order_ref:
@@ -170,25 +191,27 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 					reportName: fetchedOrderDetails.order_name || "",
 				}));
 			}
-		} else {
+		} else if (!firstOrderId) {
 			lastLoadedOrderId.current = null;
 			setClientOrderData((prev: any) => ({
 				...(prev || {}),
 				customer_order_ref: "",
 				order_name: "",
 			}));
-			setHeaderData((prev) => ({
-				...prev,
-				reportName: "Packing List",
-			}));
+			if (filters.orderIds.length === 0) {
+				setHeaderData((prev) => ({
+					...prev,
+					reportName: "Packing List",
+				}));
+			}
 		}
-	}, [fetchedOrderDetails, filters.orderId]);
+	}, [fetchedOrderDetails, firstOrderId, filters.orderIds.length]);
 
-	const { data: fetchedOrderTotals } = useOrderTotalsQuery(filters.orderId);
+	const { data: fetchedOrderTotals } = useOrderTotalsQuery(firstOrderId);
 
-	// Seed NW/GW/volume from DB when order changes
+	// Seed NW/GW/volume from DB when single order selected
 	useEffect(() => {
-		if (fetchedOrderTotals && filters.orderId) {
+		if (fetchedOrderTotals && firstOrderId) {
 			setHeaderData((prev) => ({
 				...prev,
 				nw:
@@ -205,7 +228,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 						: prev.totalVolume,
 			}));
 		}
-	}, [fetchedOrderTotals, filters.orderId]);
+	}, [fetchedOrderTotals, firstOrderId]);
 
 	const [headerData, setHeaderData] = useState({
 		reportName: "",
@@ -329,6 +352,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:white}
 								companyData={companyData}
 								setCompanyData={setCompanyData}
 								onSaveCompanyProfile={handleSaveCompanyProfile}
+								onSaveClientDetails={handleSaveClientDetails}
 								isTemplateMode={isTemplateMode}
 								setIsTemplateMode={setIsTemplateMode}
 							/>
@@ -405,6 +429,8 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:white}
 						clientShipmentData={clientShipmentData}
 						companyData={companyData}
 						printRef={printRef}
+						hiddenMediaUrls={hiddenMediaUrls}
+						setHiddenMediaUrls={setHiddenMediaUrls}
 					/>
 				</div>
 			</div>
