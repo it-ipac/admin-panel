@@ -143,6 +143,9 @@ export interface PackageInstance {
 	instance_number: number | null;
 	ipac_reference: string | null;
 	status: string | null;
+	destination: string | null;
+	tag: string | null;
+	category_id: string | null;
 }
 
 interface Client {
@@ -305,6 +308,31 @@ const mutateInChunks = async (
 	}
 };
 
+/** Builds the category tag abbreviation by querying category_tag_map → project_tags.
+ *  Mirrors the ops-app buildCategoryTagAbbreviation logic. e.g. "P-NAC", "W-AC" */
+async function buildTagAbbreviation(
+	categoryId: string | null,
+): Promise<string> {
+	if (!categoryId) return "TAG";
+	const { data, error } = await supabase
+		.from("category_tag_map")
+		.select("tag_order, tag:project_tags(name, abbreviation)")
+		.eq("category_id", categoryId)
+		.order("tag_order", { ascending: true });
+
+	if (error || !data?.length) return "TAG";
+
+	const parts = (data as any[]).map((row) => {
+		const tag = Array.isArray(row.tag) ? row.tag[0] : row.tag;
+		if (tag?.abbreviation) return String(tag.abbreviation).trim();
+		const name = String(tag?.name || "").trim();
+		if (/^[A-Z0-9-]{1,5}$/.test(name)) return name;
+		return name.charAt(0).toUpperCase();
+	});
+
+	return parts.filter(Boolean).join("-") || "TAG";
+}
+
 function OrderDetailPage() {
 	const { orderId } = Route.useParams();
 	const navigate = useNavigate();
@@ -313,6 +341,15 @@ function OrderDetailPage() {
 	const [deleteOrderOpen, setDeleteOrderOpen] = useState(false);
 	const [deleteOrderError, setDeleteOrderError] = useState<string | null>(null);
 	const [deletingOrder, setDeletingOrder] = useState(false);
+	const [showGlobalSyncModal, setShowGlobalSyncModal] = useState(false);
+	const [globalSyncInstances, setGlobalSyncInstances] = useState<
+		{
+			instance: PackageInstance;
+			newDestination: string;
+			package_number?: number;
+		}[]
+	>([]);
+	const [isGlobalSyncing, setIsGlobalSyncing] = useState(false);
 
 	useEffect(() => {
 		if (!authLoading && !user) {
@@ -967,6 +1004,36 @@ function OrderDetailPage() {
 		enabled: !!user && !!order?.clients?.id,
 	});
 
+	// Fetch all categories for the client
+	const { data: clientCategories } = useQuery({
+		queryKey: ["clientCategories", order?.clients?.id],
+		queryFn: async () => {
+			if (!order?.clients?.id) return [];
+			const { data, error } = await supabase
+				.from("pkg_category")
+				.select("*")
+				.eq("client_id", order.clients.id)
+				.order("label");
+			if (error) throw error;
+			return data;
+		},
+		enabled: !!user && !!order?.clients?.id,
+	});
+
+	// Fetch categories mapped to the order
+	const { data: orderCategories } = useQuery({
+		queryKey: ["orderCategories", orderId],
+		queryFn: async () => {
+			const { data, error } = await supabase
+				.from("category_order_map")
+				.select("category_id")
+				.eq("order_id", orderId);
+			if (error) throw error;
+			return data.map((d: any) => d.category_id);
+		},
+		enabled: !!user && !!order,
+	});
+
 	// Fetch pkd_items (inventory items) for all instances in this order
 	const { data: pkdItems } = useQuery({
 		queryKey: ["pkdItems", orderId],
@@ -1348,7 +1415,7 @@ function OrderDetailPage() {
 					supabase
 						.from("order_pkg_instance")
 						.select(
-							"id, order_pkg_overview_id, order_package_id, instance_number, ipac_reference, status",
+							"id, order_pkg_overview_id, order_package_id, instance_number, ipac_reference, status, destination, tag, category_id",
 						)
 						.in("order_package_id", chunk)
 						.order("instance_number", { ascending: true }),
@@ -1958,48 +2025,71 @@ function OrderDetailPage() {
 	});
 
 	// Regenerate Reference Mutation
+	// Auto-infers: destination from instance.destination, tag from pkd_item→items_db→category tags,
+	// item_num from pkd_item→items_db. Standard vs custom detected by presence of pkd_item rows.
 	const regenerateReferenceMutation = useMutation({
-		mutationFn: async ({
-			instanceId,
-			isCustom,
-			itemNumber,
-			categoryLabel,
-		}: {
-			instanceId: string;
-			isCustom: boolean;
-			itemNumber?: string;
-			categoryLabel?: string;
-		}) => {
-			if (!selectedPackage) return;
+		mutationFn: async ({ instanceId }: { instanceId: string }) => {
+			// 1. Fetch the instance row for destination, instance_number, category_id
+			const { data: instance, error: instError } = await supabase
+				.from("order_pkg_instance")
+				.select("id, destination, instance_number, category_id")
+				.eq("id", instanceId)
+				.single();
+			if (instError) throw instError;
 
-			// 1. Fetch items to get item number/quantity for custom ref
-			const { data: items, error: itemsError } = await supabase
-				.from("package_items")
-				.select("*")
-				.eq("order_package_id", selectedPackage.id);
-			if (itemsError) throw itemsError;
+			// 2. Fetch pkd_item for this instance → items_db for item_num and category
+			const { data: pkdItems, error: pkdError } = await supabase
+				.from("pkd_item")
+				.select("quantity, items_db:maintenance_db_id(item_num, category_id)")
+				.eq("pkg_instance_id", instanceId)
+				.limit(1);
+			if (pkdError) throw pkdError;
 
-			// 2. Map category to tag
-			const tagVal = mapCategoryToTag(categoryLabel);
+			const pkdItem = pkdItems?.[0];
+			const itemsDb: any = Array.isArray(pkdItem?.items_db)
+				? pkdItem.items_db[0]
+				: pkdItem?.items_db;
+			const isCustom = !!pkdItem;
 
-			// 3. Generate reference
-			const reference = generateIpacReference({
-				destination: (order as any)?.destination || "XXX",
-				tag: tagVal,
-				isCustom,
-				boxNumber: selectedPackage.package_number,
-				itemNumber:
-					itemNumber ||
-					(items && items.length > 0 ? items[0].item_number : null),
-				quantity: items && items.length > 0 ? items[0].quantity : 1,
-			});
+			// 3. Determine category: instance-level override > items_db category
+			const categoryId =
+				(instance as any).category_id || itemsDb?.category_id || null;
+			const tag = await buildTagAbbreviation(categoryId);
 
-			// 4. Update instance
+			// 4. Generate the reference
+			const destination = String(
+				(instance as any).destination || "XXX",
+			).toUpperCase();
+			const seq = (instance as any).instance_number || 1;
+
+			let reference: string;
+			if (isCustom) {
+				const itemNum = String(itemsDb?.item_num || "ITEM");
+				reference = generateIpacReference({
+					destination,
+					tag,
+					isCustom: true,
+					boxNumber: seq,
+					itemNumber: itemNum,
+					quantity: seq,
+				});
+			} else {
+				reference = generateIpacReference({
+					destination,
+					tag,
+					isCustom: false,
+					boxNumber: seq,
+				});
+			}
+
+			// 5. Persist
 			const { error: updateError } = await supabase
 				.from("order_pkg_instance")
 				.update({ ipac_reference: reference })
 				.eq("id", instanceId);
 			if (updateError) throw updateError;
+
+			return reference;
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["order", orderId] });
@@ -2218,26 +2308,32 @@ function OrderDetailPage() {
 	};
 
 	const [regeneratingReferences, setRegeneratingReferences] = useState(false);
+	// Tracks instance IDs updated by bulk regen — drives green row highlights in PackageInfoTab
+	const [updatedInstanceIds, setUpdatedInstanceIds] = useState<Set<string>>(
+		new Set(),
+	);
 	const handleRegenerateReferences = async () => {
 		setRegeneratingReferences(true);
 		try {
-			// Query instances along with their pkg_item and items_db data
+			// Fetch all custom instances (pkd_item!inner excludes standard boxes)
+			// Includes: destination + category_id from instance, item_num + category_id from items_db
 			const { data: instances, error } = await supabase
 				.from("order_pkg_instance")
 				.select(`
 					id,
+					destination,
 					instance_number,
+					category_id,
 					order_package_id,
-					order_pkg_overview:order_pkg_overview_id ( quantity ),
 					order_package:order_package_id!inner (
 						order_id
 					),
 					pkd_item:pkd_item!inner (
 						quantity,
 						items_db:maintenance_db_id (
-							warehouse_location,
 							item_num,
-							category:category_id ( name )
+							category_id,
+							warehouse_location
 						)
 					)
 				`)
@@ -2256,59 +2352,79 @@ function OrderDetailPage() {
 				return;
 			}
 
-			// We don't need to filter by box_type name anymore.
-			// Standard boxes don't have items, so they are already excluded by pkd_item!inner.
-			const customInstances = instances;
-
-			if (customInstances.length === 0) {
-				alert("No custom boxes found to update.");
-				return;
+			// Group by order_package_id for per-box green highlight progress
+			const byPackage = new Map<string, typeof instances>();
+			for (const inst of instances) {
+				const pkgId = (inst as any).order_package_id;
+				if (!byPackage.has(pkgId)) byPackage.set(pkgId, []);
+				byPackage.get(pkgId)!.push(inst);
 			}
 
-			const updates = customInstances.map((inst: any) => {
-				const pkdItem = inst.pkd_item?.[0];
-				const itemsDb = pkdItem?.items_db;
-				const destination = itemsDb?.warehouse_location || null;
-				const categoryLabel = itemsDb?.category?.name || "TAG";
-				const itemNumber = itemsDb?.item_num || "ITEM";
-				const quantity = pkdItem?.quantity || 1;
-				const tag = mapCategoryToTag(categoryLabel);
+			let totalUpdated = 0;
 
-				const newReference = generateIpacReference({
-					destination,
-					tag,
-					isCustom: true,
-					boxNumber: inst.instance_number, // Not used for custom but passed
-					itemNumber,
-					quantity,
-				});
+			for (const [, pkgInstances] of byPackage) {
+				const updates = await Promise.all(
+					pkgInstances.map(async (inst: any) => {
+						const pkdItem = Array.isArray(inst.pkd_item)
+							? inst.pkd_item[0]
+							: inst.pkd_item;
+						const itemsDb: any = Array.isArray(pkdItem?.items_db)
+							? pkdItem.items_db[0]
+							: pkdItem?.items_db;
 
-				return {
-					id: inst.id,
-					destination,
-					ipac_reference: newReference,
-				};
-			});
+						// Use instance.destination; fall back to warehouse_location
+						const destination = String(
+							inst.destination || itemsDb?.warehouse_location || "XXX",
+						).toUpperCase();
 
-			// Execute batch update
-			for (let i = 0; i < updates.length; i += 100) {
-				const chunk = updates.slice(i, i + 100);
-				const promises = chunk.map((update) =>
-					supabase
-						.from("order_pkg_instance")
-						.update({
-							destination: update.destination,
-							ipac_reference: update.ipac_reference,
-						})
-						.eq("id", update.id),
+						// Use instance category override; fall back to items_db category
+						const categoryId = inst.category_id || itemsDb?.category_id || null;
+						const tag = await buildTagAbbreviation(categoryId);
+
+						const itemNum = String(itemsDb?.item_num || "ITEM");
+						const seq = inst.instance_number || 1;
+
+						const newReference = generateIpacReference({
+							destination,
+							tag,
+							isCustom: true,
+							boxNumber: seq,
+							itemNumber: itemNum,
+							quantity: seq,
+						});
+
+						return {
+							id: inst.id,
+							destination,
+							ipac_reference: newReference,
+						};
+					}),
 				);
-				await Promise.all(promises);
+
+				// Persist this box's instances
+				await Promise.all(
+					updates.map((u) =>
+						supabase
+							.from("order_pkg_instance")
+							.update({
+								destination: u.destination,
+								ipac_reference: u.ipac_reference,
+							})
+							.eq("id", u.id),
+					),
+				);
+
+				// Mark these instances done → rows turn green
+				const doneIds = new Set(updates.map((u) => u.id));
+				setUpdatedInstanceIds((prev) => new Set([...prev, ...doneIds]));
+				totalUpdated += updates.length;
 			}
 
 			queryClient.invalidateQueries({
 				queryKey: ["packageInstances", orderId],
 			});
-			alert(`Successfully updated ${updates.length} custom instances!`);
+			queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+			alert(`Successfully updated ${totalUpdated} custom instances!`);
 		} catch (error) {
 			console.error("Error regenerating references:", error);
 			alert("An unexpected error occurred while regenerating references.");
@@ -3484,6 +3600,76 @@ function OrderDetailPage() {
 		);
 	}
 
+	const handlePrepareGlobalSync = () => {
+		const standardItems = (packageItems || []).map((item) => ({
+			...item,
+			source: "custom" as const,
+		}));
+
+		const invItems = (pkdItems || []).map((item) => {
+			const instance = packageInstances?.find(
+				(inst) => inst.id === item.pkg_instance_id,
+			);
+			return {
+				order_package_id: instance?.order_package_id,
+				instance_number: instance?.instance_number ?? undefined,
+				warehouse_location: item.items_db?.warehouse_location,
+			};
+		});
+
+		const toSync = (packageInstances || [])
+			.map((inst) => {
+				const item =
+					invItems.find(
+						(i) =>
+							i.order_package_id === inst.order_package_id &&
+							i.instance_number === inst.instance_number,
+					) ||
+					invItems.find(
+						(i) =>
+							i.order_package_id === inst.order_package_id &&
+							!i.instance_number,
+					) ||
+					standardItems.find(
+						(i) =>
+							i.order_package_id === inst.order_package_id &&
+							i.instance_number === inst.instance_number,
+					) ||
+					standardItems.find(
+						(i) =>
+							i.order_package_id === inst.order_package_id &&
+							!i.instance_number,
+					);
+
+				const pkg = order?.order_packages.find(
+					(p) => p.id === inst.order_package_id,
+				);
+				return {
+					instance: inst,
+					newDestination: item?.warehouse_location || "",
+					package_number: pkg?.package_number,
+				};
+			})
+			.filter(
+				(x) => x.newDestination && x.newDestination !== x.instance.destination,
+			);
+
+		setGlobalSyncInstances(toSync);
+		setShowGlobalSyncModal(true);
+	};
+
+	const handleConfirmGlobalSync = async () => {
+		setIsGlobalSyncing(true);
+		for (const { instance, newDestination } of globalSyncInstances) {
+			await updateInstanceMutation.mutateAsync({
+				instanceId: instance.id,
+				updates: { destination: newDestination },
+			});
+		}
+		setIsGlobalSyncing(false);
+		setShowGlobalSyncModal(false);
+	};
+
 	return (
 		<div className="flex h-screen bg-gray-50">
 			<Sidebar />
@@ -3556,12 +3742,97 @@ function OrderDetailPage() {
 										</DropdownMenu.Content>
 									</DropdownMenu.Portal>
 								</DropdownMenu.Root>
+								<button
+									onClick={handlePrepareGlobalSync}
+									className="flex items-center gap-2 px-3 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100"
+								>
+									<RefreshCw className="w-4 h-4" />
+									Sync Destinations
+								</button>
 								<button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
 									<Edit className="w-4 h-4" />
 									Edit Order
 								</button>
 							</div>
 						</div>
+
+						{/* Global Sync Modal */}
+						{showGlobalSyncModal && (
+							<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+								<div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 overflow-hidden">
+									<div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+										<h3 className="font-semibold text-gray-800">
+											Global Destination Sync
+										</h3>
+										<button
+											onClick={() => setShowGlobalSyncModal(false)}
+											className="text-gray-400 hover:text-gray-600"
+										>
+											<X className="w-5 h-5" />
+										</button>
+									</div>
+									<div className="p-4">
+										{globalSyncInstances.length === 0 ? (
+											<p className="text-gray-600 text-sm">
+												All instance destinations are already up to date with
+												their respective items.
+											</p>
+										) : (
+											<>
+												<p className="text-gray-600 text-sm mb-4">
+													You are about to update the destination for{" "}
+													<strong>{globalSyncInstances.length}</strong>{" "}
+													instances across the order based on their item's
+													warehouse location:
+												</p>
+												<div className="max-h-64 overflow-y-auto space-y-2 mb-4 pr-2">
+													{globalSyncInstances.map((sync, i) => (
+														<div
+															key={i}
+															className="flex justify-between items-center text-sm p-2 bg-gray-50 rounded border border-gray-100"
+														>
+															<span className="font-medium text-gray-700">
+																Box #{sync.package_number ?? "?"} - Inst #
+																{sync.instance.instance_number ?? "All"}
+															</span>
+															<div className="flex items-center gap-2 text-gray-500">
+																<span className="line-through">
+																	{sync.instance.destination || "None"}
+																</span>
+																<span>→</span>
+																<span className="text-blue-600 font-semibold">
+																	{sync.newDestination}
+																</span>
+															</div>
+														</div>
+													))}
+												</div>
+											</>
+										)}
+									</div>
+									<div className="px-4 py-3 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
+										<button
+											onClick={() => setShowGlobalSyncModal(false)}
+											className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded"
+										>
+											Cancel
+										</button>
+										<button
+											onClick={handleConfirmGlobalSync}
+											disabled={
+												isGlobalSyncing || globalSyncInstances.length === 0
+											}
+											className="px-3 py-1.5 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded flex items-center gap-2 disabled:opacity-50"
+										>
+											{isGlobalSyncing && (
+												<Loader2 className="w-4 h-4 animate-spin" />
+											)}
+											Confirm Global Sync
+										</button>
+									</div>
+								</div>
+							</div>
+						)}
 
 						<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 							{/* Main Content */}
@@ -4330,6 +4601,12 @@ function OrderDetailPage() {
 																regenerateReferenceMutation={
 																	regenerateReferenceMutation
 																}
+																packageItems={combinedPackageItems}
+																clientCategories={clientCategories || []}
+																orderCategories={orderCategories || []}
+																onRegenerateAll={handleRegenerateReferences}
+																isRegeneratingAll={regeneratingReferences}
+																updatedInstanceIds={updatedInstanceIds}
 															/>
 														)}
 

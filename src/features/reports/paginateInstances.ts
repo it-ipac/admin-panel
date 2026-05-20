@@ -34,6 +34,7 @@ function estimateBoxHeight(
 	inst: ReportInstanceData,
 	pkg: ReportPkgDetailsSettings,
 	fs: "small" | "medium" | "large",
+	display: ReportDisplaySettings,
 ): number {
 	const fm = FONT_SCALE[fs];
 	let h = 70 * fm; // box header + meta rows
@@ -47,6 +48,9 @@ function estimateBoxHeight(
 		}
 	}
 	h += 14; // card padding/margin
+	if (display.include_signatures && display.signatures_scope === "box") {
+		h += 45 * fm;
+	}
 	return h;
 }
 
@@ -58,7 +62,10 @@ export function paginateInstances(
 ): Array<{ label?: string; items: ReportInstanceData[] }> {
 	if (!instances.length) return [{ items: [] }];
 
-	const maxH = PAGE_USABLE_H[display.orientation];
+	const isHeaderHidden = display.header_show_mode === "first_page_only";
+	const maxH = isHeaderHidden
+		? PAGE_USABLE_H[display.orientation] + 140
+		: PAGE_USABLE_H[display.orientation];
 	const fs = display.font_size;
 
 	// First split by group (destination/order) if needed
@@ -92,6 +99,11 @@ export function paginateInstances(
 	// Within each group, paginate by height
 	const pages: Array<{ label?: string; items: ReportInstanceData[] }> = [];
 	for (const group of groups) {
+		// Prepend cover page for this group.
+		// The cover page is the first page of the group, and isFirstPageOfGroup is true for it.
+		// We pass all items of this group to the cover page so that it can display the correct counts.
+		pages.push({ label: group.label, items: group.items });
+
 		let current: ReportInstanceData[] = [];
 		let currentH = 0;
 		for (const inst of group.items) {
@@ -126,26 +138,69 @@ export function paginateInstances(
 
 					const usableH = maxH - currentH;
 					const headerH = getBoxBaseHeight(pkg, fs, !isFirstPageForBox);
-					const itemsSpace = usableH - headerH;
-					const itemsToFit = Math.floor(itemsSpace / rowH);
+					const sigH =
+						display.include_signatures && display.signatures_scope === "box"
+							? 45 * FONT_SCALE[fs]
+							: 0;
 
-					if (itemsToFit <= 0) {
-						// Force at least 1 item to avoid infinite loop
-						const slice = itemsRemaining.slice(0, 1);
-						itemsRemaining = itemsRemaining.slice(1);
+					// Check if all remaining items fit, including signatures if complete
+					const totalRemainingH = headerH + itemsRemaining.length * rowH + sigH;
+					if (totalRemainingH <= usableH) {
+						// All remaining items fit!
+						const slice = itemsRemaining;
+						itemsRemaining = [];
 						const partInst: ReportInstanceData = {
 							...inst,
 							pkd_items: slice,
 							is_continuation: !isFirstPageForBox,
-							has_more: itemsRemaining.length > 0,
+							has_more: false,
 							line_offset: lineOffset,
 							overall_lines: overallLines,
 							overall_qty: overallQty,
 						};
 						current.push(partInst);
-						currentH += headerH + rowH;
+						currentH += totalRemainingH;
 						isFirstPageForBox = false;
 						lineOffset += slice.length;
+						continue;
+					}
+
+					// If they don't all fit (including signatures), we must split.
+					// Since we are splitting, this segment will NOT be the last segment,
+					// so we won't render signatures here. Thus, has_more must be true.
+					// To ensure has_more is true, we must leave at least 1 item for the next page.
+					const itemsToFit = Math.min(
+						Math.floor((usableH - headerH) / rowH),
+						itemsRemaining.length - 1,
+					);
+
+					if (itemsToFit <= 0) {
+						// Not enough space to fit a split segment on this page.
+						// Push current page and start a new one.
+						if (current.length > 0) {
+							pages.push({ label: group.label, items: current });
+							current = [];
+							currentH = 0;
+						} else {
+							// Force at least 1 item to avoid infinite loop on a fresh page
+							const slice = itemsRemaining.slice(0, 1);
+							itemsRemaining = itemsRemaining.slice(1);
+							const partInst: ReportInstanceData = {
+								...inst,
+								pkd_items: slice,
+								is_continuation: !isFirstPageForBox,
+								has_more: itemsRemaining.length > 0,
+								line_offset: lineOffset,
+								overall_lines: overallLines,
+								overall_qty: overallQty,
+							};
+							current.push(partInst);
+							// If itemsRemaining is now empty, signatures will render
+							const actualSigH = itemsRemaining.length === 0 ? sigH : 0;
+							currentH += headerH + rowH + actualSigH;
+							isFirstPageForBox = false;
+							lineOffset += slice.length;
+						}
 						continue;
 					}
 
@@ -163,13 +218,13 @@ export function paginateInstances(
 					};
 
 					current.push(partInst);
-					currentH += headerH + slice.length * rowH;
+					currentH += headerH + slice.length * rowH; // has_more is guaranteed true, so no sigH added
 					isFirstPageForBox = false;
 					lineOffset += slice.length;
 				}
 			} else {
 				// Summary or no items
-				const boxH = estimateBoxHeight(inst, pkg, fs);
+				const boxH = estimateBoxHeight(inst, pkg, fs, display);
 				if (currentH + boxH > maxH && current.length > 0) {
 					pages.push({ label: group.label, items: current });
 					current = [inst];

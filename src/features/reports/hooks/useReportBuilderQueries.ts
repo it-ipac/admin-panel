@@ -4,7 +4,9 @@ import {
 	fetchClients,
 	fetchCompanyProfile,
 	fetchDestinations,
+	fetchOrderDetails,
 	fetchOrders,
+	fetchOrderTotals,
 	fetchProjectTags,
 	fetchReportInstances,
 	fetchTemplates,
@@ -30,6 +32,14 @@ export const useOrdersQuery = (clientId: string | null) => {
 	return useQuery({
 		queryKey: ["report_orders", clientId],
 		queryFn: () => fetchOrders(clientId),
+	});
+};
+
+export const useOrderDetailsQuery = (orderId: string | null) => {
+	return useQuery({
+		queryKey: ["order_details", orderId],
+		queryFn: () => fetchOrderDetails(orderId!),
+		enabled: !!orderId,
 	});
 };
 
@@ -71,5 +81,13 @@ export const useCompanyProfileQuery = () => {
 	return useQuery({
 		queryKey: ["company_profile"],
 		queryFn: fetchCompanyProfile,
+	});
+};
+
+export const useOrderTotalsQuery = (orderId: string | null) => {
+	return useQuery({
+		queryKey: ["order_totals", orderId],
+		queryFn: () => fetchOrderTotals(orderId!),
+		enabled: !!orderId,
 	});
 };

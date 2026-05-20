@@ -166,22 +166,24 @@ export const resolvePackages = ({
 		const overrideId = packingTypeOverrides[pkg.packageNumber];
 		let matchedOptionCount = 0;
 		let packingOptions: ResolvedPackingOption[] = [];
-		let selectedPacking: ResolvedPackingOption | null = null;
 		let seiCategoryOptions: Array<{ id: number; label: string }> = [];
 		let seiProtectionOptions: Array<{ id: number; label: string }> = [];
 		let hasMatchedSeiCategories = false;
 		let hasMatchedSeiProtections = false;
+		let selectedCategory: SeiCategoryOption | null = null;
+		let selectedProtection: SeiProtectionOption | null = null;
+		let selectedPacking: ResolvedPackingOption | null = null;
 
 		if (templateMode === "v54plus") {
 			const combinedSeiTokens = extractSeiTokensFromCombined(
 				pkg.packingTypeRaw,
 			);
 			const categoryToken =
-				combinedSeiTokens.categoryToken ||
-				normalizeSeiCategoryValue(pkg.seiCategoryRaw);
+				normalizeSeiCategoryValue(pkg.seiCategoryRaw) ||
+				combinedSeiTokens.categoryToken;
 			const protectionToken =
-				combinedSeiTokens.protectionToken ||
-				normalizeSeiProtectionValue(pkg.seiProtectionRaw);
+				normalizeSeiProtectionValue(pkg.seiProtectionRaw) ||
+				combinedSeiTokens.protectionToken;
 
 			const matchedSeiCategories = categoryToken
 				? seiCategories.filter((category) => {
@@ -240,13 +242,13 @@ export const resolvePackages = ({
 			const overrideCategoryId = seiCategoryOverrides[pkg.packageNumber];
 			const overrideProtectionId = seiProtectionOverrides[pkg.packageNumber];
 
-			const selectedCategory =
+			selectedCategory =
 				overrideCategoryId !== undefined
 					? seiCategoryMap.get(Number(overrideCategoryId)) || null
 					: matchedSeiCategories.length === 1
 						? matchedSeiCategories[0]
 						: null;
-			const selectedProtection =
+			selectedProtection =
 				overrideProtectionId !== undefined
 					? seiProtectionMap.get(Number(overrideProtectionId)) || null
 					: matchedSeiProtections.length === 1
@@ -399,21 +401,28 @@ export const resolvePackages = ({
 						? matched[0]
 						: null;
 
+			const isOverridden = !!manufacturingTypeOverrides[key];
+			const hasItem =
+				!!selected &&
+				(selected.id !== WOOD_OUT_OF_RANGE_ID ||
+					(!!label && !!label.trim()) ||
+					isOverridden);
+
 			return {
 				key,
-				typeLabel: label,
-				typeId: selected?.id || null,
-				typeResolved: !!selected,
+				typeLabel: hasItem ? label : null,
+				typeId: hasItem ? selected.id : null,
+				typeResolved: hasItem,
 				typeOptions: baseOptions.map((variant) => ({
 					id: variant.id,
 					label: variant.variant_name || "Unnamed",
 				})),
 				hasMatchedOptions: matched.length > 0,
 				showAllOptions: showAll,
-				quantity: extra?.quantity ?? null,
-				thickness: extra?.thickness ?? null,
-				width: extra?.width ?? null,
-				space: extra?.space ?? null,
+				quantity: hasItem ? (extra?.quantity ?? null) : null,
+				thickness: hasItem ? (extra?.thickness ?? null) : null,
+				width: hasItem ? (extra?.width ?? null) : null,
+				space: hasItem ? (extra?.space ?? null) : null,
 			};
 		};
 
@@ -486,8 +495,12 @@ export const resolvePackages = ({
 			})),
 			hasMatchedPackingOptions: matchedOptionCount > 0,
 			showAllPackingOptions: shouldShowAll,
-			seiCategoryId: selectedPacking?.categoryId ?? null,
-			seiProtectionId: selectedPacking?.protectionId ?? null,
+			seiCategoryId:
+				selectedCategory?.id !== undefined ? Number(selectedCategory.id) : null,
+			seiProtectionId:
+				selectedProtection?.id !== undefined
+					? Number(selectedProtection.id)
+					: null,
 			seiCategoryOptions,
 			seiProtectionOptions,
 			hasMatchedSeiCategories,

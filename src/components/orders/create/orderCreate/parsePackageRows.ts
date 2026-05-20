@@ -190,7 +190,9 @@ export const parsePackageRows = (
 		const netWeight = parseNumberText(getText("U", row));
 		const tare = parseNumberText(getText("BAB", row));
 		const grossWeight =
-			netWeight !== null && tare !== null ? netWeight + tare : null;
+			netWeight !== null && tare !== null
+				? Math.floor(Number((netWeight + tare).toFixed(8)) * 100) / 100
+				: null;
 
 		const designation = isStandardByDesignation ? null : rawDesignation;
 		const boxTypeLabel = isStandardByDesignation

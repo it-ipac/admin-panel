@@ -163,18 +163,44 @@ export const normalizeSeiCategoryValue = (
 
 	const normalized = raw.toUpperCase().replace(/\s+/g, "");
 
-	if (normalized === "NO" || normalized === "SEI.NO") return "-1";
+	if (normalized === "NO" || normalized === "SEI.NO" || normalized === "-")
+		return "-1";
 	if (normalized === "YES" || normalized === "SEI.YES") return "0";
 
 	const seiMatch = normalized.match(/SEI\.?(-?\d+)/i);
 	if (seiMatch) {
 		const parsed = Number(seiMatch[1]);
-		return Number.isFinite(parsed) ? String(parsed) : null;
+		return Number.isFinite(parsed) && parsed >= -1 && parsed <= 9
+			? String(parsed)
+			: null;
 	}
 
 	if (/^-?\d+$/.test(normalized)) {
 		const parsed = Number(normalized);
-		return Number.isFinite(parsed) ? String(parsed) : null;
+		return Number.isFinite(parsed) && parsed >= -1 && parsed <= 9
+			? String(parsed)
+			: null;
+	}
+
+	const parts = raw.split(/[-–—]+/);
+	const potentialCode = parts[0].trim();
+	const cleanCode = potentialCode.toUpperCase().replace(/\s+/g, "");
+	if (cleanCode === "NO" || cleanCode === "SEI.NO" || cleanCode === "-")
+		return "-1";
+	if (cleanCode === "YES" || cleanCode === "SEI.YES") return "0";
+
+	const subSeiMatch = cleanCode.match(/SEI\.?(-?\d+)/i);
+	if (subSeiMatch) {
+		const parsed = Number(subSeiMatch[1]);
+		return Number.isFinite(parsed) && parsed >= -1 && parsed <= 9
+			? String(parsed)
+			: null;
+	}
+	if (/^-?\d+$/.test(cleanCode)) {
+		const parsed = Number(cleanCode);
+		return Number.isFinite(parsed) && parsed >= -1 && parsed <= 9
+			? String(parsed)
+			: null;
 	}
 
 	return null;
@@ -187,11 +213,37 @@ export const normalizeSeiProtectionValue = (
 	const raw = String(value).trim();
 	if (!raw) return null;
 
+	const normalized = raw.trim();
+	const upper = normalized.toUpperCase();
+	if (
+		upper === "NO" ||
+		upper === "-" ||
+		upper === "NO PROTECTION" ||
+		upper === "NO SEI PROTECTION"
+	) {
+		return "no";
+	}
+	if (upper === "YES") {
+		return "yes";
+	}
+
+	const parts = normalized.split(/[-–—]+/);
+	const potentialCode = parts[0].trim().toLowerCase();
+
+	if (potentialCode === "no" || potentialCode === "yes") {
+		return potentialCode;
+	}
+
+	const match = potentialCode.match(/^[a-z]+[0-9]*$/);
+	if (match) {
+		return match[0];
+	}
+
 	const compact = raw.toLowerCase().replace(/[^a-z0-9]+/g, "");
 	if (!compact) return null;
 
 	const prefix = compact.match(/^[a-z]+[0-9]*/);
-	return prefix ? prefix[0] : compact;
+	return prefix ? prefix[0] : null;
 };
 
 export const extractSeiTokensFromCombined = (
@@ -231,7 +283,9 @@ export const parseNumberText = (text: string | null | undefined) => {
 	const normalized = text.replace(/,/g, "").replace(/[^0-9.-]/g, "");
 	if (!normalized) return null;
 	const value = Number(normalized);
-	return Number.isFinite(value) ? value : null;
+	if (!Number.isFinite(value)) return null;
+	const fixedVal = Number(value.toFixed(8));
+	return Math.floor(fixedVal * 100) / 100;
 };
 
 export const normalizeVariantName = (value: string | null | undefined) => {

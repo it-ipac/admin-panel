@@ -37,7 +37,8 @@ export const applyPackageFieldChange = (
 		if (field === "destination") next.destination = value as string | null;
 		next.gross_weight =
 			next.net_weight !== null && next.tare !== null
-				? next.net_weight + next.tare
+				? Math.floor(Number((next.net_weight + next.tare).toFixed(8)) * 100) /
+					100
 				: null;
 		return next;
 	});

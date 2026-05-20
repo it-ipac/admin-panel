@@ -6,6 +6,9 @@ export type ReportDisplaySettings = {
 	orientation: "portrait" | "landscape";
 	font_size: "small" | "medium" | "large";
 	header_layout: "compact" | "standard" | "expanded";
+	logo_size?: number;
+	font_size_px?: number;
+	header_top_margin?: number;
 	// Branding
 	show_company_logo: boolean;
 	show_company_name: boolean;
@@ -16,6 +19,7 @@ export type ReportDisplaySettings = {
 	show_report_date: boolean;
 	show_project_reference: boolean;
 	show_destination_country: boolean;
+	enable_formatting: boolean;
 	// Body
 	show_qr_codes: boolean;
 	// Footer
@@ -23,6 +27,9 @@ export type ReportDisplaySettings = {
 	show_page_numbers: boolean;
 	include_signatures: boolean;
 	signature_fields: SignatureField[];
+	footer_height_px?: number;
+	header_show_mode: "all_pages" | "first_page_only";
+	signatures_scope: "project" | "box";
 };
 
 export const DEFAULT_DISPLAY_SETTINGS: ReportDisplaySettings = {
@@ -30,6 +37,9 @@ export const DEFAULT_DISPLAY_SETTINGS: ReportDisplaySettings = {
 	orientation: "portrait",
 	font_size: "medium",
 	header_layout: "standard",
+	logo_size: 90,
+	font_size_px: 12,
+	header_top_margin: 20,
 	show_company_logo: true,
 	show_company_name: true,
 	theme_color: "#d9e4f2",
@@ -38,6 +48,7 @@ export const DEFAULT_DISPLAY_SETTINGS: ReportDisplaySettings = {
 	show_report_date: true,
 	show_project_reference: true,
 	show_destination_country: true,
+	enable_formatting: true,
 	show_qr_codes: true,
 	footer_text: null,
 	show_page_numbers: true,
@@ -47,6 +58,9 @@ export const DEFAULT_DISPLAY_SETTINGS: ReportDisplaySettings = {
 		{ label: "Checked By" },
 		{ label: "Approved By" },
 	],
+	footer_height_px: 40,
+	header_show_mode: "all_pages",
+	signatures_scope: "project",
 };
 
 export type ReportPkgDetailsSettings = {
@@ -74,6 +88,8 @@ export type ReportPkgDetailsSettings = {
 	show_description_col: boolean;
 	show_qty_col: boolean;
 	show_line_num_col: boolean;
+	// Box sorting
+	boxes_sort: "number" | "packed_date";
 };
 
 export const DEFAULT_PKG_DETAILS_SETTINGS: ReportPkgDetailsSettings = {
@@ -98,11 +114,21 @@ export const DEFAULT_PKG_DETAILS_SETTINGS: ReportPkgDetailsSettings = {
 	show_description_col: true,
 	show_qty_col: true,
 	show_line_num_col: false,
+	boxes_sort: "number",
 };
 
 export function resolveDisplaySettings(saved: any): ReportDisplaySettings {
 	if (!saved) return DEFAULT_DISPLAY_SETTINGS;
-	return { ...DEFAULT_DISPLAY_SETTINGS, ...saved };
+	return {
+		...DEFAULT_DISPLAY_SETTINGS,
+		...saved,
+		logo_size: saved.logo_size ?? DEFAULT_DISPLAY_SETTINGS.logo_size,
+		font_size_px: saved.font_size_px ?? DEFAULT_DISPLAY_SETTINGS.font_size_px,
+		header_top_margin:
+			saved.header_top_margin ?? DEFAULT_DISPLAY_SETTINGS.header_top_margin,
+		footer_height_px:
+			saved.footer_height_px ?? DEFAULT_DISPLAY_SETTINGS.footer_height_px,
+	};
 }
 
 export function resolvePkgDetailsSettings(

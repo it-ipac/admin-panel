@@ -47,12 +47,38 @@ describe("SEI parsing helpers", () => {
 		expect(normalizeSeiCategoryValue(" 4 ")).toBe("4");
 		expect(normalizeSeiCategoryValue("Yes")).toBe("0");
 		expect(normalizeSeiCategoryValue("No")).toBe("-1");
+		expect(normalizeSeiCategoryValue("-")).toBe("-1");
+		expect(normalizeSeiCategoryValue("SEI.3-Wooden Crates")).toBe("3");
+		expect(normalizeSeiCategoryValue("SEI.4-Wooden Plain Boxes")).toBe("4");
+		expect(normalizeSeiCategoryValue("120")).toBeNull();
+		expect(normalizeSeiCategoryValue("0")).toBe("0");
+		expect(normalizeSeiCategoryValue("10")).toBeNull();
 	});
 
 	it("normalizes SEI protection values", () => {
 		expect(normalizeSeiProtectionValue("b -")).toBe("b");
 		expect(normalizeSeiProtectionValue("CDI")).toBe("cdi");
 		expect(normalizeSeiProtectionValue(" c  ")).toBe("c");
+		expect(normalizeSeiProtectionValue("a  -Contact protection")).toBe("a");
+		expect(normalizeSeiProtectionValue("a18-VCI Pouches")).toBe("a18");
+		expect(normalizeSeiProtectionValue("b  -Runoff water or HSF/DFS")).toBe(
+			"b",
+		);
+		expect(normalizeSeiProtectionValue("ba18-HSF VCI")).toBe("ba18");
+		expect(
+			normalizeSeiProtectionValue(
+				"cdi-Gas Packing & Anti-shock & Anti-vibration",
+			),
+		).toBe("cdi");
+		expect(
+			normalizeSeiProtectionValue(
+				"f  -Pressure – positive and negative pressure",
+			),
+		).toBe("f");
+		expect(normalizeSeiProtectionValue("No")).toBe("no");
+		expect(normalizeSeiProtectionValue("-")).toBe("no");
+		expect(normalizeSeiProtectionValue("Yes")).toBe("yes");
+		expect(normalizeSeiProtectionValue("120")).toBeNull();
 	});
 
 	it("extracts category and protection from combined SEI raw text", () => {

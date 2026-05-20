@@ -9,7 +9,13 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
-import { useClientDetailsQuery } from "../hooks/useReportBuilderQueries";
+import { saveCompanyProfile } from "../api";
+import {
+	useClientDetailsQuery,
+	useCompanyProfileQuery,
+	useOrderDetailsQuery,
+	useOrderTotalsQuery,
+} from "../hooks/useReportBuilderQueries";
 import {
 	DEFAULT_DISPLAY_SETTINGS,
 	DEFAULT_PKG_DETAILS_SETTINGS,
@@ -45,6 +51,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 		tags: [],
 		destinations: [],
 		hasItemsOnly: true,
+		packedOnly: false,
 		splitBy: "none",
 	});
 
@@ -56,17 +63,63 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 	const [clientData, setClientData] = useState<any>(null);
 	const [clientOrderData, setClientOrderData] = useState<any>(null);
 	const [clientShipmentData, setClientShipmentData] = useState<any>(null);
-	const [companyData, setCompanyData] = useState<any>({
-		name: "IPAC Valsem International",
-		tel: "+971 2 632 11 07",
-		poBox: "44291",
-		street: "Ar Rasin - 2nd Street",
-		area: "Mussafah M4",
-		city: "Abu Dhabi",
-		country: "UAE",
-		website: "www.IPAC.ae",
-	});
+	const [companyData, setCompanyData] = useState<any>(null);
 	const [isTemplateMode, setIsTemplateMode] = useState(false);
+
+	const { data: fetchedCompanyProfile } = useCompanyProfileQuery();
+
+	// Seed companyData from DB once loaded (map snake_case → camelCase)
+	useEffect(() => {
+		if (fetchedCompanyProfile && !companyData) {
+			setCompanyData({
+				name: fetchedCompanyProfile.name || "",
+				tel: fetchedCompanyProfile.phone || "",
+				poBox: fetchedCompanyProfile.po_box || "",
+				street: fetchedCompanyProfile.address_line_1 || "",
+				area: fetchedCompanyProfile.address_line_2 || "",
+				city: fetchedCompanyProfile.city || "",
+				country: fetchedCompanyProfile.country || "",
+				website: fetchedCompanyProfile.website || "",
+				logoUrl: fetchedCompanyProfile.logo_url || null,
+				showLogo: fetchedCompanyProfile.show_logo !== false,
+				showName: fetchedCompanyProfile.show_name !== false,
+				showTel: fetchedCompanyProfile.show_tel !== false,
+				showPoBox: fetchedCompanyProfile.show_po_box !== false,
+				showStreet: fetchedCompanyProfile.show_street !== false,
+				showArea: fetchedCompanyProfile.show_area !== false,
+				showCity: fetchedCompanyProfile.show_city !== false,
+				showCountry: fetchedCompanyProfile.show_country !== false,
+				showWebsite: fetchedCompanyProfile.show_website !== false,
+			});
+		}
+	}, [fetchedCompanyProfile, companyData]);
+
+	const handleSaveCompanyProfile = async () => {
+		if (!companyData) return;
+		await saveCompanyProfile({
+			_v: 1,
+			name: companyData.name || "",
+			phone: companyData.tel || "",
+			po_box: companyData.poBox || "",
+			address_line_1: companyData.street || "",
+			address_line_2: companyData.area || "",
+			city: companyData.city || "",
+			country: companyData.country || "",
+			website: companyData.website || "",
+			logo_url: companyData.logoUrl || "",
+			email: "",
+			trn: "",
+			show_logo: companyData.showLogo !== false,
+			show_name: companyData.showName !== false,
+			show_tel: companyData.showTel !== false,
+			show_po_box: companyData.showPoBox !== false,
+			show_street: companyData.showStreet !== false,
+			show_area: companyData.showArea !== false,
+			show_city: companyData.showCity !== false,
+			show_country: companyData.showCountry !== false,
+			show_website: companyData.showWebsite !== false,
+		});
+	};
 
 	const { data: fetchedClientDetails } = useClientDetailsQuery(
 		filters.clientId,
@@ -74,21 +127,100 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 
 	useEffect(() => {
 		if (fetchedClientDetails) {
-			setClientData(fetchedClientDetails);
+			setClientData({
+				...fetchedClientDetails,
+				// Explicit mapping so all fields are always present
+				name: fetchedClientDetails.name || "",
+				contact_person: fetchedClientDetails.contact_person || "",
+				email: fetchedClientDetails.email || "",
+				phone: fetchedClientDetails.phone || "",
+				address_line_1: fetchedClientDetails.address_line_1 || "",
+				address_line_2: fetchedClientDetails.address_line_2 || "",
+				address_line_3: fetchedClientDetails.address_line_3 || "",
+				post_code: fetchedClientDetails.post_code || "",
+				city: fetchedClientDetails.city || "",
+				country: fetchedClientDetails.country || "",
+				trn: fetchedClientDetails.trn || "",
+			});
 			setClientOrderData((prev: any) => ({
-				...prev,
+				...(prev || {}),
 				customer_trn: fetchedClientDetails.trn,
 			}));
 		}
 	}, [fetchedClientDetails]);
 
+	const { data: fetchedOrderDetails } = useOrderDetailsQuery(filters.orderId);
+
+	const lastLoadedOrderId = useRef<string | null>(null);
+
+	useEffect(() => {
+		if (fetchedOrderDetails) {
+			if (lastLoadedOrderId.current !== filters.orderId) {
+				lastLoadedOrderId.current = filters.orderId;
+				setClientOrderData((prev: any) => ({
+					...(prev || {}),
+					customer_order_ref:
+						fetchedOrderDetails.reference ||
+						fetchedOrderDetails.order_name ||
+						"",
+					order_name: fetchedOrderDetails.order_name || "",
+				}));
+				setHeaderData((prev) => ({
+					...prev,
+					reportName: fetchedOrderDetails.order_name || "",
+				}));
+			}
+		} else {
+			lastLoadedOrderId.current = null;
+			setClientOrderData((prev: any) => ({
+				...(prev || {}),
+				customer_order_ref: "",
+				order_name: "",
+			}));
+			setHeaderData((prev) => ({
+				...prev,
+				reportName: "Packing List",
+			}));
+		}
+	}, [fetchedOrderDetails, filters.orderId]);
+
+	const { data: fetchedOrderTotals } = useOrderTotalsQuery(filters.orderId);
+
+	// Seed NW/GW/volume from DB when order changes
+	useEffect(() => {
+		if (fetchedOrderTotals && filters.orderId) {
+			setHeaderData((prev) => ({
+				...prev,
+				nw:
+					fetchedOrderTotals.totalNW > 0
+						? String(fetchedOrderTotals.totalNW)
+						: prev.nw,
+				gw:
+					fetchedOrderTotals.totalGW > 0
+						? String(fetchedOrderTotals.totalGW)
+						: prev.gw,
+				totalVolume:
+					fetchedOrderTotals.totalVolume > 0
+						? String(fetchedOrderTotals.totalVolume)
+						: prev.totalVolume,
+			}));
+		}
+	}, [fetchedOrderTotals, filters.orderId]);
+
 	const [headerData, setHeaderData] = useState({
-		reportName: "Packing List",
+		reportName: "",
 		reportNumber: "",
 		reportDate: new Date().toISOString().split("T")[0],
 		projectReference: "",
 		finalDestinationCountry: "",
 		transportModes: [] as string[],
+		// Shipment summary totals
+		nw: "",
+		gw: "",
+		totalVolume: "",
+		// Order-level fields (local state only for now)
+		deliveryNoteRef: "",
+		deliveryDate: "",
 	});
 
 	const printRef = useRef<HTMLDivElement>(null);
@@ -196,6 +328,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:white}
 								setClientShipmentData={setClientShipmentData}
 								companyData={companyData}
 								setCompanyData={setCompanyData}
+								onSaveCompanyProfile={handleSaveCompanyProfile}
 								isTemplateMode={isTemplateMode}
 								setIsTemplateMode={setIsTemplateMode}
 							/>

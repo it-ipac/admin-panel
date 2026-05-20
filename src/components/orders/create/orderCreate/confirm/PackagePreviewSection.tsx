@@ -391,8 +391,10 @@ export function PackagePreviewSection({
 
 	const boxTypeColumn = shiftColumn("C", templateMode);
 	const packingTypeColumn = shiftColumn("AB", templateMode);
-	const seiCategoryColumn = shiftColumn("C", templateMode);
-	const seiProtectionColumn = shiftColumn("D", templateMode);
+	const seiCategoryColumn =
+		templateMode === "v54plus" ? "C" : shiftColumn("C", templateMode);
+	const seiProtectionColumn =
+		templateMode === "v54plus" ? "D" : shiftColumn("D", templateMode);
 	const itemDimColumns = ["M", "N", "O"]
 		.map((column) => shiftColumn(column, templateMode))
 		.join(", ");

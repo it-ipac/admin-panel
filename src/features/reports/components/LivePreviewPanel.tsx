@@ -12,6 +12,150 @@ import type {
 import type { FilterParams } from "../types";
 import { PackingListPage } from "./PackingListPage";
 
+const HorizontalRuler: React.FC<{ widthMm: number }> = ({ widthMm }) => {
+	const ticks = [];
+	for (let i = 0; i <= widthMm; i += 2) {
+		const isMajor = i % 10 === 0;
+		const isMedium = i % 5 === 0 && !isMajor;
+		const tickHeight = isMajor ? 10 : isMedium ? 6 : 4;
+		ticks.push(
+			<line
+				key={`h-tick-${i}`}
+				x1={`${i}mm`}
+				y1="20px"
+				x2={`${i}mm`}
+				y2={`${20 - tickHeight}px`}
+				stroke="#94a3b8"
+				strokeWidth={isMajor ? 1 : 0.5}
+			/>,
+		);
+		if (isMajor && i % 20 === 0) {
+			ticks.push(
+				<text
+					key={`h-text-${i}`}
+					x={`${i}mm`}
+					y="9px"
+					fontSize="7.5px"
+					fill="#64748b"
+					fontFamily="monospace"
+					fontWeight="600"
+					textAnchor="middle"
+				>
+					{i / 10}
+				</text>,
+			);
+		}
+	}
+	return (
+		<svg
+			style={{
+				position: "absolute",
+				top: "-20px",
+				left: 0,
+				width: "100%",
+				height: "20px",
+				overflow: "visible",
+				pointerEvents: "none",
+				userSelect: "none",
+			}}
+		>
+			<rect
+				x={0}
+				y={0}
+				width="100%"
+				height="20px"
+				fill="#f8fafc"
+				stroke="#cbd5e1"
+				strokeWidth={1}
+			/>
+			{ticks}
+		</svg>
+	);
+};
+
+const VerticalRuler: React.FC<{ heightMm: number }> = ({ heightMm }) => {
+	const ticks = [];
+	for (let i = 0; i <= heightMm; i += 2) {
+		const isMajor = i % 10 === 0;
+		const isMedium = i % 5 === 0 && !isMajor;
+		const tickWidth = isMajor ? 10 : isMedium ? 6 : 4;
+		ticks.push(
+			<line
+				key={`v-tick-${i}`}
+				x1="20px"
+				y1={`${i}mm`}
+				x2={`${20 - tickWidth}px`}
+				y2={`${i}mm`}
+				stroke="#94a3b8"
+				strokeWidth={isMajor ? 1 : 0.5}
+			/>,
+		);
+		if (isMajor && i % 20 === 0) {
+			ticks.push(
+				<text
+					key={`v-text-${i}`}
+					x="7px"
+					y={`${i}mm`}
+					dy="2.5px"
+					fontSize="7.5px"
+					fill="#64748b"
+					fontFamily="monospace"
+					fontWeight="600"
+					textAnchor="middle"
+				>
+					{i / 10}
+				</text>,
+			);
+		}
+	}
+	return (
+		<svg
+			style={{
+				position: "absolute",
+				top: 0,
+				left: "-20px",
+				width: "20px",
+				height: "100%",
+				overflow: "visible",
+				pointerEvents: "none",
+				userSelect: "none",
+			}}
+		>
+			<rect
+				x={0}
+				y={0}
+				width="20px"
+				height="100%"
+				fill="#f8fafc"
+				stroke="#cbd5e1"
+				strokeWidth={1}
+			/>
+			{ticks}
+		</svg>
+	);
+};
+
+const Gridlines: React.FC = () => {
+	return (
+		<div
+			style={{
+				position: "absolute",
+				top: 0,
+				left: 0,
+				right: 0,
+				bottom: 0,
+				pointerEvents: "none",
+				userSelect: "none",
+				backgroundImage: `
+					repeating-linear-gradient(0deg, rgba(59, 130, 246, 0.05) 0px, rgba(59, 130, 246, 0.05) 1px, transparent 1px, transparent 10mm),
+					repeating-linear-gradient(90deg, rgba(59, 130, 246, 0.05) 0px, rgba(59, 130, 246, 0.05) 1px, transparent 1px, transparent 10mm)
+				`,
+				zIndex: 9999,
+			}}
+		/>
+	);
+};
+
 interface LivePreviewPanelProps {
 	filters: FilterParams;
 	displaySettings: ReportDisplaySettings;
@@ -44,25 +188,70 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 
 	const [currentPage, setCurrentPage] = useState(0);
 	const [scale, setScale] = useState(0.7);
+	const [showRuler, setShowRuler] = useState(true);
 	const containerRef = useRef<HTMLDivElement>(null);
+
+	// Filter and sort instances
+	const filteredAndSortedInstances = React.useMemo(() => {
+		if (!instances) return [];
+
+		// 1. Filter
+		let result = [...instances];
+		if (filters.packedOnly) {
+			result = result.filter((inst) => inst.status === "packed");
+		}
+
+		// 2. Sort
+		const sortMode = pkgSettings.boxes_sort || "number";
+		if (sortMode === "packed_date") {
+			result.sort((a, b) => {
+				const timeA = a.last_packed_at
+					? new Date(a.last_packed_at).getTime()
+					: 0;
+				const timeB = b.last_packed_at
+					? new Date(b.last_packed_at).getTime()
+					: 0;
+				if (timeA !== timeB) {
+					return timeB - timeA; // Descending (most recent first)
+				}
+				const createdA = new Date(a.created_at).getTime();
+				const createdB = new Date(b.created_at).getTime();
+				return createdB - createdA;
+			});
+		} else {
+			// default: Sort by Box Number (package_number asc, then instance_number asc)
+			result.sort((a, b) => {
+				if (a.package_number !== b.package_number) {
+					return a.package_number - b.package_number;
+				}
+				return a.instance_number - b.instance_number;
+			});
+		}
+
+		return result;
+	}, [instances, filters.packedOnly, pkgSettings.boxes_sort]);
 
 	// Reset to page 0 whenever filter changes produce new results
 	useEffect(() => {
-		if (instances) {
+		if (filteredAndSortedInstances) {
 			setCurrentPage(0);
 		}
-	}, [instances]);
+	}, [filteredAndSortedInstances]);
 
 	// Paginate instances into pages
 	const pages = React.useMemo(() => {
-		if (!instances) return [];
 		return paginateInstances(
-			instances,
+			filteredAndSortedInstances,
 			displaySettings,
 			pkgSettings,
 			filters.splitBy,
 		);
-	}, [instances, displaySettings, pkgSettings, filters.splitBy]);
+	}, [
+		filteredAndSortedInstances,
+		displaySettings,
+		pkgSettings,
+		filters.splitBy,
+	]);
 
 	const totalPages = pages.length;
 
@@ -166,9 +355,22 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 					</div>
 				)}
 
+				{/* Ruler Toggle */}
+				<div className="flex items-center gap-2">
+					<label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer font-medium select-none bg-white border border-gray-300 rounded px-2.5 py-1 shadow-sm hover:bg-gray-50 transition-colors">
+						<input
+							type="checkbox"
+							checked={showRuler}
+							onChange={(e) => setShowRuler(e.target.checked)}
+							className="rounded text-blue-600 accent-blue-600 cursor-pointer w-3.5 h-3.5"
+						/>
+						📏 Ruler & Grid
+					</label>
+				</div>
+
 				{/* Info */}
 				<div className="text-xs text-gray-400">
-					{instances?.length ?? 0} boxes ·{" "}
+					{filteredAndSortedInstances.length} boxes ·{" "}
 					{isLandscape ? "Landscape" : "Portrait"}
 					{page?.label && (
 						<span className="ml-2 text-blue-600 font-medium">{page.label}</span>
@@ -191,12 +393,20 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 							transition: "transform 0.15s ease",
 							width: pageW,
 							height: pageH,
-							padding: pagePad,
+							padding: `0px ${pagePad} ${pagePad} ${pagePad}`,
 							background: "white",
 							boxShadow:
 								"0 4px 24px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.12)",
+							position: "relative",
 						}}
 					>
+						{showRuler && (
+							<>
+								<HorizontalRuler widthMm={isLandscape ? 297 : 210} />
+								<VerticalRuler heightMm={isLandscape ? 210 : 297} />
+								<Gridlines />
+							</>
+						)}
 						{/* Hidden all-pages ref for printing */}
 						<div ref={printRef} style={{ display: "none" }}>
 							{pages.map((pg, idx) => {
@@ -207,7 +417,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 										style={{
 											width: pageW,
 											height: pageH,
-											padding: pagePad,
+											padding: `0px ${pagePad} ${pagePad} ${pagePad}`,
 											background: "white",
 											pageBreakAfter:
 												idx < pages.length - 1 ? "always" : "auto",

@@ -10,6 +10,8 @@ export type FilterParams = {
 	destinations: string[];
 	// "has_items" means the box has at least one packed item (the main use-case)
 	hasItemsOnly: boolean;
+	// Only show boxes marked as packed
+	packedOnly: boolean;
 	// Split mode for batch printing
 	splitBy: "none" | "destination" | "order";
 };

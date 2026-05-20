@@ -30,6 +30,75 @@ export const fetchOrders = async (clientId: string | null) => {
 	return data;
 };
 
+export const fetchOrderDetails = async (orderId: string) => {
+	const { data, error } = await supabase
+		.from("orders")
+		.select("*")
+		.eq("id", orderId)
+		.single();
+	if (error) throw error;
+	return data;
+};
+
+/**
+ * Fetches aggregated NW, GW, and volume for all packed instances of an order.
+ * Volume is computed from package_info external dimensions (L × W × H → m³).
+ */
+export const fetchOrderTotals = async (orderId: string) => {
+	// Get all instances for this order with their package_info via final_pkg_info
+	const { data, error } = await supabase
+		.from("order_pkg_instance")
+		.select(`
+			id,
+			order_pkg_overview!inner(
+				order_id,
+				order_packages!inner(
+					final_pkg_info,
+					package_info!order_packages_final_pkg_info_fkey(
+						net_weight,
+						gross_weight,
+						external_length,
+						external_width,
+						external_height
+					)
+				)
+			)
+		`)
+		.eq("order_pkg_overview.order_id", orderId);
+
+	if (error) throw error;
+	if (!data || data.length === 0)
+		return {
+			totalNW: 0,
+			totalGW: 0,
+			totalVolume: 0,
+			boxCount: data?.length ?? 0,
+		};
+
+	let totalNW = 0;
+	let totalGW = 0;
+	let totalVolume = 0;
+
+	for (const inst of data) {
+		const pkgInfo = (inst as any).order_pkg_overview?.order_packages
+			?.package_info;
+		if (!pkgInfo) continue;
+		if (pkgInfo.net_weight) totalNW += Number(pkgInfo.net_weight);
+		if (pkgInfo.gross_weight) totalGW += Number(pkgInfo.gross_weight);
+		const l = Number(pkgInfo.external_length ?? 0) / 1000; // mm → m
+		const w = Number(pkgInfo.external_width ?? 0) / 1000;
+		const h = Number(pkgInfo.external_height ?? 0) / 1000;
+		if (l > 0 && w > 0 && h > 0) totalVolume += l * w * h;
+	}
+
+	return {
+		totalNW: Math.round(totalNW * 10) / 10,
+		totalGW: Math.round(totalGW * 10) / 10,
+		totalVolume: Math.round(totalVolume * 1000) / 1000, // 3 decimals in m³
+		boxCount: data.length,
+	};
+};
+
 export const fetchProjectTags = async (clientId: string | null) => {
 	if (!clientId) return [];
 	const { data, error } = await supabase
@@ -183,6 +252,16 @@ export const fetchCompanyProfile = async () => {
 		.single();
 	if (error && error.code !== "PGRST116") throw error; // PGRST116 is not found
 	return data?.value || null;
+};
+
+export const saveCompanyProfile = async (profile: Record<string, any>) => {
+	const { error } = await supabase
+		.from("app_settings")
+		.upsert(
+			{ key: "company_profile", value: profile, category: "branding" },
+			{ onConflict: "key" },
+		);
+	if (error) throw error;
 };
 
 export const saveReport = async (

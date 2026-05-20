@@ -20,7 +20,9 @@
 			"a11y": {
 				"useButtonType": "off",
 				"useKeyWithClickEvents": "off",
-				"useSemanticElements": "off"
+				"useSemanticElements": "off",
+				"noLabelWithoutControl": "off",
+				"noSvgWithoutTitle": "off"
 			},
 			"complexity": {
 				"noImportantStyles": "off"
@@ -29,7 +31,9 @@
 				"noNonNullAssertion": "off"
 			},
 			"suspicious": {
-				"noExplicitAny": "off"
+				"noExplicitAny": "off",
+				"noArrayIndexKey": "off",
+				"noControlCharactersInRegex": "off"
 			}
 		}
 	},

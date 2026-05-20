@@ -246,6 +246,14 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 					/>
 					Only show boxes with packed items
 				</label>
+				<label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+					<input
+						type="checkbox"
+						checked={filters.packedOnly}
+						onChange={(e) => handleChange("packedOnly", e.target.checked)}
+					/>
+					Only show packed boxes
+				</label>
 			</div>
 
 			{/* Split / Batch Mode */}

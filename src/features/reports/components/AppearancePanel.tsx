@@ -66,7 +66,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 				</div>
 				<div className="flex flex-col gap-1">
 					<label htmlFor="font-size" className="text-xs text-gray-500">
-						Font Size
+						Font Size Preset
 					</label>
 					<select
 						id="font-size"
@@ -78,6 +78,74 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						<option value="medium">Medium (default)</option>
 						<option value="large">Large</option>
 					</select>
+				</div>
+				<div className="flex flex-col gap-1 mt-1">
+					<div className="flex justify-between items-center">
+						<label
+							htmlFor="font-size-px-slider"
+							className="text-xs text-gray-500"
+						>
+							Text Font Size
+						</label>
+						<span className="text-xs font-semibold text-gray-700">
+							{display.font_size_px ?? 12}px
+						</span>
+					</div>
+					<input
+						id="font-size-px-slider"
+						type="range"
+						min="8"
+						max="20"
+						step="1"
+						value={display.font_size_px ?? 12}
+						onChange={(e) => setD("font_size_px", parseInt(e.target.value, 10))}
+						className="w-full cursor-pointer accent-blue-600"
+					/>
+				</div>
+				<div className="flex flex-col gap-1 mt-1">
+					<div className="flex justify-between items-center">
+						<label htmlFor="logo-size-slider" className="text-xs text-gray-500">
+							Logo Size (Height)
+						</label>
+						<span className="text-xs font-semibold text-gray-700">
+							{display.logo_size ?? 90}px
+						</span>
+					</div>
+					<input
+						id="logo-size-slider"
+						type="range"
+						min="40"
+						max="250"
+						step="5"
+						value={display.logo_size ?? 90}
+						onChange={(e) => setD("logo_size", parseInt(e.target.value, 10))}
+						className="w-full cursor-pointer accent-blue-600"
+					/>
+				</div>
+				<div className="flex flex-col gap-1 mt-1">
+					<div className="flex justify-between items-center">
+						<label
+							htmlFor="header-top-margin-slider"
+							className="text-xs text-gray-500"
+						>
+							Header Top Margin
+						</label>
+						<span className="text-xs font-semibold text-gray-700">
+							{display.header_top_margin ?? 20}mm
+						</span>
+					</div>
+					<input
+						id="header-top-margin-slider"
+						type="range"
+						min="0"
+						max="50"
+						step="1"
+						value={display.header_top_margin ?? 20}
+						onChange={(e) =>
+							setD("header_top_margin", parseInt(e.target.value, 10))
+						}
+						className="w-full cursor-pointer accent-blue-600"
+					/>
 				</div>
 				<div className="flex flex-col gap-1">
 					<label htmlFor="header-layout" className="text-xs text-gray-500">
@@ -93,6 +161,27 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						<option value="standard">Standard</option>
 						<option value="expanded">Expanded</option>
 					</select>
+				</div>
+				<div className="flex flex-col gap-1">
+					<label htmlFor="header-show-mode" className="text-xs text-gray-500">
+						Page Header Visibility
+					</label>
+					<select
+						id="header-show-mode"
+						className="border rounded p-1.5 text-sm bg-white"
+						value={display.header_show_mode ?? "all_pages"}
+						onChange={(e) => setD("header_show_mode", e.target.value as any)}
+					>
+						<option value="all_pages">Show on All Pages</option>
+						<option value="first_page_only">First Page / Cover Only</option>
+					</select>
+				</div>
+				<div className="pt-2">
+					<Toggle
+						label="Enable Rich Text (Superscript/Subscript)"
+						checked={display.enable_formatting}
+						onChange={(v) => setD("enable_formatting", v)}
+					/>
 				</div>
 			</Section>
 
@@ -185,25 +274,51 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 					onChange={(v) => setD("include_signatures", v)}
 				/>
 				{display.include_signatures && (
-					<div className="pl-4 flex flex-col gap-1">
-						{display.signature_fields.map((sig, i) => {
-							const sigKey = `sig-input-${i}`;
-							return (
-								<input
-									key={sigKey}
-									type="text"
-									value={sig.label}
-									onChange={(e) => {
-										const updated = [...display.signature_fields];
-										updated[i] = { label: e.target.value };
-										setD("signature_fields", updated);
-									}}
-									className="border rounded px-2 py-1 text-xs"
-									placeholder={`Signature ${i + 1} label`}
-								/>
-							);
-						})}
-					</div>
+					<>
+						<div className="flex flex-col gap-1 pl-4 mb-2">
+							<label
+								htmlFor="signatures-scope"
+								className="text-xs text-gray-500 font-medium"
+							>
+								Placement / Scope
+							</label>
+							<select
+								id="signatures-scope"
+								className="border rounded p-1.5 text-sm bg-white cursor-pointer"
+								value={display.signatures_scope ?? "project"}
+								onChange={(e) =>
+									setD("signatures_scope", e.target.value as any)
+								}
+							>
+								<option value="project">
+									Project Scoped (Once at the end)
+								</option>
+								<option value="box">
+									Box Scoped (Under each completed box)
+								</option>
+							</select>
+						</div>
+						<div className="pl-4 flex flex-col gap-1 mb-2">
+							<span className="text-xs text-gray-500 font-medium">Labels</span>
+							{display.signature_fields.map((sig, i) => {
+								const sigKey = `sig-input-${i}`;
+								return (
+									<input
+										key={sigKey}
+										type="text"
+										value={sig.label}
+										onChange={(e) => {
+											const updated = [...display.signature_fields];
+											updated[i] = { label: e.target.value };
+											setD("signature_fields", updated);
+										}}
+										className="border rounded px-2 py-1 text-xs"
+										placeholder={`Signature ${i + 1} label`}
+									/>
+								);
+							})}
+						</div>
+					</>
 				)}
 				<div className="flex flex-col gap-1">
 					<label htmlFor="footer-text" className="text-xs text-gray-500">
@@ -216,6 +331,31 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						onChange={(e) => setD("footer_text", e.target.value || null)}
 						className="border rounded px-2 py-1 text-sm"
 						placeholder="e.g. Confidential — IPAC"
+					/>
+				</div>
+				<div className="flex flex-col gap-1 mt-1">
+					<div className="flex justify-between items-center">
+						<label
+							htmlFor="footer-height-slider"
+							className="text-xs text-gray-500"
+						>
+							Footer Height
+						</label>
+						<span className="text-xs font-semibold text-gray-700">
+							{display.footer_height_px ?? 40}px
+						</span>
+					</div>
+					<input
+						id="footer-height-slider"
+						type="range"
+						min="20"
+						max="120"
+						step="5"
+						value={display.footer_height_px ?? 40}
+						onChange={(e) =>
+							setD("footer_height_px", parseInt(e.target.value, 10))
+						}
+						className="w-full cursor-pointer accent-blue-600"
 					/>
 				</div>
 			</Section>
@@ -280,6 +420,20 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 					checked={pkgDetails.show_weights}
 					onChange={(v) => setP("show_weights", v)}
 				/>
+				<div className="flex flex-col gap-1 mt-1">
+					<label htmlFor="boxes-sort" className="text-xs text-gray-500">
+						Sort Boxes By
+					</label>
+					<select
+						id="boxes-sort"
+						className="border rounded p-1.5 text-sm bg-white"
+						value={pkgDetails.boxes_sort || "number"}
+						onChange={(e) => setP("boxes_sort", e.target.value)}
+					>
+						<option value="number">Box Number (Ascending)</option>
+						<option value="packed_date">Packed Date (Most Recent First)</option>
+					</select>
+				</div>
 			</Section>
 
 			<Section title="Items Table">
