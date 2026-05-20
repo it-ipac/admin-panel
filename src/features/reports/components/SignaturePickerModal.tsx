@@ -1,9 +1,10 @@
-import React, { useRef, useState } from "react";
+import type React from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "../../../hooks/useAuth";
 import {
 	getSignatureUrl,
-	useSignatures,
 	type SignatureRow,
+	useSignatures,
 } from "../hooks/useSignatures";
 
 interface Props {
@@ -30,8 +31,7 @@ export const SignaturePickerModal: React.FC<Props> = ({
 	const fileRef = useRef<HTMLInputElement>(null);
 
 	const isAdmin =
-		profile?.roles?.name === "admin" ||
-		profile?.roles?.name === "executive";
+		profile?.roles?.name === "admin" || profile?.roles?.name === "executive";
 
 	const allSigs = query.data ?? [];
 	const mineSigs = allSigs.filter((s) => s.user_id === user?.id);
@@ -60,9 +60,10 @@ export const SignaturePickerModal: React.FC<Props> = ({
 		await updateLabel.mutateAsync({ id, label: editLabel });
 		setEditingId(null);
 	};
-
 	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: backdrop click closes modal
 		<div
+			role="presentation"
 			style={{
 				position: "fixed",
 				inset: 0,
@@ -131,7 +132,8 @@ export const SignaturePickerModal: React.FC<Props> = ({
 							style={{
 								background: "none",
 								border: "none",
-								borderBottom: tab === t ? "2px solid #2563eb" : "2px solid transparent",
+								borderBottom:
+									tab === t ? "2px solid #2563eb" : "2px solid transparent",
 								padding: "8px 14px",
 								fontWeight: tab === t ? 600 : 400,
 								fontSize: 13,
@@ -161,9 +163,7 @@ export const SignaturePickerModal: React.FC<Props> = ({
 								gap: 8,
 							}}
 						>
-							<span
-								style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}
-							>
+							<span style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>
 								Upload New Signature
 							</span>
 							<input
@@ -253,6 +253,14 @@ export const SignaturePickerModal: React.FC<Props> = ({
 								return (
 									<div
 										key={sig.id}
+										role="button"
+										tabIndex={0}
+										onKeyDown={(e) => {
+											if (e.key === "Enter" || e.key === " ") {
+												e.preventDefault();
+												onSelect(isSelected ? null : sig);
+											}
+										}}
 										style={{
 											border: isSelected
 												? "2px solid #2563eb"
@@ -290,7 +298,10 @@ export const SignaturePickerModal: React.FC<Props> = ({
 
 										{/* Meta */}
 										<div
-											style={{ padding: "6px 8px", borderTop: "1px solid #f1f5f9" }}
+											style={{
+												padding: "6px 8px",
+												borderTop: "1px solid #f1f5f9",
+											}}
 										>
 											{editingId === sig.id ? (
 												<div style={{ display: "flex", gap: 4 }}>
@@ -378,7 +389,9 @@ export const SignaturePickerModal: React.FC<Props> = ({
 															}}
 															style={{
 																...actionBtnStyle,
-																background: sig.is_public ? "#dcfce7" : "#f1f5f9",
+																background: sig.is_public
+																	? "#dcfce7"
+																	: "#f1f5f9",
 																color: sig.is_public ? "#16a34a" : "#64748b",
 															}}
 														>
@@ -394,7 +407,10 @@ export const SignaturePickerModal: React.FC<Props> = ({
 																	"Delete this signature? This cannot be undone.",
 																)
 															) {
-																remove.mutate({ id: sig.id, imagePath: sig.image_path });
+																remove.mutate({
+																	id: sig.id,
+																	imagePath: sig.image_path,
+																});
 																if (isSelected) onSelect(null);
 															}
 														}}

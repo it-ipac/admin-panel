@@ -57,7 +57,12 @@ export function useSignatures() {
 
 			const { data, error: dbErr } = await supabase
 				.from("signatures")
-				.insert({ user_id: userId, label, image_path: path, is_public: isPublic })
+				.insert({
+					user_id: userId,
+					label,
+					image_path: path,
+					is_public: isPublic,
+				})
 				.select("*")
 				.single();
 			if (dbErr) {
@@ -79,10 +84,7 @@ export function useSignatures() {
 			imagePath: string;
 		}) => {
 			await supabase.storage.from(BUCKET).remove([imagePath]);
-			const { error } = await supabase
-				.from("signatures")
-				.delete()
-				.eq("id", id);
+			const { error } = await supabase.from("signatures").delete().eq("id", id);
 			if (error) throw error;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["signatures"] }),
@@ -100,13 +102,7 @@ export function useSignatures() {
 	});
 
 	const setPublic = useMutation({
-		mutationFn: async ({
-			id,
-			isPublic,
-		}: {
-			id: string;
-			isPublic: boolean;
-		}) => {
+		mutationFn: async ({ id, isPublic }: { id: string; isPublic: boolean }) => {
 			const { error } = await supabase
 				.from("signatures")
 				.update({ is_public: isPublic })

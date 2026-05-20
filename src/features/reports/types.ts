@@ -59,6 +59,3 @@ export type ReportInstanceData = {
 	package_qty?: number | null;
 	box_photo_urls?: string[];
 };
-
-
-

@@ -48,7 +48,7 @@ function getBoxBaseHeight(
 	let photosH = 0;
 	if (pkg.show_box_photos && !isContinuation && inst?.box_photo_urls) {
 		const visibleBoxPhotos = inst.box_photo_urls.filter(
-			(url) => !hiddenMediaUrls.includes(url)
+			(url) => !hiddenMediaUrls.includes(url),
 		);
 		if (visibleBoxPhotos.length > 0) {
 			const orientation = display?.orientation || "portrait";
@@ -73,7 +73,7 @@ function getItemHeight(
 	let h = 22 * fm; // base row height
 	if (pkg.show_item_photos && item.photo_urls) {
 		const visibleItemPhotos = item.photo_urls.filter(
-			(url: string) => !hiddenMediaUrls.includes(url)
+			(url: string) => !hiddenMediaUrls.includes(url),
 		);
 		if (visibleItemPhotos.length > 0) {
 			h += 55 * fm; // photo container height (45px img + margins/paddings)
@@ -123,7 +123,7 @@ function estimateBoxHeight(
 	let photosH = 0;
 	if (pkg.show_box_photos && inst.box_photo_urls) {
 		const visibleBoxPhotos = inst.box_photo_urls.filter(
-			(url) => !hiddenMediaUrls.includes(url)
+			(url) => !hiddenMediaUrls.includes(url),
 		);
 		if (visibleBoxPhotos.length > 0) {
 			const cols = display.orientation === "landscape" ? 11 : 7;
@@ -159,7 +159,13 @@ export function paginateInstances(
 	const footerPx = display.footer_height_px ?? 40;
 	const footerGapPx = display.footer_body_gap_px ?? 0;
 	const headerBlockPx = isHeaderHidden ? 0 : 140;
-	const maxH = PAGE_H_PX[display.orientation] - topMarginPx - PAGE_SIDE_PAD_PX - headerBlockPx - footerPx - footerGapPx;
+	const maxH =
+		PAGE_H_PX[display.orientation] -
+		topMarginPx -
+		PAGE_SIDE_PAD_PX -
+		headerBlockPx -
+		footerPx -
+		footerGapPx;
 
 	// First split by group (destination/order) if needed
 	let groups: Array<{ label?: string; items: ReportInstanceData[] }> = [];
@@ -217,11 +223,23 @@ export function paginateInstances(
 				let lineOffset = 0;
 
 				while (itemsRemaining.length > 0) {
-					const baseH = getBoxBaseHeight(pkg, fs, !isFirstPageForBox, inst, hiddenMediaUrls, display);
+					const baseH = getBoxBaseHeight(
+						pkg,
+						fs,
+						!isFirstPageForBox,
+						inst,
+						hiddenMediaUrls,
+						display,
+					);
 					const availH = maxH - currentH;
 
 					// Find height of the first item to see if it fits
-					const firstItemH = getItemHeight(itemsRemaining[0], pkg, fs, hiddenMediaUrls);
+					const firstItemH = getItemHeight(
+						itemsRemaining[0],
+						pkg,
+						fs,
+						hiddenMediaUrls,
+					);
 
 					if (availH < baseH + firstItemH) {
 						// Not enough space for header + at least 1 item
@@ -233,14 +251,24 @@ export function paginateInstances(
 					}
 
 					const usableH = maxH - currentH;
-					const headerH = getBoxBaseHeight(pkg, fs, !isFirstPageForBox, inst, hiddenMediaUrls, display);
+					const headerH = getBoxBaseHeight(
+						pkg,
+						fs,
+						!isFirstPageForBox,
+						inst,
+						hiddenMediaUrls,
+						display,
+					);
 					const sigH =
 						display.include_signatures && display.signatures_scope === "box"
 							? (display.signature_height_px ?? 30) + 27
 							: 0;
 
 					// Check if all remaining items fit, including signatures if complete
-					const itemsH = itemsRemaining.reduce((sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls), 0);
+					const itemsH = itemsRemaining.reduce(
+						(sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls),
+						0,
+					);
 					const totalRemainingH = headerH + itemsH + sigH;
 
 					if (totalRemainingH <= usableH) {
@@ -270,7 +298,12 @@ export function paginateInstances(
 					let itemsToFit = 0;
 					let currentSliceH = 0;
 					for (let i = 0; i < itemsRemaining.length; i++) {
-						const itemH = getItemHeight(itemsRemaining[i], pkg, fs, hiddenMediaUrls);
+						const itemH = getItemHeight(
+							itemsRemaining[i],
+							pkg,
+							fs,
+							hiddenMediaUrls,
+						);
 						if (headerH + currentSliceH + itemH <= usableH) {
 							currentSliceH += itemH;
 							itemsToFit++;
@@ -304,7 +337,11 @@ export function paginateInstances(
 							current.push(partInst);
 							// If itemsRemaining is now empty, signatures will render
 							const actualSigH = itemsRemaining.length === 0 ? sigH : 0;
-							const sliceH = slice.reduce((sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls), 0);
+							const sliceH = slice.reduce(
+								(sum, item) =>
+									sum + getItemHeight(item, pkg, fs, hiddenMediaUrls),
+								0,
+							);
 							currentH += headerH + sliceH + actualSigH;
 							isFirstPageForBox = false;
 							lineOffset += slice.length;
@@ -326,7 +363,10 @@ export function paginateInstances(
 					};
 
 					current.push(partInst);
-					const sliceH = slice.reduce((sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls), 0);
+					const sliceH = slice.reduce(
+						(sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls),
+						0,
+					);
 					currentH += headerH + sliceH; // has_more is guaranteed true, so no sigH added
 					isFirstPageForBox = false;
 					lineOffset += slice.length;

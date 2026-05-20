@@ -190,13 +190,19 @@ export function resolvePkgDetailsSettings(
 ): ReportPkgDetailsSettings {
 	if (!saved) return DEFAULT_PKG_DETAILS_SETTINGS;
 	const resolved = { ...DEFAULT_PKG_DETAILS_SETTINGS, ...saved };
-	if (saved.show_dimensions !== undefined && saved.show_external_dims === undefined) {
+	if (
+		saved.show_dimensions !== undefined &&
+		saved.show_external_dims === undefined
+	) {
 		resolved.show_external_dims = saved.show_dimensions;
 	}
 	if (saved.show_weights !== undefined && saved.show_net_weight === undefined) {
 		resolved.show_net_weight = saved.show_weights;
 	}
-	if (saved.box_header_style !== undefined && saved.box_display_mode === undefined) {
+	if (
+		saved.box_header_style !== undefined &&
+		saved.box_display_mode === undefined
+	) {
 		resolved.box_display_mode = saved.box_header_style;
 	}
 	return resolved;

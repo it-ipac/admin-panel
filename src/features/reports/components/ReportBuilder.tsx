@@ -169,7 +169,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 	};
 
 	// When a single order is selected, auto-seed order ref and header name
-	const firstOrderId = filters.orderIds.length === 1 ? filters.orderIds[0] : null;
+	const firstOrderId =
+		filters.orderIds.length === 1 ? filters.orderIds[0] : null;
 	const { data: fetchedOrderDetails } = useOrderDetailsQuery(firstOrderId);
 
 	const lastLoadedOrderId = useRef<string | null>(null);

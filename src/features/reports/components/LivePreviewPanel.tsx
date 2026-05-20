@@ -2,10 +2,11 @@ import { ChevronLeft, ChevronRight, Image } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
 	useCompanyProfileQuery,
-	useReportInstancesQuery,
 	useOrderDetailsQuery,
 	useOrderTotalsQuery,
+	useReportInstancesQuery,
 } from "../hooks/useReportBuilderQueries";
+import { useSignatures } from "../hooks/useSignatures";
 import { paginateInstances } from "../paginateInstances";
 import type {
 	ReportDisplaySettings,
@@ -13,7 +14,6 @@ import type {
 } from "../settings-defaults";
 import type { FilterParams } from "../types";
 import { PackingListPage } from "./PackingListPage";
-import { useSignatures } from "../hooks/useSignatures";
 
 const HorizontalRuler: React.FC<{ widthMm: number }> = ({ widthMm }) => {
 	const ticks = [];
@@ -202,7 +202,6 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 	const [mediaManagerOpen, setMediaManagerOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
 
-
 	const isReportPerOrder = filters.splitBy === "report_per_order";
 
 	// Filter and sort instances
@@ -248,10 +247,21 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 	// For report_per_order: group by order → array of { orderId, orderName, instances[] }
 	const reportGroups = React.useMemo(() => {
 		if (!isReportPerOrder) return null;
-		const groupMap = new Map<string, { orderId: string; orderName: string; instances: typeof filteredAndSortedInstances }>();
+		const groupMap = new Map<
+			string,
+			{
+				orderId: string;
+				orderName: string;
+				instances: typeof filteredAndSortedInstances;
+			}
+		>();
 		for (const inst of filteredAndSortedInstances) {
 			if (!groupMap.has(inst.order_id)) {
-				groupMap.set(inst.order_id, { orderId: inst.order_id, orderName: inst.order_name, instances: [] });
+				groupMap.set(inst.order_id, {
+					orderId: inst.order_id,
+					orderName: inst.order_name,
+					instances: [],
+				});
 			}
 			groupMap.get(inst.order_id)!.instances.push(inst);
 		}
@@ -259,15 +269,17 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 	}, [isReportPerOrder, filteredAndSortedInstances]);
 
 	// Reset navigation when instances change
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reset pagination when instances list changes
 	useEffect(() => {
 		setCurrentPage(0);
 		setCurrentReportIndex(0);
 	}, [filteredAndSortedInstances]);
 
 	// Active instances: all (normal mode) or current report group's instances (per-order mode)
-	const activeInstances = isReportPerOrder && reportGroups
-		? (reportGroups[currentReportIndex]?.instances ?? [])
-		: filteredAndSortedInstances;
+	const activeInstances =
+		isReportPerOrder && reportGroups
+			? (reportGroups[currentReportIndex]?.instances ?? [])
+			: filteredAndSortedInstances;
 
 	// Paginate instances into pages
 	const pages = React.useMemo(() => {
@@ -292,9 +304,12 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 	const totalReports = reportGroups?.length ?? 1;
 	const currentReportGroup = reportGroups?.[currentReportIndex];
 
-	const activeOrderId = isReportPerOrder && currentReportGroup
-		? currentReportGroup.orderId
-		: (filters.orderIds.length === 1 ? filters.orderIds[0] : null);
+	const activeOrderId =
+		isReportPerOrder && currentReportGroup
+			? currentReportGroup.orderId
+			: filters.orderIds.length === 1
+				? filters.orderIds[0]
+				: null;
 
 	const { data: activeOrderDetails } = useOrderDetailsQuery(activeOrderId);
 	const { data: activeOrderTotals } = useOrderTotalsQuery(activeOrderId);
@@ -303,7 +318,8 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		if (!activeOrderId || !activeOrderDetails) return clientOrderData;
 		return {
 			...clientOrderData,
-			customer_order_ref: activeOrderDetails.reference || activeOrderDetails.order_name || "",
+			customer_order_ref:
+				activeOrderDetails.reference || activeOrderDetails.order_name || "",
 			order_name: activeOrderDetails.order_name || "",
 		};
 	}, [activeOrderId, activeOrderDetails, clientOrderData]);
@@ -312,13 +328,30 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		if (!activeOrderId) return headerData;
 		return {
 			...headerData,
-			reportName: activeOrderDetails?.order_name || headerData.reportName || "Packing List",
-			nw: activeOrderTotals && activeOrderTotals.totalNW !== undefined && activeOrderTotals.totalNW > 0 ? String(activeOrderTotals.totalNW) : headerData.nw,
-			gw: activeOrderTotals && activeOrderTotals.totalGW !== undefined && activeOrderTotals.totalGW > 0 ? String(activeOrderTotals.totalGW) : headerData.gw,
-			totalVolume: activeOrderTotals && activeOrderTotals.totalVolume !== undefined && activeOrderTotals.totalVolume > 0 ? String(activeOrderTotals.totalVolume) : headerData.totalVolume,
+			reportName:
+				activeOrderDetails?.order_name ||
+				headerData.reportName ||
+				"Packing List",
+			nw:
+				activeOrderTotals &&
+				activeOrderTotals.totalNW !== undefined &&
+				activeOrderTotals.totalNW > 0
+					? String(activeOrderTotals.totalNW)
+					: headerData.nw,
+			gw:
+				activeOrderTotals &&
+				activeOrderTotals.totalGW !== undefined &&
+				activeOrderTotals.totalGW > 0
+					? String(activeOrderTotals.totalGW)
+					: headerData.gw,
+			totalVolume:
+				activeOrderTotals &&
+				activeOrderTotals.totalVolume !== undefined &&
+				activeOrderTotals.totalVolume > 0
+					? String(activeOrderTotals.totalVolume)
+					: headerData.totalVolume,
 		};
 	}, [activeOrderId, activeOrderDetails, activeOrderTotals, headerData]);
-
 
 	// Compute scale to fit page in container
 	const updateScale = useCallback(() => {
@@ -378,7 +411,9 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 			{/* ─── Report Switcher (report_per_order mode) ─── */}
 			{isReportPerOrder && totalReports > 1 && (
 				<div className="flex items-center gap-2 px-4 py-1.5 bg-purple-50 border-b border-purple-200 shrink-0">
-					<span className="text-xs font-semibold text-purple-700 mr-1">Report:</span>
+					<span className="text-xs font-semibold text-purple-700 mr-1">
+						Report:
+					</span>
 					<button
 						type="button"
 						onClick={() => {
@@ -391,7 +426,8 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 						<ChevronLeft className="w-3.5 h-3.5 text-purple-700" />
 					</button>
 					<span className="text-xs font-medium text-purple-800 min-w-[100px] text-center">
-						{currentReportGroup?.orderName ?? `Report ${currentReportIndex + 1}`}
+						{currentReportGroup?.orderName ??
+							`Report ${currentReportIndex + 1}`}
 					</span>
 					<button
 						type="button"
@@ -409,9 +445,14 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 							<button
 								key={rg.orderId}
 								type="button"
-								onClick={() => { setCurrentReportIndex(i); setCurrentPage(0); }}
+								onClick={() => {
+									setCurrentReportIndex(i);
+									setCurrentPage(0);
+								}}
 								className={`w-2 h-2 rounded-full transition-colors ${
-									i === currentReportIndex ? "bg-purple-600" : "bg-purple-200 hover:bg-purple-400"
+									i === currentReportIndex
+										? "bg-purple-600"
+										: "bg-purple-200 hover:bg-purple-400"
 								}`}
 								title={rg.orderName}
 							/>
@@ -622,16 +663,19 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 		return instances.filter(
 			(inst) =>
 				(inst.box_photo_urls && inst.box_photo_urls.length > 0) ||
-				inst.pkd_items?.some((item: any) => item.photo_urls && item.photo_urls.length > 0)
+				inst.pkd_items?.some(
+					(item: any) => item.photo_urls && item.photo_urls.length > 0,
+				),
 		);
 	}, [instances]);
 
 	const [activeTabIdx, setActiveTabIdx] = useState(0);
-	const [localHiddenUrls, setLocalHiddenUrls] = useState<string[]>(hiddenMediaUrls);
+	const [localHiddenUrls, setLocalHiddenUrls] =
+		useState<string[]>(hiddenMediaUrls);
 
 	const handleToggleLocal = useCallback((url: string) => {
 		setLocalHiddenUrls((prev) =>
-			prev.includes(url) ? prev.filter((u) => u !== url) : [...prev, url]
+			prev.includes(url) ? prev.filter((u) => u !== url) : [...prev, url],
 		);
 	}, []);
 
@@ -647,9 +691,12 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 					<div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
 						<Image className="w-8 h-8 text-indigo-600 animate-pulse" />
 					</div>
-					<h3 className="text-lg font-bold text-slate-800 mb-2">No Media Available</h3>
+					<h3 className="text-lg font-bold text-slate-800 mb-2">
+						No Media Available
+					</h3>
 					<p className="text-sm text-slate-500 mb-6 font-medium">
-						None of the selected packages or items have associated photos in the database.
+						None of the selected packages or items have associated photos in the
+						database.
 					</p>
 					<button
 						type="button"
@@ -665,7 +712,10 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 
 	const activeInst = mediaInstances[activeTabIdx];
 	const boxPhotos = activeInst?.box_photo_urls || [];
-	const itemsWithPhotos = activeInst?.pkd_items?.filter((i: any) => i.photo_urls && i.photo_urls.length > 0) || [];
+	const itemsWithPhotos =
+		activeInst?.pkd_items?.filter(
+			(i: any) => i.photo_urls && i.photo_urls.length > 0,
+		) || [];
 
 	return (
 		<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[99999] p-4">
@@ -674,7 +724,9 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 				<div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50 shrink-0">
 					<div className="flex items-center gap-2">
 						<Image className="w-5 h-5 text-indigo-600" />
-						<h3 className="text-base font-bold text-slate-800">Manage Photos for Report</h3>
+						<h3 className="text-base font-bold text-slate-800">
+							Manage Photos for Report
+						</h3>
 					</div>
 					<button
 						type="button"
@@ -695,14 +747,22 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 						{mediaInstances.map((inst, idx) => {
 							const isSelected = idx === activeTabIdx;
 							const boxPhotosCount = inst.box_photo_urls?.length ?? 0;
-							const itemPhotosCount = inst.pkd_items?.reduce((sum: number, item: any) => sum + (item.photo_urls?.length ?? 0), 0) ?? 0;
+							const itemPhotosCount =
+								inst.pkd_items?.reduce(
+									(sum: number, item: any) =>
+										sum + (item.photo_urls?.length ?? 0),
+									0,
+								) ?? 0;
 							const totalPhotosCount = boxPhotosCount + itemPhotosCount;
 
 							const allUrls = [
 								...(inst.box_photo_urls || []),
-								...(inst.pkd_items?.flatMap((i: any) => i.photo_urls || []) || [])
+								...(inst.pkd_items?.flatMap((i: any) => i.photo_urls || []) ||
+									[]),
 							];
-							const visibleCount = allUrls.filter((url) => !localHiddenUrls.includes(url)).length;
+							const visibleCount = allUrls.filter(
+								(url) => !localHiddenUrls.includes(url),
+							).length;
 
 							return (
 								<button
@@ -716,17 +776,22 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 									}`}
 								>
 									<span className="text-xs truncate">
-										📦 Box {inst.package_number} {inst.instance_number > 1 ? `(Inst ${inst.instance_number})` : ""}
+										📦 Box {inst.package_number}{" "}
+										{inst.instance_number > 1
+											? `(Inst ${inst.instance_number})`
+											: ""}
 									</span>
-									<span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold transition-all ${
-										isSelected
-											? visibleCount === 0
-												? "bg-slate-200 text-slate-700"
-												: "bg-indigo-600 text-white"
-											: visibleCount === 0
-												? "bg-slate-200 text-slate-500"
-												: "bg-slate-200 text-slate-700"
-									}`}>
+									<span
+										className={`text-[10px] px-2 py-0.5 rounded-full font-semibold transition-all ${
+											isSelected
+												? visibleCount === 0
+													? "bg-slate-200 text-slate-700"
+													: "bg-indigo-600 text-white"
+												: visibleCount === 0
+													? "bg-slate-200 text-slate-500"
+													: "bg-slate-200 text-slate-700"
+										}`}
+									>
 										{visibleCount}/{totalPhotosCount}
 									</span>
 								</button>
@@ -743,7 +808,8 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 										Box {activeInst.package_number} Details
 									</h4>
 									<p className="text-xs text-slate-500 mt-1">
-										Select or deselect pictures to show or hide them in the final report.
+										Select or deselect pictures to show or hide them in the
+										final report.
 									</p>
 								</div>
 
@@ -753,7 +819,9 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 										📷 Box Photos ({boxPhotos.length})
 									</h5>
 									{boxPhotos.length === 0 ? (
-										<p className="text-xs text-slate-400 italic">No box-level photos.</p>
+										<p className="text-xs text-slate-400 italic">
+											No box-level photos.
+										</p>
 									) : (
 										<div className="grid grid-cols-3 gap-4">
 											{boxPhotos.map((url: string, uidx: number) => {
@@ -771,12 +839,16 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 													>
 														<img
 															src={url}
-															alt={`Box photo ${uidx + 1}`}
+															alt={`Box ${uidx + 1}`}
 															className="w-full h-28 object-cover"
 														/>
-														<div className={`absolute bottom-0 inset-x-0 py-1.5 px-2 text-[10px] font-semibold text-center select-none transition-colors ${
-															isHidden ? "bg-slate-500 text-white" : "bg-emerald-600 text-white"
-														}`}>
+														<div
+															className={`absolute bottom-0 inset-x-0 py-1.5 px-2 text-[10px] font-semibold text-center select-none transition-colors ${
+																isHidden
+																	? "bg-slate-500 text-white"
+																	: "bg-emerald-600 text-white"
+															}`}
+														>
 															{isHidden ? "🚫 Hidden" : "✅ Shown"}
 														</div>
 													</button>
@@ -795,7 +867,10 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 										{itemsWithPhotos.map((item: any, idx: number) => {
 											const itemPhotos = item.photo_urls || [];
 											return (
-												<div key={`item-photos-section-${item.id}-${idx}`} className="bg-slate-50/50 p-4 rounded-lg border border-slate-100">
+												<div
+													key={`item-photos-section-${item.id}-${idx}`}
+													className="bg-slate-50/50 p-4 rounded-lg border border-slate-100"
+												>
 													<div className="mb-3">
 														<span className="text-xs font-bold text-slate-700 block">
 															Item {idx + 1}: {item.item_num || "No #"}
@@ -823,12 +898,16 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 																>
 																	<img
 																		src={url}
-																		alt={`Item photo ${pidx + 1}`}
+																		alt={`Item ${pidx + 1}`}
 																		className="w-full h-28 object-cover"
 																	/>
-																	<div className={`absolute bottom-0 inset-x-0 py-1.5 px-2 text-[10px] font-semibold text-center select-none transition-colors ${
-																		isHidden ? "bg-slate-500 text-white" : "bg-emerald-600 text-white"
-																	}`}>
+																	<div
+																		className={`absolute bottom-0 inset-x-0 py-1.5 px-2 text-[10px] font-semibold text-center select-none transition-colors ${
+																			isHidden
+																				? "bg-slate-500 text-white"
+																				: "bg-emerald-600 text-white"
+																		}`}
+																	>
 																		{isHidden ? "🚫 Hidden" : "✅ Shown"}
 																	</div>
 																</button>

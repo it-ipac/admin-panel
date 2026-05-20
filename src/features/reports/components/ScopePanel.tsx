@@ -52,7 +52,7 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 	// Sorted + filtered order list for the picker
 	const visibleOrders = useMemo(() => {
 		if (!orders) return [];
-		let list = [...orders];
+		const list = [...orders];
 
 		// Sort
 		if (filters.orderSort === "reference") {
@@ -169,9 +169,7 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 						<select
 							className="text-xs border rounded px-1.5 py-1 bg-white text-gray-600"
 							value={filters.orderSort}
-							onChange={(e) =>
-								handleChange("orderSort", e.target.value as any)
-							}
+							onChange={(e) => handleChange("orderSort", e.target.value as any)}
 						>
 							<option value="name">Sort: Name</option>
 							<option value="reference">Sort: Reference</option>
@@ -239,8 +237,8 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 				{/* Selected orders summary (when multiple) */}
 				{filters.orderIds.length > 1 && (
 					<p className="text-xs text-blue-600 font-medium">
-						{filters.orderIds.length} orders selected — boxes from all will appear
-						in report
+						{filters.orderIds.length} orders selected — boxes from all will
+						appear in report
 					</p>
 				)}
 				{filters.orderIds.length === 0 && filters.clientId && (

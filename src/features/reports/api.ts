@@ -3,7 +3,11 @@ import type { FilterParams, ReportInstanceData } from "./types";
 
 const getMediaPublicUrl = (path: string) => {
 	if (!path) return "";
-	if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
+	if (
+		path.startsWith("http://") ||
+		path.startsWith("https://") ||
+		path.startsWith("data:")
+	) {
 		return path;
 	}
 	return supabase.storage.from("media").getPublicUrl(path).data.publicUrl;
@@ -38,7 +42,6 @@ export const updateClientDetails = async (id: string, payload: any) => {
 	if (error) throw error;
 	return data;
 };
-
 
 export const fetchOrders = async (clientId: string | null) => {
 	let query = supabase.from("orders").select("id, order_name, reference");
@@ -179,8 +182,7 @@ export const fetchReportInstances = async (
 
 	const { data, error } = await supabase.rpc("fetch_report_instances", {
 		p_client_id: filters.clientId || null,
-		p_order_ids:
-			filters.orderIds.length > 0 ? filters.orderIds : null,
+		p_order_ids: filters.orderIds.length > 0 ? filters.orderIds : null,
 		p_date_from: dateFrom,
 		p_date_to: dateTo,
 		p_date_mode: filters.dateFilterMode,
@@ -288,7 +290,9 @@ export const fetchReportInstances = async (
 	}
 
 	// Collect all pkd_item IDs for item photo fetch
-	const allPkdItemIds = (itemData || []).map((i: any) => i.pkd_item_id).filter(Boolean);
+	const allPkdItemIds = (itemData || [])
+		.map((i: any) => i.pkd_item_id)
+		.filter(Boolean);
 	const itemPhotoMap = new Map<string, string[]>(); // pkd_item_id → urls
 	if (allPkdItemIds.length > 0) {
 		const { data: itemMediaData } = await supabase
@@ -308,48 +312,46 @@ export const fetchReportInstances = async (
 	}
 
 	// Map to the ReportInstanceData shape
-	return data.map(
-		(inst: any): ReportInstanceData => {
-			const ext = extMap.get(inst.id);
-			const pkgInfo = ext?.order_packages?.package_info;
-			const pkgOverview = ext?.order_pkg_overview;
-			return {
-				id: inst.id,
-				instance_number: inst.instance_number,
-				ipac_reference: inst.ipac_reference,
-				destination: inst.destination,
-				status: inst.status,
-				created_at: inst.created_at,
-				last_packed_at: inst.last_packed_at,
-				item_count: Number(inst.item_count),
-				order_id: inst.order_id,
-				order_name: inst.order_name,
-				order_reference: inst.order_reference,
-				package_number: inst.package_number,
-				package_reference: inst.package_reference,
-				pkd_items: (itemsByInstance.get(inst.id) || []).map((i) => ({
-					id: i.pkd_item_id,
-					quantity: Number(i.quantity),
-					item_name: i.description,
-					item_num: i.item_num,
-					photo_urls: itemPhotoMap.get(i.pkd_item_id) || [],
-				})),
-				internal_length: pkgInfo ? Number(pkgInfo.internal_length) : null,
-				internal_width: pkgInfo ? Number(pkgInfo.internal_width) : null,
-				internal_height: pkgInfo ? Number(pkgInfo.internal_height) : null,
-				external_length: pkgInfo ? Number(pkgInfo.external_length) : null,
-				external_width: pkgInfo ? Number(pkgInfo.external_width) : null,
-				external_height: pkgInfo ? Number(pkgInfo.external_height) : null,
-				net_weight: pkgInfo ? Number(pkgInfo.net_weight) : null,
-				gross_weight: pkgInfo ? Number(pkgInfo.gross_weight) : null,
-				sei_category: pkgInfo ? Number(pkgInfo.sei_category) : null,
-				sei_protection: pkgInfo ? Number(pkgInfo.sei_protection) : null,
-				qr_token: qrMap.get(inst.id) || null,
-				package_qty: pkgOverview ? Number(pkgOverview.quantity) : null,
-				box_photo_urls: boxPhotoMap.get(inst.id) || [],
-			};
-		},
-	);
+	return data.map((inst: any): ReportInstanceData => {
+		const ext = extMap.get(inst.id);
+		const pkgInfo = ext?.order_packages?.package_info;
+		const pkgOverview = ext?.order_pkg_overview;
+		return {
+			id: inst.id,
+			instance_number: inst.instance_number,
+			ipac_reference: inst.ipac_reference,
+			destination: inst.destination,
+			status: inst.status,
+			created_at: inst.created_at,
+			last_packed_at: inst.last_packed_at,
+			item_count: Number(inst.item_count),
+			order_id: inst.order_id,
+			order_name: inst.order_name,
+			order_reference: inst.order_reference,
+			package_number: inst.package_number,
+			package_reference: inst.package_reference,
+			pkd_items: (itemsByInstance.get(inst.id) || []).map((i) => ({
+				id: i.pkd_item_id,
+				quantity: Number(i.quantity),
+				item_name: i.description,
+				item_num: i.item_num,
+				photo_urls: itemPhotoMap.get(i.pkd_item_id) || [],
+			})),
+			internal_length: pkgInfo ? Number(pkgInfo.internal_length) : null,
+			internal_width: pkgInfo ? Number(pkgInfo.internal_width) : null,
+			internal_height: pkgInfo ? Number(pkgInfo.internal_height) : null,
+			external_length: pkgInfo ? Number(pkgInfo.external_length) : null,
+			external_width: pkgInfo ? Number(pkgInfo.external_width) : null,
+			external_height: pkgInfo ? Number(pkgInfo.external_height) : null,
+			net_weight: pkgInfo ? Number(pkgInfo.net_weight) : null,
+			gross_weight: pkgInfo ? Number(pkgInfo.gross_weight) : null,
+			sei_category: pkgInfo ? Number(pkgInfo.sei_category) : null,
+			sei_protection: pkgInfo ? Number(pkgInfo.sei_protection) : null,
+			qr_token: qrMap.get(inst.id) || null,
+			package_qty: pkgOverview ? Number(pkgOverview.quantity) : null,
+			box_photo_urls: boxPhotoMap.get(inst.id) || [],
+		};
+	});
 };
 
 export const fetchTemplates = async () => {
