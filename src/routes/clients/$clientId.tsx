@@ -117,8 +117,10 @@ function ItemPackagesList({ itemId }: { itemId?: string }) {
 					order_pkg_instance (
 						ipac_reference,
 						order_packages (
+							id,
 							package_number,
 							orders (
+								id,
 								order_name
 							)
 						)
@@ -171,12 +173,31 @@ function ItemPackagesList({ itemId }: { itemId?: string }) {
 					name = `Box ${pkg.package_number}`;
 				}
 
+				const orderId = order?.id;
+				const pkgId = pkg?.id;
+				const linkUrl = orderId
+					? `/orders/${orderId}?packageId=${pkgId}&moveToBox=${encodeURIComponent(name)}`
+					: null;
+
 				return (
 					<div
 						key={pi.id}
 						className="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-200"
 					>
-						<div className="font-medium text-gray-800">{name}</div>
+						<div className="font-medium text-gray-800">
+							{linkUrl ? (
+								<a
+									href={linkUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+								>
+									{name}
+								</a>
+							) : (
+								name
+							)}
+						</div>
 						<div className="text-sm font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
 							Qty: {pi.quantity}
 						</div>

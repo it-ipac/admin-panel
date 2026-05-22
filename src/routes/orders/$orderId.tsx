@@ -100,6 +100,7 @@ import { PackageItemsTab } from "../../components/orders/orderId/tabs/PackageIte
 import { SecuringTab } from "../../components/orders/orderId/tabs/SecuringTab";
 import { ServicesTab } from "../../components/orders/orderId/tabs/ServicesTab";
 import { Sidebar } from "../../components/Sidebar";
+import { useToastContext } from "../../components/ui/ToastProvider";
 import { useAuth } from "../../hooks/useAuth";
 import { supabase } from "../../lib/supabase";
 
@@ -338,6 +339,7 @@ function OrderDetailPage() {
 	const navigate = useNavigate();
 	const { user, loading: authLoading } = useAuth();
 	const queryClient = useQueryClient();
+	const { toast } = useToastContext();
 	const [deleteOrderOpen, setDeleteOrderOpen] = useState(false);
 	const [deleteOrderError, setDeleteOrderError] = useState<string | null>(null);
 	const [deletingOrder, setDeletingOrder] = useState(false);
@@ -2655,7 +2657,13 @@ function OrderDetailPage() {
 		string | null
 	>(null);
 	const [selectedPackageId, setSelectedPackageId] = useState<string | null>(
-		null,
+		() => {
+			if (typeof window !== "undefined") {
+				const params = new URLSearchParams(window.location.search);
+				return params.get("packageId");
+			}
+			return null;
+		},
 	);
 	const [selectedPackageTab, setSelectedPackageTab] = useState<
 		| "info"
@@ -2751,6 +2759,27 @@ function OrderDetailPage() {
 			setSelectedPackageId(sortedPackages[0].id);
 		}
 	}, [order, selectedPackageId]);
+
+	// Show toast if redirected from client DB snapshot
+	useEffect(() => {
+		const params = new URLSearchParams(window.location.search);
+		const moveToBox = params.get("moveToBox");
+		if (moveToBox) {
+			const boxText = moveToBox.toLowerCase().includes("box")
+				? moveToBox
+				: `box ${moveToBox}`;
+			toast({
+				title: "Move to Box",
+				description: `Please move to ${boxText}`,
+				variant: "info",
+			});
+			params.delete("moveToBox");
+			params.delete("packageId");
+			const search = params.toString();
+			const newUrl = `${window.location.pathname}${search ? `?${search}` : ""}`;
+			window.history.replaceState({}, document.title, newUrl);
+		}
+	}, [toast]);
 
 	// Filter attendance by selected date - SORTED: Morning first (A-Z), then Afternoon (A-Z)
 	const filteredAttendance = useMemo(() => {

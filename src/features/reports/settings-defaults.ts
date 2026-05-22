@@ -95,6 +95,9 @@ export type ReportPkgDetailsSettings = {
 	show_external_dims: boolean;
 	show_net_weight: boolean;
 	show_gross_weight: boolean;
+	show_tare: boolean;
+	show_box_type: boolean;
+	show_total_qty_items: boolean;
 	show_unit_m3: boolean;
 	show_total_m3: boolean;
 	show_unit_m2: boolean;
@@ -104,7 +107,7 @@ export type ReportPkgDetailsSettings = {
 
 	// Items table
 	show_items: boolean;
-	items_detail_level: "summary" | "full";
+	items_detail_level: "summary" | "compact" | "detailed";
 	items_sort: "item_num" | "description";
 	table_alternating_rows: boolean;
 	table_alternating_color: string;
@@ -113,6 +116,9 @@ export type ReportPkgDetailsSettings = {
 	show_description_col: boolean;
 	show_qty_col: boolean;
 	show_line_num_col: boolean;
+	show_item_additional_info: boolean;
+	show_item_qr_code: boolean;
+	include_item_photos_in_box_photos: boolean;
 	// Box sorting
 	boxes_sort: "number" | "packed_date";
 	// Photos
@@ -141,6 +147,9 @@ export const DEFAULT_PKG_DETAILS_SETTINGS: ReportPkgDetailsSettings = {
 	show_external_dims: true,
 	show_net_weight: true,
 	show_gross_weight: true,
+	show_tare: false,
+	show_box_type: false,
+	show_total_qty_items: true,
 	show_unit_m3: false,
 	show_total_m3: false,
 	show_unit_m2: false,
@@ -149,7 +158,7 @@ export const DEFAULT_PKG_DETAILS_SETTINGS: ReportPkgDetailsSettings = {
 	show_qr_code: true,
 
 	show_items: true,
-	items_detail_level: "full",
+	items_detail_level: "detailed",
 	items_sort: "item_num",
 	table_alternating_rows: true,
 	table_alternating_color: "#eef4ff",
@@ -158,6 +167,9 @@ export const DEFAULT_PKG_DETAILS_SETTINGS: ReportPkgDetailsSettings = {
 	show_description_col: true,
 	show_qty_col: true,
 	show_line_num_col: false,
+	show_item_additional_info: true,
+	show_item_qr_code: true,
+	include_item_photos_in_box_photos: false,
 	boxes_sort: "number",
 	show_box_photos: false,
 	show_item_photos: false,
@@ -190,6 +202,16 @@ export function resolvePkgDetailsSettings(
 ): ReportPkgDetailsSettings {
 	if (!saved) return DEFAULT_PKG_DETAILS_SETTINGS;
 	const resolved = { ...DEFAULT_PKG_DETAILS_SETTINGS, ...saved };
+
+	// Map old full value to detailed
+	if (saved.items_detail_level === "full") {
+		resolved.items_detail_level = "detailed";
+	}
+
+	if (saved.show_qr_codes !== undefined && saved.show_qr_code === undefined) {
+		resolved.show_qr_code = saved.show_qr_codes;
+	}
+
 	if (
 		saved.show_dimensions !== undefined &&
 		saved.show_external_dims === undefined
@@ -205,5 +227,16 @@ export function resolvePkgDetailsSettings(
 	) {
 		resolved.box_display_mode = saved.box_header_style;
 	}
+
+	// Default new properties if not defined in saved object
+	resolved.show_tare = saved.show_tare ?? false;
+	resolved.show_box_type = saved.show_box_type ?? false;
+	resolved.show_total_qty_items =
+		saved.show_total_qty_items ?? saved.show_item_count_summary ?? true;
+	resolved.show_item_additional_info = saved.show_item_additional_info ?? true;
+	resolved.show_item_qr_code = saved.show_item_qr_code ?? true;
+	resolved.include_item_photos_in_box_photos =
+		saved.include_item_photos_in_box_photos ?? false;
+
 	return resolved;
 }

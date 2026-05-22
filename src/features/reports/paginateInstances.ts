@@ -21,33 +21,43 @@ function getBoxBaseHeight(
 ): number {
 	const fm = FONT_SCALE[fs];
 	if (pkg.box_display_mode === "compact") {
-		return 24 * fm;
-	}
-	if (isContinuation) {
-		return 50 * fm + 14;
-	}
-	let h = 70 * fm; // box header + meta rows
-	if (
-		pkg.show_dimensions ||
-		pkg.show_weights ||
-		pkg.show_internal_dims ||
-		pkg.show_external_dims ||
-		pkg.show_net_weight ||
-		pkg.show_gross_weight ||
-		pkg.show_unit_m3 ||
-		pkg.show_unit_m2 ||
-		pkg.show_sei
-	) {
-		h += 22 * fm;
-	}
-	if (pkg.show_items && pkg.items_detail_level === "full") {
-		h += 28 * fm; // table header
+		return (pkg.show_qr_code && inst?.qr_token ? 36 : 24) * fm;
 	}
 
-	// Add box photos height if visible
+	let h = 28 * fm; // Line 1: Header/Compact info row
+	if (pkg.show_qr_code && inst?.qr_token) {
+		h = Math.max(h, (48 + 12) * fm);
+	}
+
+	// Line 2: Detailed box info
+	const hasLine2 =
+		pkg.show_total_qty_items || pkg.show_last_packed_date || pkg.show_box_type;
+	if (hasLine2 && !isContinuation) {
+		h += 18 * fm;
+	}
+
+	// Add item table header if items are shown (and not summary)
+	if (
+		pkg.show_items &&
+		inst &&
+		inst.pkd_items &&
+		inst.pkd_items.length > 0 &&
+		pkg.items_detail_level !== "summary"
+	) {
+		h += 24 * fm;
+	}
+
+	// Line 3: Box photos
 	let photosH = 0;
-	if (pkg.show_box_photos && !isContinuation && inst?.box_photo_urls) {
-		const visibleBoxPhotos = inst.box_photo_urls.filter(
+	if (pkg.show_box_photos && !isContinuation) {
+		let allPhotos = [...(inst?.box_photo_urls || [])];
+		if (pkg.include_item_photos_in_box_photos && inst?.pkd_items) {
+			const itemPhotos = inst.pkd_items.flatMap(
+				(item: any) => item.photo_urls || [],
+			);
+			allPhotos = [...allPhotos, ...itemPhotos];
+		}
+		const visibleBoxPhotos = allPhotos.filter(
 			(url) => !hiddenMediaUrls.includes(url),
 		);
 		if (visibleBoxPhotos.length > 0) {
@@ -58,7 +68,6 @@ function getBoxBaseHeight(
 		}
 	}
 	h += photosH;
-
 	h += 14; // card padding/margin
 	return h;
 }
@@ -70,15 +79,40 @@ function getItemHeight(
 	hiddenMediaUrls: string[] = [],
 ): number {
 	const fm = FONT_SCALE[fs];
-	let h = 22 * fm; // base row height
-	if (pkg.show_item_photos && item.photo_urls) {
-		const visibleItemPhotos = item.photo_urls.filter(
-			(url: string) => !hiddenMediaUrls.includes(url),
-		);
-		if (visibleItemPhotos.length > 0) {
-			h += 55 * fm; // photo container height (45px img + margins/paddings)
+	let h = 20 * fm; // Line 1 base height
+
+	if (pkg.items_detail_level === "detailed") {
+		// Line 2: Dims and weight
+		if (pkg.show_item_additional_info) {
+			if (item.length || item.width || item.height || item.net_weight) {
+				h += 16 * fm;
+			}
+		}
+		// Line 3: QR code / Photos
+		let hasLine3 = false;
+		let line3H = 0;
+		if (pkg.show_item_qr_code && item.qr_token) {
+			hasLine3 = true;
+			line3H = Math.max(line3H, 56 * fm); // 48px QR + padding
+		}
+		if (
+			pkg.show_item_photos &&
+			!pkg.include_item_photos_in_box_photos &&
+			item.photo_urls
+		) {
+			const visibleItemPhotos = item.photo_urls.filter(
+				(url: string) => !hiddenMediaUrls.includes(url),
+			);
+			if (visibleItemPhotos.length > 0) {
+				hasLine3 = true;
+				line3H = Math.max(line3H, 56 * fm); // 45px photo + padding
+			}
+		}
+		if (hasLine3) {
+			h += line3H + 4 * fm;
 		}
 	}
+	h += 6; // card gap/border
 	return h;
 }
 
@@ -91,27 +125,22 @@ function estimateBoxHeight(
 ): number {
 	const fm = FONT_SCALE[fs];
 	if (pkg.box_display_mode === "compact") {
-		return 24 * fm;
+		return (pkg.show_qr_code && inst.qr_token ? 36 : 24) * fm;
 	}
-	let h = 70 * fm; // box header + meta rows
-	if (
-		pkg.show_dimensions ||
-		pkg.show_weights ||
-		pkg.show_internal_dims ||
-		pkg.show_external_dims ||
-		pkg.show_net_weight ||
-		pkg.show_gross_weight ||
-		pkg.show_unit_m3 ||
-		pkg.show_unit_m2 ||
-		pkg.show_sei
-	) {
-		h += 22 * fm;
+	let h = 28 * fm; // Line 1: Header/Compact info row
+	if (pkg.show_qr_code && inst.qr_token) {
+		h = Math.max(h, (48 + 12) * fm);
+	}
+	const hasLine2 =
+		pkg.show_total_qty_items || pkg.show_last_packed_date || pkg.show_box_type;
+	if (hasLine2) {
+		h += 18 * fm;
 	}
 	if (pkg.show_items && inst.pkd_items.length > 0) {
 		if (pkg.items_detail_level === "summary") {
 			h += 20 * fm;
 		} else {
-			h += 28 * fm; // table header
+			h += 24 * fm; // Item table header row height
 			h += inst.pkd_items.reduce(
 				(sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls),
 				0,
@@ -121,8 +150,15 @@ function estimateBoxHeight(
 
 	// Add box photos height if visible
 	let photosH = 0;
-	if (pkg.show_box_photos && inst.box_photo_urls) {
-		const visibleBoxPhotos = inst.box_photo_urls.filter(
+	if (pkg.show_box_photos) {
+		let allPhotos = [...(inst.box_photo_urls || [])];
+		if (pkg.include_item_photos_in_box_photos && inst.pkd_items) {
+			const itemPhotos = inst.pkd_items.flatMap(
+				(item: any) => item.photo_urls || [],
+			);
+			allPhotos = [...allPhotos, ...itemPhotos];
+		}
+		const visibleBoxPhotos = allPhotos.filter(
 			(url) => !hiddenMediaUrls.includes(url),
 		);
 		if (visibleBoxPhotos.length > 0) {
@@ -209,7 +245,8 @@ export function paginateInstances(
 			if (
 				pkg.box_display_mode !== "compact" &&
 				pkg.show_items &&
-				pkg.items_detail_level === "full" &&
+				(pkg.items_detail_level === "compact" ||
+					pkg.items_detail_level === "detailed") &&
 				inst.pkd_items.length > 0
 			) {
 				const overallLines = inst.pkd_items.length;

@@ -99,6 +99,11 @@ export const PackingListPage = React.forwardRef<
 		const tc = display.theme_color;
 		const ac = display.accent_color;
 
+		const origin =
+			typeof window !== "undefined" && window.location.origin
+				? window.location.origin
+				: "https://ipac-admin.vercel.app";
+
 		const getCompanyField = (
 			key: string,
 			rawKey: string,
@@ -1033,6 +1038,18 @@ export const PackingListPage = React.forwardRef<
 											Ext Dims (cm)
 										</th>
 									)}
+									{pkg.show_tare && (
+										<th
+											style={{
+												padding: "6px 8px",
+												textAlign: "right",
+												fontSize: 9.5,
+												borderBottom: "1px solid #d8e4f0",
+											}}
+										>
+											Tare (kg)
+										</th>
+									)}
 									{pkg.show_net_weight && (
 										<th
 											style={{
@@ -1159,7 +1176,7 @@ export const PackingListPage = React.forwardRef<
 										inst.external_length ||
 										inst.external_width ||
 										inst.external_height
-											? `${(inst.external_length ?? 0) / 10}×${(inst.external_width ?? 0) / 10}×${(inst.external_height ?? 0) / 10}`
+											? `${inst.external_length ?? 0}×${inst.external_width ?? 0}×${inst.external_height ?? 0}`
 											: "—";
 
 									const rowBg =
@@ -1234,6 +1251,19 @@ export const PackingListPage = React.forwardRef<
 													{extDims}
 												</td>
 											)}
+											{pkg.show_tare && (
+												<td
+													style={{
+														padding: "4px 8px",
+														borderBottom: "1px solid #eef",
+														textAlign: "right",
+													}}
+												>
+													{inst.tare !== null && inst.tare !== undefined
+														? Math.round(inst.tare)
+														: "—"}
+												</td>
+											)}
 											{pkg.show_net_weight && (
 												<td
 													style={{
@@ -1244,7 +1274,7 @@ export const PackingListPage = React.forwardRef<
 												>
 													{inst.net_weight !== null &&
 													inst.net_weight !== undefined
-														? inst.net_weight.toFixed(1)
+														? Math.round(inst.net_weight)
 														: "—"}
 												</td>
 											)}
@@ -1258,7 +1288,7 @@ export const PackingListPage = React.forwardRef<
 												>
 													{inst.gross_weight !== null &&
 													inst.gross_weight !== undefined
-														? inst.gross_weight.toFixed(1)
+														? Math.round(inst.gross_weight)
 														: "—"}
 												</td>
 											)}
@@ -1328,11 +1358,11 @@ export const PackingListPage = React.forwardRef<
 												>
 													{inst.qr_token ? (
 														<img
-															src={`https://api.qrserver.com/v1/create-qr-code/?size=30x30&data=${encodeURIComponent(inst.qr_token)}`}
+															src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`${origin}/portal/scan/${inst.qr_token}`)}`}
 															alt="QR"
 															style={{
-																width: 20,
-																height: 20,
+																width: 32,
+																height: 32,
 																display: "inline-block",
 															}}
 														/>
@@ -1365,7 +1395,7 @@ export const PackingListPage = React.forwardRef<
 										pageBreakInside: "avoid",
 									}}
 								>
-									{/* Box header bar */}
+									{/* Line 1: Main Box Info (Header) */}
 									<div
 										style={{
 											background: ac,
@@ -1373,184 +1403,35 @@ export const PackingListPage = React.forwardRef<
 											padding: "6px 10px",
 											display: "flex",
 											justifyContent: "space-between",
-											alignItems: "flex-start",
+											alignItems: "center",
+											flexWrap: "wrap",
+											gap: "6px 12px",
 										}}
 									>
-										<div>
-											<div style={{ fontWeight: 700, fontSize: 13, color: tc }}>
-												{pkg.show_line_number && (
-													<span style={{ marginRight: 6, opacity: 0.7 }}>
-														#${globalLineNumber}
-													</span>
-												)}
-												{pkg.show_box_number !== false && (
-													<>
-														Box {inst.package_number}
-														{inst.instance_number > 1
-															? ` — Instance ${inst.instance_number}`
-															: ""}
-													</>
-												)}
-												{inst.is_continuation ? " (Continued)" : ""}
-											</div>
-											<div
-												style={{
-													display: "flex",
-													flexWrap: "wrap",
-													gap: "4px 12px",
-													marginTop: 2,
-													fontSize: 9.5,
-													color: "#444",
-												}}
-											>
-												{pkg.show_ipac_reference && inst.ipac_reference && (
-													<span>
-														IPAC Ref: <strong>{inst.ipac_reference}</strong>
-													</span>
-												)}
-												{pkg.show_client_reference && inst.destination && (
-													<span>
-														Client Ref: <strong>{inst.destination}</strong>
-													</span>
-												)}
-												{pkg.show_destination && inst.destination && (
-													<span>
-														Dest: <strong>{inst.destination}</strong>
-													</span>
-												)}
-											</div>
-											{pkg.show_order_name && (
-												<div
-													style={{ fontSize: 9, color: "#666", marginTop: 1 }}
-												>
-													{inst.order_name}
-												</div>
-											)}
-										</div>
-										{pkg.show_qr_code && inst.qr_token && (
-											<div
-												style={{
-													width: 44,
-													height: 44,
-													background: "#fff",
-													border: "1px solid #bbb",
-													display: "flex",
-													flexDirection: "column",
-													alignItems: "center",
-													justifyContent: "center",
-													fontSize: 7,
-													color: "#999",
-													textAlign: "center",
-													flexShrink: 0,
-													borderRadius: 3,
-												}}
-											>
-												<img
-													src={`https://api.qrserver.com/v1/create-qr-code/?size=40x40&data=${encodeURIComponent(inst.qr_token)}`}
-													alt="QR"
-													style={{ width: 38, height: 38 }}
-												/>
-											</div>
-										)}
-									</div>
-									{(() => {
-										const visibleBoxPhotos = (inst.box_photo_urls || []).filter(
-											(url) => !hiddenMediaUrls.includes(url),
-										);
-										if (
-											!pkg.show_box_photos ||
-											inst.is_continuation ||
-											visibleBoxPhotos.length === 0
-										)
-											return null;
-										return (
-											<div
-												style={{
-													display: "flex",
-													flexWrap: "wrap",
-													gap: "8px",
-													padding: "8px 10px",
-													background: "#f8fafc",
-													borderBottom: "1px solid #eef",
-												}}
-											>
-												{visibleBoxPhotos.map((url, uidx) => (
-													<img
-														key={`box-photo-${uidx}`}
-														src={url}
-														alt={`Box ${uidx + 1}`}
-														style={{
-															height: "60px",
-															objectFit: "cover",
-															borderRadius: "4px",
-															border: "1px solid #ddd",
-															boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-														}}
-													/>
-												))}
-											</div>
-										);
-									})()}
-
-									{/* Meta row */}
-									{(pkg.show_item_count_summary ||
-										pkg.show_last_packed_date ||
-										pkg.show_status ||
-										pkg.show_quantity ||
-										pkg.show_internal_dims ||
-										pkg.show_external_dims ||
-										pkg.show_net_weight ||
-										pkg.show_gross_weight ||
-										pkg.show_unit_m3 ||
-										pkg.show_total_m3 ||
-										pkg.show_unit_m2 ||
-										pkg.show_total_m2 ||
-										pkg.show_sei) && (
 										<div
 											style={{
-												padding: "4px 10px",
-												background: "#fafcff",
-												borderBottom: "1px solid #eef",
 												display: "flex",
+												alignItems: "center",
 												flexWrap: "wrap",
-												gap: "2px 16px",
-												fontSize: 9.5,
+												gap: "4px 10px",
+												fontSize: 10,
+												color: "#222",
 											}}
 										>
-											{pkg.show_item_count_summary && (
-												<>
-													<span>
-														Lines:{" "}
-														<strong>
-															{inst.overall_lines ?? inst.pkd_items.length}
-														</strong>
-													</span>
-													<span>
-														Total Qty:{" "}
-														<strong>
-															{inst.overall_qty ??
-																inst.pkd_items.reduce(
-																	(sum, item) => sum + item.quantity,
-																	0,
-																)}
-														</strong>
-													</span>
-												</>
-											)}
-											{pkg.show_last_packed_date && inst.last_packed_at && (
-												<span>
-													Packed:{" "}
-													<strong>
-														{new Date(inst.last_packed_at).toLocaleDateString()}
-													</strong>
+											{pkg.show_line_number && (
+												<span style={{ fontWeight: 700, color: tc }}>
+													#{globalLineNumber}
 												</span>
 											)}
-											{pkg.show_status && (
-												<span>
-													Status:{" "}
-													<strong style={{ textTransform: "capitalize" }}>
-														{inst.status}
-													</strong>
+											{pkg.show_box_number !== false && (
+												<span
+													style={{ fontWeight: 700, fontSize: 11, color: tc }}
+												>
+													Box {inst.package_number}
+													{inst.instance_number > 1
+														? `.${inst.instance_number}`
+														: ""}
+													{inst.is_continuation ? " (Cont.)" : ""}
 												</span>
 											)}
 											{pkg.show_quantity &&
@@ -1578,27 +1459,35 @@ export const PackingListPage = React.forwardRef<
 													inst.external_width ||
 													inst.external_height) && (
 													<span>
-														Dims:{" "}
+														Ext Dims:{" "}
 														<strong>
-															{((inst.external_length ?? 0) / 10).toFixed(1)}×
-															{((inst.external_width ?? 0) / 10).toFixed(1)}×
-															{((inst.external_height ?? 0) / 10).toFixed(1)} cm
+															{inst.external_length ?? 0}×
+															{inst.external_width ?? 0}×
+															{inst.external_height ?? 0} cm
 														</strong>
+													</span>
+												)}
+											{pkg.show_tare &&
+												inst.tare !== null &&
+												inst.tare !== undefined && (
+													<span>
+														Tare: <strong>{Math.round(inst.tare)} kg</strong>
 													</span>
 												)}
 											{pkg.show_net_weight &&
 												inst.net_weight !== null &&
 												inst.net_weight !== undefined && (
 													<span>
-														NW: <strong>{inst.net_weight.toFixed(1)} kg</strong>
+														N.W.:{" "}
+														<strong>{Math.round(inst.net_weight)} kg</strong>
 													</span>
 												)}
 											{pkg.show_gross_weight &&
 												inst.gross_weight !== null &&
 												inst.gross_weight !== undefined && (
 													<span>
-														GW:{" "}
-														<strong>{inst.gross_weight.toFixed(1)} kg</strong>
+														G.W.:{" "}
+														<strong>{Math.round(inst.gross_weight)} kg</strong>
 													</span>
 												)}
 											{pkg.show_unit_m3 && (
@@ -1662,16 +1551,155 @@ export const PackingListPage = React.forwardRef<
 													</strong>
 												</span>
 											)}
+											{pkg.show_ipac_reference && inst.ipac_reference && (
+												<span>
+													IPAC Ref: <strong>{inst.ipac_reference}</strong>
+												</span>
+											)}
+											{pkg.show_client_reference && inst.destination && (
+												<span>
+													Client Ref: <strong>{inst.destination}</strong>
+												</span>
+											)}
+											{pkg.show_destination && inst.destination && (
+												<span>
+													Dest: <strong>{inst.destination}</strong>
+												</span>
+											)}
+											{pkg.show_order_name && inst.order_name && (
+												<span>
+													Order: <strong>{inst.order_name}</strong>
+												</span>
+											)}
 										</div>
-									)}
+										{pkg.show_qr_code && inst.qr_token && (
+											<img
+												src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${origin}/portal/scan/${inst.qr_token}`)}`}
+												alt="QR"
+												style={{
+													width: 48,
+													height: 48,
+													border: "1px solid #ccc",
+													borderRadius: 2,
+													background: "#fff",
+													flexShrink: 0,
+												}}
+											/>
+										)}
+									</div>
 
-									{/* Items table */}
+									{/* Line 2: Detailed Box Info */}
+									{!inst.is_continuation &&
+										(pkg.show_total_qty_items ||
+											pkg.show_last_packed_date ||
+											pkg.show_box_type) && (
+											<div
+												style={{
+													padding: "4px 10px",
+													background: "#fafcff",
+													borderBottom: "1px solid #eef",
+													display: "flex",
+													flexWrap: "wrap",
+													gap: "2px 16px",
+													fontSize: 9.5,
+													color: "#555",
+												}}
+											>
+												{pkg.show_total_qty_items && (
+													<>
+														<span>
+															Lines:{" "}
+															<strong>
+																{inst.overall_lines ?? inst.pkd_items.length}
+															</strong>
+														</span>
+														<span>
+															Total Qty of Items:{" "}
+															<strong>
+																{inst.overall_qty ??
+																	inst.pkd_items.reduce(
+																		(sum, item) => sum + item.quantity,
+																		0,
+																	)}
+															</strong>
+														</span>
+													</>
+												)}
+												{pkg.show_last_packed_date && inst.last_packed_at && (
+													<span>
+														Packed Date:{" "}
+														<strong>
+															{new Date(
+																inst.last_packed_at,
+															).toLocaleDateString()}
+														</strong>
+													</span>
+												)}
+												{pkg.show_box_type && inst.box_type && (
+													<span>
+														Type of Box: <strong>{inst.box_type}</strong>
+													</span>
+												)}
+											</div>
+										)}
+
+									{/* Line 3: Box Pictures */}
+									{(() => {
+										let boxPhotos = [...(inst.box_photo_urls || [])];
+										if (
+											pkg.include_item_photos_in_box_photos &&
+											inst.pkd_items
+										) {
+											const itemPhotos = inst.pkd_items.flatMap(
+												(item) => item.photo_urls || [],
+											);
+											boxPhotos = [...boxPhotos, ...itemPhotos];
+										}
+										const visibleBoxPhotos = boxPhotos.filter(
+											(url) => !hiddenMediaUrls.includes(url),
+										);
+										if (
+											!pkg.show_box_photos ||
+											inst.is_continuation ||
+											visibleBoxPhotos.length === 0
+										)
+											return null;
+										return (
+											<div
+												style={{
+													display: "flex",
+													flexWrap: "wrap",
+													gap: "8px",
+													padding: "8px 10px",
+													background: "#f8fafc",
+													borderBottom: "1px solid #eef",
+												}}
+											>
+												{visibleBoxPhotos.map((url, uidx) => (
+													<img
+														key={`box-photo-${uidx}`}
+														src={url}
+														alt={`Box ${uidx + 1}`}
+														style={{
+															height: "60px",
+															objectFit: "cover",
+															borderRadius: "4px",
+															border: "1px solid #ddd",
+															boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+														}}
+													/>
+												))}
+											</div>
+										);
+									})()}
+
+									{/* Items block */}
 									{pkg.show_items && inst.pkd_items.length > 0 && (
-										<div style={{ padding: "4px 0 2px" }}>
+										<div style={{ padding: "4px 10px 2px" }}>
 											{pkg.items_detail_level === "summary" ? (
 												<div
 													style={{
-														padding: "2px 10px",
+														padding: "2px 0",
 														fontSize: 9.5,
 														color: "#555",
 														fontStyle: "italic",
@@ -1681,201 +1709,351 @@ export const PackingListPage = React.forwardRef<
 													{inst.item_count !== 1 ? "s" : ""} packed
 												</div>
 											) : (
-												<table
-													style={{
-														width: "100%",
-														borderCollapse: "collapse",
-														fontSize: baseFontSize,
-													}}
-												>
-													<thead>
-														<tr style={{ background: tc }}>
-															{pkg.show_line_num_col && (
-																<th
-																	style={{
-																		padding: "3px 8px",
-																		textAlign: "left",
-																		color: "#fff",
-																		fontWeight: 600,
-																		fontSize: 9,
-																		borderBottom: "1px solid #ddd",
-																		width: "40px",
-																	}}
-																>
-																	Line
-																</th>
-															)}
-															{pkg.show_item_num_col && (
-																<th
-																	style={{
-																		padding: "3px 8px",
-																		textAlign: "left",
-																		color: "#fff",
-																		fontWeight: 600,
-																		fontSize: 9,
-																		borderBottom: "1px solid #ddd",
-																		width: "100px",
-																	}}
-																>
-																	Item #
-																</th>
-															)}
-															{pkg.show_description_col && (
-																<th
-																	style={{
-																		padding: "3px 8px",
-																		textAlign: "left",
-																		color: "#fff",
-																		fontWeight: 600,
-																		fontSize: 9,
-																		borderBottom: "1px solid #ddd",
-																	}}
-																>
-																	Description
-																</th>
-															)}
-															{pkg.show_qty_col && (
-																<th
-																	style={{
-																		padding: "3px 8px",
-																		textAlign: "right",
-																		color: "#fff",
-																		fontWeight: 600,
-																		fontSize: 9,
-																		borderBottom: "1px solid #ddd",
-																		width: "60px",
-																	}}
-																>
-																	Qty
-																</th>
-															)}
-														</tr>
-													</thead>
-													<tbody>
-														{sortedItems(inst.pkd_items).map((item, idx) => (
-															<React.Fragment key={item.id}>
+												(() => {
+													const activeColumns = [];
+													if (pkg.show_line_num_col)
+														activeColumns.push("line_num");
+													if (pkg.show_qty_col) activeColumns.push("qty");
+													if (pkg.show_item_num_col)
+														activeColumns.push("item_num");
+													if (pkg.show_description_col)
+														activeColumns.push("description");
+													const colSpan = Math.max(1, activeColumns.length);
+
+													return (
+														<table
+															style={{
+																width: "100%",
+																borderCollapse: "collapse",
+																border: "1px solid #d8e4f0",
+																marginTop: "4px",
+																fontSize: baseFontSize,
+															}}
+														>
+															<thead>
 																<tr
 																	style={{
-																		background:
-																			pkg.table_alternating_rows &&
-																			idx % 2 === 1
-																				? pkg.table_alternating_color
-																				: "transparent",
+																		background: "#e8f1f5",
+																		color: "#333",
+																		borderBottom: "1px solid #d8e4f0",
 																	}}
 																>
 																	{pkg.show_line_num_col && (
-																		<td
+																		<th
 																			style={{
-																				padding: "2.5px 8px",
-																				color: "#666",
-																				fontSize: 9,
+																				padding: "4px 8px",
+																				fontSize: "9px",
+																				fontWeight: "600",
+																				borderRight: "1px solid #d8e4f0",
+																				textAlign: "left",
+																				width: "40px",
 																			}}
 																		>
-																			{(inst.line_offset ?? 0) + idx + 1}
-																		</td>
+																			Line #
+																		</th>
+																	)}
+																	{pkg.show_qty_col && (
+																		<th
+																			style={{
+																				padding: "4px 8px",
+																				fontSize: "9px",
+																				fontWeight: "600",
+																				borderRight: "1px solid #d8e4f0",
+																				textAlign: "center",
+																				width: "40px",
+																			}}
+																		>
+																			Qty
+																		</th>
 																	)}
 																	{pkg.show_item_num_col && (
-																		<td
+																		<th
 																			style={{
-																				padding: "2.5px 8px",
-																				color: "#222",
-																				fontWeight: 500,
-																				fontSize: 9.5,
+																				padding: "4px 8px",
+																				fontSize: "9px",
+																				fontWeight: "600",
+																				borderRight: "1px solid #d8e4f0",
+																				textAlign: "left",
+																				width: "100px",
 																			}}
 																		>
-																			{item.item_num || "—"}
-																		</td>
+																			Item #
+																		</th>
 																	)}
 																	{pkg.show_description_col && (
-																		<td
+																		<th
 																			style={{
-																				padding: "2.5px 8px",
-																				color: "#222",
-																				fontSize: 9.5,
-																				lineHeight: 1.35,
+																				padding: "4px 8px",
+																				fontSize: "9px",
+																				fontWeight: "600",
+																				textAlign: "left",
 																			}}
 																		>
-																			{item.item_name
-																				? renderFormattedText(
-																						item.item_name,
-																						display.enable_formatting,
-																					)
-																				: "—"}
-																		</td>
-																	)}
-
-																	{pkg.show_qty_col && (
-																		<td
-																			style={{
-																				padding: "2.5px 8px",
-																				textAlign: "right",
-																				fontWeight: 700,
-																				color: tc,
-																				fontSize: 10,
-																			}}
-																		>
-																			{item.quantity}
-																		</td>
+																			Description
+																		</th>
 																	)}
 																</tr>
-																{(() => {
-																	const visibleItemPhotos = (
-																		item.photo_urls || []
-																	).filter(
-																		(url) => !hiddenMediaUrls.includes(url),
-																	);
-																	if (
-																		!pkg.show_item_photos ||
-																		visibleItemPhotos.length === 0
-																	)
-																		return null;
-																	return (
-																		<tr
-																			style={{
-																				background:
-																					pkg.table_alternating_rows &&
-																					idx % 2 === 1
-																						? pkg.table_alternating_color
-																						: "transparent",
-																			}}
-																		>
-																			<td
-																				colSpan={10}
-																				style={{ padding: "4px 8px 6px 30px" }}
-																			>
-																				<div
+															</thead>
+															<tbody>
+																{sortedItems(inst.pkd_items).map(
+																	(item, idx) => {
+																		const hasDims =
+																			item.length || item.width || item.height;
+																		const hasWeight =
+																			item.net_weight !== null &&
+																			item.net_weight !== undefined;
+																		const hasQR =
+																			pkg.show_item_qr_code && item.qr_token;
+																		const visibleItemPhotos = (
+																			item.photo_urls || []
+																		).filter(
+																			(url) => !hiddenMediaUrls.includes(url),
+																		);
+																		const hasPhotos =
+																			pkg.show_item_photos &&
+																			!pkg.include_item_photos_in_box_photos &&
+																			visibleItemPhotos.length > 0;
+
+																		const showExtraInfo =
+																			pkg.items_detail_level === "detailed" &&
+																			pkg.show_item_additional_info &&
+																			(hasDims || hasWeight);
+																		const showPhotosOrQR =
+																			pkg.items_detail_level === "detailed" &&
+																			(hasQR || hasPhotos);
+
+																		const rowBg =
+																			pkg.table_alternating_rows &&
+																			idx % 2 === 1
+																				? pkg.table_alternating_color
+																				: "#fff";
+
+																		return (
+																			<React.Fragment key={item.id}>
+																				{/* Main row */}
+																				<tr
 																					style={{
-																						display: "flex",
-																						flexWrap: "wrap",
-																						gap: "6px",
+																						background: rowBg,
+																						borderBottom:
+																							!showExtraInfo && !showPhotosOrQR
+																								? "1px solid #d8e4f0"
+																								: "none",
 																					}}
 																				>
-																					{visibleItemPhotos.map(
-																						(url, uidx) => (
-																							<img
-																								key={`item-photo-${uidx}`}
-																								src={url}
-																								alt={`Item ${uidx + 1}`}
-																								style={{
-																									height: "45px",
-																									objectFit: "cover",
-																									borderRadius: "3px",
-																									border: "1px solid #ddd",
-																									boxShadow:
-																										"0 1px 2px rgba(0,0,0,0.05)",
-																								}}
-																							/>
-																						),
+																					{pkg.show_line_num_col && (
+																						<td
+																							style={{
+																								padding: "4px 8px",
+																								fontSize: "9.5px",
+																								borderRight:
+																									"1px solid #d8e4f0",
+																								borderBottom:
+																									!showExtraInfo &&
+																									!showPhotosOrQR
+																										? "1px solid #d8e4f0"
+																										: "none",
+																								color: "#666",
+																							}}
+																						>
+																							{(inst.line_offset ?? 0) +
+																								idx +
+																								1}
+																						</td>
 																					)}
-																				</div>
-																			</td>
-																		</tr>
-																	);
-																})()}
-															</React.Fragment>
-														))}
-													</tbody>
-												</table>
+																					{pkg.show_qty_col && (
+																						<td
+																							style={{
+																								padding: "4px 8px",
+																								fontSize: "9.5px",
+																								fontWeight: "bold",
+																								textAlign: "center",
+																								borderRight:
+																									"1px solid #d8e4f0",
+																								borderBottom:
+																									!showExtraInfo &&
+																									!showPhotosOrQR
+																										? "1px solid #d8e4f0"
+																										: "none",
+																								color: tc,
+																							}}
+																						>
+																							{item.quantity}
+																						</td>
+																					)}
+																					{pkg.show_item_num_col && (
+																						<td
+																							style={{
+																								padding: "4px 8px",
+																								fontSize: "9.5px",
+																								fontWeight: "600",
+																								borderRight:
+																									"1px solid #d8e4f0",
+																								borderBottom:
+																									!showExtraInfo &&
+																									!showPhotosOrQR
+																										? "1px solid #d8e4f0"
+																										: "none",
+																								color: "#333",
+																								wordBreak: "break-all",
+																							}}
+																						>
+																							{item.item_num || "—"}
+																						</td>
+																					)}
+																					{pkg.show_description_col && (
+																						<td
+																							style={{
+																								padding: "4px 8px",
+																								fontSize: "9.5px",
+																								borderBottom:
+																									!showExtraInfo &&
+																									!showPhotosOrQR
+																										? "1px solid #d8e4f0"
+																										: "none",
+																								color: "#111",
+																							}}
+																						>
+																							{item.item_name
+																								? renderFormattedText(
+																										item.item_name,
+																										display.enable_formatting,
+																									)
+																								: "—"}
+																						</td>
+																					)}
+																				</tr>
+
+																				{/* Extra Info sub-row */}
+																				{showExtraInfo && (
+																					<tr
+																						style={{
+																							background: rowBg,
+																							borderBottom: !showPhotosOrQR
+																								? "1px solid #d8e4f0"
+																								: "none",
+																						}}
+																					>
+																						<td
+																							colSpan={colSpan}
+																							style={{
+																								padding: "2px 8px 4px 16px",
+																								fontSize: "9px",
+																								color: "#555",
+																								borderBottom: !showPhotosOrQR
+																									? "1px solid #d8e4f0"
+																									: "none",
+																							}}
+																						>
+																							<div
+																								style={{
+																									display: "flex",
+																									gap: "12px",
+																									alignItems: "center",
+																								}}
+																							>
+																								{hasDims && (
+																									<span>
+																										Dims:{" "}
+																										<strong>
+																											{item.length ?? 0}×
+																											{item.width ?? 0}×
+																											{item.height ?? 0} mm
+																										</strong>
+																									</span>
+																								)}
+																								{hasWeight && (
+																									<span>
+																										Weight:{" "}
+																										<strong>
+																											{Math.round(
+																												item.net_weight!,
+																											)}{" "}
+																											kg
+																										</strong>
+																									</span>
+																								)}
+																							</div>
+																						</td>
+																					</tr>
+																				)}
+
+																				{/* Photos and/or QR sub-row */}
+																				{showPhotosOrQR && (
+																					<tr
+																						style={{
+																							background: rowBg,
+																							borderBottom: "1px solid #d8e4f0",
+																						}}
+																					>
+																						<td
+																							colSpan={colSpan}
+																							style={{
+																								padding: "4px 8px 6px 16px",
+																								borderBottom:
+																									"1px solid #d8e4f0",
+																							}}
+																						>
+																							<div
+																								style={{
+																									display: "flex",
+																									alignItems: "center",
+																									gap: "12px",
+																								}}
+																							>
+																								{hasQR && (
+																									<img
+																										src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+																											`${origin}/portal/scan/${item.qr_token}`,
+																										)}`}
+																										alt="QR"
+																										style={{
+																											width: 48,
+																											height: 48,
+																											border: "1px solid #ccc",
+																											borderRadius: 2,
+																											background: "#fff",
+																											flexShrink: 0,
+																										}}
+																									/>
+																								)}
+																								{hasPhotos && (
+																									<div
+																										style={{
+																											display: "flex",
+																											flexWrap: "wrap",
+																											gap: "4px",
+																										}}
+																									>
+																										{visibleItemPhotos.map(
+																											(url, uidx) => (
+																												<img
+																													key={`item-photo-${uidx}`}
+																													src={url}
+																													alt={`Item ${uidx + 1}`}
+																													style={{
+																														height: "45px",
+																														objectFit: "cover",
+																														borderRadius: "2px",
+																														border:
+																															"1px solid #ddd",
+																													}}
+																												/>
+																											),
+																										)}
+																									</div>
+																								)}
+																							</div>
+																						</td>
+																					</tr>
+																				)}
+																			</React.Fragment>
+																		);
+																	},
+																)}
+															</tbody>
+														</table>
+													);
+												})()
 											)}
 											{inst.has_more && (
 												<div
@@ -1960,8 +2138,6 @@ export const PackingListPage = React.forwardRef<
 						})
 					)}
 				</div>
-
-				{/* ─── Footer ─────────────────────────────── */}
 				<div
 					style={{
 						flexShrink: 0,

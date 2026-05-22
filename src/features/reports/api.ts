@@ -232,7 +232,11 @@ export const fetchReportInstances = async (
 					net_weight,
 					gross_weight,
 					sei_category,
-					sei_protection
+					sei_protection,
+					tare,
+					box_type (
+						name
+					)
 				)
 			)
 		`)
@@ -254,18 +258,24 @@ export const fetchReportInstances = async (
 		}
 	}
 
-	// Fetch QR codes by order_package_id (entity_type = "package")
+	// Fetch QR codes by order_pkg_instance id or order_package_id (entity_type = "package")
 	const uniquePkgIds = Array.from(pkgIdToInstIds.keys());
 	const qrMap = new Map<string, string>(); // instance_id → qr_token
-	if (uniquePkgIds.length > 0) {
+	const targetIds = [...new Set([...instanceIds, ...uniquePkgIds])];
+	if (targetIds.length > 0) {
 		const { data: qrData, error: qrError } = await supabase
 			.from("qr_codes")
 			.select("entity_id, token")
 			.eq("entity_type", "package")
 			.eq("is_active", true)
-			.in("entity_id", uniquePkgIds);
+			.in("entity_id", targetIds);
 		if (qrError) throw qrError;
 		for (const qr of qrData || []) {
+			// New flow: entity_id is direct order_pkg_instance.id
+			if (instanceIds.includes(qr.entity_id)) {
+				qrMap.set(qr.entity_id, qr.token);
+			}
+			// Legacy fallback: entity_id is order_package_id
 			for (const instId of pkgIdToInstIds.get(qr.entity_id) || []) {
 				qrMap.set(instId, qr.token);
 			}
@@ -293,6 +303,22 @@ export const fetchReportInstances = async (
 	const allPkdItemIds = (itemData || [])
 		.map((i: any) => i.pkd_item_id)
 		.filter(Boolean);
+	// Fetch QR codes for items (entity_type = "pkd_item")
+	const itemQrMap = new Map<string, string>(); // pkd_item_id -> token
+	if (allPkdItemIds.length > 0) {
+		const { data: qrItemData, error: qrItemError } = await supabase
+			.from("qr_codes")
+			.select("entity_id, token")
+			.eq("entity_type", "pkd_item")
+			.eq("is_active", true)
+			.in("entity_id", allPkdItemIds);
+		if (!qrItemError && qrItemData) {
+			for (const qr of qrItemData) {
+				itemQrMap.set(qr.entity_id, qr.token);
+			}
+		}
+	}
+
 	const itemPhotoMap = new Map<string, string[]>(); // pkd_item_id → urls
 	if (allPkdItemIds.length > 0) {
 		const { data: itemMediaData } = await supabase
@@ -336,6 +362,17 @@ export const fetchReportInstances = async (
 				item_name: i.description,
 				item_num: i.item_num,
 				photo_urls: itemPhotoMap.get(i.pkd_item_id) || [],
+				length:
+					i.length !== null && i.length !== undefined ? Number(i.length) : null,
+				width:
+					i.width !== null && i.width !== undefined ? Number(i.width) : null,
+				height:
+					i.height !== null && i.height !== undefined ? Number(i.height) : null,
+				net_weight:
+					i.net_weight !== null && i.net_weight !== undefined
+						? Number(i.net_weight)
+						: null,
+				qr_token: itemQrMap.get(i.pkd_item_id) || null,
 			})),
 			internal_length: pkgInfo ? Number(pkgInfo.internal_length) : null,
 			internal_width: pkgInfo ? Number(pkgInfo.internal_width) : null,
@@ -345,6 +382,8 @@ export const fetchReportInstances = async (
 			external_height: pkgInfo ? Number(pkgInfo.external_height) : null,
 			net_weight: pkgInfo ? Number(pkgInfo.net_weight) : null,
 			gross_weight: pkgInfo ? Number(pkgInfo.gross_weight) : null,
+			tare: pkgInfo ? Number(pkgInfo.tare) : null,
+			box_type: pkgInfo?.box_type ? (pkgInfo.box_type as any).name : null,
 			sei_category: pkgInfo ? Number(pkgInfo.sei_category) : null,
 			sei_protection: pkgInfo ? Number(pkgInfo.sei_protection) : null,
 			qr_token: qrMap.get(inst.id) || null,

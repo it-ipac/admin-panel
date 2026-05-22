@@ -39,6 +39,11 @@ export type ReportInstanceData = {
 		item_name: string | null;
 		item_num: string | null;
 		photo_urls?: string[];
+		length?: number | null;
+		width?: number | null;
+		height?: number | null;
+		net_weight?: number | null;
+		qr_token?: string | null;
 	}>;
 	is_continuation?: boolean;
 	has_more?: boolean;
@@ -53,6 +58,8 @@ export type ReportInstanceData = {
 	external_height?: number | null;
 	net_weight?: number | null;
 	gross_weight?: number | null;
+	tare?: number | null;
+	box_type?: string | null;
 	sei_category?: number | null;
 	sei_protection?: number | null;
 	qr_token?: string | null;

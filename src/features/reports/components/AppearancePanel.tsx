@@ -30,11 +30,15 @@ const Toggle: React.FC<{
 	label: string;
 	checked: boolean;
 	onChange: (v: boolean) => void;
-}> = ({ label, checked, onChange }) => (
-	<label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+	disabled?: boolean;
+}> = ({ label, checked, onChange, disabled }) => (
+	<label
+		className={`flex items-center gap-2 text-sm text-gray-700 cursor-pointer ${disabled ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
+	>
 		<input
 			type="checkbox"
 			checked={checked}
+			disabled={disabled}
 			onChange={(e) => onChange(e.target.checked)}
 		/>
 		{label}
@@ -271,8 +275,8 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 					/>
 					<Toggle
 						label="QR Codes on Boxes"
-						checked={display.show_qr_codes}
-						onChange={(v) => setD("show_qr_codes", v)}
+						checked={pkgDetails.show_qr_code}
+						onChange={(v) => setP("show_qr_code", v)}
 					/>
 				</Section>
 
@@ -529,107 +533,6 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 							</option>
 						</select>
 					</div>
-					<div className="text-xs text-gray-500 font-medium mt-1">Toggles</div>
-					<Toggle
-						label="Line Number"
-						checked={pkgDetails.show_line_number}
-						onChange={(v) => setP("show_line_number", v)}
-					/>
-					<Toggle
-						label="Box Number"
-						checked={pkgDetails.show_box_number}
-						onChange={(v) => setP("show_box_number", v)}
-					/>
-					<Toggle
-						label="Quantity"
-						checked={pkgDetails.show_quantity}
-						onChange={(v) => setP("show_quantity", v)}
-					/>
-					<Toggle
-						label="Internal Dimensions"
-						checked={pkgDetails.show_internal_dims}
-						onChange={(v) => setP("show_internal_dims", v)}
-					/>
-					<Toggle
-						label="External Dimensions"
-						checked={pkgDetails.show_external_dims}
-						onChange={(v) => setP("show_external_dims", v)}
-					/>
-					<Toggle
-						label="Net Weight"
-						checked={pkgDetails.show_net_weight}
-						onChange={(v) => setP("show_net_weight", v)}
-					/>
-					<Toggle
-						label="Gross Weight"
-						checked={pkgDetails.show_gross_weight}
-						onChange={(v) => setP("show_gross_weight", v)}
-					/>
-					<Toggle
-						label="Unit m³"
-						checked={pkgDetails.show_unit_m3}
-						onChange={(v) => setP("show_unit_m3", v)}
-					/>
-					<Toggle
-						label="Total m³"
-						checked={pkgDetails.show_total_m3}
-						onChange={(v) => setP("show_total_m3", v)}
-					/>
-					<Toggle
-						label="Unit m²"
-						checked={pkgDetails.show_unit_m2}
-						onChange={(v) => setP("show_unit_m2", v)}
-					/>
-					<Toggle
-						label="Total m²"
-						checked={pkgDetails.show_total_m2}
-						onChange={(v) => setP("show_total_m2", v)}
-					/>
-					<Toggle
-						label="SEI Info"
-						checked={pkgDetails.show_sei}
-						onChange={(v) => setP("show_sei", v)}
-					/>
-					<Toggle
-						label="IPAC Reference"
-						checked={pkgDetails.show_ipac_reference}
-						onChange={(v) => setP("show_ipac_reference", v)}
-					/>
-					<Toggle
-						label="QR Code"
-						checked={pkgDetails.show_qr_code}
-						onChange={(v) => setP("show_qr_code", v)}
-					/>
-					<Toggle
-						label="Client Reference"
-						checked={pkgDetails.show_client_reference}
-						onChange={(v) => setP("show_client_reference", v)}
-					/>
-					<Toggle
-						label="Order Name"
-						checked={pkgDetails.show_order_name}
-						onChange={(v) => setP("show_order_name", v)}
-					/>
-					<Toggle
-						label="Destination"
-						checked={pkgDetails.show_destination}
-						onChange={(v) => setP("show_destination", v)}
-					/>
-					<Toggle
-						label="Status"
-						checked={pkgDetails.show_status}
-						onChange={(v) => setP("show_status", v)}
-					/>
-					<Toggle
-						label="Last Packed Date"
-						checked={pkgDetails.show_last_packed_date}
-						onChange={(v) => setP("show_last_packed_date", v)}
-					/>
-					<Toggle
-						label="Item Count Summary"
-						checked={pkgDetails.show_item_count_summary}
-						onChange={(v) => setP("show_item_count_summary", v)}
-					/>
 					<div className="flex flex-col gap-1 mt-1">
 						<label htmlFor="boxes-sort" className="text-xs text-gray-500">
 							Sort Boxes By
@@ -646,22 +549,168 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 							</option>
 						</select>
 					</div>
-					<div className="text-xs text-gray-500 font-medium mt-2">
-						Media / Pictures
+
+					<div className="mt-3 border rounded-lg p-2.5 bg-gray-50/50">
+						<div className="text-xs font-semibold text-gray-700 mb-2">
+							Line 1 Options (Compact & Detailed)
+						</div>
+						<div className="grid grid-cols-1 gap-1.5">
+							<Toggle
+								label="Line Number"
+								checked={pkgDetails.show_line_number}
+								onChange={(v) => setP("show_line_number", v)}
+							/>
+							<Toggle
+								label="Box Number"
+								checked={pkgDetails.show_box_number}
+								onChange={(v) => setP("show_box_number", v)}
+							/>
+							<Toggle
+								label="Quantity"
+								checked={pkgDetails.show_quantity}
+								onChange={(v) => setP("show_quantity", v)}
+							/>
+							<Toggle
+								label="Internal Dimensions"
+								checked={pkgDetails.show_internal_dims}
+								onChange={(v) => setP("show_internal_dims", v)}
+							/>
+							<Toggle
+								label="External Dimensions"
+								checked={pkgDetails.show_external_dims}
+								onChange={(v) => setP("show_external_dims", v)}
+							/>
+							<Toggle
+								label="Tare"
+								checked={pkgDetails.show_tare}
+								onChange={(v) => setP("show_tare", v)}
+							/>
+							<Toggle
+								label="Net Weight (N.W.)"
+								checked={pkgDetails.show_net_weight}
+								onChange={(v) => setP("show_net_weight", v)}
+							/>
+							<Toggle
+								label="Gross Weight (G.W.)"
+								checked={pkgDetails.show_gross_weight}
+								onChange={(v) => setP("show_gross_weight", v)}
+							/>
+							<Toggle
+								label="Unit m³"
+								checked={pkgDetails.show_unit_m3}
+								onChange={(v) => setP("show_unit_m3", v)}
+							/>
+							<Toggle
+								label="Total m³"
+								checked={pkgDetails.show_total_m3}
+								onChange={(v) => setP("show_total_m3", v)}
+							/>
+							<Toggle
+								label="Unit m²"
+								checked={pkgDetails.show_unit_m2}
+								onChange={(v) => setP("show_unit_m2", v)}
+							/>
+							<Toggle
+								label="Total m²"
+								checked={pkgDetails.show_total_m2}
+								onChange={(v) => setP("show_total_m2", v)}
+							/>
+							<Toggle
+								label="SEI Info"
+								checked={pkgDetails.show_sei}
+								onChange={(v) => setP("show_sei", v)}
+							/>
+							<Toggle
+								label="IPAC Reference"
+								checked={pkgDetails.show_ipac_reference}
+								onChange={(v) => setP("show_ipac_reference", v)}
+							/>
+							<Toggle
+								label="QR Code"
+								checked={pkgDetails.show_qr_code}
+								onChange={(v) => setP("show_qr_code", v)}
+							/>
+							<Toggle
+								label="Client Reference"
+								checked={pkgDetails.show_client_reference}
+								onChange={(v) => setP("show_client_reference", v)}
+							/>
+							<Toggle
+								label="Order Name"
+								checked={pkgDetails.show_order_name}
+								onChange={(v) => setP("show_order_name", v)}
+							/>
+							<Toggle
+								label="Destination"
+								checked={pkgDetails.show_destination}
+								onChange={(v) => setP("show_destination", v)}
+							/>
+							<Toggle
+								label="Status"
+								checked={pkgDetails.show_status}
+								onChange={(v) => setP("show_status", v)}
+							/>
+						</div>
 					</div>
-					<Toggle
-						label="Box Pictures"
-						checked={pkgDetails.show_box_photos}
-						onChange={(v) => setP("show_box_photos", v)}
-					/>
-					<Toggle
-						label="Item Pictures"
-						checked={pkgDetails.show_item_photos}
-						onChange={(v) => setP("show_item_photos", v)}
-					/>
+
+					<div
+						className={`mt-2 border rounded-lg p-2.5 bg-gray-50/50 transition-opacity ${pkgDetails.box_display_mode === "compact" ? "opacity-40 pointer-events-none" : ""}`}
+					>
+						<div className="text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
+							<span>Line 2 Options (Detailed Only)</span>
+							{pkgDetails.box_display_mode === "compact" && (
+								<span className="text-[10px] text-amber-600 font-normal">
+									Requires Detailed Mode
+								</span>
+							)}
+						</div>
+						<div className="grid grid-cols-1 gap-1.5">
+							<Toggle
+								label="Total Qty of Items"
+								checked={pkgDetails.show_total_qty_items}
+								onChange={(v) => setP("show_total_qty_items", v)}
+							/>
+							<Toggle
+								label="Last Packed Date"
+								checked={pkgDetails.show_last_packed_date}
+								onChange={(v) => setP("show_last_packed_date", v)}
+							/>
+							<Toggle
+								label="Type of Box"
+								checked={pkgDetails.show_box_type}
+								onChange={(v) => setP("show_box_type", v)}
+							/>
+						</div>
+					</div>
+
+					<div
+						className={`mt-2 border rounded-lg p-2.5 bg-gray-50/50 transition-opacity ${pkgDetails.box_display_mode === "compact" ? "opacity-40 pointer-events-none" : ""}`}
+					>
+						<div className="text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
+							<span>Line 3 Options (Detailed Only)</span>
+							{pkgDetails.box_display_mode === "compact" && (
+								<span className="text-[10px] text-amber-600 font-normal">
+									Requires Detailed Mode
+								</span>
+							)}
+						</div>
+						<div className="grid grid-cols-1 gap-1.5">
+							<Toggle
+								label="Box Pictures"
+								checked={pkgDetails.show_box_photos}
+								onChange={(v) => setP("show_box_photos", v)}
+							/>
+							<Toggle
+								label="Include Packed Item Pictures"
+								checked={pkgDetails.include_item_photos_in_box_photos}
+								disabled={!pkgDetails.show_box_photos}
+								onChange={(v) => setP("include_item_photos_in_box_photos", v)}
+							/>
+						</div>
+					</div>
 				</Section>
 
-				<Section title="Items Table">
+				<Section title="Items Card">
 					<Toggle
 						label="Show Items"
 						checked={pkgDetails.show_items}
@@ -683,11 +732,13 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 									onChange={(e) => setP("items_detail_level", e.target.value)}
 								>
 									<option value="summary">Summary (count only)</option>
-									<option value="full">Full table</option>
+									<option value="compact">Compact Card</option>
+									<option value="detailed">Detailed Card</option>
 								</select>
 							</div>
-							{pkgDetails.items_detail_level === "full" && (
-								<div className="pl-2 flex flex-col gap-1.5">
+
+							{pkgDetails.items_detail_level !== "summary" && (
+								<div className="pl-2 flex flex-col gap-1.5 mt-2">
 									<div className="flex flex-col gap-1">
 										<label
 											htmlFor="items-sort"
@@ -705,57 +756,79 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 											<option value="description">Description</option>
 										</select>
 									</div>
-									<div className="text-xs text-gray-500 font-medium mt-1">
-										Columns
-									</div>
-									<Toggle
-										label="Line # column"
-										checked={pkgDetails.show_line_num_col}
-										onChange={(v) => setP("show_line_num_col", v)}
-									/>
-									<Toggle
-										label="Item # column"
-										checked={pkgDetails.show_item_num_col}
-										onChange={(v) => setP("show_item_num_col", v)}
-									/>
-									<Toggle
-										label="Description column"
-										checked={pkgDetails.show_description_col}
-										onChange={(v) => setP("show_description_col", v)}
-									/>
-									<Toggle
-										label="Qty column"
-										checked={pkgDetails.show_qty_col}
-										onChange={(v) => setP("show_qty_col", v)}
-									/>
-									<div className="text-xs text-gray-500 font-medium mt-1">
-										Style
-									</div>
-									<Toggle
-										label="Alternating row highlight"
-										checked={pkgDetails.table_alternating_rows}
-										onChange={(v) => setP("table_alternating_rows", v)}
-									/>
-									{pkgDetails.table_alternating_rows && (
-										<div className="flex gap-2 items-center pl-4">
-											<input
-												type="color"
-												className="w-8 h-7 cursor-pointer rounded"
-												value={pkgDetails.table_alternating_color}
-												onChange={(e) =>
-													setP("table_alternating_color", e.target.value)
-												}
-											/>
-											<span className="text-xs font-mono text-gray-500">
-												{pkgDetails.table_alternating_color}
-											</span>
+
+									<div className="mt-2 border rounded-lg p-2.5 bg-gray-50/50">
+										<div className="text-xs font-semibold text-gray-700 mb-1.5">
+											Line 1 Options (Compact & Detailed)
 										</div>
-									)}
-									<Toggle
-										label="Row borders"
-										checked={pkgDetails.table_show_border}
-										onChange={(v) => setP("table_show_border", v)}
-									/>
+										<div className="grid grid-cols-1 gap-1.5">
+											<Toggle
+												label="Line Number"
+												checked={pkgDetails.show_line_num_col}
+												onChange={(v) => setP("show_line_num_col", v)}
+											/>
+											<Toggle
+												label="Quantity"
+												checked={pkgDetails.show_qty_col}
+												onChange={(v) => setP("show_qty_col", v)}
+											/>
+											<Toggle
+												label="Item # / Reference"
+												checked={pkgDetails.show_item_num_col}
+												onChange={(v) => setP("show_item_num_col", v)}
+											/>
+											<Toggle
+												label="Description"
+												checked={pkgDetails.show_description_col}
+												onChange={(v) => setP("show_description_col", v)}
+											/>
+										</div>
+									</div>
+
+									<div
+										className={`mt-2 border rounded-lg p-2.5 bg-gray-50/50 transition-opacity ${pkgDetails.items_detail_level !== "detailed" ? "opacity-40 pointer-events-none" : ""}`}
+									>
+										<div className="text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
+											<span>Line 2 Options (Detailed Only)</span>
+											{pkgDetails.items_detail_level !== "detailed" && (
+												<span className="text-[10px] text-amber-600 font-normal">
+													Requires Detailed Card
+												</span>
+											)}
+										</div>
+										<div className="grid grid-cols-1 gap-1.5">
+											<Toggle
+												label="All Additional Info (Dims, Net Weight)"
+												checked={pkgDetails.show_item_additional_info}
+												onChange={(v) => setP("show_item_additional_info", v)}
+											/>
+										</div>
+									</div>
+
+									<div
+										className={`mt-2 border rounded-lg p-2.5 bg-gray-50/50 transition-opacity ${pkgDetails.items_detail_level !== "detailed" ? "opacity-40 pointer-events-none" : ""}`}
+									>
+										<div className="text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
+											<span>Line 3 Options (Detailed Only)</span>
+											{pkgDetails.items_detail_level !== "detailed" && (
+												<span className="text-[10px] text-amber-600 font-normal">
+													Requires Detailed Card
+												</span>
+											)}
+										</div>
+										<div className="grid grid-cols-1 gap-1.5">
+											<Toggle
+												label="QR Code"
+												checked={pkgDetails.show_item_qr_code}
+												onChange={(v) => setP("show_item_qr_code", v)}
+											/>
+											<Toggle
+												label="Item Pictures"
+												checked={pkgDetails.show_item_photos}
+												onChange={(v) => setP("show_item_photos", v)}
+											/>
+										</div>
+									</div>
 								</div>
 							)}
 						</>
