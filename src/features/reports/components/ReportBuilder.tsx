@@ -50,10 +50,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 		dateFilterMode: "item_packed_at",
 		tags: [],
 		destinations: [],
-		hasItemsOnly: true,
-		packedOnly: false,
+		hasItemsOnly: false,
+		packedOnly: true,
 		splitBy: "none",
 		orderSort: "name",
+		boxId: null,
 	});
 
 	const [displaySettings, setDisplaySettings] = useState(

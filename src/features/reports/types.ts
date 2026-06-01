@@ -17,6 +17,8 @@ export type FilterParams = {
 	splitBy: "none" | "destination" | "order" | "report_per_order";
 	// Sort order for the order picker list
 	orderSort: "name" | "reference";
+	// Filter by a specific box ID
+	boxId: string | null;
 };
 
 export type ReportInstanceData = {

@@ -42,6 +42,7 @@ export function AccessoriesTab({
 		height: "",
 		comment: "",
 		is_final: false,
+		item_used: false,
 	});
 
 	const handleUpdateMaterial = async () => {
@@ -55,6 +56,7 @@ export function AccessoriesTab({
 			height: materialForm.height !== "" ? Number(materialForm.height) : null,
 			comment: materialForm.comment || null,
 			is_final: materialForm.is_final,
+			item_used: materialForm.item_used,
 		});
 
 		setEditingMaterial(null);
@@ -67,6 +69,7 @@ export function AccessoriesTab({
 			height: "",
 			comment: "",
 			is_final: false,
+			item_used: false,
 		});
 	};
 
@@ -96,6 +99,7 @@ export function AccessoriesTab({
 					: "",
 			comment: material.comment || "",
 			is_final: material.is_final,
+			item_used: material.item_used,
 		});
 	};
 
@@ -140,6 +144,9 @@ export function AccessoriesTab({
 									</th>
 									<th className="py-3 px-4 text-center border-r-2 border-gray-300">
 										Status
+									</th>
+									<th className="py-3 px-4 text-center border-r-2 border-gray-300">
+										Used
 									</th>
 									<th className="py-3 px-4 border-r-2 border-gray-300">
 										Comment
@@ -232,6 +239,22 @@ export function AccessoriesTab({
 														Final
 													</label>
 												</td>
+												<td className="py-2 px-4 text-center border-r-2 border-gray-300">
+													<label className="flex items-center justify-center gap-1.5 text-xs font-medium cursor-pointer select-none">
+														<input
+															type="checkbox"
+															checked={materialForm.item_used}
+															onChange={(e) =>
+																setMaterialForm((f) => ({
+																	...f,
+																	item_used: e.target.checked,
+																}))
+															}
+															className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														/>
+														Used
+													</label>
+												</td>
 												<td className="py-2 px-4 border-r-2 border-gray-300">
 													<input
 														type="text"
@@ -301,7 +324,18 @@ export function AccessoriesTab({
 																: "bg-yellow-50 text-yellow-700 border-yellow-200"
 														}`}
 													>
-														{material.is_final ? "Final" : "Planned"}
+														{material.is_final ? "Final" : "Original"}
+													</span>
+												</td>
+												<td className="py-3 px-4 text-center border-r-2 border-gray-300">
+													<span
+														className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+															material.item_used
+																? "bg-green-50 text-green-700 border-green-200"
+																: "bg-gray-50 text-gray-700 border-gray-200"
+														}`}
+													>
+														{material.item_used ? "Yes" : "No"}
 													</span>
 												</td>
 												<td className="py-3 px-4 text-gray-600 border-r-2 border-gray-300 max-w-xs truncate">

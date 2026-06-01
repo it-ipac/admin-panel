@@ -240,6 +240,7 @@ export interface PackageMaterial {
 	variant_name: string | null;
 	material_name: string | null;
 	unit_name: string | null;
+	from_template?: boolean;
 }
 
 export interface PackageService {
@@ -1212,6 +1213,7 @@ function OrderDetailPage() {
 						variant_name: variantName,
 						material_name: materialName,
 						unit_name: null,
+						from_template: true,
 					});
 				};
 
@@ -1654,6 +1656,7 @@ function OrderDetailPage() {
 			width?: number | null;
 			height?: number | null;
 			comment?: string | null;
+			item_used?: boolean;
 		}) => {
 			const { data, error } = await supabase
 				.from("order_package_materials")
@@ -1682,6 +1685,7 @@ function OrderDetailPage() {
 			height?: number | null;
 			comment?: string | null;
 			is_final?: boolean;
+			item_used?: boolean;
 		}) => {
 			const { data, error } = await supabase
 				.from("order_package_materials")
@@ -2133,6 +2137,7 @@ function OrderDetailPage() {
 		height: "" as string | number,
 		comment: "",
 		is_final: false,
+		item_used: false,
 	});
 	const [materialValidationErrors, setMaterialValidationErrors] = useState<
 		Record<string, string>
@@ -2273,6 +2278,7 @@ function OrderDetailPage() {
 			height: "",
 			comment: "",
 			is_final: false,
+			item_used: false,
 		});
 		setMaterialValidationErrors({});
 	};
@@ -2290,6 +2296,7 @@ function OrderDetailPage() {
 			height: materialForm.height !== "" ? Number(materialForm.height) : null,
 			comment: materialForm.comment || null,
 			is_final: materialForm.is_final,
+			item_used: materialForm.item_used,
 		});
 
 		if (!validation.success) {
@@ -2720,7 +2727,9 @@ function OrderDetailPage() {
 			accessories: pkgMaterials.filter(
 				(m) => m.material_type === "Accessories",
 			),
-			securing: pkgMaterials.filter((m) => m.material_type === "Securing"),
+			securing: pkgMaterials.filter(
+				(m) => m.material_type === "Securing" && !m.from_template,
+			),
 			vacuumPacking: pkgMaterials.filter(
 				(m) => m.material_type === "Vacuum Packing",
 			),
@@ -2922,10 +2931,10 @@ function OrderDetailPage() {
 			case "completed":
 			case "packed":
 			case "delivered":
-				return "bg-green-100 text-green-800 border-green-200";
+				return "bg-blue-100 text-blue-800 border-blue-200";
 			case "in_progress":
 			case "in_production":
-				return "bg-blue-100 text-blue-800 border-blue-200";
+				return "bg-green-100 text-green-800 border-green-200";
 			case "pending":
 			case "design":
 				return "bg-yellow-100 text-yellow-800 border-yellow-200";
@@ -3949,22 +3958,26 @@ function OrderDetailPage() {
 											</p>
 											<p className="text-sm text-gray-500">Packages</p>
 										</div>
-										<div className="text-center p-3 bg-gray-50 rounded-lg">
-											<p className="text-2xl font-bold text-green-600">
+										<div className="text-center p-3 bg-blue-50 border border-blue-100 rounded-lg">
+											<p className="text-2xl font-bold text-blue-600">
 												{order.order_packages?.filter(
 													(p) =>
 														p.status === "packed" || p.status === "delivered",
 												).length || 0}
 											</p>
-											<p className="text-sm text-gray-500">Completed</p>
+											<p className="text-sm text-blue-700 font-medium">
+												Completed
+											</p>
 										</div>
-										<div className="text-center p-3 bg-gray-50 rounded-lg">
-											<p className="text-2xl font-bold text-blue-600">
+										<div className="text-center p-3 bg-green-50 border border-green-100 rounded-lg">
+											<p className="text-2xl font-bold text-green-600">
 												{order.order_packages?.filter(
 													(p) => p.status === "in_production",
 												).length || 0}
 											</p>
-											<p className="text-sm text-gray-500">In Production</p>
+											<p className="text-sm text-green-700 font-medium">
+												In Production
+											</p>
 										</div>
 										<div className="text-center p-3 bg-gray-50 rounded-lg">
 											<p className="text-2xl font-bold text-amber-600">
@@ -3981,72 +3994,171 @@ function OrderDetailPage() {
 								</div>
 
 								{/* Packages Table */}
-								<div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-									<div className="px-6 py-4 border-b">
+								<div className="bg-white rounded-lg border shadow-sm overflow-hidden flex flex-col">
+									<div className="px-6 py-4 border-b flex flex-wrap justify-between items-center bg-gray-50 gap-2">
 										<h2 className="text-lg font-semibold text-gray-900">
 											Packages
 										</h2>
+										<div className="flex flex-wrap gap-2 text-xs font-semibold">
+											<span className="text-gray-600 bg-gray-200/80 px-2.5 py-1 rounded-full">
+												Total Boxes: {order.order_packages.length}
+											</span>
+											<span className="text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full">
+												Completed:{" "}
+												{
+													order.order_packages.filter(
+														(p) =>
+															p.status === "packed" || p.status === "delivered",
+													).length
+												}
+											</span>
+											<span className="text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+												In Production:{" "}
+												{
+													order.order_packages.filter(
+														(p) => p.status === "in_production",
+													).length
+												}
+											</span>
+											<span className="text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+												Pending:{" "}
+												{
+													order.order_packages.filter(
+														(p) =>
+															!p.status ||
+															p.status === "design" ||
+															p.status === "approved" ||
+															p.status === "pending",
+													).length
+												}
+											</span>
+											<span className="text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+												Cancelled:{" "}
+												{
+													order.order_packages.filter(
+														(p) => p.status === "cancelled",
+													).length
+												}
+											</span>
+										</div>
 									</div>
 									{order.order_packages && order.order_packages.length > 0 ? (
-										<div className="overflow-x-auto">
-											<table className="excel-table">
-												<thead>
-													<tr>
-														<th>#</th>
-														<th>Description</th>
-														<th>Dimensions (L×W×H)</th>
-														<th>Weight</th>
-														<th>Status</th>
-													</tr>
-												</thead>
-												<tbody>
-													{order.order_packages
-														.sort((a, b) => a.package_number - b.package_number)
-														.map((pkg) => (
-															<tr key={pkg.id}>
-																<td className="font-medium">
-																	{pkg.package_number}
-																</td>
-																<td className="text-gray-600 max-w-xs truncate">
-																	{pkg.description || "—"}
-																</td>
-																<td>{getDimensions(pkg) || "—"}</td>
-																<td>
-																	{getWeight(pkg)
-																		? `${getWeight(pkg)} kg`
-																		: "—"}
-																</td>
-																<td>
-																	<select
-																		value={pkg.status || "pending"}
-																		onChange={(e) =>
-																			updatePackageStatusMutation.mutate({
-																				packageId: pkg.id,
-																				status: e.target.value,
-																			})
-																		}
-																		disabled={
-																			updatePackageStatusMutation.isPending
-																		}
-																		className={`px-2 py-1 text-xs font-medium rounded border cursor-pointer capitalize ${getStatusColor(pkg.status || "pending")} ${updatePackageStatusMutation.isPending ? "opacity-50" : ""}`}
-																	>
-																		<option value="pending">Pending</option>
-																		<option value="design">Design</option>
-																		<option value="approved">Approved</option>
-																		<option value="in_production">
-																			In Production
-																		</option>
-																		<option value="packed">Packed</option>
-																		<option value="delivered">Delivered</option>
-																		<option value="on_hold">On Hold</option>
-																		<option value="cancelled">Cancelled</option>
-																	</select>
-																</td>
-															</tr>
-														))}
-												</tbody>
-											</table>
-										</div>
+										<>
+											<div className="overflow-x-auto max-h-[680px] overflow-y-auto">
+												<table className="excel-table w-full border-collapse">
+													<thead>
+														<tr className="sticky top-0 bg-gray-100 z-10 shadow-[inset_0_-2px_0_rgba(0,0,0,0.05)]">
+															<th className="sticky top-0 bg-gray-100 z-10 py-3 px-4 border-b text-left">
+																#
+															</th>
+															<th className="sticky top-0 bg-gray-100 z-10 py-3 px-4 border-b text-left">
+																Dimensions (L×W×H)
+															</th>
+															<th className="sticky top-0 bg-gray-100 z-10 py-3 px-4 border-b text-left">
+																Weight
+															</th>
+															<th className="sticky top-0 bg-gray-100 z-10 py-3 px-4 border-b text-left">
+																Status
+															</th>
+														</tr>
+													</thead>
+													<tbody>
+														{order.order_packages
+															.sort(
+																(a, b) => a.package_number - b.package_number,
+															)
+															.map((pkg) => (
+																<tr key={pkg.id}>
+																	<td className="font-medium py-3 px-4 border-b">
+																		{pkg.package_number}
+																	</td>
+																	<td className="py-3 px-4 border-b">
+																		{getDimensions(pkg) || "—"}
+																	</td>
+																	<td className="py-3 px-4 border-b">
+																		{getWeight(pkg)
+																			? `${getWeight(pkg)} kg`
+																			: "—"}
+																	</td>
+																	<td className="py-3 px-4 border-b">
+																		<select
+																			value={pkg.status || "pending"}
+																			onChange={(e) =>
+																				updatePackageStatusMutation.mutate({
+																					packageId: pkg.id,
+																					status: e.target.value,
+																				})
+																			}
+																			disabled={
+																				updatePackageStatusMutation.isPending
+																			}
+																			className={`px-2 py-1 text-xs font-medium rounded border cursor-pointer capitalize ${getStatusColor(pkg.status || "pending")} ${updatePackageStatusMutation.isPending ? "opacity-50" : ""}`}
+																		>
+																			<option value="pending">Pending</option>
+																			<option value="design">Design</option>
+																			<option value="approved">Approved</option>
+																			<option value="in_production">
+																				In Production
+																			</option>
+																			<option value="packed">Packed</option>
+																			<option value="delivered">
+																				Delivered
+																			</option>
+																			<option value="on_hold">On Hold</option>
+																			<option value="cancelled">
+																				Cancelled
+																			</option>
+																		</select>
+																	</td>
+																</tr>
+															))}
+													</tbody>
+												</table>
+											</div>
+											<div className="px-6 py-3 border-t flex flex-wrap justify-end items-center bg-gray-50 gap-2 text-xs font-semibold">
+												<span className="text-gray-600 bg-gray-200/80 px-2.5 py-1 rounded-full">
+													Total Boxes: {order.order_packages.length}
+												</span>
+												<span className="text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full">
+													Completed:{" "}
+													{
+														order.order_packages.filter(
+															(p) =>
+																p.status === "packed" ||
+																p.status === "delivered",
+														).length
+													}
+												</span>
+												<span className="text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+													In Production:{" "}
+													{
+														order.order_packages.filter(
+															(p) => p.status === "in_production",
+														).length
+													}
+												</span>
+												<span className="text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+													Pending:{" "}
+													{
+														order.order_packages.filter(
+															(p) =>
+																!p.status ||
+																p.status === "design" ||
+																p.status === "approved" ||
+																p.status === "pending",
+														).length
+													}
+												</span>
+												<span className="text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+													Cancelled:{" "}
+													{
+														order.order_packages.filter(
+															(p) => p.status === "cancelled",
+														).length
+													}
+												</span>
+											</div>
+										</>
 									) : (
 										<div className="p-6 text-center text-gray-500">
 											<Package className="w-12 h-12 mx-auto mb-2 text-gray-300" />
@@ -5332,25 +5444,47 @@ function OrderDetailPage() {
 														</p>
 													)}
 												</div>
-												<div className="flex items-center gap-2">
-													<input
-														type="checkbox"
-														id="is_final"
-														checked={materialForm.is_final}
-														onChange={(e) =>
-															setMaterialForm((f) => ({
-																...f,
-																is_final: e.target.checked,
-															}))
-														}
-														className="rounded"
-													/>
-													<label
-														htmlFor="is_final"
-														className="text-sm text-gray-700"
-													>
-														Mark as Final
-													</label>
+												<div className="flex gap-6">
+													<div className="flex items-center gap-2">
+														<input
+															type="checkbox"
+															id="is_final"
+															checked={materialForm.is_final}
+															onChange={(e) =>
+																setMaterialForm((f) => ({
+																	...f,
+																	is_final: e.target.checked,
+																}))
+															}
+															className="rounded"
+														/>
+														<label
+															htmlFor="is_final"
+															className="text-sm text-gray-700 font-medium cursor-pointer"
+														>
+															Mark as Final
+														</label>
+													</div>
+													<div className="flex items-center gap-2">
+														<input
+															type="checkbox"
+															id="item_used"
+															checked={materialForm.item_used}
+															onChange={(e) =>
+																setMaterialForm((f) => ({
+																	...f,
+																	item_used: e.target.checked,
+																}))
+															}
+															className="rounded"
+														/>
+														<label
+															htmlFor="item_used"
+															className="text-sm text-gray-700 font-medium cursor-pointer"
+														>
+															Used
+														</label>
+													</div>
 												</div>
 											</div>
 

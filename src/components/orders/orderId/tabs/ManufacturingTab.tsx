@@ -162,13 +162,6 @@ export function ManufacturingTab({
 							editable={false}
 							className="min-w-[150px]"
 						/>
-						<TwoTierCard
-							label="Material"
-							original={original.template.material_name}
-							final={final.template.material_name}
-							editable={false}
-							className="min-w-[150px]"
-						/>
 					</Section>
 
 					{/* Horizontal Bars Section */}
@@ -202,13 +195,6 @@ export function ManufacturingTab({
 								label="Type"
 								original={original.horizontal_bar?.type_name}
 								final={final.horizontal_bar?.type_name}
-								editable={false}
-								className="min-w-[150px]"
-							/>
-							<TwoTierCard
-								label="Material"
-								original={original.horizontal_bar?.material_name}
-								final={final.horizontal_bar?.material_name}
 								editable={false}
 								className="min-w-[150px]"
 							/>
@@ -249,13 +235,6 @@ export function ManufacturingTab({
 								editable={false}
 								className="min-w-[150px]"
 							/>
-							<TwoTierCard
-								label="Material"
-								original={original.vertical_bar?.material_name}
-								final={final.vertical_bar?.material_name}
-								editable={false}
-								className="min-w-[150px]"
-							/>
 						</Section>
 					)}
 
@@ -290,13 +269,6 @@ export function ManufacturingTab({
 								label="Type"
 								original={original.skids?.type_name}
 								final={final.skids?.type_name}
-								editable={false}
-								className="min-w-[150px]"
-							/>
-							<TwoTierCard
-								label="Material"
-								original={original.skids?.material_name}
-								final={final.skids?.material_name}
 								editable={false}
 								className="min-w-[150px]"
 							/>

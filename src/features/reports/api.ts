@@ -13,6 +13,25 @@ const getMediaPublicUrl = (path: string) => {
 	return supabase.storage.from("media").getPublicUrl(path).data.publicUrl;
 };
 
+const chunkArray = <T>(array: T[], size: number): T[][] => {
+	const chunks: T[][] = [];
+	for (let i = 0; i < array.length; i += size) {
+		chunks.push(array.slice(i, i + size));
+	}
+	return chunks;
+};
+
+const fetchInChunks = async <T, R>(
+	items: T[],
+	chunkSize: number,
+	fetchFn: (chunk: T[]) => Promise<R[]>,
+): Promise<R[]> => {
+	if (items.length === 0) return [];
+	const chunks = chunkArray(items, chunkSize);
+	const results = await Promise.all(chunks.map((chunk) => fetchFn(chunk)));
+	return results.flat();
+};
+
 export const fetchClients = async () => {
 	const { data, error } = await supabase
 		.from("clients")
@@ -247,53 +266,55 @@ export const fetchReportInstances = async (
 		itemsByInstance.get(item.pkg_instance_id)!.push(item);
 	}
 
-	// Fetch additional package details (includes order_package_id for QR lookup)
-	const { data: extData, error: extError } = await supabase
-		.from("order_pkg_instance")
-		.select(`
-			id,
-			order_package_id,
-			order_pkg_overview (
-				quantity
-			),
-			order_packages (
-				original_pkg_info:package_info!order_packages_original_pkg_info_fkey (
-					internal_length,
-					internal_width,
-					internal_height,
-					external_length,
-					external_width,
-					external_height,
-					net_weight,
-					gross_weight,
-					sei_category,
-					sei_protection,
-					tare,
-					box_type (
-						name
-					)
+	// Fetch additional package details (includes order_package_id for QR lookup) in chunks
+	const extData = await fetchInChunks(instanceIds, 100, async (chunk) => {
+		const { data: chunkData, error: extError } = await supabase
+			.from("order_pkg_instance")
+			.select(`
+				id,
+				order_package_id,
+				order_pkg_overview (
+					quantity
 				),
-				final_pkg_info:package_info!order_packages_final_pkg_info_fkey (
-					internal_length,
-					internal_width,
-					internal_height,
-					external_length,
-					external_width,
-					external_height,
-					net_weight,
-					gross_weight,
-					sei_category,
-					sei_protection,
-					tare,
-					box_type (
-						name
+				order_packages (
+					original_pkg_info:package_info!order_packages_original_pkg_info_fkey (
+						internal_length,
+						internal_width,
+						internal_height,
+						external_length,
+						external_width,
+						external_height,
+						net_weight,
+						gross_weight,
+						sei_category,
+						sei_protection,
+						tare,
+						box_type (
+							name
+						)
+					),
+					final_pkg_info:package_info!order_packages_final_pkg_info_fkey (
+						internal_length,
+						internal_width,
+						internal_height,
+						external_length,
+						external_width,
+						external_height,
+						net_weight,
+						gross_weight,
+						sei_category,
+						sei_protection,
+						tare,
+						box_type (
+							name
+						)
 					)
 				)
-			)
-		`)
-		.in("id", instanceIds);
-
-	if (extError) throw extError;
+			`)
+			.in("id", chunk);
+		if (extError) throw extError;
+		return chunkData || [];
+	});
 
 	// Build extMap and collect unique order_package_ids for QR lookup
 	const extMap = new Map<string, any>();
@@ -309,18 +330,21 @@ export const fetchReportInstances = async (
 		}
 	}
 
-	// Fetch QR codes by order_pkg_instance id or order_package_id (entity_type = "package")
+	// Fetch QR codes by order_pkg_instance id or order_package_id (entity_type = "package") in chunks
 	const uniquePkgIds = Array.from(pkgIdToInstIds.keys());
 	const qrMap = new Map<string, string>(); // instance_id → qr_token
 	const targetIds = [...new Set([...instanceIds, ...uniquePkgIds])];
 	if (targetIds.length > 0) {
-		const { data: qrData, error: qrError } = await supabase
-			.from("qr_codes")
-			.select("entity_id, token")
-			.eq("entity_type", "package")
-			.eq("is_active", true)
-			.in("entity_id", targetIds);
-		if (qrError) throw qrError;
+		const qrData = await fetchInChunks(targetIds, 100, async (chunk) => {
+			const { data: chunkData, error: qrError } = await supabase
+				.from("qr_codes")
+				.select("entity_id, token")
+				.eq("entity_type", "package")
+				.eq("is_active", true)
+				.in("entity_id", chunk);
+			if (qrError) throw qrError;
+			return chunkData || [];
+		});
 		for (const qr of qrData || []) {
 			// New flow: entity_id is direct order_pkg_instance.id
 			if (instanceIds.includes(qr.entity_id)) {
@@ -333,13 +357,17 @@ export const fetchReportInstances = async (
 		}
 	}
 
-	// Fetch box photos (media.order_pkg_instance_id)
+	// Fetch box photos (media.order_pkg_instance_id) in chunks
 	const boxPhotoMap = new Map<string, string[]>(); // instance_id → urls
-	const { data: boxMediaData } = await supabase
-		.from("media")
-		.select("order_pkg_instance_id, image_url")
-		.in("order_pkg_instance_id", instanceIds)
-		.not("image_url", "is", null);
+	const boxMediaData = await fetchInChunks(instanceIds, 100, async (chunk) => {
+		const { data: chunkData, error: mediaError } = await supabase
+			.from("media")
+			.select("order_pkg_instance_id, image_url")
+			.in("order_pkg_instance_id", chunk)
+			.not("image_url", "is", null);
+		if (mediaError) throw mediaError;
+		return chunkData || [];
+	});
 	for (const m of boxMediaData || []) {
 		if (!boxPhotoMap.has(m.order_pkg_instance_id)) {
 			boxPhotoMap.set(m.order_pkg_instance_id, []);
@@ -354,29 +382,45 @@ export const fetchReportInstances = async (
 	const allPkdItemIds = (itemData || [])
 		.map((i: any) => i.pkd_item_id)
 		.filter(Boolean);
-	// Fetch QR codes for items (entity_type = "pkd_item")
+
+	// Fetch QR codes for items (entity_type = "pkd_item") in chunks
 	const itemQrMap = new Map<string, string>(); // pkd_item_id -> token
 	if (allPkdItemIds.length > 0) {
-		const { data: qrItemData, error: qrItemError } = await supabase
-			.from("qr_codes")
-			.select("entity_id, token")
-			.eq("entity_type", "pkd_item")
-			.eq("is_active", true)
-			.in("entity_id", allPkdItemIds);
-		if (!qrItemError && qrItemData) {
-			for (const qr of qrItemData) {
-				itemQrMap.set(qr.entity_id, qr.token);
-			}
+		const qrItemData = await fetchInChunks(
+			allPkdItemIds,
+			100,
+			async (chunk) => {
+				const { data: chunkData, error: qrItemError } = await supabase
+					.from("qr_codes")
+					.select("entity_id, token")
+					.eq("entity_type", "pkd_item")
+					.eq("is_active", true)
+					.in("entity_id", chunk);
+				if (qrItemError) throw qrItemError;
+				return chunkData || [];
+			},
+		);
+		for (const qr of qrItemData) {
+			itemQrMap.set(qr.entity_id, qr.token);
 		}
 	}
 
+	// Fetch item photos (pkd_item_id) in chunks
 	const itemPhotoMap = new Map<string, string[]>(); // pkd_item_id → urls
 	if (allPkdItemIds.length > 0) {
-		const { data: itemMediaData } = await supabase
-			.from("media")
-			.select("pkd_item_id, image_url")
-			.in("pkd_item_id", allPkdItemIds)
-			.not("image_url", "is", null);
+		const itemMediaData = await fetchInChunks(
+			allPkdItemIds,
+			100,
+			async (chunk) => {
+				const { data: chunkData, error: mediaError } = await supabase
+					.from("media")
+					.select("pkd_item_id, image_url")
+					.in("pkd_item_id", chunk)
+					.not("image_url", "is", null);
+				if (mediaError) throw mediaError;
+				return chunkData || [];
+			},
+		);
 		for (const m of itemMediaData || []) {
 			if (!itemPhotoMap.has(m.pkd_item_id)) {
 				itemPhotoMap.set(m.pkd_item_id, []);

@@ -106,6 +106,7 @@ export const packageMaterialSchema = z.object({
 		.nullable()
 		.optional(),
 	is_final: z.boolean().default(false),
+	item_used: z.boolean().default(false),
 });
 
 export type PackageMaterialInput = z.infer<typeof packageMaterialSchema>;

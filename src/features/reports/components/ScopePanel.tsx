@@ -5,6 +5,7 @@ import {
 	useDestinationsQuery,
 	useOrdersQuery,
 	useProjectTagsQuery,
+	useReportInstancesQuery,
 } from "../hooks/useReportBuilderQueries";
 import type { FilterParams } from "../types";
 
@@ -28,6 +29,13 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 		filters.clientId,
 		filters.orderIds,
 	);
+
+	// Fetch all instances matching client/orders to populate the box filter dropdown
+	const { data: allInstancesForBoxPicker, isLoading: instancesLoading } =
+		useReportInstancesQuery({
+			...filters,
+			boxId: null, // Always fetch all boxes to choose from
+		});
 
 	// Local state: filter the order picker list by destination
 	const [orderFilterDest, setOrderFilterDest] = useState<string>("");
@@ -83,18 +91,30 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 			setFilters((prev) => ({
 				...prev,
 				orderIds: prev.orderIds.filter((id) => !allOrderIds.includes(id)),
+				boxId: null,
 			}));
 		} else {
 			// Select all visible orders (merge with any already selected from other filters)
 			setFilters((prev) => ({
 				...prev,
 				orderIds: Array.from(new Set([...prev.orderIds, ...allOrderIds])),
+				boxId: null,
 			}));
 		}
 	};
 
 	const toggleOrder = (id: string) => {
-		handleArrayChange("orderIds", id);
+		setFilters((prev) => {
+			const current = prev.orderIds;
+			const nextOrderIds = current.includes(id)
+				? current.filter((v) => v !== id)
+				: [...current, id];
+			return {
+				...prev,
+				orderIds: nextOrderIds,
+				boxId: null,
+			};
+		});
 	};
 
 	const selectedCount = filters.orderIds.length;
@@ -114,10 +134,14 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 					className="w-full border rounded-md p-2 text-sm bg-white"
 					value={filters.clientId || ""}
 					onChange={(e) => {
-						handleChange("clientId", e.target.value || null);
-						handleChange("orderIds", []);
-						handleChange("tags", []);
-						handleChange("destinations", []);
+						setFilters((prev) => ({
+							...prev,
+							clientId: e.target.value || null,
+							orderIds: [],
+							tags: [],
+							destinations: [],
+							boxId: null,
+						}));
 					}}
 					disabled={clientsLoading}
 				>
@@ -247,6 +271,49 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 					</p>
 				)}
 			</div>
+
+			{/* Specific Box Filter */}
+			{filters.clientId && (
+				<div className="flex flex-col gap-1">
+					<label
+						htmlFor="box-select"
+						className="text-sm font-medium text-gray-700"
+					>
+						Specific Box Filter
+					</label>
+					{instancesLoading ? (
+						<div className="h-10 bg-gray-50 animate-pulse rounded-lg" />
+					) : !allInstancesForBoxPicker ||
+						allInstancesForBoxPicker.length === 0 ? (
+						<div className="text-xs text-gray-400 italic">
+							No boxes found for current filters
+						</div>
+					) : (
+						<select
+							id="box-select"
+							className="w-full border rounded-md p-2 text-sm bg-white"
+							value={filters.boxId || ""}
+							onChange={(e) => {
+								handleChange("boxId", e.target.value || null);
+							}}
+						>
+							<option value="">— All Boxes —</option>
+							{allInstancesForBoxPicker.map((inst) => {
+								const label = `Box ${inst.package_number}${
+									inst.instance_number > 1
+										? ` (Inst ${inst.instance_number})`
+										: ""
+								}${inst.package_reference ? ` - ${inst.package_reference}` : ""}`;
+								return (
+									<option key={inst.id} value={inst.id}>
+										{label}
+									</option>
+								);
+							})}
+						</select>
+					)}
+				</div>
+			)}
 
 			{/* Date Filtering */}
 			<div className="flex flex-col gap-2 p-3 bg-gray-50 border rounded-md">
@@ -389,22 +456,56 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 			{/* Options */}
 			<div className="flex flex-col gap-2">
 				<span className="text-sm font-medium text-gray-700">Options</span>
-				<label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-					<input
-						type="checkbox"
-						checked={filters.hasItemsOnly}
-						onChange={(e) => handleChange("hasItemsOnly", e.target.checked)}
-					/>
-					Only show boxes with packed items
-				</label>
-				<label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+				<label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
 					<input
 						type="checkbox"
 						checked={filters.packedOnly}
-						onChange={(e) => handleChange("packedOnly", e.target.checked)}
+						onChange={(e) => {
+							setFilters((prev) => ({
+								...prev,
+								packedOnly: e.target.checked,
+								hasItemsOnly: e.target.checked ? false : prev.hasItemsOnly,
+							}));
+						}}
+						className="checkbox checkbox-sm checkbox-primary"
 					/>
 					Only show packed boxes
 				</label>
+
+				{!filters.packedOnly && filters.hasItemsOnly ? (
+					<div className="flex flex-col gap-1.5 p-2 bg-blue-50 border border-blue-100 rounded-md mt-1">
+						<span className="text-xs text-blue-700 font-medium">
+							Showing boxes with packed items
+						</span>
+						<button
+							type="button"
+							onClick={() => {
+								setFilters((prev) => ({
+									...prev,
+									packedOnly: true,
+									hasItemsOnly: false,
+								}));
+							}}
+							className="text-xs font-semibold text-blue-700 hover:text-blue-900 text-left underline cursor-pointer"
+						>
+							Switch back to packed boxes
+						</button>
+					</div>
+				) : (
+					<button
+						type="button"
+						onClick={() => {
+							setFilters((prev) => ({
+								...prev,
+								packedOnly: false,
+								hasItemsOnly: true,
+							}));
+						}}
+						className="text-xs font-medium text-blue-600 hover:text-blue-800 text-left hover:underline mt-1 flex items-center gap-1 cursor-pointer"
+					>
+						✨ Switch to: Only show boxes with packed items
+					</button>
+				)}
 			</div>
 
 			{/* Split / Batch Mode */}

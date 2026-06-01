@@ -213,6 +213,9 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		if (filters.packedOnly) {
 			result = result.filter((inst) => inst.status === "packed");
 		}
+		if (filters.boxId) {
+			result = result.filter((inst) => inst.id === filters.boxId);
+		}
 
 		// 2. Sort
 		const sortMode = pkgSettings.boxes_sort || "number";
@@ -242,7 +245,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		}
 
 		return result;
-	}, [instances, filters.packedOnly, pkgSettings.boxes_sort]);
+	}, [instances, filters.packedOnly, filters.boxId, pkgSettings.boxes_sort]);
 
 	// For report_per_order: group by order → array of { orderId, orderName, instances[] }
 	const reportGroups = React.useMemo(() => {
