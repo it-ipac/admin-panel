@@ -3010,14 +3010,30 @@ function OrderDetailPage() {
 		}
 	};
 
+	const getMergedField = (pkg: OrderPackage, field: keyof PackageInfo) => {
+		const finalVal = pkg.final_pkg_info?.[field];
+		const originalVal = pkg.original_pkg_info?.[field];
+		if (finalVal !== null && finalVal !== undefined && finalVal !== "") {
+			return finalVal as any;
+		}
+		return (originalVal ?? null) as any;
+	};
+
 	const getDimensions = (pkg: OrderPackage) => {
-		const info = pkg.final_pkg_info || pkg.original_pkg_info;
-		if (!info) return null;
+		if (!pkg.final_pkg_info && !pkg.original_pkg_info) return null;
 
 		// Prefer external dimensions, fall back to internal
-		const l = info.external_length || info.internal_length;
-		const w = info.external_width || info.internal_width;
-		const h = info.external_height || info.internal_height;
+		const extL = getMergedField(pkg, "external_length");
+		const extW = getMergedField(pkg, "external_width");
+		const extH = getMergedField(pkg, "external_height");
+
+		const intL = getMergedField(pkg, "internal_length");
+		const intW = getMergedField(pkg, "internal_width");
+		const intH = getMergedField(pkg, "internal_height");
+
+		const l = extL || intL;
+		const w = extW || intW;
+		const h = extH || intH;
 
 		if (l && w && h) {
 			return `${l} × ${w} × ${h} cm`;
@@ -3026,9 +3042,10 @@ function OrderDetailPage() {
 	};
 
 	const getWeight = (pkg: OrderPackage) => {
-		const info = pkg.final_pkg_info || pkg.original_pkg_info;
-		if (!info) return null;
-		return info.gross_weight || info.net_weight;
+		if (!pkg.final_pkg_info && !pkg.original_pkg_info) return null;
+		const gross = getMergedField(pkg, "gross_weight");
+		const net = getMergedField(pkg, "net_weight");
+		return gross || net;
 	};
 
 	// ========== EXCEL EXPORT FUNCTION ==========

@@ -68,7 +68,7 @@ export const fetchOrderDetails = async (orderId: string) => {
  * Volume is computed from package_info external dimensions (L × W × H → m³).
  */
 export const fetchOrderTotals = async (orderId: string) => {
-	// Get all instances for this order with their package_info via final_pkg_info
+	// Get all instances for this order with their package_info via final_pkg_info and original_pkg_info
 	const { data, error } = await supabase
 		.from("order_pkg_instance")
 		.select(`
@@ -76,8 +76,14 @@ export const fetchOrderTotals = async (orderId: string) => {
 			order_pkg_overview!inner(
 				order_id,
 				order_packages!inner(
-					final_pkg_info,
-					package_info!order_packages_final_pkg_info_fkey(
+					original_pkg_info:package_info!order_packages_original_pkg_info_fkey(
+						net_weight,
+						gross_weight,
+						external_length,
+						external_width,
+						external_height
+					),
+					final_pkg_info:package_info!order_packages_final_pkg_info_fkey(
 						net_weight,
 						gross_weight,
 						external_length,
@@ -103,14 +109,43 @@ export const fetchOrderTotals = async (orderId: string) => {
 	let totalVolume = 0;
 
 	for (const inst of data) {
-		const pkgInfo = (inst as any).order_pkg_overview?.order_packages
-			?.package_info;
-		if (!pkgInfo) continue;
-		if (pkgInfo.net_weight) totalNW += Number(pkgInfo.net_weight);
-		if (pkgInfo.gross_weight) totalGW += Number(pkgInfo.gross_weight);
-		const l = Number(pkgInfo.external_length ?? 0) / 1000; // mm → m
-		const w = Number(pkgInfo.external_width ?? 0) / 1000;
-		const h = Number(pkgInfo.external_height ?? 0) / 1000;
+		const orderPkg = (inst as any).order_pkg_overview?.order_packages;
+		const orderPkgObj = Array.isArray(orderPkg) ? orderPkg[0] : orderPkg;
+		if (!orderPkgObj) continue;
+
+		const originalInfo = orderPkgObj.original_pkg_info
+			? Array.isArray(orderPkgObj.original_pkg_info)
+				? orderPkgObj.original_pkg_info[0]
+				: orderPkgObj.original_pkg_info
+			: null;
+		const finalInfo = orderPkgObj.final_pkg_info
+			? Array.isArray(orderPkgObj.final_pkg_info)
+				? orderPkgObj.final_pkg_info[0]
+				: orderPkgObj.final_pkg_info
+			: null;
+
+		if (!originalInfo && !finalInfo) continue;
+
+		const getVal = (field: string) => {
+			const finalVal = finalInfo?.[field];
+			const originalVal = originalInfo?.[field];
+			if (finalVal !== null && finalVal !== undefined && finalVal !== "") {
+				return finalVal;
+			}
+			return originalVal ?? null;
+		};
+
+		const netWeight = getVal("net_weight");
+		const grossWeight = getVal("gross_weight");
+		const extL = getVal("external_length");
+		const extW = getVal("external_width");
+		const extH = getVal("external_height");
+
+		if (netWeight) totalNW += Number(netWeight);
+		if (grossWeight) totalGW += Number(grossWeight);
+		const l = Number(extL ?? 0) / 1000; // mm → m
+		const w = Number(extW ?? 0) / 1000;
+		const h = Number(extH ?? 0) / 1000;
 		if (l > 0 && w > 0 && h > 0) totalVolume += l * w * h;
 	}
 
@@ -222,7 +257,23 @@ export const fetchReportInstances = async (
 				quantity
 			),
 			order_packages (
-				package_info!order_packages_final_pkg_info_fkey (
+				original_pkg_info:package_info!order_packages_original_pkg_info_fkey (
+					internal_length,
+					internal_width,
+					internal_height,
+					external_length,
+					external_width,
+					external_height,
+					net_weight,
+					gross_weight,
+					sei_category,
+					sei_protection,
+					tare,
+					box_type (
+						name
+					)
+				),
+				final_pkg_info:package_info!order_packages_final_pkg_info_fkey (
 					internal_length,
 					internal_width,
 					internal_height,
@@ -340,7 +391,45 @@ export const fetchReportInstances = async (
 	// Map to the ReportInstanceData shape
 	return data.map((inst: any): ReportInstanceData => {
 		const ext = extMap.get(inst.id);
-		const pkgInfo = ext?.order_packages?.package_info;
+		const orderPkg = ext?.order_packages;
+		const orderPkgObj = Array.isArray(orderPkg) ? orderPkg[0] : orderPkg;
+
+		const originalInfo = orderPkgObj?.original_pkg_info
+			? Array.isArray(orderPkgObj.original_pkg_info)
+				? orderPkgObj.original_pkg_info[0]
+				: orderPkgObj.original_pkg_info
+			: null;
+		const finalInfo = orderPkgObj?.final_pkg_info
+			? Array.isArray(orderPkgObj.final_pkg_info)
+				? orderPkgObj.final_pkg_info[0]
+				: orderPkgObj.final_pkg_info
+			: null;
+
+		const getVal = (field: string) => {
+			const finalVal = finalInfo?.[field];
+			const originalVal = originalInfo?.[field];
+			if (finalVal !== null && finalVal !== undefined && finalVal !== "") {
+				return finalVal;
+			}
+			return originalVal ?? null;
+		};
+
+		const getBoxType = () => {
+			const finalBoxType = finalInfo?.box_type
+				? Array.isArray(finalInfo.box_type)
+					? finalInfo.box_type[0]
+					: finalInfo.box_type
+				: null;
+			const originalBoxType = originalInfo?.box_type
+				? Array.isArray(originalInfo.box_type)
+					? originalInfo.box_type[0]
+					: originalInfo.box_type
+				: null;
+			if (finalBoxType?.name) return finalBoxType.name;
+			if (originalBoxType?.name) return originalBoxType.name;
+			return null;
+		};
+
 		const pkgOverview = ext?.order_pkg_overview;
 		return {
 			id: inst.id,
@@ -374,18 +463,42 @@ export const fetchReportInstances = async (
 						: null,
 				qr_token: itemQrMap.get(i.pkd_item_id) || null,
 			})),
-			internal_length: pkgInfo ? Number(pkgInfo.internal_length) : null,
-			internal_width: pkgInfo ? Number(pkgInfo.internal_width) : null,
-			internal_height: pkgInfo ? Number(pkgInfo.internal_height) : null,
-			external_length: pkgInfo ? Number(pkgInfo.external_length) : null,
-			external_width: pkgInfo ? Number(pkgInfo.external_width) : null,
-			external_height: pkgInfo ? Number(pkgInfo.external_height) : null,
-			net_weight: pkgInfo ? Number(pkgInfo.net_weight) : null,
-			gross_weight: pkgInfo ? Number(pkgInfo.gross_weight) : null,
-			tare: pkgInfo ? Number(pkgInfo.tare) : null,
-			box_type: pkgInfo?.box_type ? (pkgInfo.box_type as any).name : null,
-			sei_category: pkgInfo ? Number(pkgInfo.sei_category) : null,
-			sei_protection: pkgInfo ? Number(pkgInfo.sei_protection) : null,
+			internal_length:
+				getVal("internal_length") !== null
+					? Number(getVal("internal_length"))
+					: null,
+			internal_width:
+				getVal("internal_width") !== null
+					? Number(getVal("internal_width"))
+					: null,
+			internal_height:
+				getVal("internal_height") !== null
+					? Number(getVal("internal_height"))
+					: null,
+			external_length:
+				getVal("external_length") !== null
+					? Number(getVal("external_length"))
+					: null,
+			external_width:
+				getVal("external_width") !== null
+					? Number(getVal("external_width"))
+					: null,
+			external_height:
+				getVal("external_height") !== null
+					? Number(getVal("external_height"))
+					: null,
+			net_weight:
+				getVal("net_weight") !== null ? Number(getVal("net_weight")) : null,
+			gross_weight:
+				getVal("gross_weight") !== null ? Number(getVal("gross_weight")) : null,
+			tare: getVal("tare") !== null ? Number(getVal("tare")) : null,
+			box_type: getBoxType(),
+			sei_category:
+				getVal("sei_category") !== null ? Number(getVal("sei_category")) : null,
+			sei_protection:
+				getVal("sei_protection") !== null
+					? Number(getVal("sei_protection"))
+					: null,
 			qr_token: qrMap.get(inst.id) || null,
 			package_qty: pkgOverview ? Number(pkgOverview.quantity) : null,
 			box_photo_urls: boxPhotoMap.get(inst.id) || [],
