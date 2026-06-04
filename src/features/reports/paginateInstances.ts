@@ -9,8 +9,6 @@ const FONT_SCALE = { small: 0.82, medium: 1, large: 1.18 };
 // Full A4 page heights in px at 96 dpi
 const PAGE_H_PX = { portrait: 1123, landscape: 794 };
 // Page side padding in px (≈20mm * 3.78)
-const PAGE_SIDE_PAD_PX = 76;
-
 function getBoxBaseHeight(
 	pkg: ReportPkgDetailsSettings,
 	fs: "small" | "medium" | "large",
@@ -24,16 +22,49 @@ function getBoxBaseHeight(
 		return (pkg.show_qr_code && inst?.qr_token ? 36 : 24) * fm;
 	}
 
-	let h = 28 * fm; // Line 1: Header/Compact info row
+	// Dynamic calculation of header wrapping based on content lengths
+	let headerTextLen = 0;
+	if (pkg.show_box_number !== false) headerTextLen += 15;
+	if (pkg.show_quantity && inst?.package_qty) headerTextLen += 10;
+	if (
+		pkg.show_internal_dims &&
+		(inst?.internal_length || inst?.internal_width || inst?.internal_height)
+	)
+		headerTextLen += 25;
+	if (
+		pkg.show_external_dims &&
+		(inst?.external_length || inst?.external_width || inst?.external_height)
+	)
+		headerTextLen += 25;
+	if (pkg.show_tare && inst?.tare) headerTextLen += 15;
+	if (pkg.show_net_weight && inst?.net_weight) headerTextLen += 15;
+	if (pkg.show_gross_weight && inst?.gross_weight) headerTextLen += 15;
+	if (pkg.show_unit_m3) headerTextLen += 15;
+	if (pkg.show_total_m3) headerTextLen += 15;
+	if (pkg.show_unit_m2) headerTextLen += 15;
+	if (pkg.show_total_m2) headerTextLen += 15;
+	if (pkg.show_sei && inst?.sei_category) headerTextLen += 20;
+	if (pkg.show_ipac_reference && inst?.ipac_reference)
+		headerTextLen += inst.ipac_reference.length + 12;
+	if (pkg.show_destination && inst?.destination)
+		headerTextLen += inst.destination.length + 8;
+	if (pkg.show_order_name && inst?.order_name)
+		headerTextLen += inst.order_name.length + 8;
+
+	const orientation = display?.orientation || "portrait";
+	const charPerLine = orientation === "landscape" ? 110 : 75;
+	const headerLines = Math.max(1, Math.ceil(headerTextLen / charPerLine));
+
+	let h = (14 * headerLines + 16) * fm; // Line 1: Header/Compact info row
 	if (pkg.show_qr_code && inst?.qr_token) {
-		h = Math.max(h, (48 + 12) * fm);
+		h = Math.max(h, (48 + 14) * fm);
 	}
 
 	// Line 2: Detailed box info
 	const hasLine2 =
 		pkg.show_total_qty_items || pkg.show_last_packed_date || pkg.show_box_type;
 	if (hasLine2 && !isContinuation) {
-		h += 18 * fm;
+		h += 22 * fm;
 	}
 
 	// Add item table header if items are shown (and not summary)
@@ -44,7 +75,8 @@ function getBoxBaseHeight(
 		inst.pkd_items.length > 0 &&
 		pkg.items_detail_level !== "summary"
 	) {
-		h += 24 * fm;
+		h += 28 * fm; // Table header height
+		h += 28 * fm; // Items container top/bottom padding + table margin-top
 	}
 
 	// Line 3: Box photos
@@ -61,14 +93,14 @@ function getBoxBaseHeight(
 			(url) => !hiddenMediaUrls.includes(url),
 		);
 		if (visibleBoxPhotos.length > 0) {
-			const orientation = display?.orientation || "portrait";
-			const cols = orientation === "landscape" ? 11 : 7;
+			const orientationVal = display?.orientation || "portrait";
+			const cols = orientationVal === "landscape" ? 11 : 7;
 			const rows = Math.ceil(visibleBoxPhotos.length / cols);
 			photosH = rows * 72 + 16;
 		}
 	}
 	h += photosH;
-	h += 14; // card padding/margin
+	h += 8; // reduced safety margin
 	return h;
 }
 
@@ -77,43 +109,60 @@ function getItemHeight(
 	pkg: ReportPkgDetailsSettings,
 	fs: "small" | "medium" | "large",
 	hiddenMediaUrls: string[] = [],
+	display?: ReportDisplaySettings,
 ): number {
 	const fm = FONT_SCALE[fs];
-	let h = 20 * fm; // Line 1 base height
+	const orientation = display?.orientation || "portrait";
+	const charPerLineDesc = orientation === "landscape" ? 115 : 80;
+	const charPerLineNum = 18;
 
-	if (pkg.items_detail_level === "detailed") {
-		// Line 2: Dims and weight
-		if (pkg.show_item_additional_info) {
-			if (item.length || item.width || item.height || item.net_weight) {
-				h += 16 * fm;
-			}
-		}
-		// Line 3: QR code / Photos
-		let hasLine3 = false;
-		let line3H = 0;
-		if (pkg.show_item_qr_code && item.qr_token) {
-			hasLine3 = true;
-			line3H = Math.max(line3H, 56 * fm); // 48px QR + padding
-		}
-		if (
-			pkg.show_item_photos &&
-			!pkg.include_item_photos_in_box_photos &&
-			item.photo_urls
-		) {
-			const visibleItemPhotos = item.photo_urls.filter(
-				(url: string) => !hiddenMediaUrls.includes(url),
-			);
-			if (visibleItemPhotos.length > 0) {
-				hasLine3 = true;
-				line3H = Math.max(line3H, 56 * fm); // 45px photo + padding
-			}
-		}
-		if (hasLine3) {
-			h += line3H + 4 * fm;
-		}
+	// Row 1 lines of text
+	let descLines = 1;
+	if (item.item_name && item.item_name.length > charPerLineDesc) {
+		descLines = Math.ceil(item.item_name.length / charPerLineDesc);
 	}
-	h += 6; // card gap/border
-	return h;
+	let numLines = 1;
+	if (item.item_num && item.item_num.length > charPerLineNum) {
+		numLines = Math.ceil(item.item_num.length / charPerLineNum);
+	}
+	const row1Lines = Math.max(descLines, numLines);
+	const row1H = (14 * row1Lines + 12) * fm; // Line height + padding
+
+	const hasDims = item.length || item.width || item.height;
+	const hasWeight = item.net_weight !== null && item.net_weight !== undefined;
+	const showExtraInfo =
+		pkg.items_detail_level === "detailed" &&
+		pkg.show_item_additional_info &&
+		(hasDims || hasWeight);
+
+	const visibleItemPhotos = (item.photo_urls || []).filter(
+		(url: string) => !hiddenMediaUrls.includes(url),
+	);
+	const hasPhotos =
+		pkg.show_item_photos &&
+		!pkg.include_item_photos_in_box_photos &&
+		visibleItemPhotos.length > 0;
+
+	const hasSecondRow = pkg.items_detail_level === "detailed" && (showExtraInfo || hasPhotos);
+
+	let totalH = row1H;
+
+	if (hasSecondRow) {
+		let row2ContentH = 14; // Default text height for Dims/Weight
+		if (hasPhotos) {
+			row2ContentH = Math.max(row2ContentH, 45); // 45px photo height
+		}
+		const row2H = (row2ContentH + 12) * fm; // Content height + padding
+		totalH += row2H;
+	}
+
+	const hasQR = pkg.show_item_qr_code && item.qr_token;
+	if (hasQR) {
+		totalH = Math.max(totalH, (48 + 14) * fm); // QR code is 48px + padding/border
+	}
+
+	totalH += 2; // small safety gap/border margin
+	return totalH;
 }
 
 function estimateBoxHeight(
@@ -127,22 +176,57 @@ function estimateBoxHeight(
 	if (pkg.box_display_mode === "compact") {
 		return (pkg.show_qr_code && inst.qr_token ? 36 : 24) * fm;
 	}
-	let h = 28 * fm; // Line 1: Header/Compact info row
+
+	// Dynamic calculation of header wrapping based on content lengths
+	let headerTextLen = 0;
+	if (pkg.show_box_number !== false) headerTextLen += 15;
+	if (pkg.show_quantity && inst.package_qty) headerTextLen += 10;
+	if (
+		pkg.show_internal_dims &&
+		(inst.internal_length || inst.internal_width || inst.internal_height)
+	)
+		headerTextLen += 25;
+	if (
+		pkg.show_external_dims &&
+		(inst.external_length || inst.external_width || inst.external_height)
+	)
+		headerTextLen += 25;
+	if (pkg.show_tare && inst.tare) headerTextLen += 15;
+	if (pkg.show_net_weight && inst.net_weight) headerTextLen += 15;
+	if (pkg.show_gross_weight && inst.gross_weight) headerTextLen += 15;
+	if (pkg.show_unit_m3) headerTextLen += 15;
+	if (pkg.show_total_m3) headerTextLen += 15;
+	if (pkg.show_unit_m2) headerTextLen += 15;
+	if (pkg.show_total_m2) headerTextLen += 15;
+	if (pkg.show_sei && inst.sei_category) headerTextLen += 20;
+	if (pkg.show_ipac_reference && inst.ipac_reference)
+		headerTextLen += inst.ipac_reference.length + 12;
+	if (pkg.show_destination && inst.destination)
+		headerTextLen += inst.destination.length + 8;
+	if (pkg.show_order_name && inst.order_name)
+		headerTextLen += inst.order_name.length + 8;
+
+	const charPerLine = display.orientation === "landscape" ? 110 : 75;
+	const headerLines = Math.max(1, Math.ceil(headerTextLen / charPerLine));
+
+	let h = (14 * headerLines + 16) * fm; // Line 1: Header/Compact info row
 	if (pkg.show_qr_code && inst.qr_token) {
-		h = Math.max(h, (48 + 12) * fm);
+		h = Math.max(h, (48 + 14) * fm);
 	}
+
 	const hasLine2 =
 		pkg.show_total_qty_items || pkg.show_last_packed_date || pkg.show_box_type;
 	if (hasLine2) {
-		h += 18 * fm;
+		h += 22 * fm;
 	}
 	if (pkg.show_items && inst.pkd_items.length > 0) {
 		if (pkg.items_detail_level === "summary") {
-			h += 20 * fm;
+			h += 30 * fm;
 		} else {
-			h += 24 * fm; // Item table header row height
+			h += 28 * fm; // Item table header row height
+			h += 28 * fm; // Items container top/bottom padding + table margin-top
 			h += inst.pkd_items.reduce(
-				(sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls),
+				(sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls, display),
 				0,
 			);
 		}
@@ -168,8 +252,8 @@ function estimateBoxHeight(
 		}
 	}
 	h += photosH;
+	h += 8; // reduced safety margin
 
-	h += 14; // card padding/margin
 	if (display.include_signatures && display.signatures_scope === "box") {
 		// signing line height + label text + padding
 		h += (display.signature_height_px ?? 30) + 27;
@@ -188,20 +272,27 @@ export function paginateInstances(
 
 	const isHeaderHidden = display.header_show_mode === "first_page_only";
 	const fs = display.font_size;
+	const fm = FONT_SCALE[fs];
 
-	// Dynamically compute max usable height from actual A4 dimensions
-	// = full page height − top margin − side pad (approx) − header block − footer
-	const topMarginPx = (display.header_top_margin ?? 20) * 3.78;
+	const topPaddingPx = (isHeaderHidden || display.orientation === "landscape")
+		? 10 * 3.78
+		: (display.header_top_margin ?? 20) * 3.78;
+
+	const paddingBottomPx = display.orientation === "landscape" ? 15 : 30;
+	const pageOuterPadBottomPx = (display.orientation === "landscape" ? 6 : 12) * 3.78;
+
 	const footerPx = display.footer_height_px ?? 40;
 	const footerGapPx = display.footer_body_gap_px ?? 0;
-	const headerBlockPx = isHeaderHidden ? 0 : 140;
+	const headerBlockPx = isHeaderHidden ? 0 : (display.orientation === "landscape" ? 95 : 140);
 	const maxH =
 		PAGE_H_PX[display.orientation] -
-		topMarginPx -
-		PAGE_SIDE_PAD_PX -
+		topPaddingPx -
+		pageOuterPadBottomPx -
+		paddingBottomPx -
 		headerBlockPx -
 		footerPx -
-		footerGapPx;
+		footerGapPx -
+		10; // 10px general safety buffer
 
 	// First split by group (destination/order) if needed
 	let groups: Array<{ label?: string; items: ReportInstanceData[] }> = [];
@@ -276,6 +367,7 @@ export function paginateInstances(
 						pkg,
 						fs,
 						hiddenMediaUrls,
+						display,
 					);
 
 					if (availH < baseH + firstItemH) {
@@ -303,7 +395,8 @@ export function paginateInstances(
 
 					// Check if all remaining items fit, including signatures if complete
 					const itemsH = itemsRemaining.reduce(
-						(sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls),
+						(sum, item) =>
+							sum + getItemHeight(item, pkg, fs, hiddenMediaUrls, display),
 						0,
 					);
 					const totalRemainingH = headerH + itemsH + sigH;
@@ -340,8 +433,9 @@ export function paginateInstances(
 							pkg,
 							fs,
 							hiddenMediaUrls,
+							display,
 						);
-						if (headerH + currentSliceH + itemH <= usableH) {
+						if (headerH + currentSliceH + itemH + 10 * fm <= usableH) {
 							currentSliceH += itemH;
 							itemsToFit++;
 						} else {
@@ -374,12 +468,13 @@ export function paginateInstances(
 							current.push(partInst);
 							// If itemsRemaining is now empty, signatures will render
 							const actualSigH = itemsRemaining.length === 0 ? sigH : 0;
+							const extraPadH = itemsRemaining.length > 0 ? 10 * fm : 0;
 							const sliceH = slice.reduce(
 								(sum, item) =>
-									sum + getItemHeight(item, pkg, fs, hiddenMediaUrls),
+									sum + getItemHeight(item, pkg, fs, hiddenMediaUrls, display),
 								0,
 							);
-							currentH += headerH + sliceH + actualSigH;
+							currentH += headerH + sliceH + actualSigH + extraPadH;
 							isFirstPageForBox = false;
 							lineOffset += slice.length;
 						}
@@ -401,10 +496,11 @@ export function paginateInstances(
 
 					current.push(partInst);
 					const sliceH = slice.reduce(
-						(sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls),
+						(sum, item) =>
+							sum + getItemHeight(item, pkg, fs, hiddenMediaUrls, display),
 						0,
 					);
-					currentH += headerH + sliceH; // has_more is guaranteed true, so no sigH added
+					currentH += headerH + sliceH + 10 * fm; // has_more is guaranteed true, so add extra 10 * fm
 					isFirstPageForBox = false;
 					lineOffset += slice.length;
 				}

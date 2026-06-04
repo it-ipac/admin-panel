@@ -38,6 +38,7 @@ interface PackageInfoTabProps {
 		Error,
 		{ instanceId: string; updates: Partial<PackageInstance> }
 	>;
+	removeInstanceMutation: UseMutationResult<any, Error, string>;
 	regenerateReferenceMutation: UseMutationResult<
 		any,
 		Error,
@@ -60,6 +61,7 @@ export function PackageInfoTab({
 	duplicatePackageMutation,
 	removePackageMutation,
 	updateInstanceMutation,
+	removeInstanceMutation,
 	regenerateReferenceMutation,
 	packageItems = [],
 	clientCategories = [],
@@ -81,6 +83,11 @@ export function PackageInfoTab({
 		{ instance: PackageInstance; newDestination: string }[]
 	>([]);
 	const [isSyncing, setIsSyncing] = useState(false);
+
+	const [selectedInstanceIds, setSelectedInstanceIds] = useState<Set<string>>(
+		new Set(),
+	);
+	const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
 	const sortedCategories = useMemo(() => {
 		const orderSet = new Set(orderCategories);
@@ -155,31 +162,6 @@ export function PackageInfoTab({
 			label: `${entry.code ?? entry.id} - ${entry.name}`,
 			value: String(entry.id),
 		})) || [];
-
-	const getPackingTypeName = (id: string | null | undefined) => {
-		if (!id) return null;
-		const t = packingTypes?.find((t) => t.id === id);
-		return t ? `${t.code} - ${t.name}` : id;
-	};
-
-	const getBoxTypeName = (id: string | null | undefined) => {
-		if (!id) return null;
-		const t = boxTypes?.find((t) => t.id === id);
-		return t ? t.name : id;
-	};
-
-	const getSeiCategoryName = (id: number | null | undefined) => {
-		if (!id) return null;
-		const entry = seiCategories?.find((item) => item.id === id);
-		return entry ? `${entry.code ?? entry.id} - ${entry.name}` : String(id);
-	};
-
-	const getSeiProtectionName = (id: number | null | undefined) => {
-		if (!id) return null;
-		const entry = seiProtections?.find((item) => item.id === id);
-		return entry ? `${entry.code ?? entry.id} - ${entry.name}` : String(id);
-	};
-
 	const handleUpdate = (
 		field: keyof PackageInfo,
 		value: any,
@@ -224,6 +206,26 @@ export function PackageInfoTab({
 		}
 		setIsSyncing(false);
 		setShowSyncModal(false);
+	};
+
+	const handleBulkDelete = async () => {
+		if (
+			window.confirm(
+				`Are you sure you want to PERMANENTLY REMOVE the ${selectedInstanceIds.size} selected box instances? All packed items and media associated with these instances will be deleted. This action cannot be undone.`,
+			)
+		) {
+			setIsBulkDeleting(true);
+			try {
+				for (const instanceId of selectedInstanceIds) {
+					await removeInstanceMutation.mutateAsync(instanceId);
+				}
+				setSelectedInstanceIds(new Set());
+			} catch (err) {
+				console.error("Bulk delete failed:", err);
+			} finally {
+				setIsBulkDeleting(false);
+			}
+		}
 	};
 
 	return (
@@ -299,6 +301,22 @@ export function PackageInfoTab({
 						>
 							<RefreshCw className="w-3 h-3" /> Sync Destination
 						</button>
+						{selectedInstanceIds.size > 0 && (
+							<button
+								onClick={handleBulkDelete}
+								disabled={isBulkDeleting}
+								className="text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors flex items-center gap-1 font-medium disabled:opacity-50"
+							>
+								{isBulkDeleting ? (
+									<Loader2 className="w-3 h-3 animate-spin" />
+								) : (
+									<Trash2 className="w-3 h-3" />
+								)}
+								{isBulkDeleting
+									? "Deleting…"
+									: `Delete Selected (${selectedInstanceIds.size})`}
+							</button>
+						)}
 						{onRegenerateAll && (
 							<button
 								onClick={() => {
@@ -403,6 +421,26 @@ export function PackageInfoTab({
 						<table className="min-w-full text-sm">
 							<thead className="bg-gray-50 text-gray-600">
 								<tr>
+									<th className="px-4 py-2.5 font-medium text-left w-10">
+										<input
+											type="checkbox"
+											className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+											checked={
+												selectedPackageInstances.length > 0 &&
+												selectedInstanceIds.size ===
+													selectedPackageInstances.length
+											}
+											onChange={(e) => {
+												if (e.target.checked) {
+													setSelectedInstanceIds(
+														new Set(selectedPackageInstances.map((i) => i.id)),
+													);
+												} else {
+													setSelectedInstanceIds(new Set());
+												}
+											}}
+										/>
+									</th>
 									<th className="text-left px-4 py-2.5 font-medium">
 										Instance #
 									</th>
@@ -432,6 +470,22 @@ export function PackageInfoTab({
 												: ""
 										}`}
 									>
+										<td className="px-4 py-2.5 text-left w-10">
+											<input
+												type="checkbox"
+												className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+												checked={selectedInstanceIds.has(instance.id)}
+												onChange={(e) => {
+													const next = new Set(selectedInstanceIds);
+													if (e.target.checked) {
+														next.add(instance.id);
+													} else {
+														next.delete(instance.id);
+													}
+													setSelectedInstanceIds(next);
+												}}
+											/>
+										</td>
 										<td className="px-4 py-2.5 text-gray-900 font-medium">
 											{instance.instance_number ?? "-"}
 										</td>
@@ -562,6 +616,26 @@ export function PackageInfoTab({
 																<RefreshCw className="w-4 h-4" />
 															)}
 														</button>
+														<button
+															onClick={() => {
+																if (
+																	window.confirm(
+																		"Are you sure you want to PERMANENTLY REMOVE this box instance? All packed items and media associated with this instance will be deleted. This action cannot be undone.",
+																	)
+																) {
+																	removeInstanceMutation.mutate(instance.id);
+																}
+															}}
+															disabled={removeInstanceMutation.isPending}
+															className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+															title="Remove Instance"
+														>
+															{removeInstanceMutation.isPending ? (
+																<Loader2 className="w-4 h-4 animate-spin" />
+															) : (
+																<Trash2 className="w-4 h-4" />
+															)}
+														</button>
 													</>
 												)}
 											</div>
@@ -586,62 +660,63 @@ export function PackageInfoTab({
 					final={selectedPackage.final_pkg_info?.quantity}
 					type="number"
 					onChangeOriginal={(v) => handleUpdate("quantity", v, "original")}
+					onChangeFinal={(v) => handleUpdate("quantity", v, "final")}
 					originalEditable={true}
-					finalEditable={false}
+					finalEditable={true}
 				/>
 				<TwoTierCard
 					label="S.E.I"
-					original={getPackingTypeName(
-						selectedPackage.original_pkg_info?.packing_type_id,
-					)}
+					original={selectedPackage.original_pkg_info?.packing_type_id}
 					final={selectedPackage.final_pkg_info?.packing_type_id}
 					type="select"
 					selectItems={packingTypeOptions}
 					onChangeOriginal={(v) =>
 						handleUpdate("packing_type_id", v, "original")
 					}
+					onChangeFinal={(v) => handleUpdate("packing_type_id", v, "final")}
 					originalEditable={true}
-					finalEditable={false}
+					finalEditable={true}
 				/>
 				<TwoTierCard
 					label="SEI Category"
-					original={getSeiCategoryName(
-						selectedPackage.original_pkg_info?.sei_category,
-					)}
+					original={selectedPackage.original_pkg_info?.sei_category}
 					final={selectedPackage.final_pkg_info?.sei_category}
 					type="select"
 					selectItems={seiCategoryOptions}
 					onChangeOriginal={(v) =>
 						handleUpdate("sei_category", v ? Number(v) : null, "original")
 					}
+					onChangeFinal={(v) =>
+						handleUpdate("sei_category", v ? Number(v) : null, "final")
+					}
 					originalEditable={true}
-					finalEditable={false}
+					finalEditable={true}
 				/>
 				<TwoTierCard
 					label="SEI Protection"
-					original={getSeiProtectionName(
-						selectedPackage.original_pkg_info?.sei_protection,
-					)}
+					original={selectedPackage.original_pkg_info?.sei_protection}
 					final={selectedPackage.final_pkg_info?.sei_protection}
 					type="select"
 					selectItems={seiProtectionOptions}
 					onChangeOriginal={(v) =>
 						handleUpdate("sei_protection", v ? Number(v) : null, "original")
 					}
+					onChangeFinal={(v) =>
+						handleUpdate("sei_protection", v ? Number(v) : null, "final")
+					}
 					originalEditable={true}
-					finalEditable={false}
+					finalEditable={true}
 				/>
 				<TwoTierCard
 					label="Box Type"
-					original={getBoxTypeName(
-						selectedPackage.original_pkg_info?.box_type_id,
-					)}
+					original={selectedPackage.original_pkg_info?.box_type_id}
 					final={selectedPackage.final_pkg_info?.box_type_id}
 					type="select"
 					selectItems={boxTypeOptions}
 					onChangeOriginal={(v) => handleUpdate("box_type_id", v, "original")}
+					onChangeFinal={(v) => handleUpdate("box_type_id", v, "final")}
 					originalEditable={true}
-					finalEditable={false}
+					finalEditable={true}
 					className="flex-[1.3]"
 				/>
 				<TwoTierCard
@@ -650,8 +725,9 @@ export function PackageInfoTab({
 					final={selectedPackage.final_pkg_info?.tare}
 					type="number"
 					onChangeOriginal={(v) => handleUpdate("tare", v, "original")}
+					onChangeFinal={(v) => handleUpdate("tare", v, "final")}
 					originalEditable={true}
-					finalEditable={false}
+					finalEditable={true}
 					className="flex-[1.2]"
 				/>
 				<TwoTierCard
@@ -660,8 +736,9 @@ export function PackageInfoTab({
 					final={selectedPackage.final_pkg_info?.net_weight}
 					type="number"
 					onChangeOriginal={(v) => handleUpdate("net_weight", v, "original")}
+					onChangeFinal={(v) => handleUpdate("net_weight", v, "final")}
 					originalEditable={true}
-					finalEditable={false}
+					finalEditable={true}
 					className="flex-[1.3]"
 				/>
 				<TwoTierCard
@@ -670,8 +747,9 @@ export function PackageInfoTab({
 					final={selectedPackage.final_pkg_info?.gross_weight}
 					type="number"
 					onChangeOriginal={(v) => handleUpdate("gross_weight", v, "original")}
+					onChangeFinal={(v) => handleUpdate("gross_weight", v, "final")}
 					originalEditable={true}
-					finalEditable={false}
+					finalEditable={true}
 					className="flex-[1.3]"
 				/>
 				<TwoTierCard
@@ -690,8 +768,9 @@ export function PackageInfoTab({
 					onChangeOriginal={(v) =>
 						handleUpdate("center_of_gravity", v, "original")
 					}
+					onChangeFinal={(v) => handleUpdate("center_of_gravity", v, "final")}
 					originalEditable={true}
-					finalEditable={false}
+					finalEditable={true}
 				/>
 			</div>
 
@@ -710,7 +789,7 @@ export function PackageInfoTab({
 						height: selectedPackage.final_pkg_info?.internal_height ?? null,
 					}}
 					originalEditable={true}
-					finalEditable={false}
+					finalEditable={true}
 					onChangeOriginal={(patch) => {
 						if (patch.length !== undefined)
 							handleUpdate("internal_length", patch.length, "original");
@@ -718,6 +797,14 @@ export function PackageInfoTab({
 							handleUpdate("internal_width", patch.width, "original");
 						if (patch.height !== undefined)
 							handleUpdate("internal_height", patch.height, "original");
+					}}
+					onChangeFinal={(patch) => {
+						if (patch.length !== undefined)
+							handleUpdate("internal_length", patch.length, "final");
+						if (patch.width !== undefined)
+							handleUpdate("internal_width", patch.width, "final");
+						if (patch.height !== undefined)
+							handleUpdate("internal_height", patch.height, "final");
 					}}
 				/>
 				<DimensionsCard
@@ -733,7 +820,7 @@ export function PackageInfoTab({
 						height: selectedPackage.final_pkg_info?.external_height ?? null,
 					}}
 					originalEditable={true}
-					finalEditable={false}
+					finalEditable={true}
 					onChangeOriginal={(patch) => {
 						if (patch.length !== undefined)
 							handleUpdate("external_length", patch.length, "original");
@@ -741,6 +828,14 @@ export function PackageInfoTab({
 							handleUpdate("external_width", patch.width, "original");
 						if (patch.height !== undefined)
 							handleUpdate("external_height", patch.height, "original");
+					}}
+					onChangeFinal={(patch) => {
+						if (patch.length !== undefined)
+							handleUpdate("external_length", patch.length, "final");
+						if (patch.width !== undefined)
+							handleUpdate("external_width", patch.width, "final");
+						if (patch.height !== undefined)
+							handleUpdate("external_height", patch.height, "final");
 					}}
 				/>
 			</div>

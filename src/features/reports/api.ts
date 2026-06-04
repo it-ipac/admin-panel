@@ -249,13 +249,16 @@ export const fetchReportInstances = async (
 	if (error) throw error;
 	if (!data || data.length === 0) return [];
 
-	// Fetch items for all instances
+	// Fetch items for all instances in chunks to avoid PostgREST 1000 row limit
 	const instanceIds = data.map((d: any) => d.id);
-	const { data: itemData, error: itemError } = await supabase.rpc(
-		"fetch_instance_items",
-		{ p_instance_ids: instanceIds },
-	);
-	if (itemError) throw itemError;
+	const itemData = await fetchInChunks(instanceIds, 100, async (chunk) => {
+		const { data: chunkData, error: itemError } = await supabase.rpc(
+			"fetch_instance_items",
+			{ p_instance_ids: chunk },
+		);
+		if (itemError) throw itemError;
+		return (chunkData || []) as any[];
+	});
 
 	// Group items by instance
 	const itemsByInstance = new Map<string, any[]>();

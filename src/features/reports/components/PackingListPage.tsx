@@ -98,6 +98,7 @@ export const PackingListPage = React.forwardRef<
 			: FONT_SIZE_MAP[display.font_size];
 		const tc = display.theme_color;
 		const ac = display.accent_color;
+		const isLandscape = display.orientation === "landscape";
 
 		const origin =
 			typeof window !== "undefined" && window.location.origin
@@ -785,12 +786,14 @@ export const PackingListPage = React.forwardRef<
 					overflow: "hidden",
 					background: "white",
 					paddingTop:
-						display.header_show_mode === "first_page_only"
+						isLandscape
 							? "10mm"
-							: `${display.header_top_margin ?? 20}mm`,
+							: display.header_show_mode === "first_page_only"
+								? "10mm"
+								: `${display.header_top_margin ?? 20}mm`,
 					paddingLeft: "30px",
 					paddingRight: "30px",
-					paddingBottom: "30px",
+					paddingBottom: isLandscape ? "15px" : "30px",
 				}}
 			>
 				{/* ─── Header ─────────────────────────────── */}
@@ -798,19 +801,19 @@ export const PackingListPage = React.forwardRef<
 					display.header_show_mode === "all_pages") && (
 					<div style={{ flexShrink: 0 }}>
 						{/* Colored top bar */}
-						<div style={{ height: 5, background: tc, marginBottom: 12 }} />
+						<div style={{ height: isLandscape ? 3 : 5, background: tc, marginBottom: isLandscape ? 6 : 12 }} />
 						<div
 							style={{
 								display: "flex",
 								justifyContent: "space-between",
 								alignItems: "center",
-								paddingBottom: 10,
+								paddingBottom: isLandscape ? 6 : 10,
 								borderBottom: `2px solid ${tc}`,
-								marginBottom: 12,
+								marginBottom: isLandscape ? 8 : 12,
 							}}
 						>
 							{/* Left: company branding */}
-							<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+							<div style={{ display: "flex", flexDirection: "column", gap: isLandscape ? 1 : 3 }}>
 								{display.show_company_logo &&
 									showLogo &&
 									(companyData?.logoUrl || companyProfile?.logo_url) && (
@@ -819,17 +822,17 @@ export const PackingListPage = React.forwardRef<
 											alt="Logo"
 											style={{
 												height: nameVal
-													? Math.round((display.logo_size ?? 90) * 0.55)
-													: Math.round((display.logo_size ?? 90) * 0.9),
+													? Math.round((display.logo_size ?? 90) * (isLandscape ? 0.4 : 0.55))
+													: Math.round((display.logo_size ?? 90) * (isLandscape ? 0.65 : 0.9)),
 												objectFit: "contain",
-												marginBottom: 4,
+												marginBottom: isLandscape ? 2 : 4,
 											}}
 										/>
 									)}
 								{display.show_company_name && nameVal && (
 									<div
 										style={{
-											fontSize: 10,
+											fontSize: isLandscape ? 8.5 : 10,
 											fontWeight: 700,
 											color: tc,
 											letterSpacing: 1,
@@ -842,15 +845,17 @@ export const PackingListPage = React.forwardRef<
 							</div>
 
 							{/* Center: title */}
-							<div style={{ textAlign: "center", flex: 1, padding: "0 16px" }}>
+							<div style={{ textAlign: "center", flex: 1, padding: isLandscape ? "0 8px" : "0 16px" }}>
 								<div
 									style={{
 										fontSize: display.font_size_px
-											? `${Math.round(display.font_size_px * 1.83)}px`
-											: HEADER_FONT_MAP[display.font_size],
+											? `${Math.round(display.font_size_px * (isLandscape ? 1.35 : 1.83))}px`
+											: isLandscape
+												? "16px"
+												: HEADER_FONT_MAP[display.font_size],
 										fontWeight: 800,
 										color: tc,
-										letterSpacing: 2,
+										letterSpacing: isLandscape ? 1 : 2,
 										textTransform: "uppercase",
 									}}
 								>
@@ -863,9 +868,9 @@ export const PackingListPage = React.forwardRef<
 								{groupLabel && (
 									<div
 										style={{
-											fontSize: 11,
+											fontSize: isLandscape ? 9.5 : 11,
 											color: "#555",
-											marginTop: 2,
+											marginTop: isLandscape ? 1 : 2,
 											fontStyle: "italic",
 										}}
 									>
@@ -876,9 +881,9 @@ export const PackingListPage = React.forwardRef<
 									style={{
 										display: "flex",
 										justifyContent: "center",
-										gap: 16,
-										marginTop: 4,
-										fontSize: 9.5,
+										gap: isLandscape ? 12 : 16,
+										marginTop: isLandscape ? 2 : 4,
+										fontSize: isLandscape ? 8.5 : 9.5,
 										color: "#666",
 									}}
 								>
@@ -912,9 +917,9 @@ export const PackingListPage = React.forwardRef<
 							<div
 								style={{
 									textAlign: "right",
-									fontSize: 9,
+									fontSize: isLandscape ? 8 : 9,
 									color: "#777",
-									minWidth: 80,
+									minWidth: isLandscape ? 70 : 80,
 								}}
 							>
 								<div>
@@ -924,7 +929,7 @@ export const PackingListPage = React.forwardRef<
 									Items: <strong style={{ color: tc }}>{totalBoxItems}</strong>
 								</div>
 								{display.show_page_numbers && (
-									<div style={{ marginTop: 4, fontStyle: "italic" }}>
+									<div style={{ marginTop: isLandscape ? 2 : 4, fontStyle: "italic" }}>
 										Page {pageIndex + 1} of {totalPages}
 									</div>
 								)}
@@ -1159,10 +1164,10 @@ export const PackingListPage = React.forwardRef<
 									const extL = inst.external_length ?? 0;
 									const extW = inst.external_width ?? 0;
 									const extH = inst.external_height ?? 0;
-									const unitM3 = (extL * extW * extH) / 1e9;
+									const unitM3 = (extL * extW * extH) / 1e6;
 									const totalM3 = unitM3;
 
-									const unitM2 = (extL * extW) / 1e6;
+									const unitM2 = (extL * extW) / 1e4;
 									const totalM2 = unitM2;
 
 									const intDims =
@@ -1343,8 +1348,8 @@ export const PackingListPage = React.forwardRef<
 														borderBottom: "1px solid #eef",
 													}}
 												>
-													{inst.sei_category
-														? `SEI ${inst.sei_category}${inst.sei_protection ? ` (${inst.sei_protection})` : ""}`
+													{inst.sei_category || inst.sei_protection
+														? `SEI ${`${inst.sei_category || ""} ${inst.sei_protection || ""}`.trim()}`
 														: "—"}
 												</td>
 											)}
@@ -1401,11 +1406,10 @@ export const PackingListPage = React.forwardRef<
 											background: ac,
 											borderBottom: `2px solid ${tc}`,
 											padding: "6px 10px",
-											display: "flex",
-											justifyContent: "space-between",
+											display: "grid",
+											gridTemplateColumns: "1fr auto",
 											alignItems: "center",
-											flexWrap: "wrap",
-											gap: "6px 12px",
+											gap: "12px",
 										}}
 									>
 										<div
@@ -1498,7 +1502,7 @@ export const PackingListPage = React.forwardRef<
 															((inst.external_length ?? 0) *
 																(inst.external_width ?? 0) *
 																(inst.external_height ?? 0)) /
-															1e9
+															1e6
 														).toFixed(3)}
 													</strong>
 												</span>
@@ -1511,7 +1515,7 @@ export const PackingListPage = React.forwardRef<
 															((inst.external_length ?? 0) *
 																(inst.external_width ?? 0) *
 																(inst.external_height ?? 0)) /
-															1e9
+															1e6
 														).toFixed(3)}
 													</strong>
 												</span>
@@ -1523,7 +1527,7 @@ export const PackingListPage = React.forwardRef<
 														{(
 															((inst.external_length ?? 0) *
 																(inst.external_width ?? 0)) /
-															1e6
+															1e4
 														).toFixed(2)}
 													</strong>
 												</span>
@@ -1535,22 +1539,20 @@ export const PackingListPage = React.forwardRef<
 														{(
 															((inst.external_length ?? 0) *
 																(inst.external_width ?? 0)) /
-															1e6
+															1e4
 														).toFixed(2)}
 													</strong>
 												</span>
 											)}
-											{pkg.show_sei && inst.sei_category && (
-												<span>
-													SEI:{" "}
-													<strong>
-														{inst.sei_category}
-														{inst.sei_protection
-															? ` (${inst.sei_protection})`
-															: ""}
-													</strong>
-												</span>
-											)}
+											{pkg.show_sei &&
+												(inst.sei_category || inst.sei_protection) && (
+													<span>
+														SEI:{" "}
+														<strong>
+															{`${inst.sei_category || ""} ${inst.sei_protection || ""}`.trim()}
+														</strong>
+													</span>
+												)}
 											{pkg.show_ipac_reference && inst.ipac_reference && (
 												<span>
 													IPAC Ref: <strong>{inst.ipac_reference}</strong>
@@ -1695,7 +1697,14 @@ export const PackingListPage = React.forwardRef<
 
 									{/* Items block */}
 									{pkg.show_items && inst.pkd_items.length > 0 && (
-										<div style={{ padding: "4px 10px 2px" }}>
+										<div
+											style={{
+												paddingTop: "4px",
+												paddingLeft: "10px",
+												paddingRight: "10px",
+												paddingBottom: inst.has_more ? "10px" : "20px",
+											}}
+										>
 											{pkg.items_detail_level === "summary" ? (
 												<div
 													style={{
@@ -1718,14 +1727,20 @@ export const PackingListPage = React.forwardRef<
 														activeColumns.push("item_num");
 													if (pkg.show_description_col)
 														activeColumns.push("description");
-													const colSpan = Math.max(1, activeColumns.length);
+													if (pkg.show_item_qr_code)
+														activeColumns.push("qr_code");
+
+													let leftColSpan = 0;
+													if (pkg.show_line_num_col) leftColSpan++;
+													if (pkg.show_qty_col) leftColSpan++;
+													if (pkg.show_item_num_col) leftColSpan++;
 
 													return (
 														<table
 															style={{
 																width: "100%",
 																borderCollapse: "collapse",
-																border: "1px solid #d8e4f0",
+																border: "1px solid #cbd5e1",
 																marginTop: "4px",
 																fontSize: baseFontSize,
 															}}
@@ -1735,13 +1750,13 @@ export const PackingListPage = React.forwardRef<
 																	style={{
 																		background: "#e8f1f5",
 																		color: "#333",
-																		borderBottom: "1px solid #d8e4f0",
+																		borderBottom: "2px solid #cbd5e1",
 																	}}
 																>
 																	{pkg.show_line_num_col && (
 																		<th
 																			style={{
-																				padding: "4px 8px",
+																				padding: "6px 8px",
 																				fontSize: "9px",
 																				fontWeight: "600",
 																				borderRight: "1px solid #d8e4f0",
@@ -1755,7 +1770,7 @@ export const PackingListPage = React.forwardRef<
 																	{pkg.show_qty_col && (
 																		<th
 																			style={{
-																				padding: "4px 8px",
+																				padding: "6px 8px",
 																				fontSize: "9px",
 																				fontWeight: "600",
 																				borderRight: "1px solid #d8e4f0",
@@ -1769,7 +1784,7 @@ export const PackingListPage = React.forwardRef<
 																	{pkg.show_item_num_col && (
 																		<th
 																			style={{
-																				padding: "4px 8px",
+																				padding: "6px 8px",
 																				fontSize: "9px",
 																				fontWeight: "600",
 																				borderRight: "1px solid #d8e4f0",
@@ -1783,13 +1798,29 @@ export const PackingListPage = React.forwardRef<
 																	{pkg.show_description_col && (
 																		<th
 																			style={{
-																				padding: "4px 8px",
+																				padding: "6px 8px",
 																				fontSize: "9px",
 																				fontWeight: "600",
+																				borderRight: pkg.show_item_qr_code
+																					? "1px solid #d8e4f0"
+																					: "none",
 																				textAlign: "left",
 																			}}
 																		>
 																			Description
+																		</th>
+																	)}
+																	{pkg.show_item_qr_code && (
+																		<th
+																			style={{
+																				padding: "6px 8px",
+																				fontSize: "9px",
+																				fontWeight: "600",
+																				textAlign: "center",
+																				width: "65px",
+																			}}
+																		>
+																			QR
 																		</th>
 																	)}
 																</tr>
@@ -1802,8 +1833,6 @@ export const PackingListPage = React.forwardRef<
 																		const hasWeight =
 																			item.net_weight !== null &&
 																			item.net_weight !== undefined;
-																		const hasQR =
-																			pkg.show_item_qr_code && item.qr_token;
 																		const visibleItemPhotos = (
 																			item.photo_urls || []
 																		).filter(
@@ -1818,9 +1847,9 @@ export const PackingListPage = React.forwardRef<
 																			pkg.items_detail_level === "detailed" &&
 																			pkg.show_item_additional_info &&
 																			(hasDims || hasWeight);
-																		const showPhotosOrQR =
-																			pkg.items_detail_level === "detailed" &&
-																			(hasQR || hasPhotos);
+
+																		const hasSecondRow =
+																			showExtraInfo || hasPhotos;
 
 																		const rowBg =
 																			pkg.table_alternating_rows &&
@@ -1830,28 +1859,22 @@ export const PackingListPage = React.forwardRef<
 
 																		return (
 																			<React.Fragment key={item.id}>
-																				{/* Main row */}
+																				{/* Row 1: Item Details */}
 																				<tr
 																					style={{
 																						background: rowBg,
-																						borderBottom:
-																							!showExtraInfo && !showPhotosOrQR
-																								? "1px solid #d8e4f0"
-																								: "none",
 																					}}
 																				>
 																					{pkg.show_line_num_col && (
 																						<td
 																							style={{
-																								padding: "4px 8px",
+																								padding: "6px 8px",
 																								fontSize: "9.5px",
 																								borderRight:
 																									"1px solid #d8e4f0",
-																								borderBottom:
-																									!showExtraInfo &&
-																									!showPhotosOrQR
-																										? "1px solid #d8e4f0"
-																										: "none",
+																								borderBottom: hasSecondRow
+																									? "1px dashed #e2e8f0"
+																									: "1px solid #cbd5e1",
 																								color: "#666",
 																							}}
 																						>
@@ -1863,17 +1886,15 @@ export const PackingListPage = React.forwardRef<
 																					{pkg.show_qty_col && (
 																						<td
 																							style={{
-																								padding: "4px 8px",
+																								padding: "6px 8px",
 																								fontSize: "9.5px",
 																								fontWeight: "bold",
 																								textAlign: "center",
 																								borderRight:
 																									"1px solid #d8e4f0",
-																								borderBottom:
-																									!showExtraInfo &&
-																									!showPhotosOrQR
-																										? "1px solid #d8e4f0"
-																										: "none",
+																								borderBottom: hasSecondRow
+																									? "1px dashed #e2e8f0"
+																									: "1px solid #cbd5e1",
 																								color: tc,
 																							}}
 																						>
@@ -1883,16 +1904,14 @@ export const PackingListPage = React.forwardRef<
 																					{pkg.show_item_num_col && (
 																						<td
 																							style={{
-																								padding: "4px 8px",
+																								padding: "6px 8px",
 																								fontSize: "9.5px",
 																								fontWeight: "600",
 																								borderRight:
 																									"1px solid #d8e4f0",
-																								borderBottom:
-																									!showExtraInfo &&
-																									!showPhotosOrQR
-																										? "1px solid #d8e4f0"
-																										: "none",
+																								borderBottom: hasSecondRow
+																									? "1px dashed #e2e8f0"
+																									: "1px solid #cbd5e1",
 																								color: "#333",
 																								wordBreak: "break-all",
 																							}}
@@ -1903,13 +1922,15 @@ export const PackingListPage = React.forwardRef<
 																					{pkg.show_description_col && (
 																						<td
 																							style={{
-																								padding: "4px 8px",
+																								padding: "6px 8px",
 																								fontSize: "9.5px",
-																								borderBottom:
-																									!showExtraInfo &&
-																									!showPhotosOrQR
+																								borderRight:
+																									pkg.show_item_qr_code
 																										? "1px solid #d8e4f0"
 																										: "none",
+																								borderBottom: hasSecondRow
+																									? "1px dashed #e2e8f0"
+																									: "1px solid #cbd5e1",
 																								color: "#111",
 																							}}
 																						>
@@ -1921,129 +1942,238 @@ export const PackingListPage = React.forwardRef<
 																								: "—"}
 																						</td>
 																					)}
+																					{pkg.show_item_qr_code && (
+																						<td
+																							rowSpan={hasSecondRow ? 2 : 1}
+																							style={{
+																								padding: "6px 8px",
+																								textAlign: "center",
+																								verticalAlign: "middle",
+																								borderBottom:
+																									"1px solid #cbd5e1",
+																								width: "65px",
+																							}}
+																						>
+																							{item.qr_token ? (
+																								<img
+																									src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+																										`${origin}/portal/scan/${item.qr_token}`,
+																									)}`}
+																									alt="QR"
+																									style={{
+																										width: 48,
+																										height: 48,
+																										border: "1px solid #ccc",
+																										borderRadius: 2,
+																										background: "#fff",
+																										display: "inline-block",
+																									}}
+																								/>
+																							) : (
+																								"—"
+																							)}
+																						</td>
+																					)}
 																				</tr>
 
-																				{/* Extra Info sub-row */}
-																				{showExtraInfo && (
+																				{/* Row 2: Dimensions, Weights, and Photos */}
+																				{hasSecondRow && (
 																					<tr
 																						style={{
 																							background: rowBg,
-																							borderBottom: !showPhotosOrQR
-																								? "1px solid #d8e4f0"
-																								: "none",
 																						}}
 																					>
-																						<td
-																							colSpan={colSpan}
-																							style={{
-																								padding: "2px 8px 4px 16px",
-																								fontSize: "9px",
-																								color: "#555",
-																								borderBottom: !showPhotosOrQR
-																									? "1px solid #d8e4f0"
-																									: "none",
-																							}}
-																						>
-																							<div
-																								style={{
-																									display: "flex",
-																									gap: "12px",
-																									alignItems: "center",
-																								}}
-																							>
-																								{hasDims && (
-																									<span>
-																										Dims:{" "}
-																										<strong>
-																											{item.length ?? 0}×
-																											{item.width ?? 0}×
-																											{item.height ?? 0} mm
-																										</strong>
-																									</span>
-																								)}
-																								{hasWeight && (
-																									<span>
-																										Weight:{" "}
-																										<strong>
-																											{Math.round(
-																												item.net_weight!,
-																											)}{" "}
-																											kg
-																										</strong>
-																									</span>
-																								)}
-																							</div>
-																						</td>
-																					</tr>
-																				)}
-
-																				{/* Photos and/or QR sub-row */}
-																				{showPhotosOrQR && (
-																					<tr
-																						style={{
-																							background: rowBg,
-																							borderBottom: "1px solid #d8e4f0",
-																						}}
-																					>
-																						<td
-																							colSpan={colSpan}
-																							style={{
-																								padding: "4px 8px 6px 16px",
-																								borderBottom:
-																									"1px solid #d8e4f0",
-																							}}
-																						>
-																							<div
-																								style={{
-																									display: "flex",
-																									alignItems: "center",
-																									gap: "12px",
-																								}}
-																							>
-																								{hasQR && (
-																									<img
-																										src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-																											`${origin}/portal/scan/${item.qr_token}`,
-																										)}`}
-																										alt="QR"
-																										style={{
-																											width: 48,
-																											height: 48,
-																											border: "1px solid #ccc",
-																											borderRadius: 2,
-																											background: "#fff",
-																											flexShrink: 0,
-																										}}
-																									/>
-																								)}
-																								{hasPhotos && (
+																						{leftColSpan > 0 ? (
+																							<>
+																								{/* Left Column(s): Dimensions & Weight info */}
+																								<td
+																									colSpan={leftColSpan}
+																									style={{
+																										padding: "6px 8px",
+																										fontSize: "9px",
+																										color: "#333",
+																										borderRight:
+																											"1px solid #d8e4f0",
+																										borderBottom:
+																											"1px solid #cbd5e1",
+																										verticalAlign: "top",
+																									}}
+																								>
 																									<div
 																										style={{
 																											display: "flex",
-																											flexWrap: "wrap",
-																											gap: "4px",
+																											flexDirection: "column",
+																											gap: "2px",
 																										}}
 																									>
-																										{visibleItemPhotos.map(
-																											(url, uidx) => (
-																												<img
-																													key={`item-photo-${uidx}`}
-																													src={url}
-																													alt={`Item ${uidx + 1}`}
+																										{hasDims && (
+																											<div>
+																												<span
 																													style={{
-																														height: "45px",
-																														objectFit: "cover",
-																														borderRadius: "2px",
-																														border:
-																															"1px solid #ddd",
+																														color: "#64748b",
+																														fontWeight: "600",
 																													}}
-																												/>
-																											),
+																												>
+																													Dims:{" "}
+																												</span>
+																												<strong
+																													style={{
+																														color: "#1e293b",
+																													}}
+																												>
+																													{item.length ?? 0}×
+																													{item.width ?? 0}×
+																													{item.height ?? 0} mm
+																												</strong>
+																											</div>
+																										)}
+																										{hasWeight && (
+																											<div>
+																												<span
+																													style={{
+																														color: "#64748b",
+																														fontWeight: "600",
+																													}}
+																												>
+																													Weight:{" "}
+																												</span>
+																												<strong
+																													style={{
+																														color: "#1e293b",
+																													}}
+																												>
+																													{Math.round(
+																														item.net_weight!,
+																													)}{" "}
+																													kg
+																												</strong>
+																											</div>
 																										)}
 																									</div>
-																								)}
-																							</div>
-																						</td>
+																								</td>
+
+																								{/* Description Column: Item Photos */}
+																								<td
+																									style={{
+																										padding: "6px 8px",
+																										borderRight:
+																											pkg.show_item_qr_code
+																												? "1px solid #d8e4f0"
+																												: "none",
+																										borderBottom:
+																											"1px solid #cbd5e1",
+																										verticalAlign: "top",
+																									}}
+																								>
+																									{hasPhotos && (
+																										<div
+																											style={{
+																												display: "flex",
+																												flexWrap: "wrap",
+																												gap: "6px",
+																											}}
+																										>
+																											{visibleItemPhotos.map(
+																												(url, uidx) => (
+																													<img
+																														key={`item-photo-${uidx}`}
+																														src={url}
+																														alt={`Item ${uidx + 1}`}
+																														style={{
+																															height: "45px",
+																															objectFit:
+																																"contain",
+																															borderRadius:
+																																"4px",
+																															border:
+																																"1px solid #cbd5e1",
+																														}}
+																													/>
+																												),
+																											)}
+																										</div>
+																									)}
+																								</td>
+																							</>
+																						) : (
+																							<td
+																								style={{
+																									padding: "6px 8px",
+																									borderRight:
+																										pkg.show_item_qr_code
+																											? "1px solid #d8e4f0"
+																											: "none",
+																									borderBottom:
+																										"1px solid #cbd5e1",
+																									verticalAlign: "top",
+																								}}
+																							>
+																								<div
+																									style={{
+																										display: "flex",
+																										flexDirection: "column",
+																										gap: "6px",
+																									}}
+																								>
+																									<div
+																										style={{
+																											display: "flex",
+																											gap: "12px",
+																										}}
+																									>
+																										{hasDims && (
+																											<span>
+																												Dims:{" "}
+																												<strong>
+																													{item.length ?? 0}×
+																													{item.width ?? 0}×
+																													{item.height ?? 0} mm
+																												</strong>
+																											</span>
+																										)}
+																										{hasWeight && (
+																											<span>
+																												Weight:{" "}
+																												<strong>
+																													{Math.round(
+																														item.net_weight!,
+																													)}{" "}
+																													kg
+																												</strong>
+																											</span>
+																										)}
+																									</div>
+																									{hasPhotos && (
+																										<div
+																											style={{
+																												display: "flex",
+																												flexWrap: "wrap",
+																												gap: "6px",
+																											}}
+																										>
+																											{visibleItemPhotos.map(
+																												(url, uidx) => (
+																													<img
+																														key={`item-photo-${uidx}`}
+																														src={url}
+																														alt={`Item ${uidx + 1}`}
+																														style={{
+																															height: "45px",
+																															objectFit:
+																																"contain",
+																															borderRadius:
+																																"4px",
+																															border:
+																																"1px solid #cbd5e1",
+																														}}
+																													/>
+																												),
+																											)}
+																										</div>
+																									)}
+																								</div>
+																							</td>
+																						)}
 																					</tr>
 																				)}
 																			</React.Fragment>
@@ -2142,12 +2272,14 @@ export const PackingListPage = React.forwardRef<
 					style={{
 						flexShrink: 0,
 						marginTop: "auto",
+						borderTop: "1px solid #e0e8f0",
+						paddingTop: "6px",
 						minHeight: display.footer_height_px
 							? `${display.footer_height_px}px`
 							: "40px",
 						display: "flex",
 						flexDirection: "column",
-						justifyContent: "flex-end",
+						justifyContent: "space-between",
 					}}
 				>
 					{display.include_signatures &&
@@ -2208,6 +2340,7 @@ export const PackingListPage = React.forwardRef<
 								textAlign: "center",
 								fontStyle: "italic",
 								marginBottom: 4,
+								marginTop: "auto",
 							}}
 						>
 							{display.footer_text}
@@ -2215,10 +2348,10 @@ export const PackingListPage = React.forwardRef<
 					)}
 					<div
 						style={{
-							borderTop: "1px solid #e0e8f0",
-							paddingTop: 4,
+							marginTop: display.footer_text ? 0 : "auto",
 							display: "flex",
 							justifyContent: "space-between",
+							alignItems: "center",
 						}}
 					>
 						<div style={{ fontSize: 8.5, color: "#aaa" }}>

@@ -131,6 +131,16 @@ export const TwoTierCard: React.FC<TwoTierCardProps> = ({
 				? "text-orange-900 bg-orange-100"
 				: "text-green-900 bg-green-100";
 
+		const getDisplayValue = (v: any) => {
+			if (type === "select" && selectItems) {
+				const found = selectItems.find(
+					(item) => String(item.value) === String(v),
+				);
+				if (found) return found.label;
+			}
+			return formatValue(v);
+		};
+
 		return (
 			<div
 				className={cn(
@@ -203,7 +213,7 @@ export const TwoTierCard: React.FC<TwoTierCardProps> = ({
 					)
 				) : (
 					<span className="text-gray-900 text-sm font-semibold text-center w-full truncate px-1">
-						{formatValue(value)}
+						{getDisplayValue(value)}
 					</span>
 				)}
 			</div>

@@ -59,6 +59,7 @@ import {
 	Edit,
 	FileSpreadsheet,
 	FileText,
+	Info,
 	Loader2,
 	Mail,
 	MapPin,
@@ -221,6 +222,8 @@ export interface PackageItem {
 	instance_number?: number;
 	warehouse_location?: string;
 	item_num?: string;
+	items_db_id?: string | null;
+	reference?: string | null;
 }
 
 export interface PackageMaterial {
@@ -353,6 +356,33 @@ function OrderDetailPage() {
 		}[]
 	>([]);
 	const [isGlobalSyncing, setIsGlobalSyncing] = useState(false);
+
+	const [showSyncInventoryModal, setShowSyncInventoryModal] = useState(false);
+	const [syncInventoryTab, setSyncInventoryTab] = useState<
+		"counters" | "unlinked"
+	>("counters");
+	const [outOfSyncItems, setOutOfSyncItems] = useState<
+		{
+			id: string;
+			item_num: string | null;
+			description: string | null;
+			expected_qty: number;
+			stored_packed_qty: number;
+			actual_pkd_sum: number;
+		}[]
+	>([]);
+	const [mappingConfigs, setMappingConfigs] = useState<
+		Record<
+			string,
+			{
+				itemsDbId: string;
+				distributionMode: "distribute" | "single";
+				pkgInstanceId: string;
+			}
+		>
+	>({});
+	const [isScanningInventory, setIsScanningInventory] = useState(false);
+	const [isSavingSync, setIsSavingSync] = useState(false);
 
 	useEffect(() => {
 		if (!authLoading && !user) {
@@ -1584,6 +1614,142 @@ function OrderDetailPage() {
 		},
 	});
 
+	// Mutation to sync items_db.packed_qty counters
+	const syncInventoryCountersMutation = useMutation({
+		mutationFn: async (itemsToSync: { id: string; actualQty: number }[]) => {
+			for (const item of itemsToSync) {
+				const { error } = await supabase
+					.from("items_db")
+					.update({ packed_qty: item.actualQty })
+					.eq("id", item.id);
+				if (error) throw error;
+			}
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["clientInventory"] });
+			queryClient.invalidateQueries({ queryKey: ["pkdItems", orderId] });
+		},
+	});
+
+	// Mutation to map a custom package_item to an items_db entry
+	const mapCustomItemMutation = useMutation({
+		mutationFn: async ({
+			packageItemId,
+			itemsDbId,
+			packageId,
+			quantity,
+			distributionMode, // 'distribute' | 'single'
+			pkgInstanceId, // required if 'single'
+		}: {
+			packageItemId: string;
+			itemsDbId: string;
+			packageId: string;
+			quantity: number;
+			distributionMode: "distribute" | "single";
+			pkgInstanceId?: string;
+		}) => {
+			// Get all instances of this package
+			const { data: instances, error: instError } = await supabase
+				.from("order_pkg_instance")
+				.select("id")
+				.eq("order_package_id", packageId)
+				.order("instance_number", { ascending: true });
+
+			if (instError) throw instError;
+			if (!instances || instances.length === 0) {
+				throw new Error("No package instances found to map this item to.");
+			}
+
+			const createdPkdItemIds: string[] = [];
+			let primaryPkdItemId: string | null = null;
+
+			if (distributionMode === "distribute") {
+				const N = instances.length;
+				for (let i = 0; i < N; i++) {
+					const qty = Math.floor(quantity / N) + (i < quantity % N ? 1 : 0);
+					if (qty > 0) {
+						const { data: newPkdItem, error: insertError } = await supabase
+							.from("pkd_item")
+							.insert({
+								pkg_instance_id: instances[i].id,
+								maintenance_db_id: itemsDbId,
+								quantity: qty,
+							})
+							.select()
+							.single();
+
+						if (insertError) throw insertError;
+						createdPkdItemIds.push(newPkdItem.id);
+						if (!primaryPkdItemId) primaryPkdItemId = newPkdItem.id;
+					}
+				}
+			} else {
+				const targetInstanceId = pkgInstanceId || instances[0].id;
+				const { data: newPkdItem, error: insertError } = await supabase
+					.from("pkd_item")
+					.insert({
+						pkg_instance_id: targetInstanceId,
+						maintenance_db_id: itemsDbId,
+						quantity: quantity,
+					})
+					.select()
+					.single();
+
+				if (insertError) throw insertError;
+				createdPkdItemIds.push(newPkdItem.id);
+				primaryPkdItemId = newPkdItem.id;
+			}
+
+			if (primaryPkdItemId) {
+				// 2. Update any media associated with the package_item_id to point to the primary new pkd_item_id
+				const { error: mediaError } = await supabase
+					.from("media")
+					.update({
+						pkd_item_id: primaryPkdItemId,
+						package_item_id: null,
+					})
+					.eq("package_item_id", packageItemId);
+
+				if (mediaError) {
+					console.error("Error updating media links:", mediaError);
+				}
+			}
+
+			// 3. Delete the custom package_item row
+			const { error: deleteError } = await supabase
+				.from("package_items")
+				.delete()
+				.eq("id", packageItemId);
+
+			if (deleteError) throw deleteError;
+
+			// 4. Update the items_db packed_qty counter
+			const { data: inventory, error: invError } = await supabase
+				.from("items_db")
+				.select("packed_qty")
+				.eq("id", itemsDbId)
+				.single();
+
+			if (!invError && inventory) {
+				await supabase
+					.from("items_db")
+					.update({ packed_qty: (inventory.packed_qty || 0) + quantity })
+					.eq("id", itemsDbId);
+			}
+
+			return createdPkdItemIds;
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["packageItems", orderId] });
+			queryClient.invalidateQueries({ queryKey: ["pkdItems", orderId] });
+			queryClient.invalidateQueries({ queryKey: ["clientInventory"] });
+			queryClient.invalidateQueries({ queryKey: ["media", orderId] });
+			queryClient.invalidateQueries({
+				queryKey: ["packageInstances", orderId],
+			});
+		},
+	});
+
 	// Package Info Mutation
 	const updatePackageInfoMutation = useMutation({
 		mutationFn: async ({
@@ -2027,6 +2193,71 @@ function OrderDetailPage() {
 			queryClient.invalidateQueries({
 				queryKey: ["packageInstances", orderId],
 			});
+		},
+	});
+
+	// Remove Instance Mutation
+	const removeInstanceMutation = useMutation({
+		mutationFn: async (instanceId: string) => {
+			// 1. Fetch pkd_items to update items_db packed_qty counters
+			const { data: pkdItems, error: fetchPkdError } = await supabase
+				.from("pkd_item")
+				.select("id, quantity, maintenance_db_id")
+				.eq("pkg_instance_id", instanceId);
+
+			if (fetchPkdError) throw fetchPkdError;
+
+			if (pkdItems && pkdItems.length > 0) {
+				const pkdItemIds = pkdItems.map((i) => i.id);
+
+				// 2. Delete media associated with these pkd_items
+				await supabase.from("media").delete().in("pkd_item_id", pkdItemIds);
+
+				// 3. Update items_db packed_qty
+				for (const item of pkdItems) {
+					if (item.maintenance_db_id) {
+						const { data: inventory } = await supabase
+							.from("items_db")
+							.select("packed_qty")
+							.eq("id", item.maintenance_db_id)
+							.single();
+
+						if (inventory) {
+							await supabase
+								.from("items_db")
+								.update({
+									packed_qty: Math.max(
+										0,
+										(inventory.packed_qty || 0) - item.quantity,
+									),
+								})
+								.eq("id", item.maintenance_db_id);
+						}
+					}
+				}
+			}
+
+			// 4. Delete media associated with the instance itself
+			await supabase
+				.from("media")
+				.delete()
+				.eq("order_pkg_instance_id", instanceId);
+
+			// 5. Delete instance itself
+			const { error: deleteError } = await supabase
+				.from("order_pkg_instance")
+				.delete()
+				.eq("id", instanceId);
+
+			if (deleteError) throw deleteError;
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+			queryClient.invalidateQueries({
+				queryKey: ["packageInstances", orderId],
+			});
+			queryClient.invalidateQueries({ queryKey: ["clientInventory"] });
+			queryClient.invalidateQueries({ queryKey: ["pkdItems", orderId] });
 		},
 	});
 
@@ -3725,6 +3956,194 @@ function OrderDetailPage() {
 		setShowGlobalSyncModal(false);
 	};
 
+	const findSuggestedItem = (customItem: PackageItem, inventory: any[]) => {
+		if (!inventory.length) return null;
+
+		// 1. Try dimension matching first
+		const dimMatches = inventory.filter(
+			(item) =>
+				item.length === customItem.length &&
+				item.width === customItem.width &&
+				item.height === customItem.height,
+		);
+		if (dimMatches.length === 1) return dimMatches[0];
+
+		// 2. Try partial text matching
+		if (customItem.designation || customItem.reference) {
+			const textToMatch = (
+				(customItem.designation || "") +
+				" " +
+				(customItem.reference || "")
+			).toLowerCase();
+
+			// Try item_num match first
+			const numMatch = inventory.find(
+				(item) =>
+					item.item_num && textToMatch.includes(item.item_num.toLowerCase()),
+			);
+			if (numMatch) return numMatch;
+
+			// Try description keywords matching
+			const keywordMatch = inventory.find(
+				(item) =>
+					item.description &&
+					item.description
+						.toLowerCase()
+						.split(/\s+/)
+						.some(
+							(word: string) => word.length > 3 && textToMatch.includes(word),
+						),
+			);
+			if (keywordMatch) return keywordMatch;
+		}
+
+		// Fallback to first dimension match if multiple found
+		if (dimMatches.length > 1) return dimMatches[0];
+
+		return null;
+	};
+
+	const handleScanInventory = async () => {
+		if (!order?.clients?.id) return;
+		setIsScanningInventory(true);
+		try {
+			// 1. Fetch all items_db for the client
+			const { data: dbItems, error: dbErr } = await supabase
+				.from("items_db")
+				.select("id, item_num, description, expected_qty, packed_qty")
+				.eq("client_id", order.clients.id);
+
+			if (dbErr) throw dbErr;
+
+			// 2. Fetch all pkd_item for the client globally to get the actual sums
+			const { data: allPkd, error: pkdErr } = await supabase
+				.from("pkd_item")
+				.select("maintenance_db_id, quantity");
+
+			if (pkdErr) throw pkdErr;
+
+			// Aggregate global pkd_item counts
+			const pkdSums: Record<string, number> = {};
+			allPkd.forEach((p) => {
+				if (p.maintenance_db_id) {
+					pkdSums[p.maintenance_db_id] =
+						(pkdSums[p.maintenance_db_id] || 0) + (p.quantity || 0);
+				}
+			});
+
+			// Filter out-of-sync items
+			const outOfSync = (dbItems || [])
+				.map((item) => {
+					const actual = pkdSums[item.id] || 0;
+					return {
+						id: item.id,
+						item_num: item.item_num,
+						description: item.description,
+						expected_qty: item.expected_qty,
+						stored_packed_qty: item.packed_qty || 0,
+						actual_pkd_sum: actual,
+					};
+				})
+				.filter((item) => item.stored_packed_qty !== item.actual_pkd_sum);
+
+			setOutOfSyncItems(outOfSync);
+
+			// Initialize mapping configurations for unlinked custom items
+			const currentUnlinkedItems =
+				packageItems?.filter((item) => !item.items_db_id) || [];
+			const initialConfigs: Record<
+				string,
+				{
+					itemsDbId: string;
+					distributionMode: "distribute" | "single";
+					pkgInstanceId: string;
+				}
+			> = {};
+
+			currentUnlinkedItems.forEach((item) => {
+				const suggestion = findSuggestedItem(item, clientInventory || []);
+				const pkgInstances =
+					packageInstances?.filter(
+						(inst) => inst.order_package_id === item.order_package_id,
+					) || [];
+				const firstInstId = pkgInstances[0]?.id || "";
+
+				initialConfigs[item.id] = {
+					itemsDbId: suggestion?.id || "",
+					distributionMode:
+						pkgInstances.length > 1 && item.quantity > 1
+							? "distribute"
+							: "single",
+					pkgInstanceId: firstInstId,
+				};
+			});
+
+			setMappingConfigs(initialConfigs);
+			setShowSyncInventoryModal(true);
+		} catch (err: any) {
+			toast({
+				title: "Scan failed",
+				description: err.message || "Failed to scan inventory discrepancies.",
+				variant: "error",
+			});
+		} finally {
+			setIsScanningInventory(false);
+		}
+	};
+
+	const handleConfirmSyncInventory = async () => {
+		setIsSavingSync(true);
+		try {
+			// 1. Sync counters
+			if (outOfSyncItems.length > 0) {
+				const itemsToSync = outOfSyncItems.map((item) => ({
+					id: item.id,
+					actualQty: item.actual_pkd_sum,
+				}));
+				await syncInventoryCountersMutation.mutateAsync(itemsToSync);
+			}
+
+			// 2. Map custom items
+			const currentUnlinkedItems =
+				packageItems?.filter((item) => !item.items_db_id) || [];
+			let mapCount = 0;
+			for (const customItem of currentUnlinkedItems) {
+				const config = mappingConfigs[customItem.id];
+				if (config && config.itemsDbId) {
+					const pkg = order?.order_packages.find(
+						(p) => p.id === customItem.order_package_id,
+					);
+					if (pkg) {
+						await mapCustomItemMutation.mutateAsync({
+							packageItemId: customItem.id,
+							itemsDbId: config.itemsDbId,
+							packageId: pkg.id,
+							quantity: customItem.quantity,
+							distributionMode: config.distributionMode,
+							pkgInstanceId: config.pkgInstanceId || undefined,
+						});
+						mapCount++;
+					}
+				}
+			}
+
+			toast({
+				title: "Sync completed",
+				description: `Successfully synchronized inventory counters and mapped ${mapCount} items.`,
+				variant: "success",
+			});
+			setShowSyncInventoryModal(false);
+		} catch (err: any) {
+			toast({
+				title: "Sync failed",
+				description: err.message || "An error occurred during synchronization.",
+				variant: "error",
+			});
+		} finally {
+			setIsSavingSync(false);
+		}
+	};
+
 	return (
 		<div className="flex h-screen bg-gray-50">
 			<Sidebar />
@@ -3797,6 +4216,18 @@ function OrderDetailPage() {
 										</DropdownMenu.Content>
 									</DropdownMenu.Portal>
 								</DropdownMenu.Root>
+								<button
+									onClick={handleScanInventory}
+									disabled={isScanningInventory}
+									className="flex items-center gap-2 px-3 py-2 border border-violet-200 bg-violet-50 text-violet-700 rounded-lg hover:bg-violet-100 disabled:opacity-50 transition-colors"
+								>
+									{isScanningInventory ? (
+										<Loader2 className="w-4 h-4 animate-spin" />
+									) : (
+										<Sparkles className="w-4 h-4" />
+									)}
+									Sync & Link Inventory
+								</button>
 								<button
 									onClick={handlePrepareGlobalSync}
 									className="flex items-center gap-2 px-3 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100"
@@ -3883,6 +4314,413 @@ function OrderDetailPage() {
 												<Loader2 className="w-4 h-4 animate-spin" />
 											)}
 											Confirm Global Sync
+										</button>
+									</div>
+								</div>
+							</div>
+						)}
+
+						{/* Sync & Link Inventory Modal */}
+						{showSyncInventoryModal && (
+							<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
+								<div className="bg-white rounded-lg shadow-xl max-w-4xl w-[90vw] mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+									<div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+										<div className="flex items-center gap-2">
+											<Sparkles className="w-5 h-5 text-violet-600 animate-pulse" />
+											<h3 className="font-bold text-gray-800 text-lg">
+												Sync & Link Inventory
+											</h3>
+										</div>
+										<button
+											onClick={() => setShowSyncInventoryModal(false)}
+											className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+										>
+											<X className="w-5 h-5" />
+										</button>
+									</div>
+
+									{/* Tab Headers */}
+									<div className="flex border-b shrink-0 bg-gray-50/50">
+										<button
+											onClick={() => setSyncInventoryTab("counters")}
+											className={`flex-1 py-3 text-sm font-semibold border-b-2 transition-all ${
+												syncInventoryTab === "counters"
+													? "border-violet-600 text-violet-700 bg-violet-50/20"
+													: "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+											}`}
+										>
+											Out-of-Sync Counters ({outOfSyncItems.length})
+										</button>
+										<button
+											onClick={() => setSyncInventoryTab("unlinked")}
+											className={`flex-1 py-3 text-sm font-semibold border-b-2 transition-all ${
+												syncInventoryTab === "unlinked"
+													? "border-violet-600 text-violet-700 bg-violet-50/20"
+													: "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+											}`}
+										>
+											Unlinked Custom Items (
+											{
+												(
+													packageItems?.filter((item) => !item.items_db_id) ||
+													[]
+												).length
+											}
+											)
+										</button>
+									</div>
+
+									{/* Tab Body */}
+									<div className="p-6 overflow-y-auto flex-1 space-y-4">
+										{syncInventoryTab === "counters" ? (
+											<div className="space-y-4">
+												<div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm leading-relaxed flex gap-3">
+													<AlertTriangle className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
+													<div>
+														<p className="font-bold">
+															About Counter Discrepancies
+														</p>
+														<p className="mt-1">
+															Older versions of the system sometimes did not
+															update the <strong>packed_qty</strong> counter on
+															the client inventory table (
+															<strong>items_db</strong>). Synchronizing counters
+															will update the inventory quantities to match the
+															actual number of packed physical instances in the
+															boxes.
+														</p>
+													</div>
+												</div>
+
+												{outOfSyncItems.length === 0 ? (
+													<div className="p-8 text-center text-gray-500 border border-dashed rounded-lg bg-gray-50">
+														<CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-2" />
+														<p className="font-medium text-gray-700">
+															All inventory counters are fully synchronized!
+														</p>
+														<p className="text-sm mt-1">
+															No discrepancies detected between packed items and
+															items_db.
+														</p>
+													</div>
+												) : (
+													<div className="border rounded-lg overflow-hidden">
+														<table className="min-w-full divide-y divide-gray-200 text-left text-sm">
+															<thead className="bg-gray-50 font-semibold text-gray-700">
+																<tr>
+																	<th className="px-4 py-3">Item Ref</th>
+																	<th className="px-4 py-3">Description</th>
+																	<th className="px-4 py-3 text-center">
+																		Expected
+																	</th>
+																	<th className="px-4 py-3 text-center text-amber-700">
+																		Current Counter
+																	</th>
+																	<th className="px-4 py-3 text-center text-green-700">
+																		Actual Packed
+																	</th>
+																</tr>
+															</thead>
+															<tbody className="divide-y divide-gray-200 bg-white">
+																{outOfSyncItems.map((item) => (
+																	<tr key={item.id}>
+																		<td className="px-4 py-3 font-mono text-xs font-semibold text-blue-700 bg-blue-50/50">
+																			#{item.item_num || "—"}
+																		</td>
+																		<td
+																			className="px-4 py-3 text-gray-800 font-medium max-w-sm truncate"
+																			title={item.description || ""}
+																		>
+																			{item.description || "—"}
+																		</td>
+																		<td className="px-4 py-3 text-center font-medium">
+																			{item.expected_qty}
+																		</td>
+																		<td className="px-4 py-3 text-center font-bold text-amber-700 bg-amber-50/30">
+																			{item.stored_packed_qty}
+																		</td>
+																		<td className="px-4 py-3 text-center font-bold text-green-700 bg-green-50/30">
+																			{item.actual_pkd_sum}
+																		</td>
+																	</tr>
+																))}
+															</tbody>
+														</table>
+													</div>
+												)}
+											</div>
+										) : (
+											<div className="space-y-4">
+												<div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-sm leading-relaxed flex gap-3">
+													<Info className="w-5 h-5 shrink-0 text-blue-600 mt-0.5" />
+													<div>
+														<p className="font-bold">
+															Linking Custom Items to Inventory
+														</p>
+														<p className="mt-1">
+															Below is a list of custom items that were entered
+															as text instead of linking to the client's
+															inventory. Select a matching item from the
+															inventory database below to convert them into
+															linked inventory items and automatically transfer
+															any packer photos.
+														</p>
+													</div>
+												</div>
+
+												{(() => {
+													const unlinkedItems =
+														packageItems?.filter((item) => !item.items_db_id) ||
+														[];
+													if (unlinkedItems.length === 0) {
+														return (
+															<div className="p-8 text-center text-gray-500 border border-dashed rounded-lg bg-gray-50">
+																<CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-2" />
+																<p className="font-medium text-gray-700">
+																	No unlinked custom items found!
+																</p>
+																<p className="text-sm mt-1">
+																	All items in this order are successfully
+																	linked to inventory.
+																</p>
+															</div>
+														);
+													}
+
+													return (
+														<div className="space-y-4">
+															{unlinkedItems.map((item) => {
+																const pkg = order?.order_packages.find(
+																	(p) => p.id === item.order_package_id,
+																);
+																const pkgInstances =
+																	packageInstances?.filter(
+																		(inst) =>
+																			inst.order_package_id ===
+																			item.order_package_id,
+																	) || [];
+																const config = mappingConfigs[item.id] || {
+																	itemsDbId: "",
+																	distributionMode: "single",
+																	pkgInstanceId: "",
+																};
+																const hasMultipleInstances =
+																	pkgInstances.length > 1 && item.quantity > 1;
+
+																return (
+																	<div
+																		key={item.id}
+																		className="border rounded-xl p-4 bg-white shadow-xs flex flex-col md:flex-row gap-6 hover:border-violet-300 transition-colors"
+																	>
+																		{/* Left: Custom Item Details */}
+																		<div className="md:w-1/3 space-y-2">
+																			<div className="flex items-center gap-2">
+																				<span className="bg-gray-100 text-gray-800 text-xs font-bold px-2 py-0.5 rounded-full">
+																					Box #{pkg?.package_number || "?"}
+																				</span>
+																				<span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+																					Unlinked
+																				</span>
+																			</div>
+																			<p className="font-bold text-gray-900 text-base leading-tight">
+																				{item.designation || "—"}
+																			</p>
+																			<div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+																				<div>
+																					Qty:{" "}
+																					<span className="font-semibold text-gray-800">
+																						{item.quantity}
+																					</span>
+																				</div>
+																				<div>
+																					L×W×H:{" "}
+																					<span className="font-semibold text-gray-800">
+																						{item.length || "—"}×
+																						{item.width || "—"}×
+																						{item.height || "—"}
+																					</span>
+																				</div>
+																			</div>
+																		</div>
+
+																		{/* Right: Mapping Controls */}
+																		<div className="md:w-2/3 space-y-3">
+																			<div>
+																				<label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+																					Match with Inventory Item
+																				</label>
+																				<select
+																					value={config.itemsDbId}
+																					onChange={(e) => {
+																						setMappingConfigs((prev) => ({
+																							...prev,
+																							[item.id]: {
+																								...prev[item.id],
+																								itemsDbId: e.target.value,
+																							},
+																						}));
+																					}}
+																					className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:border-violet-500 focus:ring-violet-500 outline-hidden"
+																				>
+																					<option value="">
+																						Do not link (leave as custom item)
+																					</option>
+																					{clientInventory?.map((dbItem) => {
+																						const isSuggested =
+																							dbItem.length === item.length &&
+																							dbItem.width === item.width &&
+																							dbItem.height === item.height;
+																						return (
+																							<option
+																								key={dbItem.id}
+																								value={dbItem.id}
+																							>
+																								{dbItem.item_num
+																									? `#${dbItem.item_num}`
+																									: ""}{" "}
+																								- {dbItem.description} (
+																								{dbItem.length}x{dbItem.width}x
+																								{dbItem.height})
+																								{isSuggested
+																									? " [Suggested Dimension Match]"
+																									: ""}
+																							</option>
+																						);
+																					})}
+																				</select>
+																			</div>
+
+																			{config.itemsDbId &&
+																				hasMultipleInstances && (
+																					<div>
+																						<label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+																							How to distribute {item.quantity}{" "}
+																							packed items?
+																						</label>
+																						<div className="flex gap-4">
+																							<label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 cursor-pointer">
+																								<input
+																									type="radio"
+																									name={`dist-mode-${item.id}`}
+																									checked={
+																										config.distributionMode ===
+																										"distribute"
+																									}
+																									onChange={() => {
+																										setMappingConfigs(
+																											(prev) => ({
+																												...prev,
+																												[item.id]: {
+																													...prev[item.id],
+																													distributionMode:
+																														"distribute",
+																												},
+																											}),
+																										);
+																									}}
+																									className="w-4 h-4 text-violet-600 focus:ring-violet-500"
+																								/>
+																								Distribute evenly across all{" "}
+																								{pkgInstances.length} instances
+																							</label>
+																							<label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 cursor-pointer">
+																								<input
+																									type="radio"
+																									name={`dist-mode-${item.id}`}
+																									checked={
+																										config.distributionMode ===
+																										"single"
+																									}
+																									onChange={() => {
+																										setMappingConfigs(
+																											(prev) => ({
+																												...prev,
+																												[item.id]: {
+																													...prev[item.id],
+																													distributionMode:
+																														"single",
+																												},
+																											}),
+																										);
+																									}}
+																									className="w-4 h-4 text-violet-600 focus:ring-violet-500"
+																								/>
+																								Place all in a single instance
+																							</label>
+																						</div>
+																					</div>
+																				)}
+
+																			{config.itemsDbId &&
+																				config.distributionMode ===
+																					"single" && (
+																					<div>
+																						<label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+																							Target Box Instance
+																						</label>
+																						<select
+																							value={config.pkgInstanceId}
+																							onChange={(e) => {
+																								setMappingConfigs((prev) => ({
+																									...prev,
+																									[item.id]: {
+																										...prev[item.id],
+																										pkgInstanceId:
+																											e.target.value,
+																									},
+																								}));
+																							}}
+																							className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
+																						>
+																							{pkgInstances.map((inst) => (
+																								<option
+																									key={inst.id}
+																									value={inst.id}
+																								>
+																									Instance #
+																									{inst.instance_number} (
+																									{inst.ipac_reference ||
+																										"No Ref"}
+																									)
+																								</option>
+																							))}
+																						</select>
+																					</div>
+																				)}
+																		</div>
+																	</div>
+																);
+															})}
+														</div>
+													);
+												})()}
+											</div>
+										)}
+									</div>
+
+									{/* Modal Footer */}
+									<div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 shrink-0">
+										<button
+											onClick={() => setShowSyncInventoryModal(false)}
+											className="px-4 py-2 border border-gray-300 text-sm font-medium text-gray-700 bg-white rounded-lg hover:bg-gray-50 transition-colors"
+										>
+											Cancel
+										</button>
+										<button
+											onClick={handleConfirmSyncInventory}
+											disabled={
+												isSavingSync ||
+												(outOfSyncItems.length === 0 &&
+													!Object.values(mappingConfigs).some(
+														(c) => c.itemsDbId !== "",
+													))
+											}
+											className="px-4 py-2 text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 transition-colors"
+										>
+											{isSavingSync && (
+												<Loader2 className="w-4 h-4 animate-spin" />
+											)}
+											Apply Sync & Mapping
 										</button>
 									</div>
 								</div>
@@ -4756,6 +5594,7 @@ function OrderDetailPage() {
 																}
 																removePackageMutation={removePackageMutation}
 																updateInstanceMutation={updateInstanceMutation}
+																removeInstanceMutation={removeInstanceMutation}
 																regenerateReferenceMutation={
 																	regenerateReferenceMutation
 																}

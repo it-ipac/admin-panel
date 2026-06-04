@@ -201,6 +201,10 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 	const [showRuler, setShowRuler] = useState(true);
 	const [mediaManagerOpen, setMediaManagerOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
+	const [scaleMode, setScaleMode] = useState<"fit" | "fill" | "manual">("fit");
+	const [ctrlScrollZoomReport, setCtrlScrollZoomReport] = useState(true);
+	const [invertPageScroll, setInvertPageScroll] = useState(false);
+	const lastPageSwitchTime = useRef(0);
 
 	const isReportPerOrder = filters.splitBy === "report_per_order";
 
@@ -356,8 +360,9 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		};
 	}, [activeOrderId, activeOrderDetails, activeOrderTotals, headerData]);
 
-	// Compute scale to fit page in container
+	// Compute scale to fit or fill page in container
 	const updateScale = useCallback(() => {
+		if (scaleMode === "manual") return;
 		if (!containerRef.current) return;
 		const { clientWidth: cw, clientHeight: ch } = containerRef.current;
 		const isLandscape = displaySettings.orientation === "landscape";
@@ -367,8 +372,12 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		const padding = 64;
 		const sx = (cw - padding) / pageW;
 		const sy = (ch - padding) / pageH;
-		setScale(Math.min(sx, sy, 1));
-	}, [displaySettings.orientation]);
+		if (scaleMode === "fit") {
+			setScale(Math.min(sx, sy, 1));
+		} else if (scaleMode === "fill") {
+			setScale(Math.min(sx, sy)); // Uncapped fit to fill container space
+		}
+	}, [displaySettings.orientation, scaleMode]);
 
 	useEffect(() => {
 		updateScale();
@@ -377,10 +386,81 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		return () => obs.disconnect();
 	}, [updateScale]);
 
+	// Ctrl+scroll → zoom document; Shift+scroll → horizontal scroll; Alt+scroll → vertical scroll; scroll → change pages
+	useEffect(() => {
+		const container = containerRef.current;
+		if (!container) return;
+
+		const handleWheel = (e: WheelEvent) => {
+			if (e.ctrlKey) {
+				if (ctrlScrollZoomReport) {
+					// Zoom document, not browser
+					e.preventDefault();
+					const delta = e.deltaY > 0 ? -0.05 : 0.05;
+					setScaleMode("manual");
+					setScale((prev) => Math.min(Math.max(prev + delta, 0.2), 3));
+				}
+			} else if (e.altKey) {
+				// Alt + Scroll: Change Pages
+				e.preventDefault();
+				const now = Date.now();
+				if (now - lastPageSwitchTime.current > 300) {
+					const isScrollForward = e.deltaY > 0;
+					const shouldGoNext = invertPageScroll
+						? !isScrollForward
+						: isScrollForward;
+
+					if (shouldGoNext) {
+						setCurrentPage((p) => Math.min(totalPages - 1, p + 1));
+					} else {
+						setCurrentPage((p) => Math.max(0, p - 1));
+					}
+					lastPageSwitchTime.current = now;
+				}
+			} else if (e.shiftKey) {
+				// Shift + Scroll: Horizontal Scroll
+				e.preventDefault();
+				container.scrollLeft += e.deltaY !== 0 ? e.deltaY : e.deltaX;
+			}
+			// Default scroll (no modifier keys) will scroll/pan the container vertically natively
+		};
+
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (!e.ctrlKey) return;
+			// Only intercept keydown if ctrlScrollZoomReport is active
+			if (!ctrlScrollZoomReport) return;
+			// Only intercept when cursor is inside the preview container
+			if (
+				!container.matches(":hover") &&
+				!container.contains(document.activeElement)
+			)
+				return;
+			if (e.key === "=" || e.key === "+") {
+				e.preventDefault();
+				setScaleMode("manual");
+				setScale((prev) => Math.min(prev + 0.1, 3));
+			} else if (e.key === "-") {
+				e.preventDefault();
+				setScaleMode("manual");
+				setScale((prev) => Math.max(prev - 0.1, 0.2));
+			} else if (e.key === "0") {
+				e.preventDefault();
+				setScaleMode("fit");
+			}
+		};
+
+		container.addEventListener("wheel", handleWheel, { passive: false });
+		window.addEventListener("keydown", handleKeyDown);
+		return () => {
+			container.removeEventListener("wheel", handleWheel);
+			window.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [updateScale, ctrlScrollZoomReport, invertPageScroll, totalPages]);
+
 	const isLandscape = displaySettings.orientation === "landscape";
 	const pageW = isLandscape ? "297mm" : "210mm";
 	const pageH = isLandscape ? "210mm" : "297mm";
-	const pagePad = "12mm";
+	const pagePad = isLandscape ? "6mm" : "12mm";
 
 	if (!filters.clientId && filters.orderIds.length === 0) {
 		return (
@@ -468,61 +548,120 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 			)}
 
 			{/* ─── Page Nav Toolbar ─── */}
-			<div className="flex items-center justify-between px-4 py-2 bg-gray-100 border-b shrink-0 gap-4">
-				<div className="flex items-center gap-2">
-					<button
-						type="button"
-						onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-						disabled={currentPage === 0}
-						className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 transition-colors"
-					>
-						<ChevronLeft className="w-4 h-4" />
-					</button>
-					<span className="text-sm font-medium text-gray-700 min-w-[90px] text-center">
-						{totalPages === 0
-							? "0 pages"
-							: `Page ${currentPage + 1} of ${totalPages}`}
-					</span>
-					<button
-						type="button"
-						onClick={() =>
-							setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
-						}
-						disabled={currentPage >= totalPages - 1}
-						className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 transition-colors"
-					>
-						<ChevronRight className="w-4 h-4" />
-					</button>
+			<div className="flex flex-wrap items-center justify-between px-4 py-2 bg-gray-100 border-b shrink-0 gap-3">
+				{/* Left: Navigation & Info */}
+				<div className="flex items-center gap-3">
+					<div className="flex items-center gap-1 bg-white border border-gray-300 rounded p-0.5 shadow-sm">
+						<button
+							type="button"
+							onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+							disabled={currentPage === 0}
+							className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
+						>
+							<ChevronLeft className="w-4 h-4 text-gray-600" />
+						</button>
+						<span className="text-xs font-semibold text-gray-700 min-w-[75px] text-center select-none">
+							{totalPages === 0
+								? "0 / 0"
+								: `Page ${currentPage + 1} of ${totalPages}`}
+						</span>
+						<button
+							type="button"
+							onClick={() =>
+								setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
+							}
+							disabled={currentPage >= totalPages - 1}
+							className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
+						>
+							<ChevronRight className="w-4 h-4 text-gray-600" />
+						</button>
+					</div>
+
+					{totalPages > 1 && totalPages <= 10 && (
+						<div className="flex gap-1">
+							{Array.from({ length: totalPages }).map((_, i) => {
+								const pageKey = `page-dot-${i}`;
+								return (
+									<button
+										key={pageKey}
+										type="button"
+										onClick={() => setCurrentPage(i)}
+										className={`w-1.5 h-1.5 rounded-full transition-colors ${i === currentPage ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"}`}
+									/>
+								);
+							})}
+						</div>
+					)}
+
+					<div className="text-xs text-gray-500 font-medium hidden sm:inline-block">
+						{activeInstances.length} boxes ·{" "}
+						{isLandscape ? "Landscape" : "Portrait"}
+						{page?.label && (
+							<span className="ml-2 px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-medium">
+								{page.label}
+							</span>
+						)}
+					</div>
 				</div>
 
-				{/* Page dots */}
-				{totalPages > 1 && totalPages <= 10 && (
-					<div className="flex gap-1.5">
-						{Array.from({ length: totalPages }).map((_, i) => {
-							const pageKey = `page-dot-${i}`;
-							return (
-								<button
-									key={pageKey}
-									type="button"
-									onClick={() => setCurrentPage(i)}
-									className={`w-2 h-2 rounded-full transition-colors ${i === currentPage ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"}`}
-								/>
-							);
-						})}
+				{/* Middle/Center: Zoom & View Options */}
+				<div className="flex items-center gap-2 flex-wrap">
+					{/* Zoom widget */}
+					<div className="flex items-center gap-1 bg-white border border-gray-300 rounded px-1.5 py-0.5 shadow-sm">
+						<button
+							type="button"
+							onClick={() => {
+								setScaleMode("manual");
+								setScale((prev) => Math.max(prev - 0.1, 0.2));
+							}}
+							className="p-1 rounded hover:bg-gray-100 font-bold text-gray-500 text-xs w-6 h-6 flex items-center justify-center transition-colors cursor-pointer"
+							title="Zoom Out"
+						>
+							-
+						</button>
+						<span className="text-xs font-bold text-gray-700 min-w-[36px] text-center select-none">
+							{Math.round(scale * 100)}%
+						</span>
+						<button
+							type="button"
+							onClick={() => {
+								setScaleMode("manual");
+								setScale((prev) => Math.min(prev + 0.1, 3));
+							}}
+							className="p-1 rounded hover:bg-gray-100 font-bold text-gray-500 text-xs w-6 h-6 flex items-center justify-center transition-colors cursor-pointer"
+							title="Zoom In"
+						>
+							+
+						</button>
+						<div className="w-[1px] h-4 bg-gray-200 mx-1" />
+						<button
+							type="button"
+							onClick={() => setScaleMode("fit")}
+							className={`text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+								scaleMode === "fit"
+									? "bg-blue-100 text-blue-700"
+									: "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+							}`}
+							title="Fit whole page in screen"
+						>
+							Fit
+						</button>
+						<button
+							type="button"
+							onClick={() => setScaleMode("fill")}
+							className={`text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+								scaleMode === "fill"
+									? "bg-blue-100 text-blue-700"
+									: "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+							}`}
+							title="Fill container space"
+						>
+							Fill
+						</button>
 					</div>
-				)}
 
-				{/* Ruler & Photos Manage */}
-				<div className="flex items-center gap-2">
-					<button
-						type="button"
-						onClick={() => setMediaManagerOpen(true)}
-						className="flex items-center gap-1.5 text-xs text-gray-700 font-semibold bg-white border border-gray-300 rounded px-2.5 py-1.5 shadow-sm hover:bg-gray-50 transition-colors cursor-pointer"
-					>
-						<Image className="w-3.5 h-3.5 text-blue-600" />
-						Manage Photos
-					</button>
-					<label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer font-medium select-none bg-white border border-gray-300 rounded px-2.5 py-1 shadow-sm hover:bg-gray-50 transition-colors">
+					{/* Ruler & Grid toggle */}
+					<label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer font-semibold select-none bg-white border border-gray-300 rounded px-2.5 py-1.5 shadow-sm hover:bg-gray-50 transition-colors">
 						<input
 							type="checkbox"
 							checked={showRuler}
@@ -531,109 +670,157 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 						/>
 						Ruler & Grid
 					</label>
+
+					{/* Photos Manage */}
+					<button
+						type="button"
+						onClick={() => setMediaManagerOpen(true)}
+						className="flex items-center gap-1.5 text-xs text-gray-700 font-bold bg-white border border-gray-300 rounded px-2.5 py-1.5 shadow-sm hover:bg-gray-50 transition-colors cursor-pointer"
+					>
+						<Image className="w-3.5 h-3.5 text-blue-600" />
+						Manage Photos
+					</button>
 				</div>
 
-				{/* Info */}
-				<div className="text-xs text-gray-400">
-					{activeInstances.length} boxes ·{" "}
-					{isLandscape ? "Landscape" : "Portrait"}
-					{page?.label && (
-						<span className="ml-2 text-blue-600 font-medium">{page.label}</span>
-					)}
+				{/* Right: Scroll & Zoom configuration */}
+				<div className="flex items-center gap-2">
+					{/* Flip scroll direction */}
+					<label
+						className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer font-semibold select-none bg-white border border-gray-300 rounded px-2.5 py-1.5 shadow-sm hover:bg-gray-50 transition-colors"
+						title="Invert direction when scrolling wheel to switch pages"
+					>
+						<input
+							type="checkbox"
+							checked={invertPageScroll}
+							onChange={(e) => setInvertPageScroll(e.target.checked)}
+							className="rounded text-blue-600 accent-blue-600 cursor-pointer w-3.5 h-3.5"
+						/>
+						Invert Page Scroll
+					</label>
+
+					{/* Shortcut config */}
+					<label
+						className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer font-semibold select-none bg-white border border-gray-300 rounded px-2.5 py-1.5 shadow-sm hover:bg-gray-50 transition-colors"
+						title="Enable Ctrl+Scroll to zoom page instead of browser"
+					>
+						<input
+							type="checkbox"
+							checked={ctrlScrollZoomReport}
+							onChange={(e) => setCtrlScrollZoomReport(e.target.checked)}
+							className="rounded text-blue-600 accent-blue-600 cursor-pointer w-3.5 h-3.5"
+						/>
+						Ctrl+Scroll Zoom
+					</label>
 				</div>
 			</div>
 
 			{/* ─── Page Viewer ─── */}
 			<div
 				ref={containerRef}
-				className="flex-1 bg-gray-300 overflow-hidden flex items-center justify-center relative"
+				className="flex-1 bg-gray-300 overflow-auto flex p-8 relative"
+				tabIndex={-1}
+				style={{ scrollBehavior: "smooth" }}
 			>
 				{totalPages === 0 ? (
-					<div className="text-gray-500 text-sm italic">No packages match.</div>
+					<div className="text-gray-500 text-sm italic margin-auto">
+						No packages match.
+					</div>
 				) : (
 					<div
 						style={{
-							transform: `scale(${scale})`,
-							transformOrigin: "center center",
-							transition: "transform 0.15s ease",
-							width: pageW,
-							height: pageH,
-							padding: `0px ${pagePad} ${pagePad} ${pagePad}`,
-							background: "white",
-							boxShadow:
-								"0 4px 24px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.12)",
+							width: `calc(${pageW} * ${scale})`,
+							height: `calc(${pageH} * ${scale})`,
+							margin: "auto",
 							position: "relative",
 						}}
 					>
-						{showRuler && (
-							<>
-								<HorizontalRuler widthMm={isLandscape ? 297 : 210} />
-								<VerticalRuler heightMm={isLandscape ? 210 : 297} />
-								<Gridlines />
-							</>
-						)}
-						{/* Hidden all-pages ref for printing */}
-						<div ref={printRef} style={{ display: "none" }}>
-							{pages.map((pg, idx) => {
-								const pagePrintKey = `print-page-${idx}`;
-								return (
-									<div
-										key={pagePrintKey}
-										style={{
-											width: pageW,
-											height: pageH,
-											padding: `0px ${pagePad} ${pagePad} ${pagePad}`,
-											background: "white",
-											pageBreakAfter:
-												idx < pages.length - 1 ? "always" : "auto",
-										}}
-									>
-										<PackingListPage
-											items={pg.items}
-											allInstances={filteredAndSortedInstances}
-											groupLabel={pg.label}
-											pageIndex={idx}
-											totalPages={pages.length}
-											isFirstPageOfGroup={
-												pages.findIndex((p) => p.label === pg.label) === idx
-											}
-											display={displaySettings}
-											pkg={pkgSettings}
-											headerData={effectiveHeaderData}
-											clientData={clientData}
-											clientOrderData={effectiveClientOrderData}
-											clientShipmentData={clientShipmentData}
-											companyData={companyData}
-											companyProfile={companyProfile}
-											signatures={signatures}
-											hiddenMediaUrls={hiddenMediaUrls}
-										/>
-									</div>
-								);
-							})}
-						</div>
+						<div
+							style={{
+								transform: `scale(${scale})`,
+								transformOrigin: "top left",
+								transition: "transform 0.15s ease",
+								width: pageW,
+								height: pageH,
+								padding: `0px ${pagePad} ${pagePad} ${pagePad}`,
+								background: "white",
+								boxShadow:
+									"0 4px 24px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.12)",
+								position: "absolute",
+								top: 0,
+								left: 0,
+							}}
+						>
+							{showRuler && (
+								<>
+									<HorizontalRuler widthMm={isLandscape ? 297 : 210} />
+									<VerticalRuler heightMm={isLandscape ? 210 : 297} />
+									<Gridlines />
+								</>
+							)}
+							{/* Hidden all-pages ref for printing */}
+							<div ref={printRef} style={{ display: "none" }}>
+								{pages.map((pg, idx) => {
+									const pagePrintKey = `print-page-${idx}`;
+									return (
+										<div
+											key={pagePrintKey}
+											style={{
+												width: pageW,
+												height: pageH,
+												padding: `0px ${pagePad} ${pagePad} ${pagePad}`,
+												background: "white",
+												pageBreakAfter:
+													idx < pages.length - 1 ? "always" : "auto",
+											}}
+										>
+											<PackingListPage
+												items={pg.items}
+												allInstances={filteredAndSortedInstances}
+												groupLabel={pg.label}
+												pageIndex={idx}
+												totalPages={pages.length}
+												isFirstPageOfGroup={
+													pages.findIndex((p) => p.label === pg.label) === idx
+												}
+												display={displaySettings}
+												pkg={pkgSettings}
+												headerData={effectiveHeaderData}
+												clientData={clientData}
+												clientOrderData={effectiveClientOrderData}
+												clientShipmentData={clientShipmentData}
+												companyData={companyData}
+												companyProfile={companyProfile}
+												signatures={signatures}
+												hiddenMediaUrls={hiddenMediaUrls}
+											/>
+										</div>
+									);
+								})}
+							</div>
 
-						{/* Visible current page */}
-						<PackingListPage
-							key={`visible-${currentPage}`}
-							items={page?.items ?? []}
-							allInstances={filteredAndSortedInstances}
-							groupLabel={page?.label}
-							pageIndex={currentPage}
-							totalPages={totalPages}
-							isFirstPageOfGroup={
-								pages.findIndex((p) => p.label === page?.label) === currentPage
-							}
-							display={displaySettings}
-							pkg={pkgSettings}
-							headerData={effectiveHeaderData}
-							clientData={clientData}
-							clientOrderData={effectiveClientOrderData}
-							clientShipmentData={clientShipmentData}
-							companyData={companyData}
-							companyProfile={companyProfile}
-							signatures={signatures}
-						/>
+							{/* Visible current page */}
+							<PackingListPage
+								key={`visible-${currentPage}`}
+								items={page?.items ?? []}
+								allInstances={filteredAndSortedInstances}
+								groupLabel={page?.label}
+								pageIndex={currentPage}
+								totalPages={totalPages}
+								isFirstPageOfGroup={
+									pages.findIndex((p) => p.label === page?.label) ===
+									currentPage
+								}
+								display={displaySettings}
+								pkg={pkgSettings}
+								headerData={effectiveHeaderData}
+								clientData={clientData}
+								clientOrderData={effectiveClientOrderData}
+								clientShipmentData={clientShipmentData}
+								companyData={companyData}
+								companyProfile={companyProfile}
+								signatures={signatures}
+							/>
+						</div>
 					</div>
 				)}
 			</div>

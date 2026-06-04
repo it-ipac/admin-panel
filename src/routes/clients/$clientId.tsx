@@ -12,6 +12,7 @@ import {
 	X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ItemDbRecordForm } from "../../components/clients/ItemDbRecordForm";
 import { TaqaDataImportPanel } from "../../components/clients/TaqaDataImportPanel";
 import { Sidebar } from "../../components/Sidebar";
 import { useToastContext } from "../../components/ui/ToastProvider";
@@ -1196,6 +1197,26 @@ function ClientWorkspacePage() {
 								)}
 							</>
 						)}
+					</section>
+
+					<section className="rounded-xl border border-gray-200 bg-white p-6">
+						<h2 className="text-lg font-semibold text-gray-900 mb-2">
+							Add / Update Item Record
+						</h2>
+						<p className="text-sm text-gray-500 mb-4">
+							Quickly add a new item or update the expected quantity of an
+							existing one in the database.
+						</p>
+						<ItemDbRecordForm
+							clientId={client.id}
+							items={maintenanceSnapshot?.rows || []}
+							categories={categories || []}
+							onSuccess={() => {
+								queryClient.invalidateQueries({
+									queryKey: ["client-items-db-snapshot", clientId],
+								});
+							}}
+						/>
 					</section>
 
 					<section className="rounded-xl border border-gray-200 bg-white p-6">
