@@ -9,16 +9,12 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { createServerFn } from "@tanstack/react-start";
+import { getCookie } from "@tanstack/react-start/server";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { ToastProvider } from "../components/ui/ToastProvider";
 import { AuthContext, useAuthState } from "../hooks/useAuth";
-import {
-	applyThemePreference,
-	getThemePreference,
-	subscribeThemePreference,
-	watchSystemTheme,
-} from "../lib/theme";
 import appCss from "../styles.css?url";
 
 // Create a client
@@ -29,6 +25,11 @@ const queryClient = new QueryClient({
 			retry: 1,
 		},
 	},
+});
+
+const getThemeCookie = createServerFn({ method: "GET" }).handler(async () => {
+	const theme = getCookie("ipac-theme-preference") || "system";
+	return theme;
 });
 
 export const Route = createRootRoute({
@@ -43,13 +44,26 @@ export const Route = createRootRoute({
 			{ rel: "icon", href: "/IPAC_favicon.ico" },
 		],
 	}),
+	loader: async () => {
+		const theme = await getThemeCookie();
+		return { theme };
+	},
 	component: RootComponent,
 	notFoundComponent: NotFoundComponent,
 });
 
 function NotFoundComponent() {
+	let theme: string | undefined;
+	try {
+		// biome-ignore lint/correctness/useHookAtTopLevel: required for tanstack router not-found fallback
+		const data = Route.useLoaderData();
+		theme = data?.theme;
+	} catch {
+		// Route.useLoaderData might throw if loader hasn't run or is not found context
+	}
+
 	return (
-		<RootDocument>
+		<RootDocument theme={theme}>
 			<div className="min-h-screen flex items-center justify-center bg-gray-50">
 				<div className="text-center">
 					<h1 className="text-6xl font-bold text-gray-300">404</h1>
@@ -66,9 +80,25 @@ function NotFoundComponent() {
 	);
 }
 
-function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
+function RootDocument({
+	children,
+	theme,
+}: Readonly<{ children: ReactNode; theme?: string }>) {
+	const dataTheme = theme === "dark" || theme === "light" ? theme : undefined;
+	const style =
+		theme === "dark"
+			? { colorScheme: "dark" }
+			: theme === "light"
+				? { colorScheme: "light" }
+				: undefined;
+
 	return (
-		<html lang="en" suppressHydrationWarning>
+		<html
+			lang="en"
+			data-theme={dataTheme}
+			style={style}
+			suppressHydrationWarning
+		>
 			<head suppressHydrationWarning>
 				<HeadContent />
 			</head>
@@ -83,6 +113,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
 function RootComponent() {
 	const authState = useAuthState();
 	const [isHydrated, setIsHydrated] = useState(false);
+	const { theme } = Route.useLoaderData();
 	const showTanStackDevtools =
 		import.meta.env.DEV &&
 		import.meta.env.VITE_ENABLE_TANSTACK_DEVTOOLS === "true";
@@ -91,37 +122,8 @@ function RootComponent() {
 		setIsHydrated(true);
 	}, []);
 
-	useEffect(() => {
-		if (typeof window === "undefined") {
-			return;
-		}
-
-		let stopSystemWatcher = () => {};
-
-		const applyWithWatcher = (preference: "light" | "dark" | "system") => {
-			applyThemePreference(preference);
-			stopSystemWatcher();
-			if (preference === "system") {
-				stopSystemWatcher = watchSystemTheme(() =>
-					applyThemePreference("system"),
-				);
-			}
-		};
-
-		applyWithWatcher(getThemePreference());
-
-		const stopPreferenceWatcher = subscribeThemePreference((preference) => {
-			applyWithWatcher(preference);
-		});
-
-		return () => {
-			stopSystemWatcher();
-			stopPreferenceWatcher();
-		};
-	}, []);
-
 	return (
-		<RootDocument>
+		<RootDocument theme={theme}>
 			<QueryClientProvider client={queryClient}>
 				<AuthContext.Provider value={authState}>
 					<ToastProvider>

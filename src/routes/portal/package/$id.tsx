@@ -172,7 +172,6 @@ function PackageView() {
 						id,
 						package_number,
 						reference,
-						reference_number,
 						description,
 						status,
 						original_pkg_info:package_info!order_packages_original_pkg_info_fkey (
@@ -191,7 +190,7 @@ function PackageView() {
 					pkd_item (
 						id,
 						quantity,
-						items_db (
+						items_db:maintenance_db_id (
 							id,
 							item_num,
 							reference,
@@ -247,8 +246,7 @@ function PackageView() {
 							: (instanceData.order_pkg_overview as any)?.pkg_number) ??
 						orderPackage?.package_number ??
 						null,
-					reference_number:
-						orderPackage?.reference || orderPackage?.reference_number || null,
+					reference_number: orderPackage?.reference || null,
 					status: instanceData.status || orderPackage?.status || null,
 					box_type: finalInfo?.box_type ?? originalInfo?.box_type ?? null,
 					actual_length:
@@ -268,7 +266,6 @@ function PackageView() {
 					id,
 					package_number,
 					reference,
-					reference_number,
 					description,
 					status,
 					box_type (name),
@@ -310,7 +307,7 @@ function PackageView() {
 						id,
 						quantity,
 						pkg_instance_id,
-						items_db (
+						items_db:maintenance_db_id (
 							id,
 							item_num,
 							reference,
@@ -378,8 +375,7 @@ function PackageView() {
 				instanceRow: null,
 				instance_number: null,
 				package_number: legacyPackage.package_number ?? null,
-				reference_number:
-					legacyPackage.reference || legacyPackage.reference_number || null,
+				reference_number: legacyPackage.reference || null,
 				status: legacyPackage.status || null,
 				box_type: legacyPackage.box_type || null,
 				actual_length:
@@ -426,7 +422,6 @@ function PackageView() {
 					),
 					order_package:order_packages (
 						reference,
-						reference_number,
 						package_number
 					)
 				`)
@@ -622,7 +617,6 @@ function PackageView() {
 												<div>
 													<div className="text-sm font-semibold text-gray-900">
 														{orderPackage?.reference ||
-															orderPackage?.reference_number ||
 															`Package ${overview?.pkg_number || orderPackage?.package_number || "-"}`}
 													</div>
 													<div className="text-xs text-gray-500 mt-1">

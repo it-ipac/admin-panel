@@ -264,9 +264,23 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,'Segoe UI',sans-serif;background:white}
+.report-theme-text {
+  color: #111827 !important;
+}
+thead tr, thead th {
+  background-color: #f1f5f9 !important;
+  color: #111827 !important;
+}
 @media print{
   @page{size:${isLandscape ? "A4 landscape" : "A4 portrait"};margin:0}
   body{margin:0}
+  .report-theme-text {
+    color: #111827 !important;
+  }
+  thead tr, thead th {
+    background-color: #f1f5f9 !important;
+    color: #111827 !important;
+  }
 }
 </style></head><body>${content.innerHTML}
 <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script>

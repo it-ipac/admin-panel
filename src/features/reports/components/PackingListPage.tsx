@@ -1,10 +1,13 @@
+import { useQueryClient } from "@tanstack/react-query";
 import React from "react";
+import { supabase } from "../../../lib/supabase";
 import { getSignatureUrl, type SignatureRow } from "../hooks/useSignatures";
 import type {
 	ReportDisplaySettings,
 	ReportPkgDetailsSettings,
 } from "../settings-defaults";
 import type { ReportInstanceData } from "../types";
+import { EditableValue } from "./EditableValue";
 
 interface PackingListPageProps {
 	items: ReportInstanceData[];
@@ -23,6 +26,7 @@ interface PackingListPageProps {
 	companyProfile: any;
 	signatures?: SignatureRow[];
 	hiddenMediaUrls?: string[];
+	editable?: boolean;
 }
 
 function renderFormattedText(
@@ -49,7 +53,7 @@ function renderFormattedText(
 			const content = part.slice(5, -6);
 			return <sup key={i}>{restoreEscapes(content)}</sup>;
 		}
-		if (lowerPart.startsWith("<sub") && lowerPart.endsWith("</sub>")) {
+		if (lowerPart.startsWith("<sub>") && lowerPart.endsWith("</sub>")) {
 			const content = part.slice(5, -6);
 			return <sub key={i}>{restoreEscapes(content)}</sub>;
 		}
@@ -90,9 +94,80 @@ export const PackingListPage = React.forwardRef<
 			companyProfile,
 			signatures = [],
 			hiddenMediaUrls = [],
+			editable = false,
 		},
 		ref,
 	) => {
+		const queryClient = useQueryClient();
+
+		const updateBoxField = async (
+			inst: ReportInstanceData,
+			field: string,
+			val: number | string | null,
+		) => {
+			const targetInfoId = inst.final_pkg_info_id || inst.original_pkg_info_id;
+			if (targetInfoId) {
+				const { error } = await supabase
+					.from("package_info")
+					.update({ [field]: val })
+					.eq("id", targetInfoId);
+				if (error) throw error;
+			} else if (inst.order_package_id) {
+				const { data: newInfo, error: createError } = await supabase
+					.from("package_info")
+					.insert({ [field]: val })
+					.select("id")
+					.single();
+				if (createError) throw createError;
+
+				const { error: linkError } = await supabase
+					.from("order_packages")
+					.update({ final_pkg_info: newInfo.id })
+					.eq("id", inst.order_package_id);
+				if (linkError) throw linkError;
+			}
+
+			queryClient.invalidateQueries({ queryKey: ["report_instances"] });
+			queryClient.invalidateQueries({ queryKey: ["order_totals"] });
+		};
+
+		const updateInstanceField = async (
+			instId: string,
+			field: string,
+			val: string | number | null,
+		) => {
+			const { error } = await supabase
+				.from("order_pkg_instance")
+				.update({ [field]: val })
+				.eq("id", instId);
+			if (error) throw error;
+
+			queryClient.invalidateQueries({ queryKey: ["report_instances"] });
+		};
+
+		const updateItemField = async (
+			maintenanceDbId: string,
+			field: string,
+			val: string | number | null,
+		) => {
+			const { error } = await supabase
+				.from("items_db")
+				.update({ [field]: val })
+				.eq("id", maintenanceDbId);
+			if (error) throw error;
+
+			queryClient.invalidateQueries({ queryKey: ["report_instances"] });
+		};
+
+		const updatePkdItemQty = async (pkdItemId: string, qty: number | null) => {
+			const { error } = await supabase
+				.from("pkd_item")
+				.update({ quantity: qty })
+				.eq("id", pkdItemId);
+			if (error) throw error;
+
+			queryClient.invalidateQueries({ queryKey: ["report_instances"] });
+		};
 		const baseFontSize = display.font_size_px
 			? `${display.font_size_px}px`
 			: FONT_SIZE_MAP[display.font_size];
@@ -160,6 +235,7 @@ export const PackingListPage = React.forwardRef<
 			return (
 				<div
 					ref={ref}
+					className="report-preview-container"
 					style={{
 						fontFamily: "'Segoe UI', 'Inter', sans-serif",
 						fontSize: baseFontSize,
@@ -204,6 +280,7 @@ export const PackingListPage = React.forwardRef<
 								)}
 							{nameVal && (
 								<div
+									className="report-theme-text"
 									style={{
 										fontSize: "14px",
 										fontWeight: "bold",
@@ -265,6 +342,7 @@ export const PackingListPage = React.forwardRef<
 						<div style={{ textAlign: "center", marginBottom: "40px" }}>
 							{headerData.showReportName !== false && (
 								<div
+									className="report-theme-text"
 									style={{
 										fontSize: display.font_size_px
 											? `${Math.round(display.font_size_px * 2.33)}px`
@@ -324,7 +402,12 @@ export const PackingListPage = React.forwardRef<
 						{/* Date */}
 						{display.show_report_date && headerData.reportDate && (
 							<div>
-								<span style={{ fontWeight: "700", color: tc }}>Date: </span>
+								<span
+									className="report-theme-text"
+									style={{ fontWeight: "700", color: tc }}
+								>
+									Date:{" "}
+								</span>
 								{new Date(headerData.reportDate).toLocaleDateString("en-GB")}
 							</div>
 						)}
@@ -335,6 +418,7 @@ export const PackingListPage = React.forwardRef<
 								style={{ borderBottom: "1px solid #ddd", paddingBottom: "7px" }}
 							>
 								<div
+									className="report-theme-text"
 									style={{ fontWeight: "700", color: tc, marginBottom: "4px" }}
 								>
 									Customer:{" "}
@@ -501,7 +585,10 @@ export const PackingListPage = React.forwardRef<
 							<div
 								style={{ borderBottom: "1px solid #ddd", paddingBottom: "7px" }}
 							>
-								<span style={{ fontWeight: "700", color: tc }}>
+								<span
+									className="report-theme-text"
+									style={{ fontWeight: "700", color: tc }}
+								>
 									Project Reference:{" "}
 								</span>
 								<span style={{ fontWeight: "600" }}>
@@ -519,6 +606,7 @@ export const PackingListPage = React.forwardRef<
 								style={{ borderBottom: "1px solid #ddd", paddingBottom: "7px" }}
 							>
 								<div
+									className="report-theme-text"
 									style={{
 										fontWeight: "700",
 										color: tc,
@@ -664,14 +752,20 @@ export const PackingListPage = React.forwardRef<
 								}}
 							>
 								<div>
-									<span style={{ fontWeight: "700", color: tc }}>
+									<span
+										className="report-theme-text"
+										style={{ fontWeight: "700", color: tc }}
+									>
 										Total number of Boxes:{" "}
 									</span>
 									{items.length}
 								</div>
 								{headerData.totalVolume && (
 									<div>
-										<span style={{ fontWeight: "700", color: tc }}>
+										<span
+											className="report-theme-text"
+											style={{ fontWeight: "700", color: tc }}
+										>
 											Total volume:{" "}
 										</span>
 										{headerData.totalVolume} m³
@@ -775,6 +869,7 @@ export const PackingListPage = React.forwardRef<
 		return (
 			<div
 				ref={ref}
+				className="report-preview-container"
 				style={{
 					fontFamily: "'Segoe UI', 'Inter', sans-serif",
 					fontSize: baseFontSize,
@@ -785,12 +880,11 @@ export const PackingListPage = React.forwardRef<
 					height: "100%",
 					overflow: "hidden",
 					background: "white",
-					paddingTop:
-						isLandscape
+					paddingTop: isLandscape
+						? "10mm"
+						: display.header_show_mode === "first_page_only"
 							? "10mm"
-							: display.header_show_mode === "first_page_only"
-								? "10mm"
-								: `${display.header_top_margin ?? 20}mm`,
+							: `${display.header_top_margin ?? 20}mm`,
 					paddingLeft: "30px",
 					paddingRight: "30px",
 					paddingBottom: isLandscape ? "15px" : "30px",
@@ -801,7 +895,13 @@ export const PackingListPage = React.forwardRef<
 					display.header_show_mode === "all_pages") && (
 					<div style={{ flexShrink: 0 }}>
 						{/* Colored top bar */}
-						<div style={{ height: isLandscape ? 3 : 5, background: tc, marginBottom: isLandscape ? 6 : 12 }} />
+						<div
+							style={{
+								height: isLandscape ? 3 : 5,
+								background: tc,
+								marginBottom: isLandscape ? 6 : 12,
+							}}
+						/>
 						<div
 							style={{
 								display: "flex",
@@ -813,7 +913,13 @@ export const PackingListPage = React.forwardRef<
 							}}
 						>
 							{/* Left: company branding */}
-							<div style={{ display: "flex", flexDirection: "column", gap: isLandscape ? 1 : 3 }}>
+							<div
+								style={{
+									display: "flex",
+									flexDirection: "column",
+									gap: isLandscape ? 1 : 3,
+								}}
+							>
 								{display.show_company_logo &&
 									showLogo &&
 									(companyData?.logoUrl || companyProfile?.logo_url) && (
@@ -822,8 +928,14 @@ export const PackingListPage = React.forwardRef<
 											alt="Logo"
 											style={{
 												height: nameVal
-													? Math.round((display.logo_size ?? 90) * (isLandscape ? 0.4 : 0.55))
-													: Math.round((display.logo_size ?? 90) * (isLandscape ? 0.65 : 0.9)),
+													? Math.round(
+															(display.logo_size ?? 90) *
+																(isLandscape ? 0.4 : 0.55),
+														)
+													: Math.round(
+															(display.logo_size ?? 90) *
+																(isLandscape ? 0.65 : 0.9),
+														),
 												objectFit: "contain",
 												marginBottom: isLandscape ? 2 : 4,
 											}}
@@ -831,6 +943,7 @@ export const PackingListPage = React.forwardRef<
 									)}
 								{display.show_company_name && nameVal && (
 									<div
+										className="report-theme-text"
 										style={{
 											fontSize: isLandscape ? 8.5 : 10,
 											fontWeight: 700,
@@ -845,8 +958,15 @@ export const PackingListPage = React.forwardRef<
 							</div>
 
 							{/* Center: title */}
-							<div style={{ textAlign: "center", flex: 1, padding: isLandscape ? "0 8px" : "0 16px" }}>
+							<div
+								style={{
+									textAlign: "center",
+									flex: 1,
+									padding: isLandscape ? "0 8px" : "0 16px",
+								}}
+							>
 								<div
+									className="report-theme-text"
 									style={{
 										fontSize: display.font_size_px
 											? `${Math.round(display.font_size_px * (isLandscape ? 1.35 : 1.83))}px`
@@ -929,7 +1049,12 @@ export const PackingListPage = React.forwardRef<
 									Items: <strong style={{ color: tc }}>{totalBoxItems}</strong>
 								</div>
 								{display.show_page_numbers && (
-									<div style={{ marginTop: isLandscape ? 2 : 4, fontStyle: "italic" }}>
+									<div
+										style={{
+											marginTop: isLandscape ? 2 : 4,
+											fontStyle: "italic",
+										}}
+									>
 										Page {pageIndex + 1} of {totalPages}
 									</div>
 								)}
@@ -1170,20 +1295,6 @@ export const PackingListPage = React.forwardRef<
 									const unitM2 = (extL * extW) / 1e4;
 									const totalM2 = unitM2;
 
-									const intDims =
-										inst.internal_length ||
-										inst.internal_width ||
-										inst.internal_height
-											? `${inst.internal_length ?? 0}×${inst.internal_width ?? 0}×${inst.internal_height ?? 0}`
-											: "—";
-
-									const extDims =
-										inst.external_length ||
-										inst.external_width ||
-										inst.external_height
-											? `${inst.external_length ?? 0}×${inst.external_width ?? 0}×${inst.external_height ?? 0}`
-											: "—";
-
 									const rowBg =
 										pkg.table_alternating_rows && idx % 2 === 1
 											? pkg.table_alternating_color
@@ -1222,7 +1333,17 @@ export const PackingListPage = React.forwardRef<
 														borderBottom: "1px solid #eef",
 													}}
 												>
-													{inst.ipac_reference ?? "—"}
+													<EditableValue
+														value={inst.ipac_reference}
+														editable={editable}
+														onSave={(val) =>
+															updateInstanceField(
+																inst.id,
+																"ipac_reference",
+																val,
+															)
+														}
+													/>
 												</td>
 											)}
 											{pkg.show_quantity && (
@@ -1243,7 +1364,38 @@ export const PackingListPage = React.forwardRef<
 														borderBottom: "1px solid #eef",
 													}}
 												>
-													{intDims}
+													<EditableValue
+														value={inst.internal_length}
+														type="number"
+														editable={editable}
+														isDimension={true}
+														tabDimensionsOnly={pkg.tab_dimensions_only}
+														onSave={(val) =>
+															updateBoxField(inst, "internal_length", val)
+														}
+													/>
+													×
+													<EditableValue
+														value={inst.internal_width}
+														type="number"
+														editable={editable}
+														isDimension={true}
+														tabDimensionsOnly={pkg.tab_dimensions_only}
+														onSave={(val) =>
+															updateBoxField(inst, "internal_width", val)
+														}
+													/>
+													×
+													<EditableValue
+														value={inst.internal_height}
+														type="number"
+														editable={editable}
+														isDimension={true}
+														tabDimensionsOnly={pkg.tab_dimensions_only}
+														onSave={(val) =>
+															updateBoxField(inst, "internal_height", val)
+														}
+													/>
 												</td>
 											)}
 											{pkg.show_external_dims && (
@@ -1253,7 +1405,38 @@ export const PackingListPage = React.forwardRef<
 														borderBottom: "1px solid #eef",
 													}}
 												>
-													{extDims}
+													<EditableValue
+														value={inst.external_length}
+														type="number"
+														editable={editable}
+														isDimension={true}
+														tabDimensionsOnly={pkg.tab_dimensions_only}
+														onSave={(val) =>
+															updateBoxField(inst, "external_length", val)
+														}
+													/>
+													×
+													<EditableValue
+														value={inst.external_width}
+														type="number"
+														editable={editable}
+														isDimension={true}
+														tabDimensionsOnly={pkg.tab_dimensions_only}
+														onSave={(val) =>
+															updateBoxField(inst, "external_width", val)
+														}
+													/>
+													×
+													<EditableValue
+														value={inst.external_height}
+														type="number"
+														editable={editable}
+														isDimension={true}
+														tabDimensionsOnly={pkg.tab_dimensions_only}
+														onSave={(val) =>
+															updateBoxField(inst, "external_height", val)
+														}
+													/>
 												</td>
 											)}
 											{pkg.show_tare && (
@@ -1264,9 +1447,16 @@ export const PackingListPage = React.forwardRef<
 														textAlign: "right",
 													}}
 												>
-													{inst.tare !== null && inst.tare !== undefined
-														? Math.round(inst.tare)
-														: "—"}
+													<EditableValue
+														value={
+															inst.tare !== null && inst.tare !== undefined
+																? Math.round(inst.tare)
+																: null
+														}
+														type="number"
+														editable={editable}
+														onSave={(val) => updateBoxField(inst, "tare", val)}
+													/>
 												</td>
 											)}
 											{pkg.show_net_weight && (
@@ -1277,10 +1467,19 @@ export const PackingListPage = React.forwardRef<
 														textAlign: "right",
 													}}
 												>
-													{inst.net_weight !== null &&
-													inst.net_weight !== undefined
-														? Math.round(inst.net_weight)
-														: "—"}
+													<EditableValue
+														value={
+															inst.net_weight !== null &&
+															inst.net_weight !== undefined
+																? Math.round(inst.net_weight)
+																: null
+														}
+														type="number"
+														editable={editable}
+														onSave={(val) =>
+															updateBoxField(inst, "net_weight", val)
+														}
+													/>
 												</td>
 											)}
 											{pkg.show_gross_weight && (
@@ -1291,10 +1490,19 @@ export const PackingListPage = React.forwardRef<
 														textAlign: "right",
 													}}
 												>
-													{inst.gross_weight !== null &&
-													inst.gross_weight !== undefined
-														? Math.round(inst.gross_weight)
-														: "—"}
+													<EditableValue
+														value={
+															inst.gross_weight !== null &&
+															inst.gross_weight !== undefined
+																? Math.round(inst.gross_weight)
+																: null
+														}
+														type="number"
+														editable={editable}
+														onSave={(val) =>
+															updateBoxField(inst, "gross_weight", val)
+														}
+													/>
 												</td>
 											)}
 											{pkg.show_unit_m3 && (
@@ -1423,12 +1631,16 @@ export const PackingListPage = React.forwardRef<
 											}}
 										>
 											{pkg.show_line_number && (
-												<span style={{ fontWeight: 700, color: tc }}>
+												<span
+													className="report-theme-text"
+													style={{ fontWeight: 700, color: tc }}
+												>
 													#{globalLineNumber}
 												</span>
 											)}
 											{pkg.show_box_number !== false && (
 												<span
+													className="report-theme-text"
 													style={{ fontWeight: 700, fontSize: 11, color: tc }}
 												>
 													Box {inst.package_number}
@@ -1446,52 +1658,161 @@ export const PackingListPage = React.forwardRef<
 													</span>
 												)}
 											{pkg.show_internal_dims &&
-												(inst.internal_length ||
+												(editable ||
+													inst.internal_length ||
 													inst.internal_width ||
 													inst.internal_height) && (
 													<span>
 														Int Dims:{" "}
 														<strong>
-															{inst.internal_length ?? 0}×
-															{inst.internal_width ?? 0}×
-															{inst.internal_height ?? 0} mm
+															<EditableValue
+																value={inst.internal_length}
+																type="number"
+																editable={editable}
+																isDimension={true}
+																tabDimensionsOnly={pkg.tab_dimensions_only}
+																onSave={(val) =>
+																	updateBoxField(inst, "internal_length", val)
+																}
+															/>
+															×
+															<EditableValue
+																value={inst.internal_width}
+																type="number"
+																editable={editable}
+																isDimension={true}
+																tabDimensionsOnly={pkg.tab_dimensions_only}
+																onSave={(val) =>
+																	updateBoxField(inst, "internal_width", val)
+																}
+															/>
+															×
+															<EditableValue
+																value={inst.internal_height}
+																type="number"
+																editable={editable}
+																isDimension={true}
+																tabDimensionsOnly={pkg.tab_dimensions_only}
+																onSave={(val) =>
+																	updateBoxField(inst, "internal_height", val)
+																}
+															/>{" "}
+															mm
 														</strong>
 													</span>
 												)}
 											{pkg.show_external_dims &&
-												(inst.external_length ||
+												(editable ||
+													inst.external_length ||
 													inst.external_width ||
 													inst.external_height) && (
 													<span>
 														Ext Dims:{" "}
 														<strong>
-															{inst.external_length ?? 0}×
-															{inst.external_width ?? 0}×
-															{inst.external_height ?? 0} cm
+															<EditableValue
+																value={inst.external_length}
+																type="number"
+																editable={editable}
+																isDimension={true}
+																tabDimensionsOnly={pkg.tab_dimensions_only}
+																onSave={(val) =>
+																	updateBoxField(inst, "external_length", val)
+																}
+															/>
+															×
+															<EditableValue
+																value={inst.external_width}
+																type="number"
+																editable={editable}
+																isDimension={true}
+																tabDimensionsOnly={pkg.tab_dimensions_only}
+																onSave={(val) =>
+																	updateBoxField(inst, "external_width", val)
+																}
+															/>
+															×
+															<EditableValue
+																value={inst.external_height}
+																type="number"
+																editable={editable}
+																isDimension={true}
+																tabDimensionsOnly={pkg.tab_dimensions_only}
+																onSave={(val) =>
+																	updateBoxField(inst, "external_height", val)
+																}
+															/>{" "}
+															cm
 														</strong>
 													</span>
 												)}
 											{pkg.show_tare &&
-												inst.tare !== null &&
-												inst.tare !== undefined && (
+												(editable ||
+													(inst.tare !== null && inst.tare !== undefined)) && (
 													<span>
-														Tare: <strong>{Math.round(inst.tare)} kg</strong>
+														Tare:{" "}
+														<strong>
+															<EditableValue
+																value={
+																	inst.tare !== null && inst.tare !== undefined
+																		? Math.round(inst.tare)
+																		: null
+																}
+																type="number"
+																editable={editable}
+																onSave={(val) =>
+																	updateBoxField(inst, "tare", val)
+																}
+															/>{" "}
+															kg
+														</strong>
 													</span>
 												)}
 											{pkg.show_net_weight &&
-												inst.net_weight !== null &&
-												inst.net_weight !== undefined && (
+												(editable ||
+													(inst.net_weight !== null &&
+														inst.net_weight !== undefined)) && (
 													<span>
 														N.W.:{" "}
-														<strong>{Math.round(inst.net_weight)} kg</strong>
+														<strong>
+															<EditableValue
+																value={
+																	inst.net_weight !== null &&
+																	inst.net_weight !== undefined
+																		? Math.round(inst.net_weight)
+																		: null
+																}
+																type="number"
+																editable={editable}
+																onSave={(val) =>
+																	updateBoxField(inst, "net_weight", val)
+																}
+															/>{" "}
+															kg
+														</strong>
 													</span>
 												)}
 											{pkg.show_gross_weight &&
-												inst.gross_weight !== null &&
-												inst.gross_weight !== undefined && (
+												(editable ||
+													(inst.gross_weight !== null &&
+														inst.gross_weight !== undefined)) && (
 													<span>
 														G.W.:{" "}
-														<strong>{Math.round(inst.gross_weight)} kg</strong>
+														<strong>
+															<EditableValue
+																value={
+																	inst.gross_weight !== null &&
+																	inst.gross_weight !== undefined
+																		? Math.round(inst.gross_weight)
+																		: null
+																}
+																type="number"
+																editable={editable}
+																onSave={(val) =>
+																	updateBoxField(inst, "gross_weight", val)
+																}
+															/>{" "}
+															kg
+														</strong>
 													</span>
 												)}
 											{pkg.show_unit_m3 && (
@@ -1553,11 +1874,25 @@ export const PackingListPage = React.forwardRef<
 														</strong>
 													</span>
 												)}
-											{pkg.show_ipac_reference && inst.ipac_reference && (
-												<span>
-													IPAC Ref: <strong>{inst.ipac_reference}</strong>
-												</span>
-											)}
+											{pkg.show_ipac_reference &&
+												(editable || inst.ipac_reference) && (
+													<span>
+														IPAC Ref:{" "}
+														<strong>
+															<EditableValue
+																value={inst.ipac_reference}
+																editable={editable}
+																onSave={(val) =>
+																	updateInstanceField(
+																		inst.id,
+																		"ipac_reference",
+																		val,
+																	)
+																}
+															/>
+														</strong>
+													</span>
+												)}
 											{pkg.show_client_reference && inst.destination && (
 												<span>
 													Client Ref: <strong>{inst.destination}</strong>
@@ -1845,8 +2180,10 @@ export const PackingListPage = React.forwardRef<
 
 																		const showExtraInfo =
 																			pkg.items_detail_level === "detailed" &&
-																			pkg.show_item_additional_info &&
-																			(hasDims || hasWeight);
+																			((pkg.show_item_dimensions !== false &&
+																				(editable || hasDims)) ||
+																				(pkg.show_item_weight !== false &&
+																					(editable || hasWeight)));
 
 																		const hasSecondRow =
 																			showExtraInfo || hasPhotos;
@@ -1885,6 +2222,7 @@ export const PackingListPage = React.forwardRef<
 																					)}
 																					{pkg.show_qty_col && (
 																						<td
+																							className="report-theme-text"
 																							style={{
 																								padding: "6px 8px",
 																								fontSize: "9.5px",
@@ -1898,7 +2236,17 @@ export const PackingListPage = React.forwardRef<
 																								color: tc,
 																							}}
 																						>
-																							{item.quantity}
+																							<EditableValue
+																								value={item.quantity}
+																								type="number"
+																								editable={editable}
+																								onSave={(val) =>
+																									updatePkdItemQty(
+																										item.id,
+																										val ? Number(val) : null,
+																									)
+																								}
+																							/>
 																						</td>
 																					)}
 																					{pkg.show_item_num_col && (
@@ -1916,7 +2264,20 @@ export const PackingListPage = React.forwardRef<
 																								wordBreak: "break-all",
 																							}}
 																						>
-																							{item.item_num || "—"}
+																							<EditableValue
+																								value={item.item_num}
+																								editable={
+																									editable &&
+																									!!item.maintenance_db_id
+																								}
+																								onSave={(val) =>
+																									updateItemField(
+																										item.maintenance_db_id!,
+																										"item_num",
+																										val,
+																									)
+																								}
+																							/>
 																						</td>
 																					)}
 																					{pkg.show_description_col && (
@@ -1934,12 +2295,27 @@ export const PackingListPage = React.forwardRef<
 																								color: "#111",
 																							}}
 																						>
-																							{item.item_name
-																								? renderFormattedText(
-																										item.item_name,
-																										display.enable_formatting,
-																									)
-																								: "—"}
+																							{editable &&
+																							!!item.maintenance_db_id ? (
+																								<EditableValue
+																									value={item.item_name}
+																									editable={editable}
+																									onSave={(val) =>
+																										updateItemField(
+																											item.maintenance_db_id!,
+																											"description",
+																											val,
+																										)
+																									}
+																								/>
+																							) : item.item_name ? (
+																								renderFormattedText(
+																									item.item_name,
+																									display.enable_formatting,
+																								)
+																							) : (
+																								"—"
+																							)}
 																						</td>
 																					)}
 																					{pkg.show_item_qr_code && (
@@ -2006,49 +2382,136 @@ export const PackingListPage = React.forwardRef<
 																											gap: "2px",
 																										}}
 																									>
-																										{hasDims && (
-																											<div>
-																												<span
-																													style={{
-																														color: "#64748b",
-																														fontWeight: "600",
-																													}}
-																												>
-																													Dims:{" "}
-																												</span>
-																												<strong
-																													style={{
-																														color: "#1e293b",
-																													}}
-																												>
-																													{item.length ?? 0}×
-																													{item.width ?? 0}×
-																													{item.height ?? 0} mm
-																												</strong>
-																											</div>
-																										)}
-																										{hasWeight && (
-																											<div>
-																												<span
-																													style={{
-																														color: "#64748b",
-																														fontWeight: "600",
-																													}}
-																												>
-																													Weight:{" "}
-																												</span>
-																												<strong
-																													style={{
-																														color: "#1e293b",
-																													}}
-																												>
-																													{Math.round(
-																														item.net_weight!,
-																													)}{" "}
-																													kg
-																												</strong>
-																											</div>
-																										)}
+																										{pkg.show_item_dimensions !==
+																											false &&
+																											(editable || hasDims) && (
+																												<div>
+																													<span
+																														style={{
+																															color: "#64748b",
+																															fontWeight: "600",
+																														}}
+																													>
+																														Dims:{" "}
+																													</span>
+																													<strong
+																														style={{
+																															color: "#1e293b",
+																														}}
+																													>
+																														<EditableValue
+																															value={
+																																item.length
+																															}
+																															type="number"
+																															isDimension={true}
+																															tabDimensionsOnly={
+																																pkg.tab_dimensions_only
+																															}
+																															editable={
+																																editable &&
+																																!!item.maintenance_db_id
+																															}
+																															onSave={(val) =>
+																																updateItemField(
+																																	item.maintenance_db_id!,
+																																	"length",
+																																	val,
+																																)
+																															}
+																														/>
+																														×
+																														<EditableValue
+																															value={item.width}
+																															type="number"
+																															isDimension={true}
+																															tabDimensionsOnly={
+																																pkg.tab_dimensions_only
+																															}
+																															editable={
+																																editable &&
+																																!!item.maintenance_db_id
+																															}
+																															onSave={(val) =>
+																																updateItemField(
+																																	item.maintenance_db_id!,
+																																	"width",
+																																	val,
+																																)
+																															}
+																														/>
+																														×
+																														<EditableValue
+																															value={
+																																item.height
+																															}
+																															type="number"
+																															isDimension={true}
+																															tabDimensionsOnly={
+																																pkg.tab_dimensions_only
+																															}
+																															editable={
+																																editable &&
+																																!!item.maintenance_db_id
+																															}
+																															onSave={(val) =>
+																																updateItemField(
+																																	item.maintenance_db_id!,
+																																	"height",
+																																	val,
+																																)
+																															}
+																														/>{" "}
+																														mm
+																													</strong>
+																												</div>
+																											)}
+																										{pkg.show_item_weight !==
+																											false &&
+																											(editable ||
+																												hasWeight) && (
+																												<div>
+																													<span
+																														style={{
+																															color: "#64748b",
+																															fontWeight: "600",
+																														}}
+																													>
+																														Weight:{" "}
+																													</span>
+																													<strong
+																														style={{
+																															color: "#1e293b",
+																														}}
+																													>
+																														<EditableValue
+																															value={
+																																item.net_weight !==
+																																	null &&
+																																item.net_weight !==
+																																	undefined
+																																	? Math.round(
+																																			item.net_weight,
+																																		)
+																																	: null
+																															}
+																															type="number"
+																															editable={
+																																editable &&
+																																!!item.maintenance_db_id
+																															}
+																															onSave={(val) =>
+																																updateItemField(
+																																	item.maintenance_db_id!,
+																																	"net_weight",
+																																	val,
+																																)
+																															}
+																														/>{" "}
+																														kg
+																													</strong>
+																												</div>
+																											)}
 																									</div>
 																								</td>
 

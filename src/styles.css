@@ -18,40 +18,39 @@
 	--color-error: #ef4444;
 	--color-warning: #f59e0b;
 	--color-info: #3b82f6;
+
+	--color-app-bg: var(--app-bg);
+	--color-app-surface: var(--app-surface);
+	--color-app-surface-muted: var(--app-surface-muted);
+	--color-app-border: var(--app-border);
+	--color-app-border-muted: var(--app-border-muted);
 }
 
 :root {
-	--app-text: #111827;
-	--app-text-muted: #6b7280;
-	--app-text-subtle: #4b5563;
-	--app-text-strong: #111827;
-	--app-bg: #f9fafb;
-	--app-surface: #ffffff;
-	--app-surface-muted: #f3f4f6;
-	--app-border: #e5e7eb;
-	--app-border-muted: #f3f4f6;
-	--app-input-bg: #ffffff;
-	--app-input-disabled-bg: #f9fafb;
-	--app-scrollbar-track: #f1f5f9;
-	--app-scrollbar-thumb: #cbd5e1;
-	--app-scrollbar-thumb-hover: #94a3b8;
+	color-scheme: light dark;
+
+	--app-text: light-dark(#111827, #e5e7eb);
+	--app-text-muted: light-dark(#6b7280, #9ca3af);
+	--app-text-subtle: light-dark(#4b5563, #cbd5e1);
+	--app-text-strong: light-dark(#111827, #f9fafb);
+	--app-bg: light-dark(#f9fafb, #0f172a);
+	--app-surface: light-dark(#ffffff, #111827);
+	--app-surface-muted: light-dark(#f3f4f6, #1f2937);
+	--app-border: light-dark(#e5e7eb, #334155);
+	--app-border-muted: light-dark(#f3f4f6, #1f2937);
+	--app-input-bg: light-dark(#ffffff, #0b1220);
+	--app-input-disabled-bg: light-dark(#f9fafb, #0b1220);
+	--app-scrollbar-track: light-dark(#f1f5f9, #0b1220);
+	--app-scrollbar-thumb: light-dark(#cbd5e1, #334155);
+	--app-scrollbar-thumb-hover: light-dark(#94a3b8, #475569);
 }
 
-[data-theme="dark"] {
-	--app-text: #e5e7eb;
-	--app-text-muted: #9ca3af;
-	--app-text-subtle: #cbd5e1;
-	--app-text-strong: #f9fafb;
-	--app-bg: #0f172a;
-	--app-surface: #111827;
-	--app-surface-muted: #1f2937;
-	--app-border: #334155;
-	--app-border-muted: #1f2937;
-	--app-input-bg: #0b1220;
-	--app-input-disabled-bg: #0b1220;
-	--app-scrollbar-track: #0b1220;
-	--app-scrollbar-thumb: #334155;
-	--app-scrollbar-thumb-hover: #475569;
+/* Fallback overrides ONLY when a user explicitly chooses a manual theme */
+html[data-theme="light"] {
+	color-scheme: light;
+}
+html[data-theme="dark"] {
+	color-scheme: dark;
 }
 
 /* Base styles */
@@ -85,7 +84,7 @@ p,
 span,
 div,
 label {
-	color: var(--app-text) !important;
+	color: var(--app-text);
 }
 
 /* Gray text variations */
@@ -325,13 +324,6 @@ button.text-white {
 	color: var(--app-text) !important;
 }
 
-/* Make sure all child elements inherit dark text */
-.card *,
-.bg-white *,
-.bg-gray-50 * {
-	color: inherit;
-}
-
 /* Login input borders: enforce dark borders regardless of global border overrides */
 .login-input {
 	border-color: #111827 !important;
@@ -341,22 +333,329 @@ button.text-white {
 	border-color: #111827 !important;
 }
 
-[data-theme="dark"] .bg-white {
-	background-color: var(--app-surface) !important;
+/* Map common Tailwind layout utilities to our semantic variables for seamless dark mode */
+.bg-white {
+	background-color: var(--app-surface);
 }
 
-[data-theme="dark"] .bg-gray-50 {
+.bg-gray-50 {
+	background-color: var(--app-bg);
+}
+
+.bg-gray-100 {
+	background-color: var(--app-surface-muted);
+}
+
+.bg-gray-200 {
+	background-color: light-dark(#e5e7eb, #1f2937);
+}
+
+/* Premium Dark Mode Highlights: solve low contrast selection text and backgrounds */
+.bg-blue-50 {
+	background-color: light-dark(#eff6ff, rgba(59, 130, 246, 0.12)) !important;
+}
+
+.bg-blue-100 {
+	background-color: light-dark(#dbeafe, rgba(59, 130, 246, 0.25)) !important;
+}
+
+.border-blue-100 {
+	border-color: light-dark(#dbeafe, rgba(59, 130, 246, 0.2)) !important;
+}
+
+.border-blue-200 {
+	border-color: light-dark(#bfdbfe, rgba(59, 130, 246, 0.3)) !important;
+}
+
+.border-blue-300 {
+	border-color: light-dark(#93c5fd, rgba(59, 130, 246, 0.4)) !important;
+}
+
+.text-blue-700 {
+	color: light-dark(#1d4ed8, #60a5fa) !important;
+}
+
+.text-blue-800 {
+	color: light-dark(#1e40af, #93c5fd) !important;
+}
+
+.text-blue-900 {
+	color: light-dark(#1e3a8a, #93c5fd) !important;
+}
+
+.hover\:bg-blue-100:hover {
+	background-color: light-dark(#dbeafe, rgba(59, 130, 246, 0.2)) !important;
+}
+
+/* Green Status & Badges */
+.bg-green-50 {
+	background-color: light-dark(#f0fdf4, rgba(16, 185, 129, 0.12)) !important;
+}
+
+.bg-green-100 {
+	background-color: light-dark(#dcfce7, rgba(16, 185, 129, 0.25)) !important;
+}
+
+.border-green-100 {
+	border-color: light-dark(#dcfce7, rgba(16, 185, 129, 0.2)) !important;
+}
+
+.border-green-200 {
+	border-color: light-dark(#bbf7d0, rgba(16, 185, 129, 0.3)) !important;
+}
+
+.text-green-700 {
+	color: light-dark(#15803d, #34d399) !important;
+}
+
+.text-green-800 {
+	color: light-dark(#166534, #34d399) !important;
+}
+
+.text-green-900 {
+	color: light-dark(#064e3b, #34d399) !important;
+}
+
+.hover\:bg-green-100:hover {
+	background-color: light-dark(#dcfce7, rgba(16, 185, 129, 0.2)) !important;
+}
+
+/* Yellow / Amber Status & Badges */
+.bg-amber-50 {
+	background-color: light-dark(#fffbeb, rgba(245, 158, 11, 0.12)) !important;
+}
+
+.bg-amber-100 {
+	background-color: light-dark(#fef3c7, rgba(245, 158, 11, 0.25)) !important;
+}
+
+.bg-yellow-100 {
+	background-color: light-dark(#fef9c3, rgba(245, 158, 11, 0.25)) !important;
+}
+
+.border-amber-200 {
+	border-color: light-dark(#fde68a, rgba(245, 158, 11, 0.3)) !important;
+}
+
+.border-yellow-200 {
+	border-color: light-dark(#fef08a, rgba(245, 158, 11, 0.3)) !important;
+}
+
+.text-amber-700 {
+	color: light-dark(#b45309, #fbbf24) !important;
+}
+
+.text-amber-900 {
+	color: light-dark(#78350f, #fbbf24) !important;
+}
+
+.text-yellow-700 {
+	color: light-dark(#a16207, #fbbf24) !important;
+}
+
+.text-yellow-800 {
+	color: light-dark(#854d0e, #fbbf24) !important;
+}
+
+.hover\:bg-amber-100:hover {
+	background-color: light-dark(#fef3c7, rgba(245, 158, 11, 0.2)) !important;
+}
+
+/* Orange Status & Badges */
+.bg-orange-100 {
+	background-color: light-dark(#ffedd5, rgba(249, 115, 22, 0.15)) !important;
+}
+
+.border-orange-200 {
+	border-color: light-dark(#fed7aa, rgba(249, 115, 22, 0.25)) !important;
+}
+
+.text-orange-800 {
+	color: light-dark(#9a3412, #fb923c) !important;
+}
+
+.text-orange-900 {
+	color: light-dark(#7c2d12, #fb923c) !important;
+}
+
+/* Purple & Violet Status & Badges */
+.bg-purple-100 {
+	background-color: light-dark(#f3e8ff, rgba(168, 85, 247, 0.15)) !important;
+}
+
+.border-purple-200 {
+	border-color: light-dark(#e9d5ff, rgba(168, 85, 247, 0.25)) !important;
+}
+
+.text-purple-700 {
+	color: light-dark(#7e22ce, #c084fc) !important;
+}
+
+.text-purple-800 {
+	color: light-dark(#6b21a8, #c084fc) !important;
+}
+
+.bg-violet-50 {
+	background-color: light-dark(#f5f3ff, rgba(139, 92, 246, 0.12)) !important;
+}
+
+.border-violet-100 {
+	border-color: light-dark(#ede9fe, rgba(139, 92, 246, 0.2)) !important;
+}
+
+.border-violet-200 {
+	border-color: light-dark(#ddd6fe, rgba(139, 92, 246, 0.3)) !important;
+}
+
+.text-violet-700 {
+	color: light-dark(#6d28d9, #a78bfa) !important;
+}
+
+.text-violet-600 {
+	color: light-dark(#7c3aed, #a78bfa) !important;
+}
+
+.hover\:bg-violet-100:hover {
+	background-color: light-dark(#ede9fe, rgba(139, 92, 246, 0.2)) !important;
+}
+
+/* Indigo Status & Badges */
+.bg-indigo-100 {
+	background-color: light-dark(#e0e7ff, rgba(99, 102, 241, 0.2)) !important;
+}
+
+.bg-indigo-200 {
+	background-color: light-dark(#c7d2fe, rgba(99, 102, 241, 0.3)) !important;
+}
+
+.border-indigo-200 {
+	border-color: light-dark(#c7d2fe, rgba(99, 102, 241, 0.35)) !important;
+}
+
+.text-indigo-700 {
+	color: light-dark(#4338ca, #818cf8) !important;
+}
+
+.text-indigo-800 {
+	color: light-dark(#3730a3, #a5b4fc) !important;
+}
+
+/* Red Status & Badges */
+.bg-red-50 {
+	background-color: light-dark(#fef2f2, rgba(239, 68, 68, 0.12)) !important;
+}
+
+.border-red-100 {
+	border-color: light-dark(#fee2e2, rgba(239, 68, 68, 0.2)) !important;
+}
+
+.border-red-200 {
+	border-color: light-dark(#fecaca, rgba(239, 68, 68, 0.3)) !important;
+}
+
+.text-red-700 {
+	color: light-dark(#b91c1c, #f87171) !important;
+}
+
+.text-red-600 {
+	color: light-dark(#dc2626, #f87171) !important;
+}
+
+/* Gray & Slate helpers */
+.bg-gray-200\/80 {
+	background-color: light-dark(
+		rgba(229, 231, 235, 0.8),
+		rgba(31, 41, 55, 0.8)
+	) !important;
+}
+
+.text-gray-800 {
+	color: var(--app-text-strong) !important;
+}
+
+.auth-bg {
+	background: var(--app-bg);
+}
+
+.auth-bg .bg-blue-100,
+.auth-bg .bg-slate-200 {
+	opacity: light-dark(1, 0.05);
+}
+
+/* Map common Tailwind hover states to our semantic variables for seamless dark mode */
+.hover\:bg-gray-50:hover {
 	background-color: var(--app-bg) !important;
 }
 
-[data-theme="dark"] .bg-gray-100 {
+.hover\:bg-gray-100:hover {
 	background-color: var(--app-surface-muted) !important;
 }
 
-[data-theme="dark"] .bg-gray-200 {
-	background-color: #1f2937 !important;
+.hover\:bg-gray-200:hover {
+	background-color: light-dark(#e5e7eb, #1f2937) !important;
 }
 
-[data-theme="dark"] .bg-blue-50 {
-	background-color: rgba(37, 99, 235, 0.12) !important;
+.hover\:bg-blue-50:hover {
+	background-color: light-dark(#eff6ff, rgba(59, 130, 246, 0.2)) !important;
+}
+
+.text-white {
+	color: #ffffff !important;
+}
+
+/* Report Preview styling - must ALWAYS remain in light mode */
+.report-preview-container,
+.report-preview-container * {
+	border-color: #d8e4f0 !important;
+}
+
+.report-preview-container {
+	color-scheme: light !important;
+	background-color: #ffffff !important;
+	color: #1a1a2e !important;
+
+	--app-text: #1a1a2e !important;
+	--app-text-muted: #6b7280 !important;
+	--app-text-subtle: #4b5563 !important;
+	--app-text-strong: #111827 !important;
+	--app-bg: #f9fafb !important;
+	--app-surface: #ffffff !important;
+	--app-surface-muted: #f3f4f6 !important;
+	--app-border: #e5e7eb !important;
+	--app-border-muted: #f3f4f6 !important;
+}
+
+/* Force light mode text inheritance inside the report */
+.report-preview-container p,
+.report-preview-container span,
+.report-preview-container div,
+.report-preview-container label,
+.report-preview-container strong,
+.report-preview-container b,
+.report-preview-container i,
+.report-preview-container h1,
+.report-preview-container h2,
+.report-preview-container h3,
+.report-preview-container h4,
+.report-preview-container h5,
+.report-preview-container h6 {
+	color: inherit !important;
+}
+
+.report-preview-container table td,
+.report-preview-container table th {
+	color: inherit !important;
+	border-color: #d8e4f0 !important;
+}
+
+.report-preview-container th {
+	background-color: #f9fafb !important;
+}
+
+/* Fix option cards background color in dark mode to have correct contrast */
+.bg-gray-50\/50 {
+	background-color: light-dark(
+		rgba(249, 250, 251, 0.5),
+		rgba(31, 41, 55, 0.55)
+	) !important;
 }

@@ -1,35 +1,23 @@
 export type ThemePreference = "light" | "dark" | "system";
 
-const THEME_STORAGE_KEY = "ipac-theme-preference";
-const THEME_EVENT = "ipac-theme-change";
+const COOKIE_NAME = "ipac-theme-preference";
 
 export const getThemePreference = (): ThemePreference => {
 	if (typeof window === "undefined") {
 		return "system";
 	}
 
-	const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-	if (stored === "light" || stored === "dark" || stored === "system") {
-		return stored;
+	const match = document.cookie.match(
+		new RegExp(`(?:^|; )${COOKIE_NAME}=([^;]*)`),
+	);
+	if (match) {
+		const value = match[1];
+		if (value === "light" || value === "dark" || value === "system") {
+			return value as ThemePreference;
+		}
 	}
 
 	return "system";
-};
-
-export const getResolvedTheme = (
-	preference: ThemePreference,
-): "light" | "dark" => {
-	if (preference !== "system") {
-		return preference;
-	}
-
-	if (typeof window === "undefined" || !window.matchMedia) {
-		return "light";
-	}
-
-	return window.matchMedia("(prefers-color-scheme: dark)").matches
-		? "dark"
-		: "light";
 };
 
 export const applyThemePreference = (preference: ThemePreference) => {
@@ -37,60 +25,21 @@ export const applyThemePreference = (preference: ThemePreference) => {
 		return;
 	}
 
-	const resolved = getResolvedTheme(preference);
 	const root = document.documentElement;
-	root.setAttribute("data-theme", resolved);
-	root.setAttribute("data-theme-preference", preference);
+	if (preference === "dark" || preference === "light") {
+		root.setAttribute("data-theme", preference);
+		root.style.colorScheme = preference;
+	} else {
+		root.removeAttribute("data-theme");
+		root.style.colorScheme = "";
+	}
 };
 
 export const setThemePreference = (preference: ThemePreference) => {
-	if (typeof window !== "undefined") {
-		window.localStorage.setItem(THEME_STORAGE_KEY, preference);
-		window.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: preference }));
+	if (typeof document !== "undefined") {
+		// Set cookie valid for 1 year
+		// biome-ignore lint/suspicious/noDocumentCookie: intentional cookie usage
+		document.cookie = `${COOKIE_NAME}=${preference}; path=/; max-age=31536000; SameSite=Lax`;
+		applyThemePreference(preference);
 	}
-	applyThemePreference(preference);
-};
-
-export const watchSystemTheme = (callback: () => void) => {
-	if (typeof window === "undefined" || !window.matchMedia) {
-		return () => {};
-	}
-
-	const media = window.matchMedia("(prefers-color-scheme: dark)");
-	const listener = () => callback();
-
-	if (media.addEventListener) {
-		media.addEventListener("change", listener);
-		return () => media.removeEventListener("change", listener);
-	}
-
-	media.addListener(listener);
-	return () => media.removeListener(listener);
-};
-
-export const subscribeThemePreference = (
-	handler: (preference: ThemePreference) => void,
-) => {
-	if (typeof window === "undefined") {
-		return () => {};
-	}
-
-	const onCustomEvent = (event: Event) => {
-		const detail = (event as CustomEvent).detail as ThemePreference | undefined;
-		handler(detail ?? getThemePreference());
-	};
-
-	const onStorage = (event: StorageEvent) => {
-		if (event.key === THEME_STORAGE_KEY) {
-			handler(getThemePreference());
-		}
-	};
-
-	window.addEventListener(THEME_EVENT, onCustomEvent as EventListener);
-	window.addEventListener("storage", onStorage);
-
-	return () => {
-		window.removeEventListener(THEME_EVENT, onCustomEvent as EventListener);
-		window.removeEventListener("storage", onStorage);
-	};
 };

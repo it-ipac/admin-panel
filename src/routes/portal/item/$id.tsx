@@ -235,7 +235,7 @@ function ItemView() {
 					pkd_item (
 						id,
 						quantity,
-						order_pkg_instance (
+						order_pkg_instance:pkg_instance_id (
 							id,
 							instance_number,
 							status,
@@ -329,7 +329,6 @@ function ItemView() {
 				reference:
 					pkgInstance.ipac_reference ||
 					orderPackage?.reference ||
-					orderPackage?.reference_number ||
 					(overview?.pkg_number ? `Package ${overview.pkg_number}` : null),
 				instanceNumber: pkgInstance.instance_number ?? null,
 				orderName: orderPackage?.orders?.order_name || null,
@@ -493,19 +492,19 @@ function ItemView() {
 
 				{/* Package Location */}
 				{packageInfo ? (
-					<section className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-md p-6 sm:p-8 text-white relative overflow-hidden">
-						<div className="absolute -right-12 -top-12 w-48 h-48 bg-blue-500 rounded-full opacity-30" />
-						<div className="absolute -right-4 -bottom-10 w-32 h-32 bg-blue-800 rounded-full opacity-20" />
+					<section className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-6 sm:p-8 relative overflow-hidden">
 						<div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
 							<div>
 								<div className="flex items-center gap-2 mb-2">
-									<MapPin className="w-4 h-4 text-blue-200" />
-									<span className="text-xs font-bold text-blue-200 uppercase tracking-wide">
+									<MapPin className="w-4 h-4 text-blue-600" />
+									<span className="text-xs font-bold text-blue-600 uppercase tracking-wide">
 										Currently Packed In
 									</span>
 								</div>
-								<h3 className="text-2xl font-black">{packageInfo.reference}</h3>
-								<p className="text-blue-200 mt-1 text-sm">
+								<h3 className="text-2xl font-black text-gray-900">
+									{packageInfo.reference}
+								</h3>
+								<p className="text-gray-600 mt-1 text-sm font-medium">
 									{packageInfo.instanceNumber
 										? `Instance #${packageInfo.instanceNumber}`
 										: ""}
@@ -516,7 +515,7 @@ function ItemView() {
 								<Link
 									to="/portal/package/$id"
 									params={{ id: packageInfo.id }}
-									className="inline-flex items-center justify-center gap-2 py-2.5 px-5 bg-white text-blue-700 hover:bg-blue-50 rounded-xl font-bold shadow-sm transition-colors whitespace-nowrap flex-shrink-0"
+									className="inline-flex items-center justify-center gap-2 py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-all whitespace-nowrap flex-shrink-0"
 								>
 									<Box className="w-4 h-4" />
 									View Box Contents

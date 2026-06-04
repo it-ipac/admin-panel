@@ -117,6 +117,9 @@ export type ReportPkgDetailsSettings = {
 	show_qty_col: boolean;
 	show_line_num_col: boolean;
 	show_item_additional_info: boolean;
+	show_item_dimensions?: boolean;
+	show_item_weight?: boolean;
+	tab_dimensions_only?: boolean;
 	show_item_qr_code: boolean;
 	include_item_photos_in_box_photos: boolean;
 	// Box sorting
@@ -168,6 +171,9 @@ export const DEFAULT_PKG_DETAILS_SETTINGS: ReportPkgDetailsSettings = {
 	show_qty_col: true,
 	show_line_num_col: false,
 	show_item_additional_info: true,
+	show_item_dimensions: true,
+	show_item_weight: true,
+	tab_dimensions_only: false,
 	show_item_qr_code: true,
 	include_item_photos_in_box_photos: false,
 	boxes_sort: "number",
@@ -234,7 +240,12 @@ export function resolvePkgDetailsSettings(
 	resolved.show_total_qty_items =
 		saved.show_total_qty_items ?? saved.show_item_count_summary ?? true;
 	resolved.show_item_additional_info = saved.show_item_additional_info ?? true;
+	resolved.show_item_dimensions =
+		saved.show_item_dimensions ?? saved.show_item_additional_info ?? true;
+	resolved.show_item_weight =
+		saved.show_item_weight ?? saved.show_item_additional_info ?? true;
 	resolved.show_item_qr_code = saved.show_item_qr_code ?? true;
+	resolved.tab_dimensions_only = saved.tab_dimensions_only ?? false;
 	resolved.include_item_photos_in_box_photos =
 		saved.include_item_photos_in_box_photos ?? false;
 

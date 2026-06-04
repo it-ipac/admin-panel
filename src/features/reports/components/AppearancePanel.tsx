@@ -653,6 +653,14 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						</div>
 					</div>
 
+					<div className="mt-2 border rounded-lg p-2.5 bg-gray-50/50">
+						<Toggle
+							label="Tab Navigation: Dimensions Only"
+							checked={pkgDetails.tab_dimensions_only || false}
+							onChange={(v) => setP("tab_dimensions_only", v)}
+						/>
+					</div>
+
 					<div
 						className={`mt-2 border rounded-lg p-2.5 bg-gray-50/50 transition-opacity ${pkgDetails.box_display_mode === "compact" ? "opacity-40 pointer-events-none" : ""}`}
 					>
@@ -798,9 +806,14 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 										</div>
 										<div className="grid grid-cols-1 gap-1.5">
 											<Toggle
-												label="All Additional Info (Dims, Net Weight)"
-												checked={pkgDetails.show_item_additional_info}
-												onChange={(v) => setP("show_item_additional_info", v)}
+												label="Item Dimensions"
+												checked={pkgDetails.show_item_dimensions !== false}
+												onChange={(v) => setP("show_item_dimensions", v)}
+											/>
+											<Toggle
+												label="Item Net Weight"
+												checked={pkgDetails.show_item_weight !== false}
+												onChange={(v) => setP("show_item_weight", v)}
 											/>
 										</div>
 									</div>

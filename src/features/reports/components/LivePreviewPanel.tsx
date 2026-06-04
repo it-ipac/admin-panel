@@ -275,12 +275,32 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		return Array.from(groupMap.values());
 	}, [isReportPerOrder, filteredAndSortedInstances]);
 
-	// Reset navigation when instances change
-	// biome-ignore lint/correctness/useExhaustiveDependencies: reset pagination when instances list changes
+	// Reset navigation when instances or filter selections change
+	const instanceIdsHash = filteredAndSortedInstances
+		.map((inst) => inst.id)
+		.join(",");
+	const orderIdsHash = filters.orderIds.join(",");
+	const destinationsHash = filters.destinations.join(",");
+	const tagsHash = filters.tags.join(",");
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reset page/report only on actual filter scope or instance list changes
 	useEffect(() => {
 		setCurrentPage(0);
 		setCurrentReportIndex(0);
-	}, [filteredAndSortedInstances]);
+	}, [
+		filters.clientId,
+		orderIdsHash,
+		filters.dateFrom,
+		filters.dateTo,
+		filters.dateFilterMode,
+		tagsHash,
+		destinationsHash,
+		filters.hasItemsOnly,
+		filters.packedOnly,
+		filters.splitBy,
+		filters.boxId,
+		instanceIdsHash,
+	]);
 
 	// Active instances: all (normal mode) or current report group's instances (per-order mode)
 	const activeInstances =
@@ -310,6 +330,13 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 	const totalPages = pages.length;
 	const totalReports = reportGroups?.length ?? 1;
 	const currentReportGroup = reportGroups?.[currentReportIndex];
+
+	// Cap currentPage if totalPages shrinks
+	useEffect(() => {
+		if (totalPages > 0 && currentPage >= totalPages) {
+			setCurrentPage(totalPages - 1);
+		}
+	}, [totalPages, currentPage]);
 
 	const activeOrderId =
 		isReportPerOrder && currentReportGroup
@@ -373,9 +400,9 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		const sx = (cw - padding) / pageW;
 		const sy = (ch - padding) / pageH;
 		if (scaleMode === "fit") {
-			setScale(Math.min(sx, sy, 1));
+			setScale(Math.min(sx, sy)); // Fit both width and height inside the container space
 		} else if (scaleMode === "fill") {
-			setScale(Math.min(sx, sy)); // Uncapped fit to fill container space
+			setScale(sx); // Zoom in to fill the width of the parent (scrolling vertically if needed)
 		}
 	}, [displaySettings.orientation, scaleMode]);
 
@@ -426,6 +453,31 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		};
 
 		const handleKeyDown = (e: KeyboardEvent) => {
+			// Arrow keys paging: go to next/previous page (ArrowRight/ArrowDown -> next, ArrowLeft/ArrowUp -> prev)
+			if (
+				e.key === "ArrowRight" ||
+				e.key === "ArrowDown" ||
+				e.key === "ArrowLeft" ||
+				e.key === "ArrowUp"
+			) {
+				// Ignore if the user is typing inside an input, textarea or select
+				const activeTag = document.activeElement?.tagName.toLowerCase();
+				if (
+					activeTag === "input" ||
+					activeTag === "textarea" ||
+					activeTag === "select"
+				) {
+					return;
+				}
+				e.preventDefault();
+				if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+					setCurrentPage((p) => Math.min(totalPages - 1, p + 1));
+				} else {
+					setCurrentPage((p) => Math.max(0, p - 1));
+				}
+				return;
+			}
+
 			if (!e.ctrlKey) return;
 			// Only intercept keydown if ctrlScrollZoomReport is active
 			if (!ctrlScrollZoomReport) return;
@@ -455,7 +507,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 			container.removeEventListener("wheel", handleWheel);
 			window.removeEventListener("keydown", handleKeyDown);
 		};
-	}, [updateScale, ctrlScrollZoomReport, invertPageScroll, totalPages]);
+	}, [ctrlScrollZoomReport, invertPageScroll, totalPages]);
 
 	const isLandscape = displaySettings.orientation === "landscape";
 	const pageW = isLandscape ? "297mm" : "210mm";
@@ -819,6 +871,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 								companyData={companyData}
 								companyProfile={companyProfile}
 								signatures={signatures}
+								editable={true}
 							/>
 						</div>
 					</div>

@@ -14,7 +14,7 @@ function PortalLogin() {
 	const { user, loading } = useAuth();
 	const { toast } = useToastContext();
 
-	const [email, setEmail] = useState("");
+	const [identifier, setIdentifier] = useState("");
 	const [password, setPassword] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -42,11 +42,13 @@ function PortalLogin() {
 
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!email || !password) return;
+		if (!identifier || !password) return;
 
 		setIsSubmitting(true);
 		try {
-			const { data, error } = await auth.signIn(email, password);
+			const { data, error } = identifier.includes("@")
+				? await auth.signIn(identifier, password)
+				: await auth.signInWithUsername(identifier, password);
 			if (error) throw error;
 
 			if (data.user) {
@@ -89,7 +91,7 @@ function PortalLogin() {
 	}
 
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-slate-50 relative overflow-hidden">
+		<div className="auth-bg min-h-screen flex items-center justify-center bg-slate-50 relative overflow-hidden">
 			{/* Brand Decoration */}
 			<div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob" />
 			<div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-slate-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000" />
@@ -116,7 +118,7 @@ function PortalLogin() {
 						</svg>
 					</div>
 					<h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-						IPAC Secure Portal
+						IPAC Client Portal
 					</h1>
 					<p className="text-gray-500 text-sm mt-2 font-medium">
 						Log in to track your items and packages.
@@ -126,19 +128,19 @@ function PortalLogin() {
 				<form onSubmit={handleLogin} className="space-y-6">
 					<div>
 						<label
-							htmlFor="login-email"
+							htmlFor="login-identifier"
 							className="block text-sm font-semibold text-gray-700 mb-2"
 						>
-							Email Address
+							Email Address or Username
 						</label>
 						<input
-							id="login-email"
-							type="email"
+							id="login-identifier"
+							type="text"
 							required
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
+							value={identifier}
+							onChange={(e) => setIdentifier(e.target.value)}
 							className="w-full px-4 py-3 placeholder-gray-400 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow transition-colors bg-gray-50"
-							placeholder="you@company.com"
+							placeholder="you@company.com or username"
 						/>
 					</div>
 					<div>

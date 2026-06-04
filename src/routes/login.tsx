@@ -79,7 +79,7 @@ function LoginPage() {
 	}
 
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-linear-to-br from-primary-50 to-primary-100 p-6">
+		<div className="auth-bg min-h-screen flex items-center justify-center bg-linear-to-br from-primary-50 to-primary-100 p-6">
 			<div className="w-2xl">
 				<div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
 					<div className="px-8 pt-8 text-center">

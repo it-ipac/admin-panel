@@ -3984,15 +3984,13 @@ function OrderDetailPage() {
 			if (numMatch) return numMatch;
 
 			// Try description keywords matching
-			const keywordMatch = inventory.find(
-				(item) =>
-					item.description &&
-					item.description
-						.toLowerCase()
-						.split(/\s+/)
-						.some(
-							(word: string) => word.length > 3 && textToMatch.includes(word),
-						),
+			const keywordMatch = inventory.find((item) =>
+				item.description
+					?.toLowerCase()
+					.split(/\s+/)
+					.some(
+						(word: string) => word.length > 3 && textToMatch.includes(word),
+					),
 			);
 			if (keywordMatch) return keywordMatch;
 		}
@@ -4109,7 +4107,7 @@ function OrderDetailPage() {
 			let mapCount = 0;
 			for (const customItem of currentUnlinkedItems) {
 				const config = mappingConfigs[customItem.id];
-				if (config && config.itemsDbId) {
+				if (config?.itemsDbId) {
 					const pkg = order?.order_packages.find(
 						(p) => p.id === customItem.order_package_id,
 					);

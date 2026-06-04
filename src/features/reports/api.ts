@@ -280,7 +280,9 @@ export const fetchReportInstances = async (
 					quantity
 				),
 				order_packages (
+					id,
 					original_pkg_info:package_info!order_packages_original_pkg_info_fkey (
+						id,
 						internal_length,
 						internal_width,
 						internal_height,
@@ -297,6 +299,7 @@ export const fetchReportInstances = async (
 						)
 					),
 					final_pkg_info:package_info!order_packages_final_pkg_info_fkey (
+						id,
 						internal_length,
 						internal_width,
 						internal_height,
@@ -494,6 +497,7 @@ export const fetchReportInstances = async (
 			package_reference: inst.package_reference,
 			pkd_items: (itemsByInstance.get(inst.id) || []).map((i) => ({
 				id: i.pkd_item_id,
+				maintenance_db_id: i.maintenance_db_id || null,
 				quantity: Number(i.quantity),
 				item_name: i.description,
 				item_num: i.item_num,
@@ -549,6 +553,9 @@ export const fetchReportInstances = async (
 			qr_token: qrMap.get(inst.id) || null,
 			package_qty: pkgOverview ? Number(pkgOverview.quantity) : null,
 			box_photo_urls: boxPhotoMap.get(inst.id) || [],
+			original_pkg_info_id: originalInfo?.id || null,
+			final_pkg_info_id: finalInfo?.id || null,
+			order_package_id: orderPkgObj?.id || null,
 		};
 	});
 };

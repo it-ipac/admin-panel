@@ -143,7 +143,8 @@ function getItemHeight(
 		!pkg.include_item_photos_in_box_photos &&
 		visibleItemPhotos.length > 0;
 
-	const hasSecondRow = pkg.items_detail_level === "detailed" && (showExtraInfo || hasPhotos);
+	const hasSecondRow =
+		pkg.items_detail_level === "detailed" && (showExtraInfo || hasPhotos);
 
 	let totalH = row1H;
 
@@ -226,7 +227,8 @@ function estimateBoxHeight(
 			h += 28 * fm; // Item table header row height
 			h += 28 * fm; // Items container top/bottom padding + table margin-top
 			h += inst.pkd_items.reduce(
-				(sum, item) => sum + getItemHeight(item, pkg, fs, hiddenMediaUrls, display),
+				(sum, item) =>
+					sum + getItemHeight(item, pkg, fs, hiddenMediaUrls, display),
 				0,
 			);
 		}
@@ -274,16 +276,22 @@ export function paginateInstances(
 	const fs = display.font_size;
 	const fm = FONT_SCALE[fs];
 
-	const topPaddingPx = (isHeaderHidden || display.orientation === "landscape")
-		? 10 * 3.78
-		: (display.header_top_margin ?? 20) * 3.78;
+	const topPaddingPx =
+		isHeaderHidden || display.orientation === "landscape"
+			? 10 * 3.78
+			: (display.header_top_margin ?? 20) * 3.78;
 
 	const paddingBottomPx = display.orientation === "landscape" ? 15 : 30;
-	const pageOuterPadBottomPx = (display.orientation === "landscape" ? 6 : 12) * 3.78;
+	const pageOuterPadBottomPx =
+		(display.orientation === "landscape" ? 6 : 12) * 3.78;
 
 	const footerPx = display.footer_height_px ?? 40;
 	const footerGapPx = display.footer_body_gap_px ?? 0;
-	const headerBlockPx = isHeaderHidden ? 0 : (display.orientation === "landscape" ? 95 : 140);
+	const headerBlockPx = isHeaderHidden
+		? 0
+		: display.orientation === "landscape"
+			? 95
+			: 140;
 	const maxH =
 		PAGE_H_PX[display.orientation] -
 		topPaddingPx -

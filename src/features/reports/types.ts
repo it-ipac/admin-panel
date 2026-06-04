@@ -37,6 +37,7 @@ export type ReportInstanceData = {
 	package_reference: string | null;
 	pkd_items: Array<{
 		id: string;
+		maintenance_db_id?: string | null;
 		quantity: number;
 		item_name: string | null;
 		item_num: string | null;
@@ -67,4 +68,7 @@ export type ReportInstanceData = {
 	qr_token?: string | null;
 	package_qty?: number | null;
 	box_photo_urls?: string[];
+	original_pkg_info_id?: string | null;
+	final_pkg_info_id?: string | null;
+	order_package_id?: string | null;
 };
