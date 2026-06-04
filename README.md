@@ -1,5 +1,6 @@
 # IPAC Admin Panel
 
+
 A fast, modern admin panel built with TanStack Start for the IPAC operations system.
 
 ## Why TanStack Start?
