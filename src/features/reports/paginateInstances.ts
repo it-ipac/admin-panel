@@ -121,16 +121,19 @@ function getBoxBaseHeight(
 
 	const headerLines = Math.max(1, Math.ceil(headerTextLen / charPerLine));
 
-	let h = (14 * headerLines + 16) * fm; // Line 1: Header/Compact info row
+	// Line 1: header row — text height scales with fm, padding is fixed CSS px
+	let h = Math.round(14 * fm) * headerLines + 16; // 16px = 12px padding + 2px border + 2px safety
 	if (hasQr) {
-		h = Math.max(h, (48 + 14) * fm);
+		// QR image 48px (scales) + 12px padding (fixed)
+		h = Math.max(h, Math.round(48 * fm) + 12);
 	}
 
 	// Line 2: Detailed box info
 	const hasLine2 =
 		pkg.show_total_qty_items || pkg.show_last_packed_date || pkg.show_box_type;
 	if (hasLine2 && !isContinuation) {
-		h += 22 * fm;
+		// 9.5px text (scales) + 8px padding (fixed)
+		h += Math.round(9.5 * fm) + 8;
 	}
 
 	// Add item table header if items are shown (and not summary)
@@ -141,9 +144,11 @@ function getBoxBaseHeight(
 		inst.pkd_items.length > 0 &&
 		pkg.items_detail_level !== "summary"
 	) {
-		const tableHeaderH = (9 + 12) * fm + 2; // font size 9px + 12px padding + 2px border
+		// Table <thead> row: 9px text (scales) + 12px padding (fixed) + 2px border (fixed)
+		const tableHeaderH = Math.round(9 * fm) + 14;
+		// Container div: paddingTop(4) + marginTop(4) + paddingBottom — all fixed CSS px
 		const paddingBottom = isContinuation || inst.has_more ? 10 : 20;
-		const containerH = (4 + paddingBottom + 4) * fm; // paddingTop + paddingBottom + marginTop
+		const containerH = 4 + paddingBottom + 4;
 		h += tableHeaderH + containerH;
 	}
 
@@ -203,14 +208,11 @@ function getItemHeight(
 		numLines = Math.ceil(item.item_num.length / charPerLineNum);
 	}
 	const row1Lines = Math.max(descLines, numLines);
-	const row1H = (14 * row1Lines + 12) * fm; // Line height + padding
+	// Row 1: text height scales with fm; padding (12px) is fixed CSS px
+	const row1H = Math.round(14 * fm) * row1Lines + 12;
 
 	const hasDims = item.length || item.width || item.height;
 	const hasWeight = item.net_weight !== null && item.net_weight !== undefined;
-	const showExtraInfo =
-		pkg.items_detail_level === "detailed" &&
-		pkg.show_item_additional_info &&
-		(hasDims || hasWeight);
 
 	const visibleItemPhotos = (item.photo_urls || []).filter(
 		(url: string) => !hiddenMediaUrls.includes(url),
@@ -220,26 +222,45 @@ function getItemHeight(
 		!pkg.include_item_photos_in_box_photos &&
 		visibleItemPhotos.length > 0;
 
-	const hasSecondRow =
-		pkg.items_detail_level === "detailed" && (showExtraInfo || hasPhotos);
-
-	let totalH = row1H;
-
-	if (hasSecondRow) {
-		let row2ContentH = 14; // Default text height for Dims/Weight
+	// Determine second-row content using the canonical per-field flags (matching the DOM)
+	let row2H = 0;
+	if (pkg.items_detail_level === "detailed") {
 		if (hasPhotos) {
-			row2ContentH = Math.max(row2ContentH, 45); // 45px photo height
+			// Photo row: image 45px (scales) + 12px padding (fixed)
+			row2H = Math.round(45 * fm) + 12;
+		} else {
+			// Use show_item_dimensions / show_item_weight (canonical flags, not legacy show_item_additional_info)
+			const showDims =
+				pkg.show_item_dimensions !== false &&
+				pkg.show_item_additional_info !== false &&
+				hasDims;
+			const showWeight =
+				pkg.show_item_weight !== false &&
+				pkg.show_item_additional_info !== false &&
+				hasWeight;
+			if (showDims || showWeight) {
+				// Each visible line is ~11px text (scales) + 2px gap between lines
+				// Total padding for the row is fixed 12px regardless of font scale
+				const row2Lines = (showDims ? 1 : 0) + (showWeight ? 1 : 0);
+				const contentH =
+					Math.round(11 * fm) * row2Lines + 2 * Math.max(0, row2Lines - 1); // 2px gap between lines
+				row2H = contentH + 12; // + fixed 12px cell padding
+			}
 		}
-		const row2H = (row2ContentH + 12) * fm; // Content height + padding
-		totalH += row2H;
 	}
 
+	let totalH = row1H + row2H;
+
+	// QR code spans both rows (rowSpan=2 when second row exists).
+	// Forces row height up only if combined content rows are shorter than QR.
+	// QR image 48px (scales) + 12px padding (fixed)
 	const hasQR = pkg.show_item_qr_code && item.qr_token;
 	if (hasQR) {
-		totalH = Math.max(totalH, (48 + 14) * fm); // QR code is 48px + padding/border
+		const qrH = Math.round(48 * fm) + 12;
+		totalH = Math.max(totalH, qrH);
 	}
 
-	totalH += 2; // small safety gap/border margin
+	totalH += 2; // border/safety margin
 	return totalH;
 }
 
@@ -296,22 +317,25 @@ function estimateBoxHeight(
 
 	const headerLines = Math.max(1, Math.ceil(headerTextLen / charPerLine));
 
-	let h = (14 * headerLines + 16) * fm; // Line 1: Header/Compact info row
+	// Line 1: text height scales, padding is fixed CSS px
+	let h = Math.round(14 * fm) * headerLines + 16;
 	if (hasQr) {
-		h = Math.max(h, (48 + 14) * fm);
+		h = Math.max(h, Math.round(48 * fm) + 12);
 	}
 
 	const hasLine2 =
 		pkg.show_total_qty_items || pkg.show_last_packed_date || pkg.show_box_type;
 	if (hasLine2) {
-		h += 22 * fm;
+		h += Math.round(9.5 * fm) + 8;
 	}
 	if (pkg.show_items && inst.pkd_items.length > 0) {
 		if (pkg.items_detail_level === "summary") {
-			h += 30 * fm;
+			h += Math.round(12 * fm) + 18; // summary row: text + fixed padding
 		} else {
-			const tableHeaderH = (9 + 12) * fm + 2;
-			const containerH = (4 + 20 + 4) * fm; // bottom padding is 20px when has_more is false
+			// Table header: 9px text (scales) + 12px padding (fixed) + 2px border (fixed)
+			const tableHeaderH = Math.round(9 * fm) + 14;
+			// Container div: all fixed CSS px (paddingTop + marginTop + paddingBottom)
+			const containerH = 4 + 20 + 4; // bottom padding is 20px when has_more is false
 			h += tableHeaderH + containerH;
 			h += inst.pkd_items.reduce(
 				(sum, item) =>
@@ -601,13 +625,15 @@ export function paginateInstances(
 			} else {
 				// Summary or no items
 				const boxH = estimateBoxHeight(inst, pkg, fs, display, hiddenMediaUrls);
-				if (currentH + boxH > maxH && current.length > 0) {
+				// 8px gap renders between boxes when multiple boxes share a page (gap: 8 on the flex container)
+				const interBoxGap = current.length > 0 ? 8 : 0;
+				if (currentH + interBoxGap + boxH > maxH && current.length > 0) {
 					pages.push({ label: group.label, items: current });
 					current = [inst];
 					currentH = boxH;
 				} else {
 					current.push(inst);
-					currentH += boxH;
+					currentH += interBoxGap + boxH;
 				}
 			}
 		}

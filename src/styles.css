@@ -382,113 +382,113 @@ button.text-white {
 
 /* Premium Dark Mode Highlights: solve low contrast selection text and backgrounds */
 .bg-blue-50 {
-	background-color: light-dark(#eff6ff, rgba(59, 130, 246, 0.12)) !important;
+	background-color: var(--bg-blue-50) !important;
 }
 
 .bg-blue-100 {
-	background-color: light-dark(#dbeafe, rgba(59, 130, 246, 0.25)) !important;
+	background-color: var(--bg-blue-100) !important;
 }
 
 .border-blue-100 {
-	border-color: light-dark(#dbeafe, rgba(59, 130, 246, 0.2)) !important;
+	border-color: var(--border-blue-100) !important;
 }
 
 .border-blue-200 {
-	border-color: light-dark(#bfdbfe, rgba(59, 130, 246, 0.3)) !important;
+	border-color: var(--border-blue-200) !important;
 }
 
 .border-blue-300 {
-	border-color: light-dark(#93c5fd, rgba(59, 130, 246, 0.4)) !important;
+	border-color: var(--border-blue-300) !important;
 }
 
 .text-blue-700 {
-	color: light-dark(#1d4ed8, #60a5fa) !important;
+	color: var(--text-blue-700) !important;
 }
 
 .text-blue-800 {
-	color: light-dark(#1e40af, #93c5fd) !important;
+	color: var(--text-blue-800) !important;
 }
 
 .text-blue-900 {
-	color: light-dark(#1e3a8a, #93c5fd) !important;
+	color: var(--text-blue-900) !important;
 }
 
 .hover\:bg-blue-100:hover {
-	background-color: light-dark(#dbeafe, rgba(59, 130, 246, 0.2)) !important;
+	background-color: var(--hover-bg-blue-100) !important;
 }
 
 /* Green Status & Badges */
 .bg-green-50 {
-	background-color: light-dark(#f0fdf4, rgba(16, 185, 129, 0.12)) !important;
+	background-color: var(--bg-green-50) !important;
 }
 
 .bg-green-100 {
-	background-color: light-dark(#dcfce7, rgba(16, 185, 129, 0.25)) !important;
+	background-color: var(--bg-green-100) !important;
 }
 
 .border-green-100 {
-	border-color: light-dark(#dcfce7, rgba(16, 185, 129, 0.2)) !important;
+	border-color: var(--border-green-100) !important;
 }
 
 .border-green-200 {
-	border-color: light-dark(#bbf7d0, rgba(16, 185, 129, 0.3)) !important;
+	border-color: var(--border-green-200) !important;
 }
 
 .text-green-700 {
-	color: light-dark(#15803d, #34d399) !important;
+	color: var(--text-green-700) !important;
 }
 
 .text-green-800 {
-	color: light-dark(#166534, #34d399) !important;
+	color: var(--text-green-800) !important;
 }
 
 .text-green-900 {
-	color: light-dark(#064e3b, #34d399) !important;
+	color: var(--text-green-900) !important;
 }
 
 .hover\:bg-green-100:hover {
-	background-color: light-dark(#dcfce7, rgba(16, 185, 129, 0.2)) !important;
+	background-color: var(--hover-bg-green-100) !important;
 }
 
 /* Yellow / Amber Status & Badges */
 .bg-amber-50 {
-	background-color: light-dark(#fffbeb, rgba(245, 158, 11, 0.12)) !important;
+	background-color: var(--bg-amber-50) !important;
 }
 
 .bg-amber-100 {
-	background-color: light-dark(#fef3c7, rgba(245, 158, 11, 0.25)) !important;
+	background-color: var(--bg-amber-100) !important;
 }
 
 .bg-yellow-100 {
-	background-color: light-dark(#fef9c3, rgba(245, 158, 11, 0.25)) !important;
+	background-color: var(--bg-yellow-100) !important;
 }
 
 .border-amber-200 {
-	border-color: light-dark(#fde68a, rgba(245, 158, 11, 0.3)) !important;
+	border-color: var(--border-amber-200) !important;
 }
 
 .border-yellow-200 {
-	border-color: light-dark(#fef08a, rgba(245, 158, 11, 0.3)) !important;
+	border-color: var(--border-yellow-200) !important;
 }
 
 .text-amber-700 {
-	color: light-dark(#b45309, #fbbf24) !important;
+	color: var(--text-amber-700) !important;
 }
 
 .text-amber-900 {
-	color: light-dark(#78350f, #fbbf24) !important;
+	color: var(--text-amber-900) !important;
 }
 
 .text-yellow-700 {
-	color: light-dark(#a16207, #fbbf24) !important;
+	color: var(--text-yellow-700) !important;
 }
 
 .text-yellow-800 {
-	color: light-dark(#854d0e, #fbbf24) !important;
+	color: var(--text-yellow-800) !important;
 }
 
 .hover\:bg-amber-100:hover {
-	background-color: light-dark(#fef3c7, rgba(245, 158, 11, 0.2)) !important;
+	background-color: var(--hover-bg-amber-100) !important;
 }
 
 /* Orange Status & Badges */
