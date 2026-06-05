@@ -222,9 +222,31 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		}
 
 		// 2. Sort
-		const sortMode = pkgSettings.boxes_sort || "number";
-		if (sortMode === "packed_date") {
-			result.sort((a, b) => {
+		const priorityTerms = (filters.tagSortPriority || "")
+			.split(",")
+			.map((t) => t.trim().toLowerCase())
+			.filter(Boolean);
+
+		result.sort((a, b) => {
+			// A. Terms (Tag & Destination) sorting priority layer
+			if (priorityTerms.length > 0) {
+				const tagA = String(a.tag || "").toLowerCase();
+				const tagB = String(b.tag || "").toLowerCase();
+				const destA = String(a.destination || "").toLowerCase();
+				const destB = String(b.destination || "").toLowerCase();
+
+				for (const pt of priorityTerms) {
+					const matchesA = tagA.includes(pt) || destA === pt;
+					const matchesB = tagB.includes(pt) || destB === pt;
+
+					if (matchesA && !matchesB) return -1;
+					if (!matchesA && matchesB) return 1;
+				}
+			}
+
+			// B. Fallback to normal sort
+			const sortMode = pkgSettings.boxes_sort || "number";
+			if (sortMode === "packed_date") {
 				const timeA = a.last_packed_at
 					? new Date(a.last_packed_at).getTime()
 					: 0;
@@ -237,19 +259,23 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 				const createdA = new Date(a.created_at).getTime();
 				const createdB = new Date(b.created_at).getTime();
 				return createdB - createdA;
-			});
-		} else {
+			}
+
 			// default: Sort by Box Number (package_number asc, then instance_number asc)
-			result.sort((a, b) => {
-				if (a.package_number !== b.package_number) {
-					return a.package_number - b.package_number;
-				}
-				return a.instance_number - b.instance_number;
-			});
-		}
+			if (a.package_number !== b.package_number) {
+				return a.package_number - b.package_number;
+			}
+			return a.instance_number - b.instance_number;
+		});
 
 		return result;
-	}, [instances, filters.packedOnly, filters.boxId, pkgSettings.boxes_sort]);
+	}, [
+		instances,
+		filters.packedOnly,
+		filters.boxId,
+		pkgSettings.boxes_sort,
+		filters.tagSortPriority,
+	]);
 
 	// For report_per_order: group by order → array of { orderId, orderName, instances[] }
 	const reportGroups = React.useMemo(() => {
@@ -300,6 +326,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		filters.splitBy,
 		filters.boxId,
 		instanceIdsHash,
+		filters.tagSortPriority,
 	]);
 
 	// Active instances: all (normal mode) or current report group's instances (per-order mode)
@@ -964,17 +991,17 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 		<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[99999] p-4">
 			<div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full h-[80vh] overflow-hidden flex flex-col transform transition-all duration-300">
 				{/* Modal Header */}
-				<div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50 shrink-0">
+				<div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50 shrink-0">
 					<div className="flex items-center gap-2">
 						<Image className="w-5 h-5 text-indigo-600" />
-						<h3 className="text-base font-bold text-slate-800">
+						<h3 className="text-base font-bold text-gray-800">
 							Manage Photos for Report
 						</h3>
 					</div>
 					<button
 						type="button"
 						onClick={handleCloseAndSave}
-						className="text-slate-400 hover:text-slate-700 transition-colors p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
+						className="text-gray-400 hover:text-gray-700 transition-colors p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer"
 					>
 						✕
 					</button>
@@ -983,8 +1010,8 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 				{/* Modal Body */}
 				<div className="flex-1 flex overflow-hidden">
 					{/* Left Sidebar Tabs */}
-					<div className="w-1/3 border-r bg-slate-50 overflow-y-auto p-3 flex flex-col gap-1 shrink-0">
-						<div className="text-[10px] font-bold text-slate-400 px-3 py-1.5 uppercase tracking-wider">
+					<div className="w-1/3 border-r bg-gray-50 overflow-y-auto p-3 flex flex-col gap-1 shrink-0">
+						<div className="text-[10px] font-bold text-gray-400 px-3 py-1.5 uppercase tracking-wider">
 							Packages
 						</div>
 						{mediaInstances.map((inst, idx) => {
@@ -1015,7 +1042,7 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 									className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center justify-between transition-all cursor-pointer ${
 										isSelected
 											? "bg-indigo-50 text-indigo-700 font-semibold shadow-sm border border-indigo-100"
-											: "text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-transparent"
+											: "text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-transparent"
 									}`}
 								>
 									<span className="text-xs truncate">
@@ -1028,11 +1055,11 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 										className={`text-[10px] px-2 py-0.5 rounded-full font-semibold transition-all ${
 											isSelected
 												? visibleCount === 0
-													? "bg-slate-200 text-slate-700"
+													? "bg-gray-200 text-gray-700"
 													: "bg-indigo-600 text-white"
 												: visibleCount === 0
-													? "bg-slate-200 text-slate-500"
-													: "bg-slate-200 text-slate-700"
+													? "bg-gray-200 text-gray-500"
+													: "bg-gray-200 text-gray-700"
 										}`}
 									>
 										{visibleCount}/{totalPhotosCount}
@@ -1047,10 +1074,10 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 						{activeInst && (
 							<>
 								<div className="border-b pb-3">
-									<h4 className="text-sm font-bold text-slate-800">
+									<h4 className="text-sm font-bold text-gray-800">
 										Box {activeInst.package_number} Details
 									</h4>
-									<p className="text-xs text-slate-500 mt-1">
+									<p className="text-xs text-gray-500 mt-1">
 										Select or deselect pictures to show or hide them in the
 										final report.
 									</p>
@@ -1058,11 +1085,11 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 
 								{/* Box Photos Section */}
 								<div>
-									<h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+									<h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
 										📷 Box Photos ({boxPhotos.length})
 									</h5>
 									{boxPhotos.length === 0 ? (
-										<p className="text-xs text-slate-400 italic">
+										<p className="text-xs text-gray-400 italic">
 											No box-level photos.
 										</p>
 									) : (
@@ -1076,7 +1103,7 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 														onClick={() => handleToggleLocal(url)}
 														className={`relative group rounded-lg overflow-hidden border-2 text-left cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
 															isHidden
-																? "border-slate-200 opacity-60 bg-slate-50"
+																? "border-gray-200 opacity-60 bg-gray-50"
 																: "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/5"
 														}`}
 													>
@@ -1088,7 +1115,7 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 														<div
 															className={`absolute bottom-0 inset-x-0 py-1.5 px-2 text-[10px] font-semibold text-center select-none transition-colors ${
 																isHidden
-																	? "bg-slate-500 text-white"
+																	? "bg-gray-500 text-white"
 																	: "bg-emerald-600 text-white"
 															}`}
 														>
@@ -1104,7 +1131,7 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 								{/* Items with Photos Sections */}
 								{itemsWithPhotos.length > 0 && (
 									<div className="flex flex-col gap-6">
-										<h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider border-t pt-4">
+										<h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider border-t pt-4">
 											🏷️ Item Photos
 										</h5>
 										{itemsWithPhotos.map((item: any, idx: number) => {
@@ -1112,16 +1139,16 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 											return (
 												<div
 													key={`item-photos-section-${item.id}-${idx}`}
-													className="bg-slate-50/50 p-4 rounded-lg border border-slate-100"
+													className="bg-gray-50/50 p-4 rounded-lg border border-gray-100"
 												>
 													<div className="mb-3">
-														<span className="text-xs font-bold text-slate-700 block">
+														<span className="text-xs font-bold text-gray-700 block">
 															Item {idx + 1}: {item.item_num || "No #"}
 														</span>
-														<span className="text-xs text-slate-600 block mt-0.5 italic">
+														<span className="text-xs text-gray-600 block mt-0.5 italic">
 															{item.item_name || "No Description"}
 														</span>
-														<span className="inline-block mt-1 text-[10px] bg-slate-200/60 text-slate-700 px-2 py-0.5 rounded-full font-medium">
+														<span className="inline-block mt-1 text-[10px] bg-gray-200/60 text-gray-700 px-2 py-0.5 rounded-full font-medium">
 															Quantity: {item.quantity}
 														</span>
 													</div>
@@ -1135,7 +1162,7 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 																	onClick={() => handleToggleLocal(url)}
 																	className={`relative group rounded-lg overflow-hidden border-2 text-left cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
 																		isHidden
-																			? "border-slate-200 opacity-60 bg-slate-50"
+																			? "border-gray-200 opacity-60 bg-gray-50"
 																			: "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/5"
 																	}`}
 																>
@@ -1147,7 +1174,7 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 																	<div
 																		className={`absolute bottom-0 inset-x-0 py-1.5 px-2 text-[10px] font-semibold text-center select-none transition-colors ${
 																			isHidden
-																				? "bg-slate-500 text-white"
+																				? "bg-gray-500 text-white"
 																				: "bg-emerald-600 text-white"
 																		}`}
 																	>
@@ -1168,7 +1195,7 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 				</div>
 
 				{/* Modal Footer */}
-				<div className="px-6 py-4 border-t bg-slate-50 flex justify-end gap-2 shrink-0">
+				<div className="px-6 py-4 border-t bg-gray-50 flex justify-end gap-2 shrink-0">
 					<button
 						type="button"
 						onClick={handleCloseAndSave}

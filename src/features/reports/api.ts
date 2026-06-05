@@ -275,8 +275,10 @@ export const fetchReportInstances = async (
 			.from("order_pkg_instance")
 			.select(`
 				id,
+				tag,
 				order_package_id,
 				order_pkg_overview (
+					id,
 					quantity
 				),
 				order_packages (
@@ -486,6 +488,7 @@ export const fetchReportInstances = async (
 			instance_number: inst.instance_number,
 			ipac_reference: inst.ipac_reference,
 			destination: inst.destination,
+			tag: ext?.tag || inst.tag || null,
 			status: inst.status,
 			created_at: inst.created_at,
 			last_packed_at: inst.last_packed_at,
@@ -551,7 +554,8 @@ export const fetchReportInstances = async (
 					? Number(getVal("sei_protection"))
 					: null,
 			qr_token: qrMap.get(inst.id) || null,
-			package_qty: pkgOverview ? Number(pkgOverview.quantity) : null,
+			package_qty: pkgOverview ? Number((pkgOverview as any).quantity) : null,
+			order_pkg_overview_id: pkgOverview ? (pkgOverview as any).id : null,
 			box_photo_urls: boxPhotoMap.get(inst.id) || [],
 			original_pkg_info_id: originalInfo?.id || null,
 			final_pkg_info_id: finalInfo?.id || null,

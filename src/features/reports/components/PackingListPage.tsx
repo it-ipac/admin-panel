@@ -145,6 +145,20 @@ export const PackingListPage = React.forwardRef<
 			queryClient.invalidateQueries({ queryKey: ["report_instances"] });
 		};
 
+		const updateOverviewField = async (
+			overviewId: string,
+			field: string,
+			val: string | number | null,
+		) => {
+			const { error } = await supabase
+				.from("order_pkg_overview")
+				.update({ [field]: val })
+				.eq("id", overviewId);
+			if (error) throw error;
+
+			queryClient.invalidateQueries({ queryKey: ["report_instances"] });
+		};
+
 		const updateItemField = async (
 			maintenanceDbId: string,
 			field: string,
@@ -1101,7 +1115,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "left",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1113,7 +1127,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "left",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1125,7 +1139,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "left",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1137,7 +1151,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "center",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1149,7 +1163,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "left",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1161,7 +1175,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "left",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1173,7 +1187,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "right",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1185,7 +1199,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "right",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1197,7 +1211,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "right",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1209,7 +1223,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "right",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1221,7 +1235,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "right",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1233,7 +1247,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "right",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1245,7 +1259,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "right",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1257,7 +1271,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "left",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1269,7 +1283,7 @@ export const PackingListPage = React.forwardRef<
 											style={{
 												padding: "6px 8px",
 												textAlign: "center",
-												fontSize: 9.5,
+												fontSize: "0.8em",
 												borderBottom: "1px solid #d8e4f0",
 											}}
 										>
@@ -1354,7 +1368,18 @@ export const PackingListPage = React.forwardRef<
 														textAlign: "center",
 													}}
 												>
-													{inst.package_qty ?? "—"}
+													<EditableValue
+														value={inst.package_qty}
+														type="number"
+														editable={editable && !!inst.order_pkg_overview_id}
+														onSave={(val) =>
+															updateOverviewField(
+																inst.order_pkg_overview_id!,
+																"quantity",
+																val,
+															)
+														}
+													/>
 												</td>
 											)}
 											{pkg.show_internal_dims && (
@@ -1651,10 +1676,25 @@ export const PackingListPage = React.forwardRef<
 												</span>
 											)}
 											{pkg.show_quantity &&
-												inst.package_qty !== null &&
-												inst.package_qty !== undefined && (
+												(editable ||
+													(inst.package_qty !== null &&
+														inst.package_qty !== undefined)) && (
 													<span>
-														Qty: <strong>{inst.package_qty}</strong>
+														Qty:{" "}
+														<EditableValue
+															value={inst.package_qty}
+															type="number"
+															editable={
+																editable && !!inst.order_pkg_overview_id
+															}
+															onSave={(val) =>
+																updateOverviewField(
+																	inst.order_pkg_overview_id!,
+																	"quantity",
+																	val,
+																)
+															}
+														/>
 													</span>
 												)}
 											{pkg.show_internal_dims &&
@@ -1938,7 +1978,7 @@ export const PackingListPage = React.forwardRef<
 													display: "flex",
 													flexWrap: "wrap",
 													gap: "2px 16px",
-													fontSize: 9.5,
+													fontSize: "0.8em",
 													color: "#555",
 												}}
 											>
@@ -2044,7 +2084,7 @@ export const PackingListPage = React.forwardRef<
 												<div
 													style={{
 														padding: "2px 0",
-														fontSize: 9.5,
+														fontSize: "0.8em",
 														color: "#555",
 														fontStyle: "italic",
 													}}
@@ -2092,7 +2132,7 @@ export const PackingListPage = React.forwardRef<
 																		<th
 																			style={{
 																				padding: "6px 8px",
-																				fontSize: "9px",
+																				fontSize: "0.75em",
 																				fontWeight: "600",
 																				borderRight: "1px solid #d8e4f0",
 																				textAlign: "left",
@@ -2106,7 +2146,7 @@ export const PackingListPage = React.forwardRef<
 																		<th
 																			style={{
 																				padding: "6px 8px",
-																				fontSize: "9px",
+																				fontSize: "0.75em",
 																				fontWeight: "600",
 																				borderRight: "1px solid #d8e4f0",
 																				textAlign: "center",
@@ -2120,7 +2160,7 @@ export const PackingListPage = React.forwardRef<
 																		<th
 																			style={{
 																				padding: "6px 8px",
-																				fontSize: "9px",
+																				fontSize: "0.75em",
 																				fontWeight: "600",
 																				borderRight: "1px solid #d8e4f0",
 																				textAlign: "left",
@@ -2134,7 +2174,7 @@ export const PackingListPage = React.forwardRef<
 																		<th
 																			style={{
 																				padding: "6px 8px",
-																				fontSize: "9px",
+																				fontSize: "0.75em",
 																				fontWeight: "600",
 																				borderRight: pkg.show_item_qr_code
 																					? "1px solid #d8e4f0"
@@ -2149,7 +2189,7 @@ export const PackingListPage = React.forwardRef<
 																		<th
 																			style={{
 																				padding: "6px 8px",
-																				fontSize: "9px",
+																				fontSize: "0.75em",
 																				fontWeight: "600",
 																				textAlign: "center",
 																				width: "65px",
@@ -2206,7 +2246,7 @@ export const PackingListPage = React.forwardRef<
 																						<td
 																							style={{
 																								padding: "6px 8px",
-																								fontSize: "9.5px",
+																								fontSize: "0.8em",
 																								borderRight:
 																									"1px solid #d8e4f0",
 																								borderBottom: hasSecondRow
@@ -2225,7 +2265,7 @@ export const PackingListPage = React.forwardRef<
 																							className="report-theme-text"
 																							style={{
 																								padding: "6px 8px",
-																								fontSize: "9.5px",
+																								fontSize: "0.8em",
 																								fontWeight: "bold",
 																								textAlign: "center",
 																								borderRight:
@@ -2253,7 +2293,7 @@ export const PackingListPage = React.forwardRef<
 																						<td
 																							style={{
 																								padding: "6px 8px",
-																								fontSize: "9.5px",
+																								fontSize: "0.8em",
 																								fontWeight: "600",
 																								borderRight:
 																									"1px solid #d8e4f0",
@@ -2284,7 +2324,7 @@ export const PackingListPage = React.forwardRef<
 																						<td
 																							style={{
 																								padding: "6px 8px",
-																								fontSize: "9.5px",
+																								fontSize: "0.8em",
 																								borderRight:
 																									pkg.show_item_qr_code
 																										? "1px solid #d8e4f0"
@@ -2366,7 +2406,7 @@ export const PackingListPage = React.forwardRef<
 																									colSpan={leftColSpan}
 																									style={{
 																										padding: "6px 8px",
-																										fontSize: "9px",
+																										fontSize: "0.75em",
 																										color: "#333",
 																										borderRight:
 																											"1px solid #d8e4f0",
@@ -2652,7 +2692,7 @@ export const PackingListPage = React.forwardRef<
 												<div
 													style={{
 														padding: "4px 10px",
-														fontSize: 9,
+														fontSize: "0.75em",
 														color: "#666",
 														fontStyle: "italic",
 														textAlign: "right",
@@ -2787,7 +2827,7 @@ export const PackingListPage = React.forwardRef<
 													/>
 												);
 											})()}
-											<div style={{ fontSize: 9, color: "#666" }}>
+											<div style={{ fontSize: "0.75em", color: "#666" }}>
 												{sig.label}
 											</div>
 										</div>
@@ -2798,7 +2838,7 @@ export const PackingListPage = React.forwardRef<
 					{display.footer_text && (
 						<div
 							style={{
-								fontSize: 9,
+								fontSize: "0.75em",
 								color: "#999",
 								textAlign: "center",
 								fontStyle: "italic",

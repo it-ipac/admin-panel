@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
 import {
@@ -42,6 +43,103 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 
 	const handleChange = (key: keyof FilterParams, value: any) => {
 		setFilters((prev) => ({ ...prev, [key]: value }));
+	};
+
+	const activeTags = useMemo(() => {
+		return (filters.tagSortPriority || "")
+			.split(",")
+			.map((t) => t.trim())
+			.filter(Boolean);
+	}, [filters.tagSortPriority]);
+
+	const updateTagPriority = (newTags: string[]) => {
+		handleChange("tagSortPriority", newTags.join(", "));
+	};
+
+	const [customTagsPool, setCustomTagsPool] = useState<string[]>([]);
+
+	const allCandidateTags = useMemo(() => {
+		const baseCandidates = ["power", "water", "ac", "non-ac"];
+		const projectCandidates = projectTags?.map((pt) => pt.name) || [];
+		const combined = [
+			...baseCandidates,
+			...projectCandidates,
+			...customTagsPool.filter((t) => {
+				const isDest = destinations?.some(
+					(d) => d.toLowerCase() === t.toLowerCase(),
+				);
+				return !isDest;
+			}),
+		];
+
+		const seen = new Set<string>();
+		const unique: string[] = [];
+		for (const tag of combined) {
+			const lower = tag.trim().toLowerCase();
+			if (lower && !seen.has(lower)) {
+				seen.add(lower);
+				unique.push(tag.trim());
+			}
+		}
+		return unique;
+	}, [projectTags, customTagsPool, destinations]);
+
+	const availableTags = useMemo(() => {
+		return allCandidateTags.filter(
+			(tag) => !activeTags.some((at) => at.toLowerCase() === tag.toLowerCase()),
+		);
+	}, [allCandidateTags, activeTags]);
+
+	const availableDestinations = useMemo(() => {
+		if (!destinations) return [];
+		return destinations.filter(
+			(dest) =>
+				!activeTags.some((at) => at.toLowerCase() === dest.toLowerCase()),
+		);
+	}, [destinations, activeTags]);
+
+	const addTagToSort = (tagName: string) => {
+		if (!activeTags.some((t) => t.toLowerCase() === tagName.toLowerCase())) {
+			updateTagPriority([...activeTags, tagName]);
+		}
+	};
+
+	const removeTagFromSort = (index: number) => {
+		const next = [...activeTags];
+		next.splice(index, 1);
+		updateTagPriority(next);
+	};
+
+	const moveTagLeft = (index: number) => {
+		if (index === 0) return;
+		const next = [...activeTags];
+		const temp = next[index];
+		next[index] = next[index - 1];
+		next[index - 1] = temp;
+		updateTagPriority(next);
+	};
+
+	const moveTagRight = (index: number) => {
+		if (index === activeTags.length - 1) return;
+		const next = [...activeTags];
+		const temp = next[index];
+		next[index] = next[index + 1];
+		next[index + 1] = temp;
+		updateTagPriority(next);
+	};
+
+	const [customTagInput, setCustomTagInput] = useState("");
+	const handleAddCustomTag = () => {
+		const trimmed = customTagInput.trim();
+		if (trimmed) {
+			if (
+				!customTagsPool.some((t) => t.toLowerCase() === trimmed.toLowerCase())
+			) {
+				setCustomTagsPool((prev) => [...prev, trimmed]);
+			}
+			addTagToSort(trimmed);
+			setCustomTagInput("");
+		}
 	};
 
 	const handleArrayChange = (key: keyof FilterParams, value: string) => {
@@ -454,58 +552,50 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 			<hr className="border-gray-200" />
 
 			{/* Options */}
-			<div className="flex flex-col gap-2">
-				<span className="text-sm font-medium text-gray-700">Options</span>
-				<label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
-					<input
-						type="checkbox"
-						checked={filters.packedOnly}
-						onChange={(e) => {
+			<div className="flex flex-col gap-1">
+				<label
+					htmlFor="package-filter-select"
+					className="text-sm font-medium text-gray-700"
+				>
+					Package Status
+				</label>
+				<select
+					id="package-filter-select"
+					className="w-full border rounded-md p-2 text-sm bg-white"
+					value={
+						filters.packedOnly
+							? "packed"
+							: filters.hasItemsOnly
+								? "in_progress"
+								: "all"
+					}
+					onChange={(e) => {
+						const val = e.target.value;
+						if (val === "packed") {
 							setFilters((prev) => ({
 								...prev,
-								packedOnly: e.target.checked,
-								hasItemsOnly: e.target.checked ? false : prev.hasItemsOnly,
+								packedOnly: true,
+								hasItemsOnly: false,
 							}));
-						}}
-						className="checkbox checkbox-sm checkbox-primary"
-					/>
-					Only show packed boxes
-				</label>
-
-				{!filters.packedOnly && filters.hasItemsOnly ? (
-					<div className="flex flex-col gap-1.5 p-2 bg-blue-50 border border-blue-100 rounded-md mt-1">
-						<span className="text-xs text-blue-700 font-medium">
-							Showing boxes with packed items
-						</span>
-						<button
-							type="button"
-							onClick={() => {
-								setFilters((prev) => ({
-									...prev,
-									packedOnly: true,
-									hasItemsOnly: false,
-								}));
-							}}
-							className="text-xs font-semibold text-blue-700 hover:text-blue-900 text-left underline cursor-pointer"
-						>
-							Switch back to packed boxes
-						</button>
-					</div>
-				) : (
-					<button
-						type="button"
-						onClick={() => {
+						} else if (val === "in_progress") {
 							setFilters((prev) => ({
 								...prev,
 								packedOnly: false,
 								hasItemsOnly: true,
 							}));
-						}}
-						className="text-xs font-medium text-blue-600 hover:text-blue-800 text-left hover:underline mt-1 flex items-center gap-1 cursor-pointer"
-					>
-						✨ Switch to: Only show boxes with packed items
-					</button>
-				)}
+						} else {
+							setFilters((prev) => ({
+								...prev,
+								packedOnly: false,
+								hasItemsOnly: false,
+							}));
+						}
+					}}
+				>
+					<option value="packed">Packed packages</option>
+					<option value="in_progress">In-progress packages</option>
+					<option value="all">All</option>
+				</select>
 			</div>
 
 			{/* Split / Batch Mode */}
@@ -540,6 +630,139 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 							Each section will have its own page break when printing.
 						</p>
 					)}
+			</div>
+
+			{/* Tag Sort Priority Chips */}
+			<div className="flex flex-col gap-3.5 p-4 bg-slate-900/40 border border-slate-800 rounded-xl shadow-lg backdrop-blur-sm">
+				<span className="text-sm font-semibold text-slate-200 tracking-wide">
+					Sort by Tag Priority
+				</span>
+
+				{/* Active Priority Tags */}
+				<div className="flex flex-col gap-2">
+					<span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+						Active Sort Order
+					</span>
+					{activeTags.length === 0 ? (
+						<div className="text-xs text-slate-400 italic p-3 bg-slate-800/30 border border-dashed border-slate-700 rounded-lg text-center">
+							No tag sorting applied. Boxes will sort by default order.
+						</div>
+					) : (
+						<div className="flex flex-col gap-2">
+							{activeTags.map((tag, idx) => (
+								<div
+									key={`${tag}-${idx}`}
+									className="flex items-center justify-between bg-slate-800/80 border border-slate-700/60 rounded-lg px-3 py-2 shadow-sm text-sm group hover:border-slate-600 transition-all duration-150"
+								>
+									<span className="font-semibold text-slate-100">{tag}</span>
+									<div className="flex items-center gap-1.5">
+										<button
+											type="button"
+											onClick={() => moveTagLeft(idx)}
+											disabled={idx === 0}
+											className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200 disabled:opacity-20 disabled:hover:bg-transparent transition-colors cursor-pointer"
+											title="Move Up"
+										>
+											<ChevronUp className="w-4 h-4" />
+										</button>
+										<button
+											type="button"
+											onClick={() => moveTagRight(idx)}
+											disabled={idx === activeTags.length - 1}
+											className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200 disabled:opacity-20 disabled:hover:bg-transparent transition-colors cursor-pointer"
+											title="Move Down"
+										>
+											<ChevronDown className="w-4 h-4" />
+										</button>
+										<div className="w-[1px] h-4 bg-slate-700 mx-1" />
+										<button
+											type="button"
+											onClick={() => removeTagFromSort(idx)}
+											className="p-1 hover:bg-red-500/20 hover:text-red-400 rounded text-slate-400 transition-colors cursor-pointer"
+											title="Remove"
+										>
+											<X className="w-4 h-4" />
+										</button>
+									</div>
+								</div>
+							))}
+						</div>
+					)}
+				</div>
+
+				{/* Available Tags Pool */}
+				{availableTags.length > 0 && (
+					<div className="flex flex-col gap-2 mt-1">
+						<span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+							Available Tags (Click to add)
+						</span>
+						<div className="flex flex-wrap gap-2">
+							{availableTags.map((tag) => (
+								<button
+									key={tag}
+									type="button"
+									onClick={() => addTagToSort(tag)}
+									className="px-3 py-1.5 text-xs font-semibold bg-slate-800/40 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-700 border-dashed hover:border-blue-500/80 rounded-full transition-all duration-200 flex items-center gap-1 cursor-pointer transform hover:-translate-y-0.5 shadow-sm"
+								>
+									<Plus className="w-3.5 h-3.5 text-blue-400" />
+									{tag}
+								</button>
+							))}
+						</div>
+					</div>
+				)}
+
+				{/* Available Destinations Pool */}
+				{availableDestinations.length > 0 && (
+					<div className="flex flex-col gap-2 mt-1">
+						<span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+							Available Destinations (Click to add)
+						</span>
+						<div className="flex flex-wrap gap-2">
+							{availableDestinations.map((dest) => (
+								<button
+									key={dest}
+									type="button"
+									onClick={() => addTagToSort(dest)}
+									className="px-3 py-1.5 text-xs font-semibold bg-slate-800/40 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-700 border-dashed hover:border-emerald-500/80 rounded-full transition-all duration-200 flex items-center gap-1 cursor-pointer transform hover:-translate-y-0.5 shadow-sm"
+								>
+									<Plus className="w-3.5 h-3.5 text-emerald-400" />
+									{dest}
+								</button>
+							))}
+						</div>
+					</div>
+				)}
+
+				{/* Custom Tag Input */}
+				<div className="flex flex-col gap-2 mt-1">
+					<span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+						Or add custom tag
+					</span>
+					<div className="flex gap-2">
+						<input
+							type="text"
+							placeholder="e.g. custom-tag"
+							value={customTagInput}
+							onChange={(e) => setCustomTagInput(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") {
+									e.preventDefault();
+									handleAddCustomTag();
+								}
+							}}
+							className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-150"
+						/>
+						<button
+							type="button"
+							onClick={handleAddCustomTag}
+							className="px-3 py-1.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg flex items-center gap-1 transition-all duration-150 cursor-pointer hover:border-slate-500 shadow-sm"
+						>
+							<Plus className="w-4 h-4 text-slate-400" />
+							Add
+						</button>
+					</div>
+				</div>
 			</div>
 		</div>
 	);

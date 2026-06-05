@@ -43,6 +43,36 @@
 	--app-scrollbar-track: light-dark(#f1f5f9, #0b1220);
 	--app-scrollbar-thumb: light-dark(#cbd5e1, #334155);
 	--app-scrollbar-thumb-hover: light-dark(#94a3b8, #475569);
+
+	--bg-blue-50: light-dark(#eff6ff, rgba(59, 130, 246, 0.12));
+	--bg-blue-100: light-dark(#dbeafe, rgba(59, 130, 246, 0.25));
+	--border-blue-100: light-dark(#dbeafe, rgba(59, 130, 246, 0.2));
+	--border-blue-200: light-dark(#bfdbfe, rgba(59, 130, 246, 0.3));
+	--border-blue-300: light-dark(#93c5fd, rgba(59, 130, 246, 0.4));
+	--text-blue-700: light-dark(#1d4ed8, #60a5fa);
+	--text-blue-800: light-dark(#1e40af, #93c5fd);
+	--text-blue-900: light-dark(#1e3a8a, #93c5fd);
+	--hover-bg-blue-100: light-dark(#dbeafe, rgba(59, 130, 246, 0.2));
+
+	--bg-green-50: light-dark(#f0fdf4, rgba(16, 185, 129, 0.12));
+	--bg-green-100: light-dark(#dcfce7, rgba(16, 185, 129, 0.25));
+	--border-green-100: light-dark(#dcfce7, rgba(16, 185, 129, 0.2));
+	--border-green-200: light-dark(#bbf7d0, rgba(16, 185, 129, 0.3));
+	--text-green-700: light-dark(#15803d, #34d399);
+	--text-green-800: light-dark(#166534, #34d399);
+	--text-green-900: light-dark(#064e3b, #34d399);
+	--hover-bg-green-100: light-dark(#dcfce7, rgba(16, 185, 129, 0.2));
+
+	--bg-amber-50: light-dark(#fffbeb, rgba(245, 158, 11, 0.12));
+	--bg-amber-100: light-dark(#fef3c7, rgba(245, 158, 11, 0.25));
+	--bg-yellow-100: light-dark(#fef9c3, rgba(245, 158, 11, 0.25));
+	--border-amber-200: light-dark(#fde68a, rgba(245, 158, 11, 0.3));
+	--border-yellow-200: light-dark(#fef08a, rgba(245, 158, 11, 0.3));
+	--text-amber-700: light-dark(#b45309, #fbbf24);
+	--text-amber-900: light-dark(#78350f, #fbbf24);
+	--text-yellow-700: light-dark(#a16207, #fbbf24);
+	--text-yellow-800: light-dark(#854d0e, #fbbf24);
+	--hover-bg-amber-100: light-dark(#fef3c7, rgba(245, 158, 11, 0.2));
 }
 
 /* Fallback overrides ONLY when a user explicitly chooses a manual theme */
@@ -644,12 +674,12 @@ button.text-white {
 
 .report-preview-container table td,
 .report-preview-container table th {
-	color: inherit !important;
 	border-color: #d8e4f0 !important;
 }
 
 .report-preview-container th {
-	background-color: #f9fafb !important;
+	background-color: inherit;
+	color: inherit;
 }
 
 /* Fix option cards background color in dark mode to have correct contrast */

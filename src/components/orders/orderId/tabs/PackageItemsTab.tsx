@@ -129,7 +129,7 @@ export function PackageItemsTab({
 						<div
 							key={`${item.source}-${item.id}`}
 							className={`flex flex-col md:flex-row md:items-center justify-between p-3 rounded-lg border border-gray-400 ${
-								idx % 2 === 0 ? "bg-white" : "bg-slate-50"
+								idx % 2 === 0 ? "bg-white" : "bg-gray-50"
 							}`}
 						>
 							{editingItem?.id === item.id ? (

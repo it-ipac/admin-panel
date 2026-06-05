@@ -384,6 +384,9 @@ function OrderDetailPage() {
 	const [isScanningInventory, setIsScanningInventory] = useState(false);
 	const [isSavingSync, setIsSavingSync] = useState(false);
 
+	const [isEditingName, setIsEditingName] = useState(false);
+	const [editedName, setEditedName] = useState("");
+
 	useEffect(() => {
 		if (!authLoading && !user) {
 			navigate({ to: "/login" });
@@ -493,6 +496,12 @@ function OrderDetailPage() {
 		},
 		enabled: !!user,
 	});
+
+	useEffect(() => {
+		if (order?.order_name) {
+			setEditedName(order.order_name);
+		}
+	}, [order?.order_name]);
 
 	useEffect(() => {
 		if (!orderLoading && user && !order) {
@@ -1907,6 +1916,33 @@ function OrderDetailPage() {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+		},
+	});
+
+	const updateOrderNameMutation = useMutation({
+		mutationFn: async (newName: string) => {
+			const { error } = await supabase
+				.from("orders")
+				.update({ order_name: newName })
+				.eq("id", orderId);
+			if (error) throw error;
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+			queryClient.invalidateQueries({ queryKey: ["orders"] });
+			toast({
+				title: "Success",
+				description: "Order name updated successfully",
+				variant: "success",
+			});
+			setIsEditingName(false);
+		},
+		onError: (err: any) => {
+			toast({
+				title: "Error",
+				description: err.message || "Failed to update order name",
+				variant: "error",
+			});
 		},
 	});
 
@@ -4178,10 +4214,64 @@ function OrderDetailPage() {
 									<ArrowLeft className="w-5 h-5" />
 								</Link>
 								<div>
-									<h1 className="text-2xl font-bold text-gray-900">
-										{order.order_name}
-									</h1>
-									<p className="text-gray-500 text-sm">
+									{isEditingName ? (
+										<div className="flex items-center gap-2">
+											<input
+												type="text"
+												value={editedName}
+												onChange={(e) => setEditedName(e.target.value)}
+												onKeyDown={(e) => {
+													if (e.key === "Enter") {
+														updateOrderNameMutation.mutate(editedName);
+													} else if (e.key === "Escape") {
+														setIsEditingName(false);
+														setEditedName(order.order_name);
+													}
+												}}
+												className="text-2xl font-bold text-gray-900 border-b border-gray-300 focus:outline-none focus:border-blue-500 bg-transparent px-1 py-0.5"
+												// biome-ignore lint/a11y/noAutofocus: Focus input when editing name
+												autoFocus
+											/>
+											<button
+												onClick={() =>
+													updateOrderNameMutation.mutate(editedName)
+												}
+												disabled={updateOrderNameMutation.isPending}
+												className="p-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
+												title="Save"
+											>
+												{updateOrderNameMutation.isPending ? (
+													<Loader2 className="w-4 h-4 animate-spin" />
+												) : (
+													<Check className="w-4 h-4" />
+												)}
+											</button>
+											<button
+												onClick={() => {
+													setIsEditingName(false);
+													setEditedName(order.order_name);
+												}}
+												className="p-1.5 bg-gray-50 text-gray-600 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+												title="Cancel"
+											>
+												<X className="w-4 h-4" />
+											</button>
+										</div>
+									) : (
+										<div className="flex items-center gap-2 group">
+											<h1 className="text-2xl font-bold text-gray-900">
+												{order.order_name}
+											</h1>
+											<button
+												onClick={() => setIsEditingName(true)}
+												className="p-1 text-gray-455 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
+												title="Edit Name"
+											>
+												<Edit className="w-4 h-4" />
+											</button>
+										</div>
+									)}
+									<p className="text-gray-500 text-sm mt-1">
 										Created {formatDateTime(order.created_at)}
 									</p>
 								</div>

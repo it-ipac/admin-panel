@@ -19,6 +19,7 @@ export type FilterParams = {
 	orderSort: "name" | "reference";
 	// Filter by a specific box ID
 	boxId: string | null;
+	tagSortPriority: string;
 };
 
 export type ReportInstanceData = {
@@ -26,6 +27,7 @@ export type ReportInstanceData = {
 	instance_number: number;
 	ipac_reference: string | null;
 	destination: string | null;
+	tag: string | null;
 	status: string;
 	created_at: string;
 	last_packed_at: string | null; // derived: MAX(pkd_item.created_at)
@@ -67,6 +69,7 @@ export type ReportInstanceData = {
 	sei_protection?: number | null;
 	qr_token?: string | null;
 	package_qty?: number | null;
+	order_pkg_overview_id?: string | null;
 	box_photo_urls?: string[];
 	original_pkg_info_id?: string | null;
 	final_pkg_info_id?: string | null;

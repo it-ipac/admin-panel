@@ -524,10 +524,20 @@ export const db = {
 	},
 
 	getOrders: async () => {
-		return supabase
+		const { data, error } = await supabase
 			.from("orders")
-			.select("*")
+			.select("*, clients(name), order_packages(id)")
 			.order("created_at", { ascending: false });
+
+		if (error) return { data, error };
+
+		const mappedData = data?.map((order: any) => ({
+			...order,
+			client_name: order.clients?.name || "",
+			package_count: order.order_packages?.length || 0,
+		}));
+
+		return { data: mappedData, error: null };
 	},
 
 	getOrderById: async (id: string) => {

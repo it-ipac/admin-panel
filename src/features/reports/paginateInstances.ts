@@ -8,6 +8,64 @@ import type { ReportInstanceData } from "./types";
 const FONT_SCALE = { small: 0.82, medium: 1, large: 1.18 };
 // Full A4 page heights in px at 96 dpi
 const PAGE_H_PX = { portrait: 1123, landscape: 794 };
+
+function getFontScale(
+	display?: ReportDisplaySettings,
+	fs?: "small" | "medium" | "large",
+): number {
+	if (display?.font_size_px) {
+		return display.font_size_px / 12;
+	}
+	const size = fs || display?.font_size || "medium";
+	return FONT_SCALE[size];
+}
+
+function getReportHeaderHeight(
+	display: ReportDisplaySettings,
+	hasGroupLabel: boolean,
+): number {
+	if (display.header_show_mode === "first_page_only") {
+		return 0; // Hidden on continuation pages
+	}
+
+	const isLandscape = display.orientation === "landscape";
+
+	// Margins and borders
+	const bordersAndMargins = isLandscape
+		? 3 + 6 + 6 + 2 + 8 // 25px
+		: 5 + 12 + 10 + 2 + 12; // 41px
+
+	// Left column (logo/company name)
+	let leftH = 0;
+	if (display.show_company_logo) {
+		const logoSize = display.logo_size ?? 90;
+		if (display.show_company_name) {
+			leftH =
+				Math.round(logoSize * (isLandscape ? 0.4 : 0.55)) +
+				(isLandscape ? 2 : 4) +
+				(isLandscape ? 10 : 12);
+		} else {
+			leftH =
+				Math.round(logoSize * (isLandscape ? 0.65 : 0.9)) +
+				(isLandscape ? 2 : 4);
+		}
+	} else if (display.show_company_name) {
+		leftH = isLandscape ? 12 : 15;
+	}
+
+	// Center column (title and metadata)
+	const titleH = isLandscape ? 20 : 26;
+	const subTitleH = hasGroupLabel ? (isLandscape ? 12 : 15) : 0;
+	const metadataH = isLandscape ? 12 : 15; // Ref, Date, Project, Dest
+	const centerH = titleH + subTitleH + metadataH;
+
+	// Right column (summary)
+	const rightH = isLandscape ? 24 : 30;
+
+	const rowH = Math.max(leftH, centerH, rightH);
+	return bordersAndMargins + rowH;
+}
+
 // Page side padding in px (≈20mm * 3.78)
 function getBoxBaseHeight(
 	pkg: ReportPkgDetailsSettings,
@@ -17,7 +75,7 @@ function getBoxBaseHeight(
 	hiddenMediaUrls: string[] = [],
 	display?: ReportDisplaySettings,
 ): number {
-	const fm = FONT_SCALE[fs];
+	const fm = getFontScale(display, fs);
 	if (pkg.box_display_mode === "compact") {
 		return (pkg.show_qr_code && inst?.qr_token ? 36 : 24) * fm;
 	}
@@ -51,12 +109,20 @@ function getBoxBaseHeight(
 	if (pkg.show_order_name && inst?.order_name)
 		headerTextLen += inst.order_name.length + 8;
 
-	const orientation = display?.orientation || "portrait";
-	const charPerLine = orientation === "landscape" ? 110 : 75;
+	// Calculate charPerLine dynamically
+	const isLandscape = display?.orientation === "landscape";
+	const hasQr = pkg.show_qr_code && inst?.qr_token;
+	const pageWidth = isLandscape ? 1123 : 794;
+	const padding = 30 * 2; // 30px left & right
+	const qrWidth = hasQr ? 60 : 0;
+	const textWidth = pageWidth - padding - qrWidth;
+	const charWidth = 5.2 * fm; // char width at font-size 10px is ~5.2px at fm = 1
+	const charPerLine = Math.max(20, Math.floor(textWidth / charWidth));
+
 	const headerLines = Math.max(1, Math.ceil(headerTextLen / charPerLine));
 
 	let h = (14 * headerLines + 16) * fm; // Line 1: Header/Compact info row
-	if (pkg.show_qr_code && inst?.qr_token) {
+	if (hasQr) {
 		h = Math.max(h, (48 + 14) * fm);
 	}
 
@@ -75,8 +141,10 @@ function getBoxBaseHeight(
 		inst.pkd_items.length > 0 &&
 		pkg.items_detail_level !== "summary"
 	) {
-		h += 28 * fm; // Table header height
-		h += 28 * fm; // Items container top/bottom padding + table margin-top
+		const tableHeaderH = (9 + 12) * fm + 2; // font size 9px + 12px padding + 2px border
+		const paddingBottom = isContinuation || inst.has_more ? 10 : 20;
+		const containerH = (4 + paddingBottom + 4) * fm; // paddingTop + paddingBottom + marginTop
+		h += tableHeaderH + containerH;
 	}
 
 	// Line 3: Box photos
@@ -93,14 +161,13 @@ function getBoxBaseHeight(
 			(url) => !hiddenMediaUrls.includes(url),
 		);
 		if (visibleBoxPhotos.length > 0) {
-			const orientationVal = display?.orientation || "portrait";
-			const cols = orientationVal === "landscape" ? 11 : 7;
+			const cols = isLandscape ? 11 : 7;
 			const rows = Math.ceil(visibleBoxPhotos.length / cols);
 			photosH = rows * 72 + 16;
 		}
 	}
 	h += photosH;
-	h += 8; // reduced safety margin
+	h += 8; // safety margin
 	return h;
 }
 
@@ -111,9 +178,19 @@ function getItemHeight(
 	hiddenMediaUrls: string[] = [],
 	display?: ReportDisplaySettings,
 ): number {
-	const fm = FONT_SCALE[fs];
-	const orientation = display?.orientation || "portrait";
-	const charPerLineDesc = orientation === "landscape" ? 115 : 80;
+	const fm = getFontScale(display, fs);
+	const isLandscape = display?.orientation === "landscape";
+	const pageWidth = isLandscape ? 1123 : 794;
+	const tableWidth = pageWidth - 60 - 20; // 30px*2 page padding + 10px*2 container padding
+	let activeColsWidth = 0;
+	if (pkg.show_line_num_col) activeColsWidth += 40;
+	if (pkg.show_qty_col) activeColsWidth += 40;
+	if (pkg.show_item_num_col) activeColsWidth += 100;
+	if (pkg.show_item_qr_code) activeColsWidth += 65;
+
+	const descColWidth = tableWidth - activeColsWidth;
+	const charWidth = 5.0 * fm; // char width at font-size 9.5px is ~5px at fm = 1
+	const charPerLineDesc = Math.max(20, Math.floor(descColWidth / charWidth));
 	const charPerLineNum = 18;
 
 	// Row 1 lines of text
@@ -173,7 +250,7 @@ function estimateBoxHeight(
 	display: ReportDisplaySettings,
 	hiddenMediaUrls: string[] = [],
 ): number {
-	const fm = FONT_SCALE[fs];
+	const fm = getFontScale(display, fs);
 	if (pkg.box_display_mode === "compact") {
 		return (pkg.show_qr_code && inst.qr_token ? 36 : 24) * fm;
 	}
@@ -207,11 +284,20 @@ function estimateBoxHeight(
 	if (pkg.show_order_name && inst.order_name)
 		headerTextLen += inst.order_name.length + 8;
 
-	const charPerLine = display.orientation === "landscape" ? 110 : 75;
+	// Calculate charPerLine dynamically
+	const isLandscape = display.orientation === "landscape";
+	const hasQr = pkg.show_qr_code && inst.qr_token;
+	const pageWidth = isLandscape ? 1123 : 794;
+	const padding = 30 * 2;
+	const qrWidth = hasQr ? 60 : 0;
+	const textWidth = pageWidth - padding - qrWidth;
+	const charWidth = 5.2 * fm;
+	const charPerLine = Math.max(20, Math.floor(textWidth / charWidth));
+
 	const headerLines = Math.max(1, Math.ceil(headerTextLen / charPerLine));
 
 	let h = (14 * headerLines + 16) * fm; // Line 1: Header/Compact info row
-	if (pkg.show_qr_code && inst.qr_token) {
+	if (hasQr) {
 		h = Math.max(h, (48 + 14) * fm);
 	}
 
@@ -224,8 +310,9 @@ function estimateBoxHeight(
 		if (pkg.items_detail_level === "summary") {
 			h += 30 * fm;
 		} else {
-			h += 28 * fm; // Item table header row height
-			h += 28 * fm; // Items container top/bottom padding + table margin-top
+			const tableHeaderH = (9 + 12) * fm + 2;
+			const containerH = (4 + 20 + 4) * fm; // bottom padding is 20px when has_more is false
+			h += tableHeaderH + containerH;
 			h += inst.pkd_items.reduce(
 				(sum, item) =>
 					sum + getItemHeight(item, pkg, fs, hiddenMediaUrls, display),
@@ -248,16 +335,15 @@ function estimateBoxHeight(
 			(url) => !hiddenMediaUrls.includes(url),
 		);
 		if (visibleBoxPhotos.length > 0) {
-			const cols = display.orientation === "landscape" ? 11 : 7;
+			const cols = isLandscape ? 11 : 7;
 			const rows = Math.ceil(visibleBoxPhotos.length / cols);
 			photosH = rows * 72 + 16;
 		}
 	}
 	h += photosH;
-	h += 8; // reduced safety margin
+	h += 8; // safety margin
 
 	if (display.include_signatures && display.signatures_scope === "box") {
-		// signing line height + label text + padding
 		h += (display.signature_height_px ?? 30) + 27;
 	}
 	return h;
@@ -274,7 +360,7 @@ export function paginateInstances(
 
 	const isHeaderHidden = display.header_show_mode === "first_page_only";
 	const fs = display.font_size;
-	const fm = FONT_SCALE[fs];
+	const fm = getFontScale(display, fs);
 
 	const topPaddingPx =
 		isHeaderHidden || display.orientation === "landscape"
@@ -287,11 +373,11 @@ export function paginateInstances(
 
 	const footerPx = display.footer_height_px ?? 40;
 	const footerGapPx = display.footer_body_gap_px ?? 0;
-	const headerBlockPx = isHeaderHidden
-		? 0
-		: display.orientation === "landscape"
-			? 95
-			: 140;
+
+	// Dynamic headerBlockPx calculation
+	const hasGroupLabel = splitBy === "destination" || splitBy === "order";
+	const headerBlockPx = getReportHeaderHeight(display, hasGroupLabel);
+
 	const maxH =
 		PAGE_H_PX[display.orientation] -
 		topPaddingPx -
