@@ -13,6 +13,7 @@ import type {
 	ReportPkgDetailsSettings,
 } from "../settings-defaults";
 import type { FilterParams } from "../types";
+import { getBoxTags } from "../utils";
 import { PackingListPage } from "./PackingListPage";
 
 const HorizontalRuler: React.FC<{ widthMm: number }> = ({ widthMm }) => {
@@ -220,11 +221,12 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		if (filters.boxId) {
 			result = result.filter((inst) => inst.id === filters.boxId);
 		}
-		// Client-side tag filter: match instance.tag against selected tag names
+		// Client-side tag filter: match instance.tag against selected tag names using fallback helper
 		if (filters.tags.length > 0) {
-			result = result.filter((inst) =>
-				filters.tags.some((t) => inst.tag?.toLowerCase() === t.toLowerCase()),
-			);
+			result = result.filter((inst) => {
+				const instTags = getBoxTags(inst);
+				return filters.tags.some((t) => instTags.includes(t.toLowerCase()));
+			});
 		}
 
 		// 2. Sort — destination priority first, then tag priority within same dest
@@ -238,26 +240,94 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 			.filter(Boolean);
 
 		result.sort((a, b) => {
-			// A. Destination sort (primary)
-			if (destTerms.length > 0) {
-				const destA = String(a.destination || "").toLowerCase();
-				const destB = String(b.destination || "").toLowerCase();
-				const rankA = destTerms.indexOf(destA);
-				const rankB = destTerms.indexOf(destB);
-				const scoreA = rankA === -1 ? destTerms.length : rankA;
-				const scoreB = rankB === -1 ? destTerms.length : rankB;
-				if (scoreA !== scoreB) return scoreA - scoreB;
-			}
+			const sortModePriority = filters.sortMode || "destination_first";
 
-			// B. Tag sort (secondary)
-			if (tagTerms.length > 0) {
-				const tagA = String(a.tag || "").toLowerCase();
-				const tagB = String(b.tag || "").toLowerCase();
-				const rankA = tagTerms.findIndex((pt) => tagA.includes(pt));
-				const rankB = tagTerms.findIndex((pt) => tagB.includes(pt));
-				const scoreA = rankA === -1 ? tagTerms.length : rankA;
-				const scoreB = rankB === -1 ? tagTerms.length : rankB;
-				if (scoreA !== scoreB) return scoreA - scoreB;
+			// Parse destinations
+			const destsA = String(a.destination || "")
+				.toLowerCase()
+				.split(/[,;/]+/)
+				.map((t) => t.trim())
+				.filter(Boolean);
+			const destsB = String(b.destination || "")
+				.toLowerCase()
+				.split(/[,;/]+/)
+				.map((t) => t.trim())
+				.filter(Boolean);
+
+			const rankDestA =
+				destTerms.length > 0
+					? destTerms.findIndex((dt) => destsA.includes(dt))
+					: -1;
+			const rankDestB =
+				destTerms.length > 0
+					? destTerms.findIndex((dt) => destsB.includes(dt))
+					: -1;
+
+			const scoreDestA = rankDestA === -1 ? destTerms.length : rankDestA;
+			const scoreDestB = rankDestB === -1 ? destTerms.length : rankDestB;
+
+			// Parse tags using fallback helper
+			const tagsA = getBoxTags(a);
+			const tagsB = getBoxTags(b);
+
+			// Map tags to indices in tagTerms, sorted ascending
+			const tagRanksA = tagsA
+				.map((t) => tagTerms.indexOf(t))
+				.filter((idx) => idx !== -1)
+				.sort((x, y) => x - y);
+			const tagRanksB = tagsB
+				.map((t) => tagTerms.indexOf(t))
+				.filter((idx) => idx !== -1)
+				.sort((x, y) => x - y);
+
+			const minTagRankA = tagRanksA.length > 0 ? tagRanksA[0] : tagTerms.length;
+			const minTagRankB = tagRanksB.length > 0 ? tagRanksB[0] : tagTerms.length;
+
+			const compareRanks = (arr1: number[], arr2: number[]) => {
+				const len = Math.max(arr1.length, arr2.length);
+				for (let i = 0; i < len; i++) {
+					const val1 = arr1[i] !== undefined ? arr1[i] : tagTerms.length;
+					const val2 = arr2[i] !== undefined ? arr2[i] : tagTerms.length;
+					if (val1 !== val2) return val1 - val2;
+				}
+				return 0;
+			};
+
+			if (sortModePriority === "tag_first") {
+				// 1. Tag primary (highest priority tag group)
+				if (tagTerms.length > 0) {
+					if (minTagRankA !== minTagRankB) return minTagRankA - minTagRankB;
+				}
+				// 2. Destination secondary
+				if (destTerms.length > 0) {
+					if (scoreDestA !== scoreDestB) return scoreDestA - scoreDestB;
+				}
+				// 3. Tag secondary (full combination)
+				if (tagTerms.length > 0) {
+					const cmp = compareRanks(tagRanksA, tagRanksB);
+					if (cmp !== 0) return cmp;
+				}
+			} else if (sortModePriority === "tag_combination") {
+				// 1. Tag combination primary
+				if (tagTerms.length > 0) {
+					const cmp = compareRanks(tagRanksA, tagRanksB);
+					if (cmp !== 0) return cmp;
+				}
+				// 2. Destination secondary
+				if (destTerms.length > 0) {
+					if (scoreDestA !== scoreDestB) return scoreDestA - scoreDestB;
+				}
+			} else {
+				// Default: destination_first
+				// 1. Destination primary
+				if (destTerms.length > 0) {
+					if (scoreDestA !== scoreDestB) return scoreDestA - scoreDestB;
+				}
+				// 2. Tag combination secondary
+				if (tagTerms.length > 0) {
+					const cmp = compareRanks(tagRanksA, tagRanksB);
+					if (cmp !== 0) return cmp;
+				}
 			}
 
 			// C. Fallback to normal sort
@@ -292,6 +362,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		pkgSettings.boxes_sort,
 		filters.tagSortPriority,
 		filters.destSortPriority,
+		filters.sortMode,
 	]);
 
 	// For report_per_order: group by order → array of { orderId, orderName, instances[] }

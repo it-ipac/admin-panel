@@ -55,8 +55,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 		splitBy: "none",
 		orderSort: "name",
 		boxId: null,
-		tagSortPriority: "power, water, ac, non-ac",
+		tagSortPriority: "",
 		destSortPriority: "",
+		sortMode: "destination_first",
 	});
 
 	const [displaySettings, setDisplaySettings] = useState(

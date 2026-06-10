@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
-import React from "react";
+import { Camera, Info, Trash2 } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { getSignatureUrl, type SignatureRow } from "../hooks/useSignatures";
 import type {
@@ -7,6 +8,7 @@ import type {
 	ReportPkgDetailsSettings,
 } from "../settings-defaults";
 import type { ReportInstanceData } from "../types";
+import { getBoxTags } from "../utils";
 import { EditableValue } from "./EditableValue";
 
 interface PackingListPageProps {
@@ -71,6 +73,121 @@ function renderFormattedText(
 
 const FONT_SIZE_MAP = { small: "10px", medium: "12px", large: "14px" };
 const HEADER_FONT_MAP = { small: "18px", medium: "22px", large: "26px" };
+
+const CameraIndicator: React.FC<{
+	inst: ReportInstanceData;
+	inline?: boolean;
+	origin?: string;
+	style?: React.CSSProperties;
+}> = ({ inst, inline = false, origin, style }) => {
+	const [hovered, setHovered] = useState(false);
+	const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+	const boxPhotos = inst.box_photo_urls || [];
+	const itemPhotos = inst.pkd_items?.flatMap((i) => i.photo_urls || []) || [];
+	const allPhotos = [...boxPhotos, ...itemPhotos];
+
+	useEffect(() => {
+		return () => {
+			if (hideTimeoutRef.current) {
+				clearTimeout(hideTimeoutRef.current);
+			}
+		};
+	}, []);
+
+	if (allPhotos.length === 0) return null;
+
+	const handleMouseEnter = () => {
+		if (hideTimeoutRef.current) {
+			clearTimeout(hideTimeoutRef.current);
+			hideTimeoutRef.current = null;
+		}
+		setHovered(true);
+	};
+
+	const handleMouseLeave = () => {
+		if (hideTimeoutRef.current) {
+			clearTimeout(hideTimeoutRef.current);
+		}
+		hideTimeoutRef.current = setTimeout(() => {
+			setHovered(false);
+		}, 300);
+	};
+
+	const handleIndicatorClick = (e: React.MouseEvent) => {
+		e.stopPropagation();
+		if (typeof window !== "undefined") {
+			const targetUrl = `${origin || window.location.origin}/portal/package/${inst.id}`;
+			window.open(targetUrl, "_blank");
+		}
+	};
+
+	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: indicator
+		<div
+			style={{
+				position: inline ? "relative" : "absolute",
+				top: inline ? "0" : "-6px",
+				right: inline ? "0" : "-6px",
+				...style,
+				zIndex: hovered ? 1000 : (style?.zIndex ?? 50),
+			}}
+			onMouseEnter={handleMouseEnter}
+			onMouseLeave={handleMouseLeave}
+			onClick={handleIndicatorClick}
+			className="no-print"
+		>
+			<div
+				className="glass-circle glass-camera pulse-camera"
+				title="This package has photos. Hover to preview, click to view details."
+			>
+				<Camera className="w-3.5 h-3.5" />
+			</div>
+
+			{hovered && (
+				// biome-ignore lint/a11y/noStaticElementInteractions: stop propagation
+				<div
+					style={{
+						position: "absolute",
+						top: inline ? "30px" : "32px",
+						right: inline ? "50%" : "-10px",
+						transform: inline ? "translateX(50%)" : "none",
+						backgroundColor: "white",
+						border: "1px solid #d8e4f0",
+						borderRadius: "8px",
+						padding: "8px",
+						boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+						display: "flex",
+						gap: "8px",
+						zIndex: 100,
+						maxWidth: "340px",
+						overflowX: "auto",
+						pointerEvents: "auto",
+					}}
+					onClick={(e) => e.stopPropagation()}
+					onMouseEnter={handleMouseEnter}
+					onMouseLeave={handleMouseLeave}
+				>
+					{allPhotos.map((url, idx) => (
+						<img
+							key={idx}
+							src={url}
+							alt={`Preview ${idx + 1}`}
+							style={{
+								width: "80px",
+								height: "80px",
+								objectFit: "cover",
+								borderRadius: "4px",
+								border: "1px solid #e2e8f0",
+								flexShrink: 0,
+							}}
+						/>
+					))}
+				</div>
+			)}
+		</div>
+	);
+};
 
 export const PackingListPage = React.forwardRef<
 	HTMLDivElement,
@@ -181,6 +298,91 @@ export const PackingListPage = React.forwardRef<
 			if (error) throw error;
 
 			queryClient.invalidateQueries({ queryKey: ["report_instances"] });
+		};
+
+		const handleDeleteBox = async (inst: ReportInstanceData) => {
+			const confirmed = window.confirm(
+				`Are you sure you want to completely remove Box ${inst.package_number} and all its packed items? This action cannot be undone.`,
+			);
+			if (!confirmed) return;
+
+			try {
+				// 1. Fetch pkd_items to update items_db packed_qty counters
+				const { data: pkdItems, error: fetchPkdError } = await supabase
+					.from("pkd_item")
+					.select("id, quantity, maintenance_db_id")
+					.eq("pkg_instance_id", inst.id);
+
+				if (fetchPkdError) throw fetchPkdError;
+
+				if (pkdItems && pkdItems.length > 0) {
+					const pkdItemIds = pkdItems.map((i) => i.id);
+
+					// 2. Delete media associated with these pkd_items
+					await supabase.from("media").delete().in("pkd_item_id", pkdItemIds);
+
+					// 3. Update items_db packed_qty
+					for (const item of pkdItems) {
+						if (item.maintenance_db_id) {
+							const { data: inventory } = await supabase
+								.from("items_db")
+								.select("packed_qty")
+								.eq("id", item.maintenance_db_id)
+								.single();
+
+							if (inventory) {
+								await supabase
+									.from("items_db")
+									.update({
+										packed_qty: Math.max(
+											0,
+											(inventory.packed_qty || 0) - item.quantity,
+										),
+									})
+									.eq("id", item.maintenance_db_id);
+							}
+						}
+					}
+
+					// 4. Delete pkd_items
+					await supabase.from("pkd_item").delete().in("id", pkdItemIds);
+				}
+
+				// 5. Delete media associated with the instance itself
+				await supabase
+					.from("media")
+					.delete()
+					.eq("order_pkg_instance_id", inst.id);
+
+				// 6. Delete from instance_c_report_map
+				await supabase
+					.from("instance_c_report_map")
+					.delete()
+					.eq("package_instance_id", inst.id);
+
+				// 7. Delete instance itself
+				const { error: deleteError } = await supabase
+					.from("order_pkg_instance")
+					.delete()
+					.eq("id", inst.id);
+
+				if (deleteError) throw deleteError;
+
+				// Invalidate queries to refresh
+				queryClient.invalidateQueries({ queryKey: ["report_instances"] });
+				queryClient.invalidateQueries({ queryKey: ["order_totals"] });
+				queryClient.invalidateQueries({ queryKey: ["clientInventory"] });
+				queryClient.invalidateQueries({ queryKey: ["order", inst.order_id] });
+				queryClient.invalidateQueries({
+					queryKey: ["packageInstances", inst.order_id],
+				});
+				queryClient.invalidateQueries({
+					queryKey: ["pkdItems", inst.order_id],
+				});
+			} catch (err: any) {
+				console.error("Failed to delete box instance:", err);
+				alert(err.message || "Failed to delete box instance");
+			}
 		};
 		const baseFontSize = display.font_size_px
 			? `${display.font_size_px}px`
@@ -904,6 +1106,66 @@ export const PackingListPage = React.forwardRef<
 					paddingBottom: isLandscape ? "15px" : "30px",
 				}}
 			>
+				<style>{`
+					.glass-circle {
+						width: 28px;
+						height: 28px;
+						border-radius: 50%;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+						cursor: pointer;
+						backdrop-filter: blur(8px);
+						-webkit-backdrop-filter: blur(8px);
+						box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+						transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+						pointer-events: auto;
+					}
+					.glass-circle:hover {
+						transform: scale(1.15);
+						box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+					}
+					.glass-info {
+						background: linear-gradient(to bottom, rgba(37, 99, 235, 0.4) 0%, rgba(219, 234, 254, 0.15) 100%);
+						border: 1px solid rgba(37, 99, 235, 0.35);
+						color: #1e40af;
+					}
+					.glass-info:hover {
+						background: linear-gradient(to bottom, rgba(37, 99, 235, 0.6) 0%, rgba(219, 234, 254, 0.3) 100%);
+						color: #1d4ed8;
+					}
+					.glass-camera {
+						background: linear-gradient(to bottom, rgba(16, 185, 129, 0.4) 0%, rgba(209, 250, 229, 0.15) 100%);
+						border: 1px solid rgba(16, 185, 129, 0.35);
+						color: #065f46;
+					}
+					.glass-camera:hover {
+						background: linear-gradient(to bottom, rgba(16, 185, 129, 0.6) 0%, rgba(209, 250, 229, 0.3) 100%);
+						color: #047857;
+					}
+					.glass-remove {
+						background: linear-gradient(to bottom, rgba(239, 68, 68, 0.4) 0%, rgba(254, 226, 226, 0.15) 100%);
+						border: 1px solid rgba(239, 68, 68, 0.35);
+						color: #991b1b;
+					}
+					.glass-remove:hover {
+						background: linear-gradient(to bottom, rgba(239, 68, 68, 0.6) 0%, rgba(254, 226, 226, 0.3) 100%);
+						color: #ef4444;
+					}
+					@keyframes pulse-halo {
+						0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+						70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+						100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+					}
+					.pulse-camera {
+						animation: pulse-halo 2s infinite;
+					}
+					@media print {
+						.no-print {
+							display: none !important;
+						}
+					}
+				`}</style>
 				{/* ─── Header ─────────────────────────────── */}
 				{(!display.header_show_mode ||
 					display.header_show_mode === "all_pages") && (
@@ -1081,7 +1343,7 @@ export const PackingListPage = React.forwardRef<
 				<div
 					style={{
 						flex: 1,
-						overflow: "hidden",
+						overflow: "visible",
 						display: "flex",
 						flexDirection: "column",
 						gap: 8,
@@ -1288,6 +1550,19 @@ export const PackingListPage = React.forwardRef<
 											}}
 										>
 											QR
+										</th>
+									)}
+									{editable && (
+										<th
+											className="no-print"
+											style={{
+												padding: "6px 8px",
+												textAlign: "center",
+												fontSize: "0.8em",
+												borderBottom: "1px solid #d8e4f0",
+											}}
+										>
+											Actions
 										</th>
 									)}
 								</tr>
@@ -1609,6 +1884,57 @@ export const PackingListPage = React.forwardRef<
 													)}
 												</td>
 											)}
+											{editable && (
+												<td
+													className="no-print"
+													style={{
+														padding: "4px 8px",
+														borderBottom: "1px solid #eef",
+														textAlign: "center",
+														verticalAlign: "middle",
+													}}
+												>
+													<div
+														style={{
+															display: "flex",
+															gap: "6px",
+															justifyContent: "center",
+															alignItems: "center",
+														}}
+													>
+														{/* biome-ignore lint/a11y/noStaticElementInteractions: navigation button */}
+														<div
+															className="glass-circle glass-info"
+															onClick={(e) => {
+																e.stopPropagation();
+																window.open(
+																	`${origin}/orders/${inst.order_id}`,
+																	"_blank",
+																);
+															}}
+															title="Go to Order Details"
+														>
+															<Info className="w-3.5 h-3.5" />
+														</div>
+														<CameraIndicator
+															inst={inst}
+															inline={true}
+															origin={origin}
+														/>
+														{/* biome-ignore lint/a11y/noStaticElementInteractions: delete button */}
+														<div
+															className="glass-circle glass-remove"
+															onClick={(e) => {
+																e.stopPropagation();
+																handleDeleteBox(inst);
+															}}
+															title="Completely Obliterate Box"
+														>
+															<Trash2 className="w-3.5 h-3.5" />
+														</div>
+													</div>
+												</td>
+											)}
 										</tr>
 									);
 								})}
@@ -1622,940 +1948,1087 @@ export const PackingListPage = React.forwardRef<
 							const globalLineNumber =
 								globalIndex !== -1 ? globalIndex + 1 : undefined;
 
+							const hasPics =
+								(inst.box_photo_urls && inst.box_photo_urls.length > 0) ||
+								inst.pkd_items?.some(
+									(item: any) => item.photo_urls && item.photo_urls.length > 0,
+								);
+
 							return (
 								<div
 									key={inst.id}
 									style={{
-										border: `1px solid #d8e4f0`,
-										borderRadius: 6,
-										overflow: "hidden",
+										position: "relative",
 										breakInside: "avoid",
 										pageBreakInside: "avoid",
+										padding: "2px",
 									}}
 								>
-									{/* Line 1: Main Box Info (Header) */}
-									<div
-										style={{
-											background: ac,
-											borderBottom: `2px solid ${tc}`,
-											padding: "6px 10px",
-											display: "grid",
-											gridTemplateColumns: "1fr auto",
-											alignItems: "center",
-											gap: "12px",
-										}}
-									>
+									{editable && (
 										<div
+											className="no-print"
 											style={{
-												display: "flex",
-												alignItems: "center",
-												flexWrap: "wrap",
-												gap: "4px 10px",
-												fontSize: 10,
-												color: "#222",
+												position: "absolute",
+												top: 0,
+												right: 0,
+												zIndex: 50,
+												pointerEvents: "none",
 											}}
 										>
-											{pkg.show_line_number && (
-												<span
-													className="report-theme-text"
-													style={{ fontWeight: 700, color: tc }}
-												>
-													#{globalLineNumber}
-												</span>
+											{/* Info Circle (Blue) */}
+											{/* biome-ignore lint/a11y/noStaticElementInteractions: navigation button */}
+											<div
+												className="glass-circle glass-info"
+												style={{
+													position: "absolute",
+													top: "-18px",
+													right: hasPics ? "24px" : "14px",
+													zIndex: 50,
+												}}
+												onClick={(e) => {
+													e.stopPropagation();
+													window.open(
+														`${origin}/orders/${inst.order_id}`,
+														"_blank",
+													);
+												}}
+												title="Go to Order Details"
+											>
+												<Info className="w-3.5 h-3.5" />
+											</div>
+											{/* Camera Circle (Green) */}
+											{hasPics && (
+												<CameraIndicator
+													inst={inst}
+													origin={origin}
+													style={{
+														position: "absolute",
+														top: "-14px",
+														right: "-14px",
+														zIndex: 50,
+													}}
+												/>
 											)}
-											{pkg.show_box_number !== false && (
-												<span
-													className="report-theme-text"
-													style={{ fontWeight: 700, fontSize: 11, color: tc }}
-												>
-													Box {inst.package_number}
-													{inst.instance_number > 1
-														? `.${inst.instance_number}`
-														: ""}
-													{inst.is_continuation ? " (Cont.)" : ""}
-												</span>
-											)}
-											{pkg.show_quantity &&
-												(editable ||
-													(inst.package_qty !== null &&
-														inst.package_qty !== undefined)) && (
-													<span>
-														Qty:{" "}
-														<EditableValue
-															value={inst.package_qty}
-															type="number"
-															editable={
-																editable && !!inst.order_pkg_overview_id
-															}
-															onSave={(val) =>
-																updateOverviewField(
-																	inst.order_pkg_overview_id!,
-																	"quantity",
-																	val,
-																)
-															}
-														/>
+											{/* Remove Circle (Red) */}
+											{/* biome-ignore lint/a11y/noStaticElementInteractions: delete button */}
+											<div
+												className="glass-circle glass-remove"
+												style={{
+													position: "absolute",
+													top: hasPics ? "24px" : "14px",
+													right: "-18px",
+													zIndex: 50,
+												}}
+												onClick={(e) => {
+													e.stopPropagation();
+													handleDeleteBox(inst);
+												}}
+												title="Completely Obliterate Box"
+											>
+												<Trash2 className="w-3.5 h-3.5" />
+											</div>
+										</div>
+									)}
+
+									<div
+										style={{
+											border: `1px solid #d8e4f0`,
+											borderRadius: 6,
+											overflow: "hidden",
+										}}
+									>
+										{/* Line 1: Main Box Info (Header) */}
+										<div
+											style={{
+												background: ac,
+												borderBottom: `2px solid ${tc}`,
+												padding: "6px 10px",
+												display: "grid",
+												gridTemplateColumns: "1fr auto",
+												alignItems: "center",
+												gap: "12px",
+											}}
+										>
+											<div
+												style={{
+													display: "flex",
+													alignItems: "center",
+													flexWrap: "wrap",
+													gap: "4px 10px",
+													fontSize: 10,
+													color: "#222",
+												}}
+											>
+												{pkg.show_line_number && (
+													<span
+														className="report-theme-text"
+														style={{ fontWeight: 700, color: tc }}
+													>
+														#{globalLineNumber}
 													</span>
 												)}
-											{pkg.show_internal_dims &&
-												(editable ||
-													inst.internal_length ||
-													inst.internal_width ||
-													inst.internal_height) && (
-													<span>
-														Int Dims:{" "}
-														<strong>
-															<EditableValue
-																value={inst.internal_length}
-																type="number"
-																editable={editable}
-																isDimension={true}
-																tabDimensionsOnly={pkg.tab_dimensions_only}
-																onSave={(val) =>
-																	updateBoxField(inst, "internal_length", val)
-																}
-															/>
-															×
-															<EditableValue
-																value={inst.internal_width}
-																type="number"
-																editable={editable}
-																isDimension={true}
-																tabDimensionsOnly={pkg.tab_dimensions_only}
-																onSave={(val) =>
-																	updateBoxField(inst, "internal_width", val)
-																}
-															/>
-															×
-															<EditableValue
-																value={inst.internal_height}
-																type="number"
-																editable={editable}
-																isDimension={true}
-																tabDimensionsOnly={pkg.tab_dimensions_only}
-																onSave={(val) =>
-																	updateBoxField(inst, "internal_height", val)
-																}
-															/>{" "}
-															mm
-														</strong>
+												{pkg.show_box_number !== false && (
+													<span
+														className="report-theme-text"
+														style={{ fontWeight: 700, fontSize: 11, color: tc }}
+													>
+														Box {inst.package_number}
+														{inst.instance_number > 1
+															? `.${inst.instance_number}`
+															: ""}
+														{inst.is_continuation ? " (Cont.)" : ""}
 													</span>
 												)}
-											{pkg.show_external_dims &&
-												(editable ||
-													inst.external_length ||
-													inst.external_width ||
-													inst.external_height) && (
-													<span>
-														Ext Dims:{" "}
-														<strong>
+												{pkg.show_quantity &&
+													(editable ||
+														(inst.package_qty !== null &&
+															inst.package_qty !== undefined)) && (
+														<span>
+															Qty:{" "}
 															<EditableValue
-																value={inst.external_length}
+																value={inst.package_qty}
 																type="number"
-																editable={editable}
-																isDimension={true}
-																tabDimensionsOnly={pkg.tab_dimensions_only}
+																editable={
+																	editable && !!inst.order_pkg_overview_id
+																}
 																onSave={(val) =>
-																	updateBoxField(inst, "external_length", val)
-																}
-															/>
-															×
-															<EditableValue
-																value={inst.external_width}
-																type="number"
-																editable={editable}
-																isDimension={true}
-																tabDimensionsOnly={pkg.tab_dimensions_only}
-																onSave={(val) =>
-																	updateBoxField(inst, "external_width", val)
-																}
-															/>
-															×
-															<EditableValue
-																value={inst.external_height}
-																type="number"
-																editable={editable}
-																isDimension={true}
-																tabDimensionsOnly={pkg.tab_dimensions_only}
-																onSave={(val) =>
-																	updateBoxField(inst, "external_height", val)
-																}
-															/>{" "}
-															cm
-														</strong>
-													</span>
-												)}
-											{pkg.show_tare &&
-												(editable ||
-													(inst.tare !== null && inst.tare !== undefined)) && (
-													<span>
-														Tare:{" "}
-														<strong>
-															<EditableValue
-																value={
-																	inst.tare !== null && inst.tare !== undefined
-																		? Math.round(inst.tare)
-																		: null
-																}
-																type="number"
-																editable={editable}
-																onSave={(val) =>
-																	updateBoxField(inst, "tare", val)
-																}
-															/>{" "}
-															kg
-														</strong>
-													</span>
-												)}
-											{pkg.show_net_weight &&
-												(editable ||
-													(inst.net_weight !== null &&
-														inst.net_weight !== undefined)) && (
-													<span>
-														N.W.:{" "}
-														<strong>
-															<EditableValue
-																value={
-																	inst.net_weight !== null &&
-																	inst.net_weight !== undefined
-																		? Math.round(inst.net_weight)
-																		: null
-																}
-																type="number"
-																editable={editable}
-																onSave={(val) =>
-																	updateBoxField(inst, "net_weight", val)
-																}
-															/>{" "}
-															kg
-														</strong>
-													</span>
-												)}
-											{pkg.show_gross_weight &&
-												(editable ||
-													(inst.gross_weight !== null &&
-														inst.gross_weight !== undefined)) && (
-													<span>
-														G.W.:{" "}
-														<strong>
-															<EditableValue
-																value={
-																	inst.gross_weight !== null &&
-																	inst.gross_weight !== undefined
-																		? Math.round(inst.gross_weight)
-																		: null
-																}
-																type="number"
-																editable={editable}
-																onSave={(val) =>
-																	updateBoxField(inst, "gross_weight", val)
-																}
-															/>{" "}
-															kg
-														</strong>
-													</span>
-												)}
-											{pkg.show_unit_m3 && (
-												<span>
-													Unit m³:{" "}
-													<strong>
-														{(
-															((inst.external_length ?? 0) *
-																(inst.external_width ?? 0) *
-																(inst.external_height ?? 0)) /
-															1e6
-														).toFixed(3)}
-													</strong>
-												</span>
-											)}
-											{pkg.show_total_m3 && (
-												<span>
-													Total m³:{" "}
-													<strong>
-														{(
-															((inst.external_length ?? 0) *
-																(inst.external_width ?? 0) *
-																(inst.external_height ?? 0)) /
-															1e6
-														).toFixed(3)}
-													</strong>
-												</span>
-											)}
-											{pkg.show_unit_m2 && (
-												<span>
-													Unit m²:{" "}
-													<strong>
-														{(
-															((inst.external_length ?? 0) *
-																(inst.external_width ?? 0)) /
-															1e4
-														).toFixed(2)}
-													</strong>
-												</span>
-											)}
-											{pkg.show_total_m2 && (
-												<span>
-													Total m²:{" "}
-													<strong>
-														{(
-															((inst.external_length ?? 0) *
-																(inst.external_width ?? 0)) /
-															1e4
-														).toFixed(2)}
-													</strong>
-												</span>
-											)}
-											{pkg.show_sei &&
-												(inst.sei_category || inst.sei_protection) && (
-													<span>
-														SEI:{" "}
-														<strong>
-															{`${inst.sei_category || ""} ${inst.sei_protection || ""}`.trim()}
-														</strong>
-													</span>
-												)}
-											{pkg.show_ipac_reference &&
-												(editable || inst.ipac_reference) && (
-													<span>
-														IPAC Ref:{" "}
-														<strong>
-															<EditableValue
-																value={inst.ipac_reference}
-																editable={editable}
-																onSave={(val) =>
-																	updateInstanceField(
-																		inst.id,
-																		"ipac_reference",
+																	updateOverviewField(
+																		inst.order_pkg_overview_id!,
+																		"quantity",
 																		val,
 																	)
 																}
 															/>
+														</span>
+													)}
+												{pkg.show_internal_dims &&
+													(editable ||
+														inst.internal_length ||
+														inst.internal_width ||
+														inst.internal_height) && (
+														<span>
+															Int Dims:{" "}
+															<strong>
+																<EditableValue
+																	value={inst.internal_length}
+																	type="number"
+																	editable={editable}
+																	isDimension={true}
+																	tabDimensionsOnly={pkg.tab_dimensions_only}
+																	onSave={(val) =>
+																		updateBoxField(inst, "internal_length", val)
+																	}
+																/>
+																×
+																<EditableValue
+																	value={inst.internal_width}
+																	type="number"
+																	editable={editable}
+																	isDimension={true}
+																	tabDimensionsOnly={pkg.tab_dimensions_only}
+																	onSave={(val) =>
+																		updateBoxField(inst, "internal_width", val)
+																	}
+																/>
+																×
+																<EditableValue
+																	value={inst.internal_height}
+																	type="number"
+																	editable={editable}
+																	isDimension={true}
+																	tabDimensionsOnly={pkg.tab_dimensions_only}
+																	onSave={(val) =>
+																		updateBoxField(inst, "internal_height", val)
+																	}
+																/>{" "}
+																mm
+															</strong>
+														</span>
+													)}
+												{pkg.show_external_dims &&
+													(editable ||
+														inst.external_length ||
+														inst.external_width ||
+														inst.external_height) && (
+														<span>
+															Ext Dims:{" "}
+															<strong>
+																<EditableValue
+																	value={inst.external_length}
+																	type="number"
+																	editable={editable}
+																	isDimension={true}
+																	tabDimensionsOnly={pkg.tab_dimensions_only}
+																	onSave={(val) =>
+																		updateBoxField(inst, "external_length", val)
+																	}
+																/>
+																×
+																<EditableValue
+																	value={inst.external_width}
+																	type="number"
+																	editable={editable}
+																	isDimension={true}
+																	tabDimensionsOnly={pkg.tab_dimensions_only}
+																	onSave={(val) =>
+																		updateBoxField(inst, "external_width", val)
+																	}
+																/>
+																×
+																<EditableValue
+																	value={inst.external_height}
+																	type="number"
+																	editable={editable}
+																	isDimension={true}
+																	tabDimensionsOnly={pkg.tab_dimensions_only}
+																	onSave={(val) =>
+																		updateBoxField(inst, "external_height", val)
+																	}
+																/>{" "}
+																cm
+															</strong>
+														</span>
+													)}
+												{pkg.show_tare &&
+													(editable ||
+														(inst.tare !== null &&
+															inst.tare !== undefined)) && (
+														<span>
+															Tare:{" "}
+															<strong>
+																<EditableValue
+																	value={
+																		inst.tare !== null &&
+																		inst.tare !== undefined
+																			? Math.round(inst.tare)
+																			: null
+																	}
+																	type="number"
+																	editable={editable}
+																	onSave={(val) =>
+																		updateBoxField(inst, "tare", val)
+																	}
+																/>{" "}
+																kg
+															</strong>
+														</span>
+													)}
+												{pkg.show_net_weight &&
+													(editable ||
+														(inst.net_weight !== null &&
+															inst.net_weight !== undefined)) && (
+														<span>
+															N.W.:{" "}
+															<strong>
+																<EditableValue
+																	value={
+																		inst.net_weight !== null &&
+																		inst.net_weight !== undefined
+																			? Math.round(inst.net_weight)
+																			: null
+																	}
+																	type="number"
+																	editable={editable}
+																	onSave={(val) =>
+																		updateBoxField(inst, "net_weight", val)
+																	}
+																/>{" "}
+																kg
+															</strong>
+														</span>
+													)}
+												{pkg.show_gross_weight &&
+													(editable ||
+														(inst.gross_weight !== null &&
+															inst.gross_weight !== undefined)) && (
+														<span>
+															G.W.:{" "}
+															<strong>
+																<EditableValue
+																	value={
+																		inst.gross_weight !== null &&
+																		inst.gross_weight !== undefined
+																			? Math.round(inst.gross_weight)
+																			: null
+																	}
+																	type="number"
+																	editable={editable}
+																	onSave={(val) =>
+																		updateBoxField(inst, "gross_weight", val)
+																	}
+																/>{" "}
+																kg
+															</strong>
+														</span>
+													)}
+												{pkg.show_unit_m3 && (
+													<span>
+														Unit m³:{" "}
+														<strong>
+															{(
+																((inst.external_length ?? 0) *
+																	(inst.external_width ?? 0) *
+																	(inst.external_height ?? 0)) /
+																1e6
+															).toFixed(3)}
 														</strong>
 													</span>
 												)}
-											{pkg.show_client_reference && inst.destination && (
-												<span>
-													Client Ref: <strong>{inst.destination}</strong>
-												</span>
-											)}
-											{pkg.show_destination && inst.destination && (
-												<span>
-													Dest: <strong>{inst.destination}</strong>
-												</span>
-											)}
-											{pkg.show_order_name && inst.order_name && (
-												<span>
-													Order: <strong>{inst.order_name}</strong>
-												</span>
+												{pkg.show_total_m3 && (
+													<span>
+														Total m³:{" "}
+														<strong>
+															{(
+																((inst.external_length ?? 0) *
+																	(inst.external_width ?? 0) *
+																	(inst.external_height ?? 0)) /
+																1e6
+															).toFixed(3)}
+														</strong>
+													</span>
+												)}
+												{pkg.show_unit_m2 && (
+													<span>
+														Unit m²:{" "}
+														<strong>
+															{(
+																((inst.external_length ?? 0) *
+																	(inst.external_width ?? 0)) /
+																1e4
+															).toFixed(2)}
+														</strong>
+													</span>
+												)}
+												{pkg.show_total_m2 && (
+													<span>
+														Total m²:{" "}
+														<strong>
+															{(
+																((inst.external_length ?? 0) *
+																	(inst.external_width ?? 0)) /
+																1e4
+															).toFixed(2)}
+														</strong>
+													</span>
+												)}
+												{pkg.show_sei &&
+													(inst.sei_category || inst.sei_protection) && (
+														<span>
+															SEI:{" "}
+															<strong>
+																{`${inst.sei_category || ""} ${inst.sei_protection || ""}`.trim()}
+															</strong>
+														</span>
+													)}
+												{pkg.show_ipac_reference &&
+													(editable || inst.ipac_reference) && (
+														<span>
+															IPAC Ref:{" "}
+															<strong>
+																<EditableValue
+																	value={inst.ipac_reference}
+																	editable={editable}
+																	onSave={(val) =>
+																		updateInstanceField(
+																			inst.id,
+																			"ipac_reference",
+																			val,
+																		)
+																	}
+																/>
+															</strong>
+														</span>
+													)}
+												{pkg.show_client_reference && inst.destination && (
+													<span>
+														Client Ref: <strong>{inst.destination}</strong>
+													</span>
+												)}
+												{pkg.show_destination && inst.destination && (
+													<span>
+														Dest: <strong>{inst.destination}</strong>
+													</span>
+												)}
+												{pkg.show_order_name && inst.order_name && (
+													<span>
+														Order: <strong>{inst.order_name}</strong>
+													</span>
+												)}
+												{getBoxTags(inst).length > 0 && (
+													<span
+														style={{ color: "#d97706", fontWeight: "bold" }}
+													>
+														Tags: {getBoxTags(inst).join(", ")}
+													</span>
+												)}
+											</div>
+											{pkg.show_qr_code && inst.qr_token && (
+												<img
+													src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${origin}/portal/scan/${inst.qr_token}`)}`}
+													alt="QR"
+													style={{
+														width: 48,
+														height: 48,
+														border: "1px solid #ccc",
+														borderRadius: 2,
+														background: "#fff",
+														flexShrink: 0,
+													}}
+												/>
 											)}
 										</div>
-										{pkg.show_qr_code && inst.qr_token && (
-											<img
-												src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${origin}/portal/scan/${inst.qr_token}`)}`}
-												alt="QR"
-												style={{
-													width: 48,
-													height: 48,
-													border: "1px solid #ccc",
-													borderRadius: 2,
-													background: "#fff",
-													flexShrink: 0,
-												}}
-											/>
-										)}
-									</div>
 
-									{/* Line 2: Detailed Box Info */}
-									{!inst.is_continuation &&
-										(pkg.show_total_qty_items ||
-											pkg.show_last_packed_date ||
-											pkg.show_box_type) && (
-											<div
-												style={{
-													padding: "4px 10px",
-													background: "#fafcff",
-													borderBottom: "1px solid #eef",
-													display: "flex",
-													flexWrap: "wrap",
-													gap: "2px 16px",
-													fontSize: "0.8em",
-													color: "#555",
-												}}
-											>
-												{pkg.show_total_qty_items && (
-													<>
-														<span>
-															Lines:{" "}
-															<strong>
-																{inst.overall_lines ?? inst.pkd_items.length}
-															</strong>
-														</span>
-														<span>
-															Total Qty of Items:{" "}
-															<strong>
-																{inst.overall_qty ??
-																	inst.pkd_items.reduce(
-																		(sum, item) => sum + item.quantity,
-																		0,
-																	)}
-															</strong>
-														</span>
-													</>
-												)}
-												{pkg.show_last_packed_date && inst.last_packed_at && (
-													<span>
-														Packed Date:{" "}
-														<strong>
-															{new Date(
-																inst.last_packed_at,
-															).toLocaleDateString()}
-														</strong>
-													</span>
-												)}
-												{pkg.show_box_type && inst.box_type && (
-													<span>
-														Type of Box: <strong>{inst.box_type}</strong>
-													</span>
-												)}
-											</div>
-										)}
-
-									{/* Line 3: Box Pictures */}
-									{(() => {
-										let boxPhotos = [...(inst.box_photo_urls || [])];
-										if (
-											pkg.include_item_photos_in_box_photos &&
-											inst.pkd_items
-										) {
-											const itemPhotos = inst.pkd_items.flatMap(
-												(item) => item.photo_urls || [],
-											);
-											boxPhotos = [...boxPhotos, ...itemPhotos];
-										}
-										const visibleBoxPhotos = boxPhotos.filter(
-											(url) => !hiddenMediaUrls.includes(url),
-										);
-										if (
-											!pkg.show_box_photos ||
-											inst.is_continuation ||
-											visibleBoxPhotos.length === 0
-										)
-											return null;
-										return (
-											<div
-												style={{
-													display: "flex",
-													flexWrap: "wrap",
-													gap: "8px",
-													padding: "8px 10px",
-													background: "#f8fafc",
-													borderBottom: "1px solid #eef",
-												}}
-											>
-												{visibleBoxPhotos.map((url, uidx) => (
-													<img
-														key={`box-photo-${uidx}`}
-														src={url}
-														alt={`Box ${uidx + 1}`}
-														style={{
-															height: "60px",
-															objectFit: "cover",
-															borderRadius: "4px",
-															border: "1px solid #ddd",
-															boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-														}}
-													/>
-												))}
-											</div>
-										);
-									})()}
-
-									{/* Items block */}
-									{pkg.show_items && inst.pkd_items.length > 0 && (
-										<div
-											style={{
-												paddingTop: "4px",
-												paddingLeft: "10px",
-												paddingRight: "10px",
-												paddingBottom: inst.has_more ? "10px" : "20px",
-											}}
-										>
-											{pkg.items_detail_level === "summary" ? (
+										{/* Line 2: Detailed Box Info */}
+										{!inst.is_continuation &&
+											(pkg.show_total_qty_items ||
+												pkg.show_last_packed_date ||
+												pkg.show_box_type) && (
 												<div
 													style={{
-														padding: "2px 0",
+														padding: "4px 10px",
+														background: "#fafcff",
+														borderBottom: "1px solid #eef",
+														display: "flex",
+														flexWrap: "wrap",
+														gap: "2px 16px",
 														fontSize: "0.8em",
 														color: "#555",
-														fontStyle: "italic",
 													}}
 												>
-													{inst.item_count} item
-													{inst.item_count !== 1 ? "s" : ""} packed
+													{pkg.show_total_qty_items && (
+														<>
+															<span>
+																Lines:{" "}
+																<strong>
+																	{inst.overall_lines ?? inst.pkd_items.length}
+																</strong>
+															</span>
+															<span>
+																Total Qty of Items:{" "}
+																<strong>
+																	{inst.overall_qty ??
+																		inst.pkd_items.reduce(
+																			(sum, item) => sum + item.quantity,
+																			0,
+																		)}
+																</strong>
+															</span>
+														</>
+													)}
+													{pkg.show_last_packed_date && inst.last_packed_at && (
+														<span>
+															Packed Date:{" "}
+															<strong>
+																{new Date(
+																	inst.last_packed_at,
+																).toLocaleDateString()}
+															</strong>
+														</span>
+													)}
+													{pkg.show_box_type && inst.box_type && (
+														<span>
+															Type of Box: <strong>{inst.box_type}</strong>
+														</span>
+													)}
 												</div>
-											) : (
-												(() => {
-													const activeColumns = [];
-													if (pkg.show_line_num_col)
-														activeColumns.push("line_num");
-													if (pkg.show_qty_col) activeColumns.push("qty");
-													if (pkg.show_item_num_col)
-														activeColumns.push("item_num");
-													if (pkg.show_description_col)
-														activeColumns.push("description");
-													if (pkg.show_item_qr_code)
-														activeColumns.push("qr_code");
+											)}
 
-													let leftColSpan = 0;
-													if (pkg.show_line_num_col) leftColSpan++;
-													if (pkg.show_qty_col) leftColSpan++;
-													if (pkg.show_item_num_col) leftColSpan++;
-
-													return (
-														<table
+										{/* Line 3: Box Pictures */}
+										{(() => {
+											let boxPhotos = [...(inst.box_photo_urls || [])];
+											if (
+												pkg.include_item_photos_in_box_photos &&
+												inst.pkd_items
+											) {
+												const itemPhotos = inst.pkd_items.flatMap(
+													(item) => item.photo_urls || [],
+												);
+												boxPhotos = [...boxPhotos, ...itemPhotos];
+											}
+											const visibleBoxPhotos = boxPhotos.filter(
+												(url) => !hiddenMediaUrls.includes(url),
+											);
+											if (
+												!pkg.show_box_photos ||
+												inst.is_continuation ||
+												visibleBoxPhotos.length === 0
+											)
+												return null;
+											return (
+												<div
+													style={{
+														display: "flex",
+														flexWrap: "wrap",
+														gap: "8px",
+														padding: "8px 10px",
+														background: "#f8fafc",
+														borderBottom: "1px solid #eef",
+													}}
+												>
+													{visibleBoxPhotos.map((url, uidx) => (
+														<img
+															key={`box-photo-${uidx}`}
+															src={url}
+															alt={`Box ${uidx + 1}`}
 															style={{
-																width: "100%",
-																borderCollapse: "collapse",
-																border: "1px solid #cbd5e1",
-																marginTop: "4px",
-																fontSize: baseFontSize,
+																height: "60px",
+																objectFit: "cover",
+																borderRadius: "4px",
+																border: "1px solid #ddd",
+																boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
 															}}
-														>
-															<thead>
-																<tr
-																	style={{
-																		background: "#e8f1f5",
-																		color: "#333",
-																		borderBottom: "2px solid #cbd5e1",
-																	}}
-																>
-																	{pkg.show_line_num_col && (
-																		<th
-																			style={{
-																				padding: "6px 8px",
-																				fontSize: "0.75em",
-																				fontWeight: "600",
-																				borderRight: "1px solid #d8e4f0",
-																				textAlign: "left",
-																				width: "40px",
-																			}}
-																		>
-																			Line #
-																		</th>
-																	)}
-																	{pkg.show_qty_col && (
-																		<th
-																			style={{
-																				padding: "6px 8px",
-																				fontSize: "0.75em",
-																				fontWeight: "600",
-																				borderRight: "1px solid #d8e4f0",
-																				textAlign: "center",
-																				width: "40px",
-																			}}
-																		>
-																			Qty
-																		</th>
-																	)}
-																	{pkg.show_item_num_col && (
-																		<th
-																			style={{
-																				padding: "6px 8px",
-																				fontSize: "0.75em",
-																				fontWeight: "600",
-																				borderRight: "1px solid #d8e4f0",
-																				textAlign: "left",
-																				width: "100px",
-																			}}
-																		>
-																			Item #
-																		</th>
-																	)}
-																	{pkg.show_description_col && (
-																		<th
-																			style={{
-																				padding: "6px 8px",
-																				fontSize: "0.75em",
-																				fontWeight: "600",
-																				borderRight: pkg.show_item_qr_code
-																					? "1px solid #d8e4f0"
-																					: "none",
-																				textAlign: "left",
-																			}}
-																		>
-																			Description
-																		</th>
-																	)}
-																	{pkg.show_item_qr_code && (
-																		<th
-																			style={{
-																				padding: "6px 8px",
-																				fontSize: "0.75em",
-																				fontWeight: "600",
-																				textAlign: "center",
-																				width: "65px",
-																			}}
-																		>
-																			QR
-																		</th>
-																	)}
-																</tr>
-															</thead>
-															<tbody>
-																{sortedItems(inst.pkd_items).map(
-																	(item, idx) => {
-																		const hasDims =
-																			item.length || item.width || item.height;
-																		const hasWeight =
-																			item.net_weight !== null &&
-																			item.net_weight !== undefined;
-																		const visibleItemPhotos = (
-																			item.photo_urls || []
-																		).filter(
-																			(url) => !hiddenMediaUrls.includes(url),
-																		);
-																		const hasPhotos =
-																			pkg.show_item_photos &&
-																			!pkg.include_item_photos_in_box_photos &&
-																			visibleItemPhotos.length > 0;
+														/>
+													))}
+												</div>
+											);
+										})()}
 
-																		const showExtraInfo =
-																			pkg.items_detail_level === "detailed" &&
-																			((pkg.show_item_dimensions !== false &&
-																				(editable || hasDims)) ||
-																				(pkg.show_item_weight !== false &&
-																					(editable || hasWeight)));
+										{/* Items block */}
+										{pkg.show_items && inst.pkd_items.length > 0 && (
+											<div
+												style={{
+													paddingTop: "4px",
+													paddingLeft: "10px",
+													paddingRight: "10px",
+													paddingBottom: inst.has_more ? "10px" : "20px",
+												}}
+											>
+												{pkg.items_detail_level === "summary" ? (
+													<div
+														style={{
+															padding: "2px 0",
+															fontSize: "0.8em",
+															color: "#555",
+															fontStyle: "italic",
+														}}
+													>
+														{inst.item_count} item
+														{inst.item_count !== 1 ? "s" : ""} packed
+													</div>
+												) : (
+													(() => {
+														const activeColumns = [];
+														if (pkg.show_line_num_col)
+															activeColumns.push("line_num");
+														if (pkg.show_qty_col) activeColumns.push("qty");
+														if (pkg.show_item_num_col)
+															activeColumns.push("item_num");
+														if (pkg.show_description_col)
+															activeColumns.push("description");
+														if (pkg.show_item_qr_code)
+															activeColumns.push("qr_code");
 
-																		const hasSecondRow =
-																			showExtraInfo || hasPhotos;
+														let leftColSpan = 0;
+														if (pkg.show_line_num_col) leftColSpan++;
+														if (pkg.show_qty_col) leftColSpan++;
+														if (pkg.show_item_num_col) leftColSpan++;
 
-																		const rowBg =
-																			pkg.table_alternating_rows &&
-																			idx % 2 === 1
-																				? pkg.table_alternating_color
-																				: "#fff";
+														return (
+															<table
+																style={{
+																	width: "100%",
+																	borderCollapse: "collapse",
+																	border: "1px solid #cbd5e1",
+																	marginTop: "4px",
+																	fontSize: baseFontSize,
+																}}
+															>
+																<thead>
+																	<tr
+																		style={{
+																			background: "#e8f1f5",
+																			color: "#333",
+																			borderBottom: "2px solid #cbd5e1",
+																		}}
+																	>
+																		{pkg.show_line_num_col && (
+																			<th
+																				style={{
+																					padding: "6px 8px",
+																					fontSize: "0.75em",
+																					fontWeight: "600",
+																					borderRight: "1px solid #d8e4f0",
+																					textAlign: "left",
+																					width: "40px",
+																				}}
+																			>
+																				Line #
+																			</th>
+																		)}
+																		{pkg.show_qty_col && (
+																			<th
+																				style={{
+																					padding: "6px 8px",
+																					fontSize: "0.75em",
+																					fontWeight: "600",
+																					borderRight: "1px solid #d8e4f0",
+																					textAlign: "center",
+																					width: "40px",
+																				}}
+																			>
+																				Qty
+																			</th>
+																		)}
+																		{pkg.show_item_num_col && (
+																			<th
+																				style={{
+																					padding: "6px 8px",
+																					fontSize: "0.75em",
+																					fontWeight: "600",
+																					borderRight: "1px solid #d8e4f0",
+																					textAlign: "left",
+																					width: "100px",
+																				}}
+																			>
+																				Item #
+																			</th>
+																		)}
+																		{pkg.show_description_col && (
+																			<th
+																				style={{
+																					padding: "6px 8px",
+																					fontSize: "0.75em",
+																					fontWeight: "600",
+																					borderRight: pkg.show_item_qr_code
+																						? "1px solid #d8e4f0"
+																						: "none",
+																					textAlign: "left",
+																				}}
+																			>
+																				Description
+																			</th>
+																		)}
+																		{pkg.show_item_qr_code && (
+																			<th
+																				style={{
+																					padding: "6px 8px",
+																					fontSize: "0.75em",
+																					fontWeight: "600",
+																					textAlign: "center",
+																					width: "65px",
+																				}}
+																			>
+																				QR
+																			</th>
+																		)}
+																	</tr>
+																</thead>
+																<tbody>
+																	{sortedItems(inst.pkd_items).map(
+																		(item, idx) => {
+																			const hasDims =
+																				item.length ||
+																				item.width ||
+																				item.height;
+																			const hasWeight =
+																				item.net_weight !== null &&
+																				item.net_weight !== undefined;
+																			const visibleItemPhotos = (
+																				item.photo_urls || []
+																			).filter(
+																				(url) => !hiddenMediaUrls.includes(url),
+																			);
+																			const hasPhotos =
+																				pkg.show_item_photos &&
+																				!pkg.include_item_photos_in_box_photos &&
+																				visibleItemPhotos.length > 0;
 
-																		return (
-																			<React.Fragment key={item.id}>
-																				{/* Row 1: Item Details */}
-																				<tr
-																					style={{
-																						background: rowBg,
-																					}}
-																				>
-																					{pkg.show_line_num_col && (
-																						<td
-																							style={{
-																								padding: "6px 8px",
-																								fontSize: "0.8em",
-																								borderRight:
-																									"1px solid #d8e4f0",
-																								borderBottom: hasSecondRow
-																									? "1px dashed #e2e8f0"
-																									: "1px solid #cbd5e1",
-																								color: "#666",
-																							}}
-																						>
-																							{(inst.line_offset ?? 0) +
-																								idx +
-																								1}
-																						</td>
-																					)}
-																					{pkg.show_qty_col && (
-																						<td
-																							className="report-theme-text"
-																							style={{
-																								padding: "6px 8px",
-																								fontSize: "0.8em",
-																								fontWeight: "bold",
-																								textAlign: "center",
-																								borderRight:
-																									"1px solid #d8e4f0",
-																								borderBottom: hasSecondRow
-																									? "1px dashed #e2e8f0"
-																									: "1px solid #cbd5e1",
-																								color: tc,
-																							}}
-																						>
-																							<EditableValue
-																								value={item.quantity}
-																								type="number"
-																								editable={editable}
-																								onSave={(val) =>
-																									updatePkdItemQty(
-																										item.id,
-																										val ? Number(val) : null,
-																									)
-																								}
-																							/>
-																						</td>
-																					)}
-																					{pkg.show_item_num_col && (
-																						<td
-																							style={{
-																								padding: "6px 8px",
-																								fontSize: "0.8em",
-																								fontWeight: "600",
-																								borderRight:
-																									"1px solid #d8e4f0",
-																								borderBottom: hasSecondRow
-																									? "1px dashed #e2e8f0"
-																									: "1px solid #cbd5e1",
-																								color: "#333",
-																								wordBreak: "break-all",
-																							}}
-																						>
-																							<EditableValue
-																								value={item.item_num}
-																								editable={
-																									editable &&
-																									!!item.maintenance_db_id
-																								}
-																								onSave={(val) =>
-																									updateItemField(
-																										item.maintenance_db_id!,
-																										"item_num",
-																										val,
-																									)
-																								}
-																							/>
-																						</td>
-																					)}
-																					{pkg.show_description_col && (
-																						<td
-																							style={{
-																								padding: "6px 8px",
-																								fontSize: "0.8em",
-																								borderRight:
-																									pkg.show_item_qr_code
-																										? "1px solid #d8e4f0"
-																										: "none",
-																								borderBottom: hasSecondRow
-																									? "1px dashed #e2e8f0"
-																									: "1px solid #cbd5e1",
-																								color: "#111",
-																							}}
-																						>
-																							{editable &&
-																							!!item.maintenance_db_id ? (
-																								<EditableValue
-																									value={item.item_name}
-																									editable={editable}
-																									onSave={(val) =>
-																										updateItemField(
-																											item.maintenance_db_id!,
-																											"description",
-																											val,
-																										)
-																									}
-																								/>
-																							) : item.item_name ? (
-																								renderFormattedText(
-																									item.item_name,
-																									display.enable_formatting,
-																								)
-																							) : (
-																								"—"
-																							)}
-																						</td>
-																					)}
-																					{pkg.show_item_qr_code && (
-																						<td
-																							rowSpan={hasSecondRow ? 2 : 1}
-																							style={{
-																								padding: "6px 8px",
-																								textAlign: "center",
-																								verticalAlign: "middle",
-																								borderBottom:
-																									"1px solid #cbd5e1",
-																								width: "65px",
-																							}}
-																						>
-																							{item.qr_token ? (
-																								<img
-																									src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-																										`${origin}/portal/scan/${item.qr_token}`,
-																									)}`}
-																									alt="QR"
-																									style={{
-																										width: 48,
-																										height: 48,
-																										border: "1px solid #ccc",
-																										borderRadius: 2,
-																										background: "#fff",
-																										display: "inline-block",
-																									}}
-																								/>
-																							) : (
-																								"—"
-																							)}
-																						</td>
-																					)}
-																				</tr>
+																			const showExtraInfo =
+																				pkg.items_detail_level === "detailed" &&
+																				((pkg.show_item_dimensions !== false &&
+																					(editable || hasDims)) ||
+																					(pkg.show_item_weight !== false &&
+																						(editable || hasWeight)));
 
-																				{/* Row 2: Dimensions, Weights, and Photos */}
-																				{hasSecondRow && (
+																			const hasSecondRow =
+																				showExtraInfo || hasPhotos;
+
+																			const rowBg =
+																				pkg.table_alternating_rows &&
+																				idx % 2 === 1
+																					? pkg.table_alternating_color
+																					: "#fff";
+
+																			return (
+																				<React.Fragment key={item.id}>
+																					{/* Row 1: Item Details */}
 																					<tr
 																						style={{
 																							background: rowBg,
 																						}}
 																					>
-																						{leftColSpan > 0 ? (
-																							<>
-																								{/* Left Column(s): Dimensions & Weight info */}
-																								<td
-																									colSpan={leftColSpan}
-																									style={{
-																										padding: "6px 8px",
-																										fontSize: "0.75em",
-																										color: "#333",
-																										borderRight:
-																											"1px solid #d8e4f0",
-																										borderBottom:
-																											"1px solid #cbd5e1",
-																										verticalAlign: "top",
-																									}}
-																								>
-																									<div
+																						{pkg.show_line_num_col && (
+																							<td
+																								style={{
+																									padding: "6px 8px",
+																									fontSize: "0.8em",
+																									borderRight:
+																										"1px solid #d8e4f0",
+																									borderBottom: hasSecondRow
+																										? "1px dashed #e2e8f0"
+																										: "1px solid #cbd5e1",
+																									color: "#666",
+																								}}
+																							>
+																								{(inst.line_offset ?? 0) +
+																									idx +
+																									1}
+																							</td>
+																						)}
+																						{pkg.show_qty_col && (
+																							<td
+																								className="report-theme-text"
+																								style={{
+																									padding: "6px 8px",
+																									fontSize: "0.8em",
+																									fontWeight: "bold",
+																									textAlign: "center",
+																									borderRight:
+																										"1px solid #d8e4f0",
+																									borderBottom: hasSecondRow
+																										? "1px dashed #e2e8f0"
+																										: "1px solid #cbd5e1",
+																									color: tc,
+																								}}
+																							>
+																								<EditableValue
+																									value={item.quantity}
+																									type="number"
+																									editable={editable}
+																									onSave={(val) =>
+																										updatePkdItemQty(
+																											item.id,
+																											val ? Number(val) : null,
+																										)
+																									}
+																								/>
+																							</td>
+																						)}
+																						{pkg.show_item_num_col && (
+																							<td
+																								style={{
+																									padding: "6px 8px",
+																									fontSize: "0.8em",
+																									fontWeight: "600",
+																									borderRight:
+																										"1px solid #d8e4f0",
+																									borderBottom: hasSecondRow
+																										? "1px dashed #e2e8f0"
+																										: "1px solid #cbd5e1",
+																									color: "#333",
+																									wordBreak: "break-all",
+																								}}
+																							>
+																								<EditableValue
+																									value={item.item_num}
+																									editable={
+																										editable &&
+																										!!item.maintenance_db_id
+																									}
+																									onSave={(val) =>
+																										updateItemField(
+																											item.maintenance_db_id!,
+																											"item_num",
+																											val,
+																										)
+																									}
+																								/>
+																							</td>
+																						)}
+																						{pkg.show_description_col && (
+																							<td
+																								style={{
+																									padding: "6px 8px",
+																									fontSize: "0.8em",
+																									borderRight:
+																										pkg.show_item_qr_code
+																											? "1px solid #d8e4f0"
+																											: "none",
+																									borderBottom: hasSecondRow
+																										? "1px dashed #e2e8f0"
+																										: "1px solid #cbd5e1",
+																									color: "#111",
+																								}}
+																							>
+																								{editable &&
+																								!!item.maintenance_db_id ? (
+																									<EditableValue
+																										value={item.item_name}
+																										editable={editable}
+																										onSave={(val) =>
+																											updateItemField(
+																												item.maintenance_db_id!,
+																												"description",
+																												val,
+																											)
+																										}
+																									/>
+																								) : item.item_name ? (
+																									renderFormattedText(
+																										item.item_name,
+																										display.enable_formatting,
+																									)
+																								) : (
+																									"—"
+																								)}
+																							</td>
+																						)}
+																						{pkg.show_item_qr_code && (
+																							<td
+																								rowSpan={hasSecondRow ? 2 : 1}
+																								style={{
+																									padding: "6px 8px",
+																									textAlign: "center",
+																									verticalAlign: "middle",
+																									borderBottom:
+																										"1px solid #cbd5e1",
+																									width: "65px",
+																								}}
+																							>
+																								{item.qr_token ? (
+																									<img
+																										src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+																											`${origin}/portal/scan/${item.qr_token}`,
+																										)}`}
+																										alt="QR"
 																										style={{
-																											display: "flex",
-																											flexDirection: "column",
-																											gap: "2px",
+																											width: 48,
+																											height: 48,
+																											border: "1px solid #ccc",
+																											borderRadius: 2,
+																											background: "#fff",
+																											display: "inline-block",
+																										}}
+																									/>
+																								) : (
+																									"—"
+																								)}
+																							</td>
+																						)}
+																					</tr>
+
+																					{/* Row 2: Dimensions, Weights, and Photos */}
+																					{hasSecondRow && (
+																						<tr
+																							style={{
+																								background: rowBg,
+																							}}
+																						>
+																							{leftColSpan > 0 ? (
+																								<>
+																									{/* Left Column(s): Dimensions & Weight info */}
+																									<td
+																										colSpan={leftColSpan}
+																										style={{
+																											padding: "6px 8px",
+																											fontSize: "0.75em",
+																											color: "#333",
+																											borderRight:
+																												"1px solid #d8e4f0",
+																											borderBottom:
+																												"1px solid #cbd5e1",
+																											verticalAlign: "top",
 																										}}
 																									>
-																										{pkg.show_item_dimensions !==
-																											false &&
-																											(editable || hasDims) && (
-																												<div>
-																													<span
-																														style={{
-																															color: "#64748b",
-																															fontWeight: "600",
-																														}}
-																													>
-																														Dims:{" "}
-																													</span>
-																													<strong
-																														style={{
-																															color: "#1e293b",
-																														}}
-																													>
-																														<EditableValue
-																															value={
-																																item.length
-																															}
-																															type="number"
-																															isDimension={true}
-																															tabDimensionsOnly={
-																																pkg.tab_dimensions_only
-																															}
-																															editable={
-																																editable &&
-																																!!item.maintenance_db_id
-																															}
-																															onSave={(val) =>
-																																updateItemField(
-																																	item.maintenance_db_id!,
-																																	"length",
-																																	val,
-																																)
-																															}
-																														/>
-																														×
-																														<EditableValue
-																															value={item.width}
-																															type="number"
-																															isDimension={true}
-																															tabDimensionsOnly={
-																																pkg.tab_dimensions_only
-																															}
-																															editable={
-																																editable &&
-																																!!item.maintenance_db_id
-																															}
-																															onSave={(val) =>
-																																updateItemField(
-																																	item.maintenance_db_id!,
-																																	"width",
-																																	val,
-																																)
-																															}
-																														/>
-																														×
-																														<EditableValue
-																															value={
-																																item.height
-																															}
-																															type="number"
-																															isDimension={true}
-																															tabDimensionsOnly={
-																																pkg.tab_dimensions_only
-																															}
-																															editable={
-																																editable &&
-																																!!item.maintenance_db_id
-																															}
-																															onSave={(val) =>
-																																updateItemField(
-																																	item.maintenance_db_id!,
-																																	"height",
-																																	val,
-																																)
-																															}
-																														/>{" "}
-																														mm
-																													</strong>
-																												</div>
-																											)}
-																										{pkg.show_item_weight !==
-																											false &&
-																											(editable ||
-																												hasWeight) && (
-																												<div>
-																													<span
-																														style={{
-																															color: "#64748b",
-																															fontWeight: "600",
-																														}}
-																													>
-																														Weight:{" "}
-																													</span>
-																													<strong
-																														style={{
-																															color: "#1e293b",
-																														}}
-																													>
-																														<EditableValue
-																															value={
-																																item.net_weight !==
-																																	null &&
-																																item.net_weight !==
-																																	undefined
-																																	? Math.round(
-																																			item.net_weight,
-																																		)
-																																	: null
-																															}
-																															type="number"
-																															editable={
-																																editable &&
-																																!!item.maintenance_db_id
-																															}
-																															onSave={(val) =>
-																																updateItemField(
-																																	item.maintenance_db_id!,
-																																	"net_weight",
-																																	val,
-																																)
-																															}
-																														/>{" "}
-																														kg
-																													</strong>
-																												</div>
-																											)}
-																									</div>
-																								</td>
+																										<div
+																											style={{
+																												display: "flex",
+																												flexDirection: "column",
+																												gap: "2px",
+																											}}
+																										>
+																											{pkg.show_item_dimensions !==
+																												false &&
+																												(editable ||
+																													hasDims) && (
+																													<div>
+																														<span
+																															style={{
+																																color:
+																																	"#64748b",
+																																fontWeight:
+																																	"600",
+																															}}
+																														>
+																															Dims:{" "}
+																														</span>
+																														<strong
+																															style={{
+																																color:
+																																	"#1e293b",
+																															}}
+																														>
+																															<EditableValue
+																																value={
+																																	item.length
+																																}
+																																type="number"
+																																isDimension={
+																																	true
+																																}
+																																tabDimensionsOnly={
+																																	pkg.tab_dimensions_only
+																																}
+																																editable={
+																																	editable &&
+																																	!!item.maintenance_db_id
+																																}
+																																onSave={(val) =>
+																																	updateItemField(
+																																		item.maintenance_db_id!,
+																																		"length",
+																																		val,
+																																	)
+																																}
+																															/>
+																															×
+																															<EditableValue
+																																value={
+																																	item.width
+																																}
+																																type="number"
+																																isDimension={
+																																	true
+																																}
+																																tabDimensionsOnly={
+																																	pkg.tab_dimensions_only
+																																}
+																																editable={
+																																	editable &&
+																																	!!item.maintenance_db_id
+																																}
+																																onSave={(val) =>
+																																	updateItemField(
+																																		item.maintenance_db_id!,
+																																		"width",
+																																		val,
+																																	)
+																																}
+																															/>
+																															×
+																															<EditableValue
+																																value={
+																																	item.height
+																																}
+																																type="number"
+																																isDimension={
+																																	true
+																																}
+																																tabDimensionsOnly={
+																																	pkg.tab_dimensions_only
+																																}
+																																editable={
+																																	editable &&
+																																	!!item.maintenance_db_id
+																																}
+																																onSave={(val) =>
+																																	updateItemField(
+																																		item.maintenance_db_id!,
+																																		"height",
+																																		val,
+																																	)
+																																}
+																															/>{" "}
+																															mm
+																														</strong>
+																													</div>
+																												)}
+																											{pkg.show_item_weight !==
+																												false &&
+																												(editable ||
+																													hasWeight) && (
+																													<div>
+																														<span
+																															style={{
+																																color:
+																																	"#64748b",
+																																fontWeight:
+																																	"600",
+																															}}
+																														>
+																															Weight:{" "}
+																														</span>
+																														<strong
+																															style={{
+																																color:
+																																	"#1e293b",
+																															}}
+																														>
+																															<EditableValue
+																																value={
+																																	item.net_weight !==
+																																		null &&
+																																	item.net_weight !==
+																																		undefined
+																																		? Math.round(
+																																				item.net_weight,
+																																			)
+																																		: null
+																																}
+																																type="number"
+																																editable={
+																																	editable &&
+																																	!!item.maintenance_db_id
+																																}
+																																onSave={(val) =>
+																																	updateItemField(
+																																		item.maintenance_db_id!,
+																																		"net_weight",
+																																		val,
+																																	)
+																																}
+																															/>{" "}
+																															kg
+																														</strong>
+																													</div>
+																												)}
+																										</div>
+																									</td>
 
-																								{/* Description Column: Item Photos */}
+																									{/* Description Column: Item Photos */}
+																									<td
+																										style={{
+																											padding: "6px 8px",
+																											borderRight:
+																												pkg.show_item_qr_code
+																													? "1px solid #d8e4f0"
+																													: "none",
+																											borderBottom:
+																												"1px solid #cbd5e1",
+																											verticalAlign: "top",
+																										}}
+																									>
+																										{hasPhotos && (
+																											<div
+																												style={{
+																													display: "flex",
+																													flexWrap: "wrap",
+																													gap: "6px",
+																												}}
+																											>
+																												{visibleItemPhotos.map(
+																													(url, uidx) => (
+																														<img
+																															key={`item-photo-${uidx}`}
+																															src={url}
+																															alt={`Item ${uidx + 1}`}
+																															style={{
+																																height: "45px",
+																																objectFit:
+																																	"contain",
+																																borderRadius:
+																																	"4px",
+																																border:
+																																	"1px solid #cbd5e1",
+																															}}
+																														/>
+																													),
+																												)}
+																											</div>
+																										)}
+																									</td>
+																								</>
+																							) : (
 																								<td
 																									style={{
 																										padding: "6px 8px",
@@ -2568,204 +3041,164 @@ export const PackingListPage = React.forwardRef<
 																										verticalAlign: "top",
 																									}}
 																								>
-																									{hasPhotos && (
-																										<div
-																											style={{
-																												display: "flex",
-																												flexWrap: "wrap",
-																												gap: "6px",
-																											}}
-																										>
-																											{visibleItemPhotos.map(
-																												(url, uidx) => (
-																													<img
-																														key={`item-photo-${uidx}`}
-																														src={url}
-																														alt={`Item ${uidx + 1}`}
-																														style={{
-																															height: "45px",
-																															objectFit:
-																																"contain",
-																															borderRadius:
-																																"4px",
-																															border:
-																																"1px solid #cbd5e1",
-																														}}
-																													/>
-																												),
-																											)}
-																										</div>
-																									)}
-																								</td>
-																							</>
-																						) : (
-																							<td
-																								style={{
-																									padding: "6px 8px",
-																									borderRight:
-																										pkg.show_item_qr_code
-																											? "1px solid #d8e4f0"
-																											: "none",
-																									borderBottom:
-																										"1px solid #cbd5e1",
-																									verticalAlign: "top",
-																								}}
-																							>
-																								<div
-																									style={{
-																										display: "flex",
-																										flexDirection: "column",
-																										gap: "6px",
-																									}}
-																								>
 																									<div
 																										style={{
 																											display: "flex",
-																											gap: "12px",
+																											flexDirection: "column",
+																											gap: "6px",
 																										}}
 																									>
-																										{hasDims && (
-																											<span>
-																												Dims:{" "}
-																												<strong>
-																													{item.length ?? 0}×
-																													{item.width ?? 0}×
-																													{item.height ?? 0} mm
-																												</strong>
-																											</span>
-																										)}
-																										{hasWeight && (
-																											<span>
-																												Weight:{" "}
-																												<strong>
-																													{Math.round(
-																														item.net_weight!,
-																													)}{" "}
-																													kg
-																												</strong>
-																											</span>
-																										)}
-																									</div>
-																									{hasPhotos && (
 																										<div
 																											style={{
 																												display: "flex",
-																												flexWrap: "wrap",
-																												gap: "6px",
+																												gap: "12px",
 																											}}
 																										>
-																											{visibleItemPhotos.map(
-																												(url, uidx) => (
-																													<img
-																														key={`item-photo-${uidx}`}
-																														src={url}
-																														alt={`Item ${uidx + 1}`}
-																														style={{
-																															height: "45px",
-																															objectFit:
-																																"contain",
-																															borderRadius:
-																																"4px",
-																															border:
-																																"1px solid #cbd5e1",
-																														}}
-																													/>
-																												),
+																											{hasDims && (
+																												<span>
+																													Dims:{" "}
+																													<strong>
+																														{item.length ?? 0}×
+																														{item.width ?? 0}×
+																														{item.height ?? 0}{" "}
+																														mm
+																													</strong>
+																												</span>
+																											)}
+																											{hasWeight && (
+																												<span>
+																													Weight:{" "}
+																													<strong>
+																														{Math.round(
+																															item.net_weight!,
+																														)}{" "}
+																														kg
+																													</strong>
+																												</span>
 																											)}
 																										</div>
-																									)}
-																								</div>
-																							</td>
-																						)}
-																					</tr>
-																				)}
-																			</React.Fragment>
-																		);
-																	},
-																)}
-															</tbody>
-														</table>
-													);
-												})()
-											)}
-											{inst.has_more && (
+																										{hasPhotos && (
+																											<div
+																												style={{
+																													display: "flex",
+																													flexWrap: "wrap",
+																													gap: "6px",
+																												}}
+																											>
+																												{visibleItemPhotos.map(
+																													(url, uidx) => (
+																														<img
+																															key={`item-photo-${uidx}`}
+																															src={url}
+																															alt={`Item ${uidx + 1}`}
+																															style={{
+																																height: "45px",
+																																objectFit:
+																																	"contain",
+																																borderRadius:
+																																	"4px",
+																																border:
+																																	"1px solid #cbd5e1",
+																															}}
+																														/>
+																													),
+																												)}
+																											</div>
+																										)}
+																									</div>
+																								</td>
+																							)}
+																						</tr>
+																					)}
+																				</React.Fragment>
+																			);
+																		},
+																	)}
+																</tbody>
+															</table>
+														);
+													})()
+												)}
+												{inst.has_more && (
+													<div
+														style={{
+															padding: "4px 10px",
+															fontSize: "0.75em",
+															color: "#666",
+															fontStyle: "italic",
+															textAlign: "right",
+														}}
+													>
+														Continued on next page...
+													</div>
+												)}
+											</div>
+										)}
+										{display.include_signatures &&
+											display.signatures_scope === "box" &&
+											!inst.has_more && (
 												<div
 													style={{
-														padding: "4px 10px",
-														fontSize: "0.75em",
-														color: "#666",
-														fontStyle: "italic",
-														textAlign: "right",
+														display: "flex",
+														gap: 20,
+														padding: "8px 10px",
+														borderTop: "1px solid #e8eef4",
+														background: "#fafcff",
 													}}
 												>
-													Continued on next page...
-												</div>
-											)}
-										</div>
-									)}
-									{display.include_signatures &&
-										display.signatures_scope === "box" &&
-										!inst.has_more && (
-											<div
-												style={{
-													display: "flex",
-													gap: 20,
-													padding: "8px 10px",
-													borderTop: "1px solid #e8eef4",
-													background: "#fafcff",
-												}}
-											>
-												{display.signature_fields.map((sig, i) => {
-													const sigKey = `sig-box-${inst.id}-${i}`;
-													return (
-														<div
-															key={sigKey}
-															style={{ flex: 1, textAlign: "center" }}
-														>
-															{(() => {
-																const _m = sig.image_id
-																	? signatures.find(
-																			(s) => s.id === sig.image_id,
-																		)
-																	: undefined;
-																return _m ? (
-																	<div
-																		style={{
-																			display: "flex",
-																			justifyContent:
-																				display.signature_align ?? "center",
-																		}}
-																	>
-																		<img
-																			src={getSignatureUrl(_m.image_path)}
-																			alt={_m.label}
+													{display.signature_fields.map((sig, i) => {
+														const sigKey = `sig-box-${inst.id}-${i}`;
+														return (
+															<div
+																key={sigKey}
+																style={{ flex: 1, textAlign: "center" }}
+															>
+																{(() => {
+																	const _m = sig.image_id
+																		? signatures.find(
+																				(s) => s.id === sig.image_id,
+																			)
+																		: undefined;
+																	return _m ? (
+																		<div
 																			style={{
+																				display: "flex",
+																				justifyContent:
+																					display.signature_align ?? "center",
+																			}}
+																		>
+																			<img
+																				src={getSignatureUrl(_m.image_path)}
+																				alt={_m.label}
+																				style={{
+																					height:
+																						display.signature_height_px ?? 30,
+																					width: `${display.signature_width_pct ?? 80}%`,
+																					objectFit: "contain",
+																					marginBottom: 3,
+																				}}
+																			/>
+																		</div>
+																	) : (
+																		<div
+																			style={{
+																				borderBottom: "1px solid #aaa",
 																				height:
 																					display.signature_height_px ?? 30,
-																				width: `${display.signature_width_pct ?? 80}%`,
-																				objectFit: "contain",
 																				marginBottom: 3,
 																			}}
 																		/>
-																	</div>
-																) : (
-																	<div
-																		style={{
-																			borderBottom: "1px solid #aaa",
-																			height: display.signature_height_px ?? 30,
-																			marginBottom: 3,
-																		}}
-																	/>
-																);
-															})()}
-															<div style={{ fontSize: 8.5, color: "#666" }}>
-																{sig.label}
+																	);
+																})()}
+																<div style={{ fontSize: 8.5, color: "#666" }}>
+																	{sig.label}
+																</div>
 															</div>
-														</div>
-													);
-												})}
-											</div>
-										)}
+														);
+													})}
+												</div>
+											)}
+									</div>
 								</div>
 							);
 						})

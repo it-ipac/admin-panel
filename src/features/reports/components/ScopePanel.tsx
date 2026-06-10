@@ -9,6 +9,7 @@ import {
 	useReportInstancesQuery,
 } from "../hooks/useReportBuilderQueries";
 import type { FilterParams } from "../types";
+import { getBoxTags } from "../utils";
 
 interface ScopePanelProps {
 	filters: FilterParams;
@@ -42,64 +43,64 @@ const SortPriorityCard: React.FC<SortPriorityCardProps> = ({
 	onAdd,
 	customInput,
 }) => (
-	<div className="flex flex-col gap-3.5 p-4 bg-gray-50 dark:bg-slate-900/40 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm dark:shadow-lg backdrop-blur-sm">
+	<div className="flex flex-col gap-2 p-2 bg-white dark:bg-slate-900/60 border border-gray-200/60 dark:border-slate-800/60 rounded-lg shadow-sm backdrop-blur-sm">
 		<div>
-			<span className="text-sm font-semibold text-gray-800 dark:text-slate-200 tracking-wide">
+			<span className="text-xs font-bold text-gray-800 dark:text-slate-200 tracking-wide">
 				{title}
 			</span>
 			{description && (
-				<p className="text-[10px] text-gray-400 dark:text-slate-500 mt-0.5">
+				<p className="text-[10px] text-gray-400 dark:text-slate-500 mt-0.5 leading-tight">
 					{description}
 				</p>
 			)}
 		</div>
 
 		{/* Active order */}
-		<div className="flex flex-col gap-2">
-			<span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">
+		<div className="flex flex-col gap-1.5">
+			<span className="text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
 				Active Sort Order
 			</span>
 			{activeTerms.length === 0 ? (
-				<div className="text-xs text-gray-400 dark:text-slate-400 italic p-3 bg-gray-100 dark:bg-slate-800/30 border border-dashed border-gray-300 dark:border-slate-700 rounded-lg text-center">
+				<div className="text-xs text-gray-400 dark:text-slate-400 italic p-2 bg-gray-100 dark:bg-slate-800/30 border border-dashed border-gray-300 dark:border-slate-700 rounded-lg text-center">
 					No sort applied — uses default order.
 				</div>
 			) : (
-				<div className="flex flex-col gap-2">
+				<div className="flex flex-col gap-1">
 					{activeTerms.map((term, idx) => (
 						<div
 							key={`${term}-${idx}`}
-							className="flex items-center justify-between bg-white dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700/60 rounded-lg px-3 py-2 shadow-sm text-sm group hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-150"
+							className="flex items-center justify-between bg-white dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700/60 rounded-lg px-2 py-1 shadow-sm text-xs group hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-150"
 						>
 							<span className="font-semibold text-gray-800 dark:text-slate-100">
 								{term}
 							</span>
-							<div className="flex items-center gap-1.5">
+							<div className="flex items-center gap-1">
 								<button
 									type="button"
 									onClick={() => onMove(idx, "up")}
 									disabled={idx === 0}
-									className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 disabled:opacity-20 disabled:hover:bg-transparent transition-colors cursor-pointer"
+									className="p-0.5 hover:bg-gray-100 dark:hover:bg-slate-700 rounded text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 disabled:opacity-20 disabled:hover:bg-transparent transition-colors cursor-pointer"
 									title="Move Up"
 								>
-									<ChevronUp className="w-4 h-4" />
+									<ChevronUp className="w-3.5 h-3.5" />
 								</button>
 								<button
 									type="button"
 									onClick={() => onMove(idx, "down")}
 									disabled={idx === activeTerms.length - 1}
-									className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 disabled:opacity-20 disabled:hover:bg-transparent transition-colors cursor-pointer"
+									className="p-0.5 hover:bg-gray-100 dark:hover:bg-slate-700 rounded text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 disabled:opacity-20 disabled:hover:bg-transparent transition-colors cursor-pointer"
 									title="Move Down"
 								>
-									<ChevronDown className="w-4 h-4" />
+									<ChevronDown className="w-3.5 h-3.5" />
 								</button>
-								<div className="w-[1px] h-4 bg-gray-200 dark:bg-slate-700 mx-1" />
+								<div className="w-[1px] h-3 bg-gray-200 dark:bg-slate-700 mx-0.5" />
 								<button
 									type="button"
 									onClick={() => onRemove(idx)}
-									className="p-1 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400 rounded text-gray-400 dark:text-slate-400 transition-colors cursor-pointer"
+									className="p-0.5 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400 rounded text-gray-400 dark:text-slate-400 transition-colors cursor-pointer"
 									title="Remove"
 								>
-									<X className="w-4 h-4" />
+									<X className="w-3.5 h-3.5" />
 								</button>
 							</div>
 						</div>
@@ -110,19 +111,19 @@ const SortPriorityCard: React.FC<SortPriorityCardProps> = ({
 
 		{/* Available pool */}
 		{availableTerms.length > 0 && (
-			<div className="flex flex-col gap-2 mt-1">
-				<span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">
+			<div className="flex flex-col gap-1.5 mt-0.5">
+				<span className="text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
 					Available (Click to add)
 				</span>
-				<div className="flex flex-wrap gap-2">
+				<div className="flex flex-wrap gap-1">
 					{availableTerms.map((term) => (
 						<button
 							key={term}
 							type="button"
 							onClick={() => onAdd(term)}
-							className={`px-3 py-1.5 text-xs font-semibold bg-white dark:bg-slate-800/40 hover:bg-blue-50 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-slate-700 border-dashed ${accentClass} rounded-full transition-all duration-200 flex items-center gap-1 cursor-pointer transform hover:-translate-y-0.5 shadow-sm`}
+							className={`px-2 py-1 text-[11px] font-semibold bg-white dark:bg-slate-800/40 hover:bg-blue-50 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-slate-700 border-dashed ${accentClass} rounded-full transition-all duration-200 flex items-center gap-0.5 cursor-pointer transform hover:-translate-y-0.5 shadow-sm`}
 						>
-							<Plus className={`w-3.5 h-3.5 ${accentIconClass}`} />
+							<Plus className={`w-3 h-3 ${accentIconClass}`} />
 							{term}
 						</button>
 					))}
@@ -170,12 +171,15 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 			tags: [],
 		});
 
-	// Unique inst.tag values present in current scope — used for the tag filter UI
+	// Unique inst.tag values present in current scope — used for the tag filter UI using fallback helper
 	const availableInstanceTags = useMemo(() => {
 		if (!allInstancesForBoxPicker) return [];
 		const seen = new Set<string>();
 		for (const inst of allInstancesForBoxPicker) {
-			if (inst.tag) seen.add(inst.tag);
+			const instTags = getBoxTags(inst);
+			for (const t of instTags) {
+				seen.add(t);
+			}
 		}
 		return Array.from(seen).sort();
 	}, [allInstancesForBoxPicker]);
@@ -575,161 +579,6 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 				</div>
 			)}
 
-			{/* ── FILTERS ───────────────────────────────────────────────────── */}
-			<SectionHeader label="Filters" />
-
-			{/* Date Range */}
-			<div className="flex flex-col gap-2 p-3 bg-gray-50 dark:bg-slate-800/30 border border-gray-200 dark:border-slate-700 rounded-md">
-				<span className="text-sm font-semibold text-gray-700 dark:text-slate-300">
-					Date Range
-				</span>
-				<div className="flex gap-3 mb-1">
-					<label className="flex items-center gap-2 text-xs text-gray-700 dark:text-slate-300 cursor-pointer">
-						<input
-							type="radio"
-							checked={filters.dateFilterMode === "item_packed_at"}
-							onChange={() => handleChange("dateFilterMode", "item_packed_at")}
-						/>
-						Packed Date
-					</label>
-					<label className="flex items-center gap-2 text-xs text-gray-700 dark:text-slate-300 cursor-pointer">
-						<input
-							type="radio"
-							checked={filters.dateFilterMode === "instance_created_at"}
-							onChange={() =>
-								handleChange("dateFilterMode", "instance_created_at")
-							}
-						/>
-						Box Created Date
-					</label>
-				</div>
-				<div className="flex gap-2">
-					<div className="flex-1 flex flex-col gap-1">
-						<label htmlFor="date-from" className="text-xs text-gray-400">
-							From
-						</label>
-						<input
-							id="date-from"
-							type="date"
-							className="border p-1.5 rounded-md text-sm w-full dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
-							value={filters.dateFrom || ""}
-							onChange={(e) => handleChange("dateFrom", e.target.value || null)}
-						/>
-					</div>
-					<div className="flex-1 flex flex-col gap-1">
-						<label htmlFor="date-to" className="text-xs text-gray-400">
-							To
-						</label>
-						<input
-							id="date-to"
-							type="date"
-							className="border p-1.5 rounded-md text-sm w-full dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
-							value={filters.dateTo || ""}
-							onChange={(e) => handleChange("dateTo", e.target.value || null)}
-						/>
-					</div>
-				</div>
-			</div>
-
-			{/* Destinations filter */}
-			<div className="flex flex-col gap-1">
-				<div className="flex justify-between items-center">
-					<span className="text-sm font-medium text-gray-700 dark:text-slate-300">
-						Destination Filter
-					</span>
-					{destinations && destinations.length > 0 && (
-						<div className="flex gap-2 text-xs">
-							<button
-								type="button"
-								onClick={() => handleChange("destinations", destinations)}
-								className="text-blue-600 hover:underline"
-							>
-								All
-							</button>
-							<button
-								type="button"
-								onClick={() => handleChange("destinations", [])}
-								className="text-gray-500 hover:underline"
-							>
-								None
-							</button>
-						</div>
-					)}
-				</div>
-				{destLoading ? (
-					<div className="text-xs text-gray-500 animate-pulse">Loading...</div>
-				) : destinations && destinations.length > 0 ? (
-					<div className="flex flex-col gap-1 max-h-32 overflow-y-auto p-2 border rounded-md bg-gray-50 dark:bg-slate-800/30 dark:border-slate-700">
-						{destinations.map((d) => (
-							<label
-								key={d}
-								className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer"
-							>
-								<input
-									type="checkbox"
-									checked={filters.destinations.includes(d)}
-									onChange={() => handleArrayChange("destinations", d)}
-								/>
-								{d}
-							</label>
-						))}
-					</div>
-				) : (
-					<div className="text-xs text-gray-400 italic">
-						{filters.clientId
-							? "No destinations found"
-							: "Select a client first"}
-					</div>
-				)}
-			</div>
-
-			{/* Box Tag filter — derived from actual inst.tag values */}
-			<div className="flex flex-col gap-1">
-				<div className="flex justify-between items-center">
-					<span className="text-sm font-medium text-gray-700 dark:text-slate-300">
-						Tag Filter
-					</span>
-					{filters.tags.length > 0 && (
-						<button
-							type="button"
-							onClick={() => handleChange("tags", [])}
-							className="text-xs text-gray-500 hover:underline"
-						>
-							Clear
-						</button>
-					)}
-				</div>
-				{instancesLoading ? (
-					<div className="text-xs text-gray-500 animate-pulse">Loading...</div>
-				) : availableInstanceTags.length > 0 ? (
-					<div className="flex flex-wrap gap-1.5 p-2 border rounded-md bg-gray-50 dark:bg-slate-800/30 dark:border-slate-700">
-						{availableInstanceTags.map((tagName) => {
-							const isSelected = filters.tags.includes(tagName);
-							return (
-								<button
-									key={tagName}
-									type="button"
-									onClick={() => handleArrayChange("tags", tagName)}
-									className={`px-2 py-1 text-xs rounded-full border transition-colors ${
-										isSelected
-											? "bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900/40 dark:border-blue-600 dark:text-blue-300"
-											: "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
-									}`}
-								>
-									{tagName}
-								</button>
-							);
-						})}
-					</div>
-				) : (
-					<div className="text-xs text-gray-400 italic">
-						{filters.clientId
-							? "No tagged boxes in current scope"
-							: "Select a client first"}
-					</div>
-				)}
-			</div>
-
 			{/* ── OPTIONS ───────────────────────────────────────────────────── */}
 			<SectionHeader label="Options" />
 
@@ -816,64 +665,259 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 					)}
 			</div>
 
-			{/* ── SORT ──────────────────────────────────────────────────────── */}
-			<SectionHeader label="Sort" />
+			{/* ── FILTERS ───────────────────────────────────────────────────── */}
+			<div className="flex flex-col gap-2 px-2 pb-2 pt-0 bg-gradient-to-b from-emerald-500/10 via-emerald-500/3 to-transparent dark:from-emerald-500/15 dark:via-emerald-500/3 dark:to-transparent border border-emerald-100/70 dark:border-emerald-900/30 rounded-lg overflow-hidden">
+				<div className="h-[3px] -mx-2 bg-emerald-500/80" />
+				<div className="text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-widest pl-1 pt-1.5">
+					Filters
+				</div>
 
-			{/* Sort by Tag Priority */}
-			<SortPriorityCard
-				title="Sort by Tag"
-				description="Sorts boxes by their tag (e.g. power, water, ac). Higher in list = appears first."
-				activeTerms={activeTags}
-				availableTerms={availableTags}
-				accentClass="hover:border-blue-400 dark:hover:border-blue-500/80"
-				accentIconClass="text-blue-400"
-				onMove={handleTagSortMove}
-				onRemove={removeTagFromSort}
-				onAdd={addTagToSort}
-				customInput={
-					<div className="flex flex-col gap-2 mt-1">
-						<span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">
-							Or add custom tag
-						</span>
-						<div className="flex gap-2">
+				{/* Date Range */}
+				<div className="flex flex-col gap-1.5 p-2 bg-white dark:bg-slate-900/60 border border-gray-200/60 dark:border-slate-800/60 rounded-lg shadow-sm">
+					<span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">
+						Date Range
+					</span>
+					<div className="flex gap-3 mb-0.5">
+						<label className="flex items-center gap-1.5 text-xs text-gray-700 dark:text-slate-300 cursor-pointer">
 							<input
-								type="text"
-								placeholder="e.g. custom-tag"
-								value={customTagInput}
-								onChange={(e) => setCustomTagInput(e.target.value)}
-								onKeyDown={(e) => {
-									if (e.key === "Enter") {
-										e.preventDefault();
-										handleAddCustomTag();
-									}
-								}}
-								className="flex-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-gray-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-150"
+								type="radio"
+								checked={filters.dateFilterMode === "item_packed_at"}
+								onChange={() =>
+									handleChange("dateFilterMode", "item_packed_at")
+								}
 							/>
-							<button
-								type="button"
-								onClick={handleAddCustomTag}
-								className="px-3 py-1.5 text-xs font-bold bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-200 rounded-lg flex items-center gap-1 transition-all duration-150 cursor-pointer hover:border-gray-400 dark:hover:border-slate-500 shadow-sm"
-							>
-								<Plus className="w-4 h-4 text-gray-400 dark:text-slate-400" />
-								Add
-							</button>
+							Packed Date
+						</label>
+						<label className="flex items-center gap-1.5 text-xs text-gray-700 dark:text-slate-300 cursor-pointer">
+							<input
+								type="radio"
+								checked={filters.dateFilterMode === "instance_created_at"}
+								onChange={() =>
+									handleChange("dateFilterMode", "instance_created_at")
+								}
+							/>
+							Box Created Date
+						</label>
+					</div>
+					<div className="flex gap-2">
+						<div className="flex-1 flex flex-col gap-0.5">
+							<label htmlFor="date-from" className="text-[10px] text-gray-400">
+								From
+							</label>
+							<input
+								id="date-from"
+								type="date"
+								className="border p-1 rounded-md text-xs w-full dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+								value={filters.dateFrom || ""}
+								onChange={(e) =>
+									handleChange("dateFrom", e.target.value || null)
+								}
+							/>
+						</div>
+						<div className="flex-1 flex flex-col gap-0.5">
+							<label htmlFor="date-to" className="text-[10px] text-gray-400">
+								To
+							</label>
+							<input
+								id="date-to"
+								type="date"
+								className="border p-1 rounded-md text-xs w-full dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+								value={filters.dateTo || ""}
+								onChange={(e) => handleChange("dateTo", e.target.value || null)}
+							/>
 						</div>
 					</div>
-				}
-			/>
+				</div>
 
-			{/* Sort by Destination Priority */}
-			<SortPriorityCard
-				title="Sort by Destination"
-				description="Sorts boxes by destination. Higher in list = appears first. Only destinations for the selected orders appear."
-				activeTerms={activeDestTerms}
-				availableTerms={availableDestSortTerms}
-				accentClass="hover:border-emerald-400 dark:hover:border-emerald-500/80"
-				accentIconClass="text-emerald-400"
-				onMove={handleDestSortMove}
-				onRemove={removeDestFromSort}
-				onAdd={addDestToSort}
-			/>
+				{/* Destinations filter */}
+				<div className="flex flex-col gap-1.5">
+					<div className="flex justify-between items-center pl-1">
+						<span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">
+							Destination Filter
+						</span>
+						{destinations && destinations.length > 0 && (
+							<div className="flex gap-2 text-xs">
+								<button
+									type="button"
+									onClick={() => handleChange("destinations", destinations)}
+									className="text-blue-600 hover:underline text-[10px] font-semibold"
+								>
+									All
+								</button>
+								<button
+									type="button"
+									onClick={() => handleChange("destinations", [])}
+									className="text-gray-500 hover:underline text-[10px] font-semibold"
+								>
+									None
+								</button>
+							</div>
+						)}
+					</div>
+					{destLoading ? (
+						<div className="text-xs text-gray-500 animate-pulse pl-1">
+							Loading...
+						</div>
+					) : destinations && destinations.length > 0 ? (
+						<div className="flex flex-col gap-1 max-h-32 overflow-y-auto p-1.5 border border-gray-200/60 dark:border-slate-800/60 rounded-lg bg-white dark:bg-slate-900/60 shadow-sm">
+							{destinations.map((d) => (
+								<label
+									key={d}
+									className="flex items-center gap-2 text-xs text-gray-700 dark:text-slate-300 cursor-pointer py-0.5"
+								>
+									<input
+										type="checkbox"
+										checked={filters.destinations.includes(d)}
+										onChange={() => handleArrayChange("destinations", d)}
+									/>
+									{d}
+								</label>
+							))}
+						</div>
+					) : (
+						<div className="text-xs text-gray-400 italic pl-1">
+							{filters.clientId
+								? "No destinations found"
+								: "Select a client first"}
+						</div>
+					)}
+				</div>
+
+				{/* Box Tag filter — derived from actual inst.tag values */}
+				<div className="flex flex-col gap-1.5">
+					<div className="flex justify-between items-center pl-1">
+						<span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">
+							Tag Filter
+						</span>
+						{filters.tags.length > 0 && (
+							<button
+								type="button"
+								onClick={() => handleChange("tags", [])}
+								className="text-[10px] font-semibold text-gray-500 hover:underline"
+							>
+								Clear
+							</button>
+						)}
+					</div>
+					{instancesLoading ? (
+						<div className="text-xs text-gray-500 animate-pulse pl-1">
+							Loading...
+						</div>
+					) : availableInstanceTags.length > 0 ? (
+						<div className="flex flex-wrap gap-1 p-1.5 border border-gray-200/60 dark:border-slate-800/60 rounded-lg bg-white dark:bg-slate-900/60 shadow-sm">
+							{availableInstanceTags.map((tagName) => {
+								const isSelected = filters.tags.includes(tagName);
+								return (
+									<button
+										key={tagName}
+										type="button"
+										onClick={() => handleArrayChange("tags", tagName)}
+										className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${
+											isSelected
+												? "bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900/40 dark:border-blue-600 dark:text-blue-300"
+												: "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+										}`}
+									>
+										{tagName}
+									</button>
+								);
+							})}
+						</div>
+					) : (
+						<div className="text-xs text-gray-400 italic pl-1">
+							{filters.clientId
+								? "No tagged boxes in current scope"
+								: "Select a client first"}
+						</div>
+					)}
+				</div>
+			</div>
+
+			{/* ── SORT ──────────────────────────────────────────────────────── */}
+			<div className="flex flex-col gap-2 px-2 pb-2 pt-0 bg-gradient-to-b from-blue-500/10 via-blue-500/3 to-transparent dark:from-blue-500/15 dark:via-blue-500/3 dark:to-transparent border border-blue-100/70 dark:border-blue-900/30 rounded-lg overflow-hidden">
+				<div className="h-[3px] -mx-2 bg-blue-500/80" />
+				<div className="text-xs font-bold text-blue-800 dark:text-blue-400 uppercase tracking-widest pl-1 pt-1.5">
+					Sort
+				</div>
+
+				{/* Sort Mode Selection */}
+				<div className="flex flex-col gap-1.5 pl-1">
+					<label
+						htmlFor="sort-mode"
+						className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest"
+					>
+						Sort Mode Priority
+					</label>
+					<select
+						id="sort-mode"
+						className="w-full border border-gray-200/80 dark:border-slate-800/80 rounded-lg p-1.5 text-xs bg-white dark:bg-slate-800 dark:text-slate-200 shadow-sm"
+						value={filters.sortMode || "destination_first"}
+						onChange={(e) => handleChange("sortMode", e.target.value)}
+					>
+						<option value="destination_first">
+							Destination First (Default)
+						</option>
+						<option value="tag_first">Tag Group First (Tag Priority)</option>
+						<option value="tag_combination">Tag Combination First</option>
+					</select>
+				</div>
+
+				{/* Sort by Tag Priority */}
+				<SortPriorityCard
+					title="Sort by Tag"
+					description="Sorts boxes by their tag (e.g. power, water, ac). Higher in list = appears first."
+					activeTerms={activeTags}
+					availableTerms={availableTags}
+					accentClass="hover:border-blue-400 dark:hover:border-blue-500/80"
+					accentIconClass="text-blue-400"
+					onMove={handleTagSortMove}
+					onRemove={removeTagFromSort}
+					onAdd={addTagToSort}
+					customInput={
+						<div className="flex flex-col gap-1.5 mt-0.5">
+							<span className="text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
+								Or add custom tag
+							</span>
+							<div className="flex gap-1.5">
+								<input
+									type="text"
+									placeholder="e.g. custom-tag"
+									value={customTagInput}
+									onChange={(e) => setCustomTagInput(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.key === "Enter") {
+											e.preventDefault();
+											handleAddCustomTag();
+										}
+									}}
+									className="flex-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-gray-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-150"
+								/>
+								<button
+									type="button"
+									onClick={handleAddCustomTag}
+									className="px-2 py-1 text-xs font-bold bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-200 rounded-lg flex items-center gap-0.5 transition-all duration-150 cursor-pointer hover:border-gray-400 dark:hover:border-slate-500 shadow-sm"
+								>
+									<Plus className="w-3.5 h-3.5 text-gray-400 dark:text-slate-400" />
+									Add
+								</button>
+							</div>
+						</div>
+					}
+				/>
+
+				{/* Sort by Destination Priority */}
+				<SortPriorityCard
+					title="Sort by Destination"
+					description="Sorts boxes by destination. Higher in list = appears first. Only destinations for the selected orders appear."
+					activeTerms={activeDestTerms}
+					availableTerms={availableDestSortTerms}
+					accentClass="hover:border-emerald-400 dark:hover:border-emerald-500/80"
+					accentIconClass="text-emerald-400"
+					onMove={handleDestSortMove}
+					onRemove={removeDestFromSort}
+					onAdd={addDestToSort}
+				/>
+			</div>
 		</div>
 	);
 };

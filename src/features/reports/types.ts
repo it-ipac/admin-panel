@@ -22,6 +22,7 @@ export type FilterParams = {
 	tagSortPriority: string;
 	/** Destination names sorted by priority (comma-separated), used for box ordering */
 	destSortPriority: string;
+	sortMode?: "destination_first" | "tag_first" | "tag_combination";
 };
 
 export type ReportInstanceData = {
