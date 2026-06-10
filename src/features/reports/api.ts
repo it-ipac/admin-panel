@@ -243,7 +243,7 @@ export const fetchReportInstances = async (
 		p_destinations:
 			filters.destinations.length > 0 ? filters.destinations : null,
 		p_has_items_only: filters.hasItemsOnly,
-		p_tag_ids: filters.tags.length > 0 ? filters.tags : null,
+		p_tag_ids: null, // tag filtering done client-side by instance.tag name match
 	});
 
 	if (error) throw error;

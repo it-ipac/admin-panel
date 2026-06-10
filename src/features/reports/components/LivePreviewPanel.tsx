@@ -220,31 +220,47 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		if (filters.boxId) {
 			result = result.filter((inst) => inst.id === filters.boxId);
 		}
+		// Client-side tag filter: match instance.tag against selected tag names
+		if (filters.tags.length > 0) {
+			result = result.filter((inst) =>
+				filters.tags.some((t) => inst.tag?.toLowerCase() === t.toLowerCase()),
+			);
+		}
 
-		// 2. Sort
-		const priorityTerms = (filters.tagSortPriority || "")
+		// 2. Sort — destination priority first, then tag priority within same dest
+		const tagTerms = (filters.tagSortPriority || "")
+			.split(",")
+			.map((t) => t.trim().toLowerCase())
+			.filter(Boolean);
+		const destTerms = (filters.destSortPriority || "")
 			.split(",")
 			.map((t) => t.trim().toLowerCase())
 			.filter(Boolean);
 
 		result.sort((a, b) => {
-			// A. Terms (Tag & Destination) sorting priority layer
-			if (priorityTerms.length > 0) {
-				const tagA = String(a.tag || "").toLowerCase();
-				const tagB = String(b.tag || "").toLowerCase();
+			// A. Destination sort (primary)
+			if (destTerms.length > 0) {
 				const destA = String(a.destination || "").toLowerCase();
 				const destB = String(b.destination || "").toLowerCase();
-
-				for (const pt of priorityTerms) {
-					const matchesA = tagA.includes(pt) || destA === pt;
-					const matchesB = tagB.includes(pt) || destB === pt;
-
-					if (matchesA && !matchesB) return -1;
-					if (!matchesA && matchesB) return 1;
-				}
+				const rankA = destTerms.indexOf(destA);
+				const rankB = destTerms.indexOf(destB);
+				const scoreA = rankA === -1 ? destTerms.length : rankA;
+				const scoreB = rankB === -1 ? destTerms.length : rankB;
+				if (scoreA !== scoreB) return scoreA - scoreB;
 			}
 
-			// B. Fallback to normal sort
+			// B. Tag sort (secondary)
+			if (tagTerms.length > 0) {
+				const tagA = String(a.tag || "").toLowerCase();
+				const tagB = String(b.tag || "").toLowerCase();
+				const rankA = tagTerms.findIndex((pt) => tagA.includes(pt));
+				const rankB = tagTerms.findIndex((pt) => tagB.includes(pt));
+				const scoreA = rankA === -1 ? tagTerms.length : rankA;
+				const scoreB = rankB === -1 ? tagTerms.length : rankB;
+				if (scoreA !== scoreB) return scoreA - scoreB;
+			}
+
+			// C. Fallback to normal sort
 			const sortMode = pkgSettings.boxes_sort || "number";
 			if (sortMode === "packed_date") {
 				const timeA = a.last_packed_at
@@ -254,14 +270,13 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 					? new Date(b.last_packed_at).getTime()
 					: 0;
 				if (timeA !== timeB) {
-					return timeB - timeA; // Descending (most recent first)
+					return timeB - timeA;
 				}
 				const createdA = new Date(a.created_at).getTime();
 				const createdB = new Date(b.created_at).getTime();
 				return createdB - createdA;
 			}
 
-			// default: Sort by Box Number (package_number asc, then instance_number asc)
 			if (a.package_number !== b.package_number) {
 				return a.package_number - b.package_number;
 			}
@@ -273,8 +288,10 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		instances,
 		filters.packedOnly,
 		filters.boxId,
+		filters.tags,
 		pkgSettings.boxes_sort,
 		filters.tagSortPriority,
+		filters.destSortPriority,
 	]);
 
 	// For report_per_order: group by order → array of { orderId, orderName, instances[] }
@@ -327,6 +344,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		filters.boxId,
 		instanceIdsHash,
 		filters.tagSortPriority,
+		filters.destSortPriority,
 	]);
 
 	// Active instances: all (normal mode) or current report group's instances (per-order mode)

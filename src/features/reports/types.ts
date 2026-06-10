@@ -20,6 +20,8 @@ export type FilterParams = {
 	// Filter by a specific box ID
 	boxId: string | null;
 	tagSortPriority: string;
+	/** Destination names sorted by priority (comma-separated), used for box ordering */
+	destSortPriority: string;
 };
 
 export type ReportInstanceData = {

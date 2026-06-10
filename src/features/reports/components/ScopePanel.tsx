@@ -15,6 +15,138 @@ interface ScopePanelProps {
 	setFilters: React.Dispatch<React.SetStateAction<FilterParams>>;
 }
 
+// ─── Reusable sort-priority card ────────────────────────────────────────────
+
+interface SortPriorityCardProps {
+	title: string;
+	description?: string;
+	activeTerms: string[];
+	availableTerms: string[];
+	accentClass: string; // e.g. "hover:border-blue-400 dark:hover:border-blue-500/80"
+	accentIconClass: string; // e.g. "text-blue-400"
+	onMove: (idx: number, dir: "up" | "down") => void;
+	onRemove: (idx: number) => void;
+	onAdd: (term: string) => void;
+	customInput?: React.ReactNode;
+}
+
+const SortPriorityCard: React.FC<SortPriorityCardProps> = ({
+	title,
+	description,
+	activeTerms,
+	availableTerms,
+	accentClass,
+	accentIconClass,
+	onMove,
+	onRemove,
+	onAdd,
+	customInput,
+}) => (
+	<div className="flex flex-col gap-3.5 p-4 bg-gray-50 dark:bg-slate-900/40 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm dark:shadow-lg backdrop-blur-sm">
+		<div>
+			<span className="text-sm font-semibold text-gray-800 dark:text-slate-200 tracking-wide">
+				{title}
+			</span>
+			{description && (
+				<p className="text-[10px] text-gray-400 dark:text-slate-500 mt-0.5">
+					{description}
+				</p>
+			)}
+		</div>
+
+		{/* Active order */}
+		<div className="flex flex-col gap-2">
+			<span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">
+				Active Sort Order
+			</span>
+			{activeTerms.length === 0 ? (
+				<div className="text-xs text-gray-400 dark:text-slate-400 italic p-3 bg-gray-100 dark:bg-slate-800/30 border border-dashed border-gray-300 dark:border-slate-700 rounded-lg text-center">
+					No sort applied — uses default order.
+				</div>
+			) : (
+				<div className="flex flex-col gap-2">
+					{activeTerms.map((term, idx) => (
+						<div
+							key={`${term}-${idx}`}
+							className="flex items-center justify-between bg-white dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700/60 rounded-lg px-3 py-2 shadow-sm text-sm group hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-150"
+						>
+							<span className="font-semibold text-gray-800 dark:text-slate-100">
+								{term}
+							</span>
+							<div className="flex items-center gap-1.5">
+								<button
+									type="button"
+									onClick={() => onMove(idx, "up")}
+									disabled={idx === 0}
+									className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 disabled:opacity-20 disabled:hover:bg-transparent transition-colors cursor-pointer"
+									title="Move Up"
+								>
+									<ChevronUp className="w-4 h-4" />
+								</button>
+								<button
+									type="button"
+									onClick={() => onMove(idx, "down")}
+									disabled={idx === activeTerms.length - 1}
+									className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 disabled:opacity-20 disabled:hover:bg-transparent transition-colors cursor-pointer"
+									title="Move Down"
+								>
+									<ChevronDown className="w-4 h-4" />
+								</button>
+								<div className="w-[1px] h-4 bg-gray-200 dark:bg-slate-700 mx-1" />
+								<button
+									type="button"
+									onClick={() => onRemove(idx)}
+									className="p-1 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400 rounded text-gray-400 dark:text-slate-400 transition-colors cursor-pointer"
+									title="Remove"
+								>
+									<X className="w-4 h-4" />
+								</button>
+							</div>
+						</div>
+					))}
+				</div>
+			)}
+		</div>
+
+		{/* Available pool */}
+		{availableTerms.length > 0 && (
+			<div className="flex flex-col gap-2 mt-1">
+				<span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">
+					Available (Click to add)
+				</span>
+				<div className="flex flex-wrap gap-2">
+					{availableTerms.map((term) => (
+						<button
+							key={term}
+							type="button"
+							onClick={() => onAdd(term)}
+							className={`px-3 py-1.5 text-xs font-semibold bg-white dark:bg-slate-800/40 hover:bg-blue-50 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-slate-700 border-dashed ${accentClass} rounded-full transition-all duration-200 flex items-center gap-1 cursor-pointer transform hover:-translate-y-0.5 shadow-sm`}
+						>
+							<Plus className={`w-3.5 h-3.5 ${accentIconClass}`} />
+							{term}
+						</button>
+					))}
+				</div>
+			</div>
+		)}
+
+		{customInput}
+	</div>
+);
+
+// ─── Section header ──────────────────────────────────────────────────────────
+
+const SectionHeader: React.FC<{ label: string }> = ({ label }) => (
+	<div className="flex items-center gap-2 pt-1">
+		<span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">
+			{label}
+		</span>
+		<div className="flex-1 h-px bg-gray-200 dark:bg-slate-700" />
+	</div>
+);
+
+// ─── Main component ──────────────────────────────────────────────────────────
+
 export const ScopePanel: React.FC<ScopePanelProps> = ({
 	filters,
 	setFilters,
@@ -23,27 +155,38 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 	const { data: orders, isLoading: ordersLoading } = useOrdersQuery(
 		filters.clientId,
 	);
-	const { data: projectTags, isLoading: tagsLoading } = useProjectTagsQuery(
-		filters.clientId,
-	);
+	const { data: projectTags } = useProjectTagsQuery(filters.clientId);
 	const { data: destinations, isLoading: destLoading } = useDestinationsQuery(
 		filters.clientId,
 		filters.orderIds,
 	);
 
-	// Fetch all instances matching client/orders to populate the box filter dropdown
+	// Always fetch without tag filter so box picker shows all boxes and tag
+	// options are derived from real instance data (not project_tags table).
 	const { data: allInstancesForBoxPicker, isLoading: instancesLoading } =
 		useReportInstancesQuery({
 			...filters,
-			boxId: null, // Always fetch all boxes to choose from
+			boxId: null,
+			tags: [],
 		});
 
-	// Local state: filter the order picker list by destination
+	// Unique inst.tag values present in current scope — used for the tag filter UI
+	const availableInstanceTags = useMemo(() => {
+		if (!allInstancesForBoxPicker) return [];
+		const seen = new Set<string>();
+		for (const inst of allInstancesForBoxPicker) {
+			if (inst.tag) seen.add(inst.tag);
+		}
+		return Array.from(seen).sort();
+	}, [allInstancesForBoxPicker]);
+
 	const [orderFilterDest, setOrderFilterDest] = useState<string>("");
 
 	const handleChange = (key: keyof FilterParams, value: any) => {
 		setFilters((prev) => ({ ...prev, [key]: value }));
 	};
+
+	// ── Tag sort priority ──────────────────────────────────────────────────────
 
 	const activeTags = useMemo(() => {
 		return (filters.tagSortPriority || "")
@@ -71,7 +214,6 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 				return !isDest;
 			}),
 		];
-
 		const seen = new Set<string>();
 		const unique: string[] = [];
 		for (const tag of combined) {
@@ -90,44 +232,6 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 		);
 	}, [allCandidateTags, activeTags]);
 
-	const availableDestinations = useMemo(() => {
-		if (!destinations) return [];
-		return destinations.filter(
-			(dest) =>
-				!activeTags.some((at) => at.toLowerCase() === dest.toLowerCase()),
-		);
-	}, [destinations, activeTags]);
-
-	const addTagToSort = (tagName: string) => {
-		if (!activeTags.some((t) => t.toLowerCase() === tagName.toLowerCase())) {
-			updateTagPriority([...activeTags, tagName]);
-		}
-	};
-
-	const removeTagFromSort = (index: number) => {
-		const next = [...activeTags];
-		next.splice(index, 1);
-		updateTagPriority(next);
-	};
-
-	const moveTagLeft = (index: number) => {
-		if (index === 0) return;
-		const next = [...activeTags];
-		const temp = next[index];
-		next[index] = next[index - 1];
-		next[index - 1] = temp;
-		updateTagPriority(next);
-	};
-
-	const moveTagRight = (index: number) => {
-		if (index === activeTags.length - 1) return;
-		const next = [...activeTags];
-		const temp = next[index];
-		next[index] = next[index + 1];
-		next[index + 1] = temp;
-		updateTagPriority(next);
-	};
-
 	const [customTagInput, setCustomTagInput] = useState("");
 	const handleAddCustomTag = () => {
 		const trimmed = customTagInput.trim();
@@ -137,10 +241,80 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 			) {
 				setCustomTagsPool((prev) => [...prev, trimmed]);
 			}
-			addTagToSort(trimmed);
+			if (!activeTags.some((t) => t.toLowerCase() === trimmed.toLowerCase())) {
+				updateTagPriority([...activeTags, trimmed]);
+			}
 			setCustomTagInput("");
 		}
 	};
+
+	const handleTagSortMove = (idx: number, dir: "up" | "down") => {
+		const next = [...activeTags];
+		if (dir === "up" && idx > 0) {
+			[next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+		} else if (dir === "down" && idx < next.length - 1) {
+			[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+		}
+		updateTagPriority(next);
+	};
+
+	const removeTagFromSort = (idx: number) => {
+		const next = [...activeTags];
+		next.splice(idx, 1);
+		updateTagPriority(next);
+	};
+
+	const addTagToSort = (tagName: string) => {
+		if (!activeTags.some((t) => t.toLowerCase() === tagName.toLowerCase())) {
+			updateTagPriority([...activeTags, tagName]);
+		}
+	};
+
+	// ── Destination sort priority ──────────────────────────────────────────────
+
+	const activeDestTerms = useMemo(() => {
+		return (filters.destSortPriority || "")
+			.split(",")
+			.map((t) => t.trim())
+			.filter(Boolean);
+	}, [filters.destSortPriority]);
+
+	const updateDestSortPriority = (newTerms: string[]) => {
+		handleChange("destSortPriority", newTerms.join(", "));
+	};
+
+	const availableDestSortTerms = useMemo(() => {
+		if (!destinations) return [];
+		return destinations.filter(
+			(d) => !activeDestTerms.some((t) => t.toLowerCase() === d.toLowerCase()),
+		);
+	}, [destinations, activeDestTerms]);
+
+	const handleDestSortMove = (idx: number, dir: "up" | "down") => {
+		const next = [...activeDestTerms];
+		if (dir === "up" && idx > 0) {
+			[next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+		} else if (dir === "down" && idx < next.length - 1) {
+			[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+		}
+		updateDestSortPriority(next);
+	};
+
+	const removeDestFromSort = (idx: number) => {
+		const next = [...activeDestTerms];
+		next.splice(idx, 1);
+		updateDestSortPriority(next);
+	};
+
+	const addDestToSort = (destName: string) => {
+		if (
+			!activeDestTerms.some((t) => t.toLowerCase() === destName.toLowerCase())
+		) {
+			updateDestSortPriority([...activeDestTerms, destName]);
+		}
+	};
+
+	// ── Array filter toggle ────────────────────────────────────────────────────
 
 	const handleArrayChange = (key: keyof FilterParams, value: string) => {
 		setFilters((prev) => {
@@ -152,15 +326,13 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 		});
 	};
 
-	// All destinations available across all instances (for order-picker filter)
+	// ── Order picker helpers ───────────────────────────────────────────────────
+
 	const { data: allDestinations } = useDestinationsQuery(filters.clientId, []);
 
-	// Sorted + filtered order list for the picker
 	const visibleOrders = useMemo(() => {
 		if (!orders) return [];
 		const list = [...orders];
-
-		// Sort
 		if (filters.orderSort === "reference") {
 			list.sort((a, b) =>
 				(a.reference || a.order_name).localeCompare(
@@ -170,7 +342,6 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 		} else {
 			list.sort((a, b) => a.order_name.localeCompare(b.order_name));
 		}
-
 		return list;
 	}, [orders, filters.orderSort]);
 
@@ -185,14 +356,12 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 
 	const toggleAllOrders = () => {
 		if (allSelected) {
-			// Deselect all visible orders
 			setFilters((prev) => ({
 				...prev,
 				orderIds: prev.orderIds.filter((id) => !allOrderIds.includes(id)),
 				boxId: null,
 			}));
 		} else {
-			// Select all visible orders (merge with any already selected from other filters)
 			setFilters((prev) => ({
 				...prev,
 				orderIds: Array.from(new Set([...prev.orderIds, ...allOrderIds])),
@@ -207,29 +376,28 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 			const nextOrderIds = current.includes(id)
 				? current.filter((v) => v !== id)
 				: [...current, id];
-			return {
-				...prev,
-				orderIds: nextOrderIds,
-				boxId: null,
-			};
+			return { ...prev, orderIds: nextOrderIds, boxId: null };
 		});
 	};
 
 	const selectedCount = filters.orderIds.length;
 
+	// ─────────────────────────────────────────────────────────────────────────
 	return (
 		<div className="flex flex-col gap-4">
-			{/* Client Selection */}
+			{/* ── SCOPE ─────────────────────────────────────────────────────── */}
+
+			{/* Client */}
 			<div className="flex flex-col gap-1">
 				<label
 					htmlFor="client-select"
-					className="text-sm font-medium text-gray-700"
+					className="text-sm font-medium text-gray-700 dark:text-slate-300"
 				>
 					Client
 				</label>
 				<select
 					id="client-select"
-					className="w-full border rounded-md p-2 text-sm bg-white"
+					className="w-full border rounded-md p-2 text-sm bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
 					value={filters.clientId || ""}
 					onChange={(e) => {
 						setFilters((prev) => ({
@@ -252,11 +420,10 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 				</select>
 			</div>
 
-			{/* Order Picker */}
+			{/* Orders */}
 			<div className="flex flex-col gap-1">
-				{/* Header row */}
 				<div className="flex items-center justify-between">
-					<span className="text-sm font-medium text-gray-700">
+					<span className="text-sm font-medium text-gray-700 dark:text-slate-300">
 						Orders / Projects
 						{selectedCount > 0 && (
 							<span className="ml-1.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full px-1.5 py-0.5">
@@ -285,11 +452,10 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 					</div>
 				</div>
 
-				{/* Sort + filter controls */}
 				{filters.clientId && (
 					<div className="flex gap-2 items-center flex-wrap">
 						<select
-							className="text-xs border rounded px-1.5 py-1 bg-white text-gray-600"
+							className="text-xs border rounded px-1.5 py-1 bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 text-gray-600"
 							value={filters.orderSort}
 							onChange={(e) => handleChange("orderSort", e.target.value as any)}
 						>
@@ -298,7 +464,7 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 						</select>
 						{allDestinations && allDestinations.length > 0 && (
 							<select
-								className="text-xs border rounded px-1.5 py-1 bg-white text-gray-600"
+								className="text-xs border rounded px-1.5 py-1 bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 text-gray-600"
 								value={orderFilterDest}
 								onChange={(e) => setOrderFilterDest(e.target.value)}
 							>
@@ -313,7 +479,6 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 					</div>
 				)}
 
-				{/* Order list */}
 				{!filters.clientId ? (
 					<div className="text-xs text-gray-400 italic">
 						Select a client first
@@ -323,7 +488,7 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 				) : visibleOrders.length === 0 ? (
 					<div className="text-xs text-gray-400 italic">No orders found</div>
 				) : (
-					<div className="flex flex-col gap-0.5 max-h-52 overflow-y-auto border rounded-md bg-gray-50 p-1">
+					<div className="flex flex-col gap-0.5 max-h-52 overflow-y-auto border rounded-md bg-gray-50 dark:bg-slate-800/30 dark:border-slate-700 p-1">
 						{visibleOrders.map((o) => {
 							const isSelected = filters.orderIds.includes(o.id);
 							return (
@@ -333,8 +498,8 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 									onClick={() => toggleOrder(o.id)}
 									className={`flex items-center justify-between w-full text-left px-2.5 py-1.5 rounded text-sm transition-colors ${
 										isSelected
-											? "bg-blue-100 border border-blue-300 text-blue-900 font-medium"
-											: "hover:bg-gray-100 text-gray-700 border border-transparent"
+											? "bg-blue-100 border border-blue-300 text-blue-900 font-medium dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-200"
+											: "hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border border-transparent"
 									}`}
 								>
 									<span className="truncate">
@@ -356,7 +521,6 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 					</div>
 				)}
 
-				{/* Selected orders summary (when multiple) */}
 				{filters.orderIds.length > 1 && (
 					<p className="text-xs text-blue-600 font-medium">
 						{filters.orderIds.length} orders selected — boxes from all will
@@ -370,12 +534,12 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 				)}
 			</div>
 
-			{/* Specific Box Filter */}
+			{/* Specific Box */}
 			{filters.clientId && (
 				<div className="flex flex-col gap-1">
 					<label
 						htmlFor="box-select"
-						className="text-sm font-medium text-gray-700"
+						className="text-sm font-medium text-gray-700 dark:text-slate-300"
 					>
 						Specific Box Filter
 					</label>
@@ -389,11 +553,9 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 					) : (
 						<select
 							id="box-select"
-							className="w-full border rounded-md p-2 text-sm bg-white"
+							className="w-full border rounded-md p-2 text-sm bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
 							value={filters.boxId || ""}
-							onChange={(e) => {
-								handleChange("boxId", e.target.value || null);
-							}}
+							onChange={(e) => handleChange("boxId", e.target.value || null)}
 						>
 							<option value="">— All Boxes —</option>
 							{allInstancesForBoxPicker.map((inst) => {
@@ -413,11 +575,16 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 				</div>
 			)}
 
-			{/* Date Filtering */}
-			<div className="flex flex-col gap-2 p-3 bg-gray-50 border rounded-md">
-				<span className="text-sm font-semibold text-gray-700">Date Range</span>
+			{/* ── FILTERS ───────────────────────────────────────────────────── */}
+			<SectionHeader label="Filters" />
+
+			{/* Date Range */}
+			<div className="flex flex-col gap-2 p-3 bg-gray-50 dark:bg-slate-800/30 border border-gray-200 dark:border-slate-700 rounded-md">
+				<span className="text-sm font-semibold text-gray-700 dark:text-slate-300">
+					Date Range
+				</span>
 				<div className="flex gap-3 mb-1">
-					<label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+					<label className="flex items-center gap-2 text-xs text-gray-700 dark:text-slate-300 cursor-pointer">
 						<input
 							type="radio"
 							checked={filters.dateFilterMode === "item_packed_at"}
@@ -425,7 +592,7 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 						/>
 						Packed Date
 					</label>
-					<label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+					<label className="flex items-center gap-2 text-xs text-gray-700 dark:text-slate-300 cursor-pointer">
 						<input
 							type="radio"
 							checked={filters.dateFilterMode === "instance_created_at"}
@@ -444,7 +611,7 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 						<input
 							id="date-from"
 							type="date"
-							className="border p-1.5 rounded-md text-sm w-full"
+							className="border p-1.5 rounded-md text-sm w-full dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
 							value={filters.dateFrom || ""}
 							onChange={(e) => handleChange("dateFrom", e.target.value || null)}
 						/>
@@ -456,7 +623,7 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 						<input
 							id="date-to"
 							type="date"
-							className="border p-1.5 rounded-md text-sm w-full"
+							className="border p-1.5 rounded-md text-sm w-full dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
 							value={filters.dateTo || ""}
 							onChange={(e) => handleChange("dateTo", e.target.value || null)}
 						/>
@@ -464,11 +631,11 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 				</div>
 			</div>
 
-			{/* Dynamic Destinations */}
+			{/* Destinations filter */}
 			<div className="flex flex-col gap-1">
 				<div className="flex justify-between items-center">
-					<span className="text-sm font-medium text-gray-700">
-						Destinations
+					<span className="text-sm font-medium text-gray-700 dark:text-slate-300">
+						Destination Filter
 					</span>
 					{destinations && destinations.length > 0 && (
 						<div className="flex gap-2 text-xs">
@@ -492,11 +659,11 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 				{destLoading ? (
 					<div className="text-xs text-gray-500 animate-pulse">Loading...</div>
 				) : destinations && destinations.length > 0 ? (
-					<div className="flex flex-col gap-1 max-h-32 overflow-y-auto p-2 border rounded-md bg-gray-50">
+					<div className="flex flex-col gap-1 max-h-32 overflow-y-auto p-2 border rounded-md bg-gray-50 dark:bg-slate-800/30 dark:border-slate-700">
 						{destinations.map((d) => (
 							<label
 								key={d}
-								className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
+								className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer"
 							>
 								<input
 									type="checkbox"
@@ -516,52 +683,67 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 				)}
 			</div>
 
-			{/* Dynamic Tags */}
+			{/* Box Tag filter — derived from actual inst.tag values */}
 			<div className="flex flex-col gap-1">
-				<span className="text-sm font-medium text-gray-700">Project Tags</span>
-				{tagsLoading ? (
+				<div className="flex justify-between items-center">
+					<span className="text-sm font-medium text-gray-700 dark:text-slate-300">
+						Tag Filter
+					</span>
+					{filters.tags.length > 0 && (
+						<button
+							type="button"
+							onClick={() => handleChange("tags", [])}
+							className="text-xs text-gray-500 hover:underline"
+						>
+							Clear
+						</button>
+					)}
+				</div>
+				{instancesLoading ? (
 					<div className="text-xs text-gray-500 animate-pulse">Loading...</div>
-				) : projectTags && projectTags.length > 0 ? (
-					<div className="flex flex-wrap gap-1.5 p-2 border rounded-md bg-gray-50">
-						{projectTags.map((t) => {
-							const isSelected = filters.tags.includes(t.id);
+				) : availableInstanceTags.length > 0 ? (
+					<div className="flex flex-wrap gap-1.5 p-2 border rounded-md bg-gray-50 dark:bg-slate-800/30 dark:border-slate-700">
+						{availableInstanceTags.map((tagName) => {
+							const isSelected = filters.tags.includes(tagName);
 							return (
 								<button
-									key={t.id}
+									key={tagName}
 									type="button"
-									onClick={() => handleArrayChange("tags", t.id)}
+									onClick={() => handleArrayChange("tags", tagName)}
 									className={`px-2 py-1 text-xs rounded-full border transition-colors ${
 										isSelected
-											? "bg-blue-100 border-blue-300 text-blue-800"
-											: "bg-white border-gray-200 text-gray-600 hover:bg-gray-100"
+											? "bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900/40 dark:border-blue-600 dark:text-blue-300"
+											: "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
 									}`}
 								>
-									{t.name}
+									{tagName}
 								</button>
 							);
 						})}
 					</div>
 				) : (
 					<div className="text-xs text-gray-400 italic">
-						{filters.clientId ? "No tags found" : "Select a client first"}
+						{filters.clientId
+							? "No tagged boxes in current scope"
+							: "Select a client first"}
 					</div>
 				)}
 			</div>
 
-			{/* Divider */}
-			<hr className="border-gray-200" />
+			{/* ── OPTIONS ───────────────────────────────────────────────────── */}
+			<SectionHeader label="Options" />
 
-			{/* Options */}
+			{/* Package Status */}
 			<div className="flex flex-col gap-1">
 				<label
 					htmlFor="package-filter-select"
-					className="text-sm font-medium text-gray-700"
+					className="text-sm font-medium text-gray-700 dark:text-slate-300"
 				>
 					Package Status
 				</label>
 				<select
 					id="package-filter-select"
-					className="w-full border rounded-md p-2 text-sm bg-white"
+					className="w-full border rounded-md p-2 text-sm bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
 					value={
 						filters.packedOnly
 							? "packed"
@@ -598,14 +780,17 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 				</select>
 			</div>
 
-			{/* Split / Batch Mode */}
+			{/* Split Report By */}
 			<div className="flex flex-col gap-1">
-				<label htmlFor="split-by" className="text-sm font-medium text-gray-700">
+				<label
+					htmlFor="split-by"
+					className="text-sm font-medium text-gray-700 dark:text-slate-300"
+				>
 					Split Report By
 				</label>
 				<select
 					id="split-by"
-					className="w-full border rounded-md p-2 text-sm bg-white"
+					className="w-full border rounded-md p-2 text-sm bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
 					value={filters.splitBy}
 					onChange={(e) => handleChange("splitBy", e.target.value as any)}
 				>
@@ -620,8 +805,7 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 				</select>
 				{filters.splitBy === "report_per_order" && (
 					<p className="text-xs text-purple-600 mt-1 font-medium">
-						Each selected order becomes its own independent report. Navigate
-						between them in the preview toolbar.
+						Each selected order becomes its own independent report.
 					</p>
 				)}
 				{filters.splitBy !== "none" &&
@@ -632,138 +816,64 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 					)}
 			</div>
 
-			{/* Tag Sort Priority Chips */}
-			<div className="flex flex-col gap-3.5 p-4 bg-slate-900/40 border border-slate-800 rounded-xl shadow-lg backdrop-blur-sm">
-				<span className="text-sm font-semibold text-slate-200 tracking-wide">
-					Sort by Tag Priority
-				</span>
+			{/* ── SORT ──────────────────────────────────────────────────────── */}
+			<SectionHeader label="Sort" />
 
-				{/* Active Priority Tags */}
-				<div className="flex flex-col gap-2">
-					<span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-						Active Sort Order
-					</span>
-					{activeTags.length === 0 ? (
-						<div className="text-xs text-slate-400 italic p-3 bg-slate-800/30 border border-dashed border-slate-700 rounded-lg text-center">
-							No tag sorting applied. Boxes will sort by default order.
-						</div>
-					) : (
-						<div className="flex flex-col gap-2">
-							{activeTags.map((tag, idx) => (
-								<div
-									key={`${tag}-${idx}`}
-									className="flex items-center justify-between bg-slate-800/80 border border-slate-700/60 rounded-lg px-3 py-2 shadow-sm text-sm group hover:border-slate-600 transition-all duration-150"
-								>
-									<span className="font-semibold text-slate-100">{tag}</span>
-									<div className="flex items-center gap-1.5">
-										<button
-											type="button"
-											onClick={() => moveTagLeft(idx)}
-											disabled={idx === 0}
-											className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200 disabled:opacity-20 disabled:hover:bg-transparent transition-colors cursor-pointer"
-											title="Move Up"
-										>
-											<ChevronUp className="w-4 h-4" />
-										</button>
-										<button
-											type="button"
-											onClick={() => moveTagRight(idx)}
-											disabled={idx === activeTags.length - 1}
-											className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200 disabled:opacity-20 disabled:hover:bg-transparent transition-colors cursor-pointer"
-											title="Move Down"
-										>
-											<ChevronDown className="w-4 h-4" />
-										</button>
-										<div className="w-[1px] h-4 bg-slate-700 mx-1" />
-										<button
-											type="button"
-											onClick={() => removeTagFromSort(idx)}
-											className="p-1 hover:bg-red-500/20 hover:text-red-400 rounded text-slate-400 transition-colors cursor-pointer"
-											title="Remove"
-										>
-											<X className="w-4 h-4" />
-										</button>
-									</div>
-								</div>
-							))}
-						</div>
-					)}
-				</div>
-
-				{/* Available Tags Pool */}
-				{availableTags.length > 0 && (
+			{/* Sort by Tag Priority */}
+			<SortPriorityCard
+				title="Sort by Tag"
+				description="Sorts boxes by their tag (e.g. power, water, ac). Higher in list = appears first."
+				activeTerms={activeTags}
+				availableTerms={availableTags}
+				accentClass="hover:border-blue-400 dark:hover:border-blue-500/80"
+				accentIconClass="text-blue-400"
+				onMove={handleTagSortMove}
+				onRemove={removeTagFromSort}
+				onAdd={addTagToSort}
+				customInput={
 					<div className="flex flex-col gap-2 mt-1">
-						<span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-							Available Tags (Click to add)
+						<span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">
+							Or add custom tag
 						</span>
-						<div className="flex flex-wrap gap-2">
-							{availableTags.map((tag) => (
-								<button
-									key={tag}
-									type="button"
-									onClick={() => addTagToSort(tag)}
-									className="px-3 py-1.5 text-xs font-semibold bg-slate-800/40 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-700 border-dashed hover:border-blue-500/80 rounded-full transition-all duration-200 flex items-center gap-1 cursor-pointer transform hover:-translate-y-0.5 shadow-sm"
-								>
-									<Plus className="w-3.5 h-3.5 text-blue-400" />
-									{tag}
-								</button>
-							))}
+						<div className="flex gap-2">
+							<input
+								type="text"
+								placeholder="e.g. custom-tag"
+								value={customTagInput}
+								onChange={(e) => setCustomTagInput(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter") {
+										e.preventDefault();
+										handleAddCustomTag();
+									}
+								}}
+								className="flex-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-gray-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-150"
+							/>
+							<button
+								type="button"
+								onClick={handleAddCustomTag}
+								className="px-3 py-1.5 text-xs font-bold bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-200 rounded-lg flex items-center gap-1 transition-all duration-150 cursor-pointer hover:border-gray-400 dark:hover:border-slate-500 shadow-sm"
+							>
+								<Plus className="w-4 h-4 text-gray-400 dark:text-slate-400" />
+								Add
+							</button>
 						</div>
 					</div>
-				)}
+				}
+			/>
 
-				{/* Available Destinations Pool */}
-				{availableDestinations.length > 0 && (
-					<div className="flex flex-col gap-2 mt-1">
-						<span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-							Available Destinations (Click to add)
-						</span>
-						<div className="flex flex-wrap gap-2">
-							{availableDestinations.map((dest) => (
-								<button
-									key={dest}
-									type="button"
-									onClick={() => addTagToSort(dest)}
-									className="px-3 py-1.5 text-xs font-semibold bg-slate-800/40 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-700 border-dashed hover:border-emerald-500/80 rounded-full transition-all duration-200 flex items-center gap-1 cursor-pointer transform hover:-translate-y-0.5 shadow-sm"
-								>
-									<Plus className="w-3.5 h-3.5 text-emerald-400" />
-									{dest}
-								</button>
-							))}
-						</div>
-					</div>
-				)}
-
-				{/* Custom Tag Input */}
-				<div className="flex flex-col gap-2 mt-1">
-					<span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-						Or add custom tag
-					</span>
-					<div className="flex gap-2">
-						<input
-							type="text"
-							placeholder="e.g. custom-tag"
-							value={customTagInput}
-							onChange={(e) => setCustomTagInput(e.target.value)}
-							onKeyDown={(e) => {
-								if (e.key === "Enter") {
-									e.preventDefault();
-									handleAddCustomTag();
-								}
-							}}
-							className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-150"
-						/>
-						<button
-							type="button"
-							onClick={handleAddCustomTag}
-							className="px-3 py-1.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg flex items-center gap-1 transition-all duration-150 cursor-pointer hover:border-slate-500 shadow-sm"
-						>
-							<Plus className="w-4 h-4 text-slate-400" />
-							Add
-						</button>
-					</div>
-				</div>
-			</div>
+			{/* Sort by Destination Priority */}
+			<SortPriorityCard
+				title="Sort by Destination"
+				description="Sorts boxes by destination. Higher in list = appears first. Only destinations for the selected orders appear."
+				activeTerms={activeDestTerms}
+				availableTerms={availableDestSortTerms}
+				accentClass="hover:border-emerald-400 dark:hover:border-emerald-500/80"
+				accentIconClass="text-emerald-400"
+				onMove={handleDestSortMove}
+				onRemove={removeDestFromSort}
+				onAdd={addDestToSort}
+			/>
 		</div>
 	);
 };
