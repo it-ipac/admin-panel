@@ -1,6 +1,7 @@
-import { ChevronDown, ChevronUp, Plus, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, X, Search, Loader2, ExternalLink, Filter } from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
+import { supabase } from "../../../lib/supabase";
 import {
 	useClientsQuery,
 	useDestinationsQuery,
@@ -145,6 +146,321 @@ const SectionHeader: React.FC<{ label: string }> = ({ label }) => (
 		<div className="flex-1 h-px bg-gray-200 dark:bg-slate-700" />
 	</div>
 );
+
+// ─── Item Search Panel Component ─────────────────────────────────────────────
+
+const ItemSearchPanel: React.FC<{
+	setFilters: React.Dispatch<React.SetStateAction<FilterParams>>;
+}> = ({ setFilters }) => {
+	const [searchInput, setSearchInput] = useState("");
+	const [loading, setLoading] = useState(false);
+	const [results, setResults] = useState<any[] | null>(null);
+	const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+	const handleSearch = async (e: React.FormEvent) => {
+		e.preventDefault();
+		const term = searchInput.trim();
+		if (!term) return;
+
+		setLoading(true);
+		setErrorMsg(null);
+		setResults(null);
+
+		try {
+			const { data: dbItems, error: dbItemsErr } = await supabase
+				.from("items_db")
+				.select(`
+					id,
+					item_num,
+					description,
+					client_id,
+					client:client_id (
+						id,
+						name
+					)
+				`)
+				.ilike("item_num", `%${term}%`)
+				.limit(10);
+
+			if (dbItemsErr) throw dbItemsErr;
+
+			if (!dbItems || dbItems.length === 0) {
+				setResults([]);
+				setLoading(false);
+				return;
+			}
+
+			const dbItemIds = dbItems.map((item) => item.id);
+			const { data: pkdItems, error: pkdItemsErr } = await supabase
+				.from("pkd_item")
+				.select(`
+					id,
+					quantity,
+					pkg_instance_id,
+					pkg_instance:pkg_instance_id (
+						id,
+						instance_number,
+						ipac_reference,
+						destination,
+						order_package:order_package_id (
+							id,
+							package_number,
+							reference
+						),
+						order_pkg_overview:order_pkg_overview_id (
+							id,
+							pkg_number,
+							order_id,
+							order:order_id (
+								id,
+								order_name,
+								reference,
+								client_id,
+								client:client_id (
+									id,
+									name
+								)
+							)
+						)
+					),
+					items_db:maintenance_db_id (
+						id,
+						item_num,
+						description
+					)
+				`)
+				.in("maintenance_db_id", dbItemIds);
+
+			if (pkdItemsErr) throw pkdItemsErr;
+
+			const combined = dbItems.map((dbItem) => {
+				const packedInstances = pkdItems?.filter((pkd) => {
+					const itemsDbId = Array.isArray(pkd.items_db)
+						? pkd.items_db[0]?.id
+						: (pkd.items_db as any)?.id;
+					return itemsDbId === dbItem.id;
+				}) || [];
+				return {
+					dbItem,
+					packedInstances,
+				};
+			});
+
+			setResults(combined);
+		} catch (err: any) {
+			console.error("Search failed:", err);
+			setErrorMsg(err.message || "An error occurred during search.");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const applyFilter = (pkgInstance: any, order: any) => {
+		if (!pkgInstance || !order) return;
+		setFilters((prev) => {
+			const activeOrderIds = prev.orderIds;
+			const newOrderIds = activeOrderIds.includes(order.id)
+				? activeOrderIds
+				: [...activeOrderIds, order.id];
+			return {
+				...prev,
+				clientId: order.client_id || prev.clientId,
+				orderIds: newOrderIds,
+				boxId: pkgInstance.id,
+			};
+		});
+	};
+
+	return (
+		<div className="flex flex-col gap-2 p-3 bg-gradient-to-b from-blue-50/40 to-transparent dark:from-slate-800/20 dark:to-transparent border border-gray-200/60 dark:border-slate-800/60 rounded-lg shadow-sm">
+			<div className="flex items-center gap-2">
+				<Search className="w-4 h-4 text-blue-500" />
+				<span className="text-xs font-bold text-gray-800 dark:text-slate-200 tracking-wide uppercase">
+					Find Item in Box
+				</span>
+			</div>
+			<p className="text-[10px] text-gray-400 dark:text-slate-500 leading-tight">
+				Search for an item number to locate which box and order it is packed in, then quickly filter the report.
+			</p>
+			<form onSubmit={handleSearch} className="flex gap-1.5 mt-1">
+				<input
+					type="text"
+					placeholder="e.g. item code / number"
+					value={searchInput}
+					onChange={(e) => setSearchInput(e.target.value)}
+					className="flex-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-gray-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+				/>
+				<button
+					type="submit"
+					disabled={loading || !searchInput.trim()}
+					className="px-3 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all cursor-pointer shadow-sm disabled:opacity-40 flex items-center justify-center gap-1 shrink-0"
+				>
+					{loading && <Loader2 className="w-3 h-3 animate-spin" />}
+					Search
+				</button>
+			</form>
+
+			{errorMsg && (
+				<div className="text-[10px] text-red-500 font-semibold bg-red-50 dark:bg-red-955/20 border border-red-200 dark:border-red-900 rounded p-1.5 mt-1">
+					{errorMsg}
+				</div>
+			)}
+
+			{results && (
+				<div className="mt-2 flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
+					<div className="flex items-center justify-between border-b pb-1 dark:border-slate-800">
+						<span className="text-[10px] font-bold text-gray-400 uppercase">
+							Search Results
+						</span>
+						<button
+							type="button"
+							onClick={() => {
+								setResults(null);
+								setSearchInput("");
+							}}
+							className="text-[10px] text-gray-500 hover:text-gray-700 dark:hover:text-slate-300 underline"
+						>
+							Clear
+						</button>
+					</div>
+
+					{results.length === 0 ? (
+						<p className="text-xs text-gray-400 italic text-center py-2">
+							No items found in catalog.
+						</p>
+					) : (
+						results.map(({ dbItem, packedInstances }) => (
+							<div
+								key={dbItem.id}
+								className="border border-gray-100 dark:border-slate-800 rounded-lg p-2 bg-white dark:bg-slate-900/60 shadow-sm flex flex-col gap-1.5"
+							>
+								<div className="flex flex-col">
+									<span className="text-xs font-bold text-gray-800 dark:text-slate-200">
+										{dbItem.item_num}
+									</span>
+									<span className="text-[10px] text-gray-400 truncate">
+										{dbItem.description || "No description"}
+									</span>
+									{dbItem.client && (
+										<span className="text-[9px] text-blue-500 font-semibold mt-0.5">
+											Client: {dbItem.client.name}
+										</span>
+									)}
+								</div>
+
+								<div className="flex flex-col gap-1 border-t pt-1.5 dark:border-slate-800">
+									<span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+										Packed Locations
+									</span>
+									{packedInstances.length === 0 ? (
+										<p className="text-[10px] text-gray-400 italic pl-1">
+											Not packed in any packages yet.
+										</p>
+									) : (
+										packedInstances.map((pkd: any) => {
+											const box = pkd.pkg_instance;
+											const overview = box?.order_pkg_overview;
+											const order = Array.isArray(overview?.order)
+												? overview.order[0]
+												: overview?.order;
+											const orderClient = order?.client;
+											const orderPackage = Array.isArray(box?.order_package)
+												? box.order_package[0]
+												: box?.order_package;
+											const boxNumber =
+												orderPackage?.package_number ?? overview?.pkg_number ?? "?";
+											const boxReference =
+												box?.ipac_reference || orderPackage?.reference || null;
+
+											if (!box) return null;
+
+											return (
+												<div
+													key={pkd.id}
+													className="bg-gray-50 dark:bg-slate-800/40 rounded p-1.5 border border-gray-200/40 dark:border-slate-700/30 flex flex-col gap-1 text-[11px]"
+												>
+													<div className="flex justify-between items-start">
+														<span className="font-semibold text-gray-800 dark:text-slate-200">
+															Box {boxNumber}
+															{box.instance_number > 1
+																? `.${box.instance_number}`
+																: ""}
+															{boxReference && (
+																<span className="text-[10px] font-normal text-gray-400 ml-1">
+																	({boxReference})
+																</span>
+															)}
+														</span>
+														<span className="text-[10px] font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded px-1">
+															Qty: {pkd.quantity}
+														</span>
+													</div>
+
+													<div className="text-[10px] text-gray-500 dark:text-slate-400 flex flex-col gap-0.5">
+														{order && (
+															<div>
+																Order: <strong>{order.order_name}</strong>
+																{order.reference && ` (${order.reference})`}
+															</div>
+														)}
+														{box.destination && (
+															<div>
+																Dest: <strong>{box.destination}</strong>
+															</div>
+														)}
+														{orderClient && orderClient.id !== dbItem.client_id && (
+															<div>
+																Client override: <strong>{orderClient.name}</strong>
+															</div>
+														)}
+													</div>
+
+													<div className="flex gap-1.5 mt-1 pt-1 border-t border-gray-200/50 dark:border-slate-700/50">
+														<button
+															type="button"
+															onClick={() => applyFilter(box, order)}
+															className="flex-1 flex items-center justify-center gap-0.5 py-0.5 text-[10px] font-bold bg-blue-50 dark:bg-blue-955/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 rounded hover:bg-blue-100 dark:hover:bg-blue-900/20 transition cursor-pointer"
+															title="Filter report to only show this package"
+														>
+															<Filter className="w-2.5 h-2.5" />
+															Filter
+														</button>
+														<a
+															href={`/portal/package/${box.id}`}
+															target="_blank"
+															rel="noreferrer"
+															className="flex-1 flex items-center justify-center gap-0.5 py-0.5 text-[10px] font-bold bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition cursor-pointer"
+															title="Open box package portal in new tab"
+														>
+															<ExternalLink className="w-2.5 h-2.5" />
+															Open Box
+														</a>
+														{order && (
+															<a
+																href={`/orders/${order.id}`}
+																target="_blank"
+																rel="noreferrer"
+																className="flex-1 flex items-center justify-center gap-0.5 py-0.5 text-[10px] font-bold bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition cursor-pointer"
+																title="Open order page in new tab"
+															>
+																<ExternalLink className="w-2.5 h-2.5" />
+																Order
+															</a>
+														)}
+													</div>
+												</div>
+											);
+										})
+									)}
+								</div>
+							</div>
+						))
+					)}
+				</div>
+			)}
+		</div>
+	);
+};
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
@@ -389,6 +705,9 @@ export const ScopePanel: React.FC<ScopePanelProps> = ({
 	// ─────────────────────────────────────────────────────────────────────────
 	return (
 		<div className="flex flex-col gap-4">
+			{/* Item Search Panel */}
+			<ItemSearchPanel setFilters={setFilters} />
+
 			{/* ── SCOPE ─────────────────────────────────────────────────────── */}
 
 			{/* Client */}
