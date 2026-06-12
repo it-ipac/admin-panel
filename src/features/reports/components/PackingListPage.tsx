@@ -191,56 +191,193 @@ const CameraIndicator: React.FC<{
 };
 
 /**
- * Preview-only status chip for boxes that are NOT marked packed. Helps the
- * admin spot boxes that have photos/items but were never marked packed by
- * the packer. Excluded from the printed PDF via no-print.
+ * Preview-only status chip. Highlights boxes that are not marked packed
+ * (warning when they already have items/photos — the packer likely forgot),
+ * and lets the admin change the box status directly from the report.
+ * Excluded from the printed PDF via no-print.
  */
 const STATUS_CHIP: Record<string, { label: string; bg: string; fg: string }> = {
 	design: { label: "design", bg: "#f3f4f6", fg: "#4b5563" },
 	approved: { label: "approved", bg: "#e0e7ff", fg: "#4338ca" },
 	in_production: { label: "in prod", bg: "#ffedd5", fg: "#9a3412" },
+	packed: { label: "packed", bg: "#dcfce7", fg: "#166534" },
 };
+
+const STATUS_OPTIONS = [
+	"design",
+	"approved",
+	"in_production",
+	"packed",
+] as const;
 
 const StatusIndicator: React.FC<{
 	inst: ReportInstanceData;
 	style?: React.CSSProperties;
-}> = ({ inst, style }) => {
+	onChangeStatus?: (
+		inst: ReportInstanceData,
+		status: (typeof STATUS_OPTIONS)[number],
+	) => Promise<void>;
+}> = ({ inst, style, onChangeStatus }) => {
+	const [open, setOpen] = useState(false);
+	const [busy, setBusy] = useState(false);
+
 	const chip = STATUS_CHIP[inst.status];
-	if (!chip) return null; // packed (or unknown) → no chip
+	if (!chip) return null;
+	// Packed boxes only get a chip when it is interactive (status can be changed)
+	if (inst.status === "packed" && !onChangeStatus) return null;
 
 	const hasPics =
 		(inst.box_photo_urls?.length ?? 0) > 0 ||
 		inst.pkd_items?.some((i) => (i.photo_urls?.length ?? 0) > 0);
 	const hasItems = (inst.pkd_items?.length ?? 0) > 0;
-	const suspicious = hasPics || hasItems;
+	const suspicious = inst.status !== "packed" && (hasPics || hasItems);
+
+	const baseTitle = suspicious
+		? `Status: ${inst.status.replace("_", " ")} — this box already has ${[hasItems ? "items" : "", hasPics ? "photos" : ""].filter(Boolean).join(" and ")}; the packer may have forgotten to mark it as packed.`
+		: `Status: ${inst.status.replace("_", " ")}`;
+
+	const pickStatus = async (status: (typeof STATUS_OPTIONS)[number]) => {
+		if (!onChangeStatus || status === inst.status) {
+			setOpen(false);
+			return;
+		}
+		setBusy(true);
+		try {
+			await onChangeStatus(inst, status);
+		} finally {
+			setBusy(false);
+			setOpen(false);
+		}
+	};
 
 	return (
 		<span
 			className="no-print"
-			title={
-				suspicious
-					? `Status: ${inst.status.replace("_", " ")} — this box already has ${[hasItems ? "items" : "", hasPics ? "photos" : ""].filter(Boolean).join(" and ")}; the packer may have forgotten to mark it as packed.`
-					: `Status: ${inst.status.replace("_", " ")}`
-			}
 			style={{
+				position: "relative",
 				display: "inline-flex",
-				alignItems: "center",
-				gap: "3px",
-				backgroundColor: chip.bg,
-				color: chip.fg,
-				fontSize: "9px",
-				fontWeight: 700,
-				lineHeight: 1,
-				padding: "3px 6px",
-				borderRadius: "9999px",
-				textTransform: "uppercase",
-				letterSpacing: "0.04em",
-				whiteSpace: "nowrap",
 				...style,
 			}}
 		>
-			{suspicious ? "⚠ " : ""}
-			{chip.label}
+			<button
+				type="button"
+				className="status-chip-button"
+				title={
+					onChangeStatus ? `${baseTitle} Click to change status.` : baseTitle
+				}
+				onClick={(e) => {
+					e.stopPropagation();
+					if (onChangeStatus) setOpen((o) => !o);
+				}}
+				style={{
+					display: "inline-flex",
+					alignItems: "center",
+					gap: "3px",
+					backgroundColor: chip.bg,
+					color: chip.fg,
+					fontSize: "9px",
+					fontWeight: 700,
+					lineHeight: 1,
+					padding: "3px 6px",
+					borderRadius: "9999px",
+					textTransform: "uppercase",
+					letterSpacing: "0.04em",
+					whiteSpace: "nowrap",
+					border: "none",
+					cursor: onChangeStatus ? "pointer" : "default",
+					opacity: busy ? 0.5 : 1,
+					pointerEvents: "auto",
+				}}
+			>
+				{suspicious ? "⚠ " : ""}
+				{busy ? "…" : chip.label}
+			</button>
+
+			{open && onChangeStatus && (
+				<>
+					{/* biome-ignore lint/a11y/noStaticElementInteractions: click-outside backdrop */}
+					<div
+						style={{
+							position: "fixed",
+							inset: 0,
+							zIndex: 1090,
+							pointerEvents: "auto",
+						}}
+						onClick={(e) => {
+							e.stopPropagation();
+							setOpen(false);
+						}}
+					/>
+					<div
+						style={{
+							position: "absolute",
+							top: "calc(100% + 4px)",
+							right: 0,
+							zIndex: 1100,
+							backgroundColor: "#ffffff",
+							border: "1px solid #d8e4f0",
+							borderRadius: "8px",
+							boxShadow: "0 10px 25px rgba(0,0,0,0.18)",
+							padding: "4px",
+							display: "flex",
+							flexDirection: "column",
+							gap: "2px",
+							pointerEvents: "auto",
+							minWidth: "110px",
+						}}
+					>
+						{STATUS_OPTIONS.map((status) => {
+							const opt = STATUS_CHIP[status];
+							const isCurrent = status === inst.status;
+							return (
+								<button
+									key={status}
+									type="button"
+									disabled={isCurrent || busy}
+									onClick={(e) => {
+										e.stopPropagation();
+										void pickStatus(status);
+									}}
+									style={{
+										display: "flex",
+										alignItems: "center",
+										gap: "6px",
+										padding: "4px 8px",
+										borderRadius: "6px",
+										border: "none",
+										background: isCurrent ? "#f1f5f9" : "transparent",
+										cursor: isCurrent ? "default" : "pointer",
+										opacity: isCurrent ? 0.55 : 1,
+										fontSize: "10px",
+										fontWeight: 600,
+										textAlign: "left",
+									}}
+									onMouseEnter={(e) => {
+										if (!isCurrent)
+											e.currentTarget.style.background = "#eff6ff";
+									}}
+									onMouseLeave={(e) => {
+										if (!isCurrent)
+											e.currentTarget.style.background = "transparent";
+									}}
+								>
+									<span
+										style={{
+											width: "8px",
+											height: "8px",
+											borderRadius: "9999px",
+											backgroundColor: opt.fg,
+											flexShrink: 0,
+										}}
+									/>
+									{status.replace("_", " ")}
+									{isCurrent ? " ✓" : ""}
+								</button>
+							);
+						})}
+					</div>
+				</>
+			)}
 		</span>
 	);
 };
@@ -316,6 +453,50 @@ export const PackingListPage = React.forwardRef<
 			if (error) throw error;
 
 			queryClient.invalidateQueries({ queryKey: ["report_instances"] });
+		};
+
+		/**
+		 * Changes a box's status from the report, keeping the three status
+		 * fields in sync: instance status (+packed_at), package status (drives
+		 * the report's computed status) and the overview packed counter.
+		 */
+		const updateBoxStatus = async (
+			inst: ReportInstanceData,
+			status: (typeof STATUS_OPTIONS)[number],
+		) => {
+			const { error: instErr } = await supabase
+				.from("order_pkg_instance")
+				.update({
+					status,
+					packed_at: status === "packed" ? new Date().toISOString() : null,
+				})
+				.eq("id", inst.id);
+			if (instErr) throw instErr;
+
+			if (inst.order_package_id) {
+				const { error: pkgErr } = await supabase
+					.from("order_packages")
+					.update({ status })
+					.eq("id", inst.order_package_id);
+				if (pkgErr) throw pkgErr;
+			}
+
+			if (inst.order_pkg_overview_id) {
+				const { count, error: cntErr } = await supabase
+					.from("order_pkg_instance")
+					.select("id", { count: "exact", head: true })
+					.eq("order_pkg_overview_id", inst.order_pkg_overview_id)
+					.eq("status", "packed");
+				if (!cntErr) {
+					await supabase
+						.from("order_pkg_overview")
+						.update({ quantity_packed: count ?? 0 })
+						.eq("id", inst.order_pkg_overview_id);
+				}
+			}
+
+			queryClient.invalidateQueries({ queryKey: ["report_instances"] });
+			queryClient.invalidateQueries({ queryKey: ["order_totals"] });
 		};
 
 		const updateOverviewField = async (
@@ -1965,7 +2146,10 @@ export const PackingListPage = React.forwardRef<
 															alignItems: "center",
 														}}
 													>
-														<StatusIndicator inst={inst} />
+														<StatusIndicator
+															inst={inst}
+															onChangeStatus={updateBoxStatus}
+														/>
 														{/* biome-ignore lint/a11y/noStaticElementInteractions: navigation button */}
 														<div
 															className="glass-circle glass-info"
@@ -2042,6 +2226,7 @@ export const PackingListPage = React.forwardRef<
 											{/* Status chip (left of action circles) */}
 											<StatusIndicator
 												inst={inst}
+												onChangeStatus={updateBoxStatus}
 												style={{
 													position: "absolute",
 													top: "-14px",
