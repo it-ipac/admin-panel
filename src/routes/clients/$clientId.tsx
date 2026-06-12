@@ -137,14 +137,14 @@ function ItemPackagesList({ itemId }: { itemId?: string }) {
 	if (isLoading) {
 		return (
 			<div className="py-8 flex justify-center">
-				<Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+				<Loader2 className="w-6 h-6 animate-spin text-primary-600" />
 			</div>
 		);
 	}
 
 	if (error) {
 		return (
-			<div className="p-4 text-red-600 bg-red-50 rounded">
+			<div className="p-4 text-danger-600 bg-danger-50 rounded">
 				Failed to load packages.
 			</div>
 		);
@@ -152,7 +152,7 @@ function ItemPackagesList({ itemId }: { itemId?: string }) {
 
 	if (!boxes || boxes.length === 0) {
 		return (
-			<div className="p-4 text-gray-500 text-center">
+			<div className="p-4 text-neutral-500 text-center">
 				Not found in any packages.
 			</div>
 		);
@@ -183,15 +183,15 @@ function ItemPackagesList({ itemId }: { itemId?: string }) {
 				return (
 					<div
 						key={pi.id}
-						className="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-200"
+						className="flex justify-between items-center p-3 bg-neutral-50 rounded border border-neutral-200"
 					>
-						<div className="font-medium text-gray-800">
+						<div className="font-medium text-neutral-800">
 							{linkUrl ? (
 								<a
 									href={linkUrl}
 									target="_blank"
 									rel="noopener noreferrer"
-									className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+									className="text-primary-600 hover:text-primary-800 hover:underline transition-colors"
 								>
 									{name}
 								</a>
@@ -199,7 +199,7 @@ function ItemPackagesList({ itemId }: { itemId?: string }) {
 								name
 							)}
 						</div>
-						<div className="text-sm font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
+						<div className="text-sm font-semibold text-primary-700 bg-primary-100 px-2 py-0.5 rounded">
 							Qty: {pi.quantity}
 						</div>
 					</div>
@@ -249,7 +249,7 @@ function EditableCell({
 
 	return (
 		<input
-			className="w-full min-w-[80px] border border-transparent hover:border-gray-300 focus:border-blue-400 focus:bg-white bg-transparent px-1 py-0.5 rounded text-xs outline-none transition-colors"
+			className="w-full min-w-[80px] border border-transparent hover:border-neutral-300 focus:border-primary-400 focus:bg-white bg-transparent px-1 py-0.5 rounded text-xs outline-none transition-colors"
 			value={val}
 			onChange={handleChange}
 			title={typeof val === "string" && val.length > 50 ? val : undefined}
@@ -570,7 +570,7 @@ function ClientWorkspacePage() {
 			return (
 				<button
 					onClick={() => setSelectedItemForPackages(row)}
-					className="flex items-center gap-1 bg-blue-50 text-blue-700 hover:bg-blue-100 px-2 py-1 rounded text-xs font-semibold"
+					className="flex items-center gap-1 bg-primary-50 text-primary-700 hover:bg-primary-100 px-2 py-1 rounded text-xs font-semibold"
 				>
 					<Package className="w-3 h-3" />
 					View Boxes ({packedQty})
@@ -708,26 +708,26 @@ function ClientWorkspacePage() {
 
 	if (authLoading || loadingClient) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50">
-				<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+			<div className="min-h-screen flex items-center justify-center bg-neutral-50">
+				<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
 			</div>
 		);
 	}
 
 	if (clientError || !client) {
 		return (
-			<div className="flex h-screen bg-gray-50">
+			<div className="flex h-screen bg-neutral-50">
 				<Sidebar />
 				<main className="flex-1 overflow-y-auto p-8">
 					<div className="max-w-5xl mx-auto">
 						<Link
 							to="/clients"
-							className="inline-flex items-center gap-2 text-sm text-blue-700 hover:text-blue-800"
+							className="inline-flex items-center gap-2 text-sm text-primary-700 hover:text-primary-800"
 						>
 							<ArrowLeft className="w-4 h-4" />
 							Back to Clients
 						</Link>
-						<div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+						<div className="mt-6 rounded-xl border border-danger-200 bg-danger-50 p-4 text-danger-700">
 							Could not load this client workspace.
 						</div>
 					</div>
@@ -739,7 +739,7 @@ function ClientWorkspacePage() {
 	const isTaqaClient = /(taqa|taka)/i.test(client.name || "");
 
 	return (
-		<div className="flex h-screen bg-gray-50">
+		<div className="flex h-screen bg-neutral-50">
 			<Sidebar />
 			<main className="flex-1 overflow-y-auto p-8">
 				<div className="max-w-6xl mx-auto space-y-6">
@@ -747,40 +747,40 @@ function ClientWorkspacePage() {
 						<div>
 							<Link
 								to="/clients"
-								className="inline-flex items-center gap-2 text-sm text-blue-700 hover:text-blue-800"
+								className="inline-flex items-center gap-2 text-sm text-primary-700 hover:text-primary-800"
 							>
 								<ArrowLeft className="w-4 h-4" />
 								Back to Clients
 							</Link>
-							<h1 className="mt-3 text-2xl font-bold text-gray-900">
+							<h1 className="mt-3 text-2xl font-bold text-neutral-900">
 								{client.name}
 							</h1>
-							<p className="text-gray-500 mt-1">
+							<p className="text-neutral-500 mt-1">
 								Client workspace: portal settings, items DB snapshot, and import
 								tools.
 							</p>
 						</div>
-						<div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
+						<div className="rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700">
 							{client.contact_person && <p>Contact: {client.contact_person}</p>}
 							{client.email && <p>Email: {client.email}</p>}
 							{client.phone && <p>Phone: {client.phone}</p>}
 						</div>
 					</div>
 
-					<section className="rounded-xl border border-gray-200 bg-white p-6">
+					<section className="rounded-xl border border-neutral-200 bg-white p-6">
 						<div className="flex items-center gap-2 mb-4">
-							<Globe className="h-5 w-5 text-blue-700" />
-							<h2 className="text-lg font-semibold text-gray-900">
+							<Globe className="h-5 w-5 text-primary-700" />
+							<h2 className="text-lg font-semibold text-neutral-900">
 								Portal Settings
 							</h2>
 						</div>
 
-						<label className="flex items-center cursor-pointer justify-between rounded-lg border border-blue-100 bg-blue-50 p-4">
+						<label className="flex items-center cursor-pointer justify-between rounded-lg border border-primary-100 bg-primary-50 p-4">
 							<div>
-								<div className="font-semibold text-blue-900">
+								<div className="font-semibold text-primary-900">
 									Enable Client Portal
 								</div>
-								<div className="text-sm text-blue-700">
+								<div className="text-sm text-primary-700">
 									Turn this on to enable QR tracking for this client.
 								</div>
 							</div>
@@ -798,7 +798,7 @@ function ClientWorkspacePage() {
 								/>
 								<div
 									className={`block h-8 w-14 rounded-full transition-colors ${
-										portalConfig.is_active ? "bg-blue-600" : "bg-gray-300"
+										portalConfig.is_active ? "bg-primary-600" : "bg-neutral-300"
 									}`}
 								/>
 								<div
@@ -815,16 +815,16 @@ function ClientWorkspacePage() {
 							<div>
 								<label
 									htmlFor="portal-slug"
-									className="text-sm font-semibold text-gray-700"
+									className="text-sm font-semibold text-neutral-700"
 								>
 									URL Slug *
 								</label>
-								<p className="mb-1 text-xs text-gray-500">
+								<p className="mb-1 text-xs text-neutral-500">
 									Example: ipac-admin.vercel.app/portal/your-slug/...
 								</p>
 								<input
 									id="portal-slug"
-									className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
+									className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-primary-500"
 									value={portalConfig.slug}
 									onChange={(event) =>
 										setPortalConfig((previous) => ({
@@ -838,7 +838,7 @@ function ClientWorkspacePage() {
 							<label className="flex items-center gap-3">
 								<input
 									type="checkbox"
-									className="h-5 w-5 rounded text-blue-600"
+									className="h-5 w-5 rounded text-primary-600"
 									checked={portalConfig.portal_requires_auth}
 									onChange={(event) =>
 										setPortalConfig((previous) => ({
@@ -848,10 +848,10 @@ function ClientWorkspacePage() {
 									}
 								/>
 								<div>
-									<div className="font-medium text-gray-800">
+									<div className="font-medium text-neutral-800">
 										Require Authentication
 									</div>
-									<div className="text-xs text-gray-500">
+									<div className="text-xs text-neutral-500">
 										Require login before viewing portal data.
 									</div>
 								</div>
@@ -860,7 +860,7 @@ function ClientWorkspacePage() {
 							<label className="flex items-center gap-3">
 								<input
 									type="checkbox"
-									className="h-5 w-5 rounded text-blue-600"
+									className="h-5 w-5 rounded text-primary-600"
 									checked={portalConfig.show_qr_logo}
 									onChange={(event) =>
 										setPortalConfig((previous) => ({
@@ -870,10 +870,10 @@ function ClientWorkspacePage() {
 									}
 								/>
 								<div>
-									<div className="font-medium text-gray-800">
+									<div className="font-medium text-neutral-800">
 										Show Logo in QR Codes
 									</div>
-									<div className="text-xs text-gray-500">
+									<div className="text-xs text-neutral-500">
 										Use default or custom logo in generated QR.
 									</div>
 								</div>
@@ -884,12 +884,12 @@ function ClientWorkspacePage() {
 							>
 								<label
 									htmlFor="qr-logo-upload"
-									className="inline-block mb-1 text-sm font-semibold text-gray-700"
+									className="inline-block mb-1 text-sm font-semibold text-neutral-700"
 								>
 									QR Code Logo
 								</label>
 								<div className="flex items-center gap-4">
-									<div className="relative rounded-lg border border-gray-200 bg-gray-50 p-2">
+									<div className="relative rounded-lg border border-neutral-200 bg-neutral-50 p-2">
 										{portalConfig.qr_logo_url ? (
 											<img
 												src={portalConfig.qr_logo_url}
@@ -904,7 +904,7 @@ function ClientWorkspacePage() {
 											/>
 										) : (
 											<div className="flex h-16 w-16 items-center justify-center">
-												<ImageIcon className="h-6 w-6 text-gray-400" />
+												<ImageIcon className="h-6 w-6 text-neutral-400" />
 											</div>
 										)}
 									</div>
@@ -922,7 +922,7 @@ function ClientWorkspacePage() {
 										<button
 											onClick={() => clientLogoInputRef.current?.click()}
 											disabled={uploadingLogo}
-											className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+											className="inline-flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
 										>
 											{uploadingLogo ? (
 												<Loader2 className="h-4 w-4 animate-spin" />
@@ -941,7 +941,7 @@ function ClientWorkspacePage() {
 														qr_logo_url: "",
 													}))
 												}
-												className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100"
+												className="rounded-lg border border-danger-200 bg-danger-50 px-3 py-1.5 text-sm font-medium text-danger-600 hover:bg-danger-100"
 											>
 												Remove Custom Logo
 											</button>
@@ -952,7 +952,7 @@ function ClientWorkspacePage() {
 						</div>
 
 						{formError && (
-							<div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+							<div className="mt-4 rounded-lg bg-danger-50 p-3 text-sm text-danger-700">
 								{formError}
 							</div>
 						)}
@@ -967,7 +967,7 @@ function ClientWorkspacePage() {
 									savePortalConfigMutation.isPending ||
 									(portalConfig.is_active && !portalConfig.slug.trim())
 								}
-								className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+								className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-white hover:bg-primary-700 disabled:opacity-50"
 							>
 								{savePortalConfigMutation.isPending ? (
 									<Loader2 className="h-4 w-4 animate-spin" />
@@ -978,38 +978,38 @@ function ClientWorkspacePage() {
 						</div>
 					</section>
 
-					<section className="rounded-xl border border-gray-200 bg-white p-6">
+					<section className="rounded-xl border border-neutral-200 bg-white p-6">
 						<div className="flex items-center gap-2 mb-4">
-							<Database className="h-5 w-5 text-slate-700" />
-							<h2 className="text-lg font-semibold text-gray-900">
+							<Database className="h-5 w-5 text-steel-700" />
+							<h2 className="text-lg font-semibold text-neutral-900">
 								Items DB Snapshot
 							</h2>
 						</div>
 
 						{loadingCategories || loadingSnapshot || loadingPortalSettings ? (
 							<div className="py-10 flex items-center justify-center">
-								<Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+								<Loader2 className="h-6 w-6 animate-spin text-primary-600" />
 							</div>
 						) : categoryError || snapshotError ? (
-							<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+							<div className="rounded-lg border border-danger-200 bg-danger-50 p-3 text-sm text-danger-700">
 								Could not load items_db summary.
 							</div>
 						) : (
 							<>
 								<div className="grid grid-cols-2 gap-3 mb-4 md:w-80">
-									<div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-										<p className="text-xs uppercase tracking-wide text-gray-500">
+									<div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+										<p className="text-xs uppercase tracking-wide text-neutral-500">
 											Rows
 										</p>
-										<p className="text-xl font-semibold text-gray-900">
+										<p className="text-xl font-semibold text-neutral-900">
 											{maintenanceSnapshot?.totalRows || 0}
 										</p>
 									</div>
-									<div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-										<p className="text-xs uppercase tracking-wide text-gray-500">
+									<div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+										<p className="text-xs uppercase tracking-wide text-neutral-500">
 											Categories
 										</p>
-										<p className="text-xl font-semibold text-gray-900">
+										<p className="text-xl font-semibold text-neutral-900">
 											{categories?.length || 0}
 										</p>
 									</div>
@@ -1018,7 +1018,7 @@ function ClientWorkspacePage() {
 								<div className="mb-4 space-y-3">
 									<div className="flex flex-wrap items-start gap-4">
 										<div>
-											<p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+											<p className="text-xs uppercase tracking-wide text-neutral-500 mb-2">
 												Item Number Filter
 											</p>
 											<input
@@ -1026,12 +1026,12 @@ function ClientWorkspacePage() {
 												placeholder="Search item number..."
 												value={itemNumberFilter}
 												onChange={(e) => setItemNumberFilter(e.target.value)}
-												className="rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+												className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-primary-500"
 											/>
 										</div>
 
 										<div>
-											<p className="text-xs uppercase tracking-wide text-gray-500">
+											<p className="text-xs uppercase tracking-wide text-neutral-500">
 												Project Type
 											</p>
 											<div className="mt-2 flex flex-wrap gap-2">
@@ -1044,8 +1044,8 @@ function ClientWorkspacePage() {
 															}
 															className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${
 																selectedProjectFilter === projectType
-																	? "border-blue-300 bg-blue-50 text-blue-800"
-																	: "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+																	? "border-primary-300 bg-primary-50 text-primary-800"
+																	: "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
 															}`}
 														>
 															{projectType === "all"
@@ -1060,7 +1060,7 @@ function ClientWorkspacePage() {
 										</div>
 
 										<div>
-											<p className="text-xs uppercase tracking-wide text-gray-500">
+											<p className="text-xs uppercase tracking-wide text-neutral-500">
 												AC Mode
 											</p>
 											<div className="mt-2 flex flex-wrap gap-2">
@@ -1070,8 +1070,8 @@ function ClientWorkspacePage() {
 														onClick={() => setSelectedAcFilter(acMode)}
 														className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${
 															selectedAcFilter === acMode
-																? "border-blue-300 bg-blue-50 text-blue-800"
-																: "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+																? "border-primary-300 bg-primary-50 text-primary-800"
+																: "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
 														}`}
 													>
 														{acMode === "all"
@@ -1087,10 +1087,10 @@ function ClientWorkspacePage() {
 								</div>
 
 								<div className="mb-2 flex items-center justify-between">
-									<p className="text-xs text-gray-500">
+									<p className="text-xs text-neutral-500">
 										Showing {filteredSnapshotRows.length} total rows matched.
 									</p>
-									<div className="flex items-center gap-2 text-xs text-gray-600">
+									<div className="flex items-center gap-2 text-xs text-neutral-600">
 										<span>Items per page:</span>
 										<select
 											value={itemsPerPage}
@@ -1098,7 +1098,7 @@ function ClientWorkspacePage() {
 												setItemsPerPage(Number(e.target.value));
 												setItemsPage(1);
 											}}
-											className="rounded border border-gray-300 px-2 py-1 outline-none focus:border-blue-500"
+											className="rounded border border-neutral-300 px-2 py-1 outline-none focus:border-primary-500"
 										>
 											<option value={500}>500</option>
 											<option value={1000}>1000</option>
@@ -1107,26 +1107,26 @@ function ClientWorkspacePage() {
 									</div>
 								</div>
 
-								<div className="overflow-x-auto rounded-lg border border-gray-200">
+								<div className="overflow-x-auto rounded-lg border border-neutral-200">
 									<div className="max-h-[65vh] overflow-auto">
 										<table className="min-w-max w-full text-left text-xs">
-											<thead className="sticky top-0 bg-gray-100 z-10">
+											<thead className="sticky top-0 bg-neutral-100 z-10">
 												<tr>
 													{snapshotColumns.map((column) => (
 														<th
 															key={column}
-															className="p-2 font-semibold text-gray-700 whitespace-nowrap"
+															className="p-2 font-semibold text-neutral-700 whitespace-nowrap"
 														>
 															{column === "category_id" ? "Category" : column}
 														</th>
 													))}
 												</tr>
 											</thead>
-											<tbody className="divide-y divide-gray-100 bg-white">
+											<tbody className="divide-y divide-neutral-100 bg-white">
 												{paginatedRows.length === 0 ? (
 													<tr>
 														<td
-															className="p-3 text-gray-500 text-center"
+															className="p-3 text-neutral-500 text-center"
 															colSpan={snapshotColumns.length}
 														>
 															No rows match current filters.
@@ -1138,7 +1138,7 @@ function ClientWorkspacePage() {
 															{snapshotColumns.map((column) => (
 																<td
 																	key={`${row.id}-${column}`}
-																	className="p-2 text-gray-700 whitespace-nowrap"
+																	className="p-2 text-neutral-700 whitespace-nowrap"
 																>
 																	{formatSnapshotCell(row, column)}
 																</td>
@@ -1153,8 +1153,8 @@ function ClientWorkspacePage() {
 
 								{/* Pagination Controls */}
 								{filteredSnapshotRows.length > 0 && (
-									<div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
-										<p className="text-sm text-gray-700">
+									<div className="mt-4 flex items-center justify-between border-t border-neutral-200 pt-4">
+										<p className="text-sm text-neutral-700">
 											Showing{" "}
 											<span className="font-semibold">
 												{(itemsPage - 1) * itemsPerPage + 1}
@@ -1176,11 +1176,11 @@ function ClientWorkspacePage() {
 											<button
 												onClick={() => setItemsPage((p) => Math.max(1, p - 1))}
 												disabled={itemsPage === 1}
-												className="rounded border border-gray-300 px-3 py-1 text-sm font-medium text-gray-700 disabled:opacity-50 hover:bg-gray-50 transition-colors"
+												className="rounded border border-neutral-300 px-3 py-1 text-sm font-medium text-neutral-700 disabled:opacity-50 hover:bg-neutral-50 transition-colors"
 											>
 												Previous
 											</button>
-											<span className="px-3 py-1 text-sm text-gray-600 border border-transparent">
+											<span className="px-3 py-1 text-sm text-neutral-600 border border-transparent">
 												Page {itemsPage} of {totalPages}
 											</span>
 											<button
@@ -1188,7 +1188,7 @@ function ClientWorkspacePage() {
 													setItemsPage((p) => Math.min(totalPages, p + 1))
 												}
 												disabled={itemsPage === totalPages}
-												className="rounded border border-gray-300 px-3 py-1 text-sm font-medium text-gray-700 disabled:opacity-50 hover:bg-gray-50 transition-colors"
+												className="rounded border border-neutral-300 px-3 py-1 text-sm font-medium text-neutral-700 disabled:opacity-50 hover:bg-neutral-50 transition-colors"
 											>
 												Next
 											</button>
@@ -1199,11 +1199,11 @@ function ClientWorkspacePage() {
 						)}
 					</section>
 
-					<section className="rounded-xl border border-gray-200 bg-white p-6">
-						<h2 className="text-lg font-semibold text-gray-900 mb-2">
+					<section className="rounded-xl border border-neutral-200 bg-white p-6">
+						<h2 className="text-lg font-semibold text-neutral-900 mb-2">
 							Add / Update Item Record
 						</h2>
-						<p className="text-sm text-gray-500 mb-4">
+						<p className="text-sm text-neutral-500 mb-4">
 							Quickly add a new item or update the expected quantity of an
 							existing one in the database.
 						</p>
@@ -1219,11 +1219,11 @@ function ClientWorkspacePage() {
 						/>
 					</section>
 
-					<section className="rounded-xl border border-gray-200 bg-white p-6">
-						<h2 className="text-lg font-semibold text-gray-900 mb-2">
+					<section className="rounded-xl border border-neutral-200 bg-white p-6">
+						<h2 className="text-lg font-semibold text-neutral-900 mb-2">
 							Import Items DB
 						</h2>
-						<p className="text-sm text-gray-500 mb-4">
+						<p className="text-sm text-neutral-500 mb-4">
 							Upload workbook rows directly into items_db for this client.
 						</p>
 
@@ -1233,7 +1233,7 @@ function ClientWorkspacePage() {
 								clientName={client.name}
 							/>
 						) : (
-							<div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900 text-sm">
+							<div className="rounded-lg border border-warning-200 bg-warning-50 p-4 text-warning-900 text-sm">
 								This parser is configured for TAQA/Taka workbook format only. It
 								is disabled for this client.
 							</div>
@@ -1250,10 +1250,10 @@ function ClientWorkspacePage() {
 					<Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
 					<Dialog.Content className="fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] bg-white p-6 rounded-xl shadow-xl w-[90vw] max-w-lg z-50">
 						<div className="flex justify-between items-center mb-4">
-							<Dialog.Title className="text-lg font-bold text-gray-900">
+							<Dialog.Title className="text-lg font-bold text-neutral-900">
 								Item Packages
 							</Dialog.Title>
-							<Dialog.Close className="text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 rounded p-1">
+							<Dialog.Close className="text-neutral-400 hover:text-neutral-600 bg-neutral-100 hover:bg-neutral-200 rounded p-1">
 								<X className="w-5 h-5" />
 							</Dialog.Close>
 						</div>

@@ -341,10 +341,15 @@ function InventoryPage() {
 		});
 	}, [materialsData, debouncedSearch]);
 
-	// Flatten all variants for the Variants tab with material info attached
+	// Flatten all variants for the Variants tab with material info attached.
+	// searchBlob precomputes the lowercase haystack once per data load so
+	// keystroke filtering is a single includes() per variant.
 	const allVariants = useMemo(() => {
 		if (!materialsData) return [];
-		const variants: (MaterialVariant & { material?: Material })[] = [];
+		const variants: (MaterialVariant & {
+			material?: Material;
+			searchBlob?: string;
+		})[] = [];
 		materialsData.forEach((m) => {
 			m.material_variants?.forEach((v) => {
 				variants.push({
@@ -357,6 +362,15 @@ function InventoryPage() {
 						created_at: m.created_at,
 						unit: m.unit,
 					},
+					searchBlob: [
+						v.variant_name,
+						v.description,
+						m.name,
+						...(v.material_variant_tags?.map((t) => t.tags?.name) ?? []),
+					]
+						.filter(Boolean)
+						.join(" ")
+						.toLowerCase(),
 				});
 			});
 		});
@@ -367,15 +381,8 @@ function InventoryPage() {
 	const filteredVariants = useMemo(() => {
 		if (!allVariants) return [];
 		const searchLower = debouncedSearch.toLowerCase();
-		return allVariants.filter(
-			(v) =>
-				v.variant_name.toLowerCase().includes(searchLower) ||
-				v.description?.toLowerCase().includes(searchLower) ||
-				v.material?.name.toLowerCase().includes(searchLower) ||
-				v.material_variant_tags?.some((t) =>
-					t.tags?.name.toLowerCase().includes(searchLower),
-				),
-		);
+		if (!searchLower) return allVariants;
+		return allVariants.filter((v) => v.searchBlob?.includes(searchLower));
 	}, [allVariants, debouncedSearch]);
 
 	const filteredSuppliers = useMemo(() => {
@@ -1177,28 +1184,28 @@ function InventoryPage() {
 
 	if (authLoading) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50">
-				<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+			<div className="min-h-screen flex items-center justify-center bg-neutral-50">
+				<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
 			</div>
 		);
 	}
 
 	return (
-		<div className="flex h-screen bg-gray-50">
+		<div className="flex h-screen bg-neutral-50">
 			<Sidebar />
 			<main className="flex-1 overflow-y-auto">
 				<div className="p-8">
 					<div className="flex items-center justify-between mb-8">
 						<div>
-							<h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
-							<p className="text-gray-500 mt-1">
+							<h1 className="text-2xl font-bold text-neutral-900">Inventory</h1>
+							<p className="text-neutral-500 mt-1">
 								Manage materials, variants, suppliers, and communication
 							</p>
 						</div>
 						<div className="flex items-center gap-3">
 							<Link
 								to="/inventory-duplicates"
-								className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+								className="flex items-center gap-2 px-4 py-2.5 bg-white border border-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors"
 							>
 								<Copy className="w-4 h-4" />
 								Variant Duplicates
@@ -1216,7 +1223,7 @@ function InventoryPage() {
 										}
 										openCreateModal("suppliers");
 									}}
-									className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+									className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
 								>
 									<Plus className="w-5 h-5" />
 									Add{" "}
@@ -1243,15 +1250,15 @@ function InventoryPage() {
 								}}
 								className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
 									activeTab === tab.id
-										? "bg-blue-600 text-white"
-										: "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+										? "bg-primary-600 text-white"
+										: "bg-white text-neutral-600 hover:bg-neutral-100 border border-neutral-200"
 								}`}
 							>
 								<tab.icon className="w-4 h-4" />
 								{tab.label}
 								<span
 									className={`px-2 py-0.5 rounded-full text-xs ${
-										activeTab === tab.id ? "bg-blue-500" : "bg-gray-100"
+										activeTab === tab.id ? "bg-primary-500" : "bg-neutral-100"
 									}`}
 								>
 									{tab.count}
@@ -1260,8 +1267,8 @@ function InventoryPage() {
 									<span
 										className={`px-2 py-0.5 rounded-full text-xs ${
 											activeTab === tab.id
-												? "bg-blue-400"
-												: "bg-gray-50 text-gray-500"
+												? "bg-primary-400"
+												: "bg-neutral-50 text-neutral-500"
 										}`}
 									>
 										{tab.subCount} variants
@@ -1272,9 +1279,9 @@ function InventoryPage() {
 					</div>
 
 					{activeTab !== "communications" && (
-						<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+						<div className="bg-white rounded-xl shadow-sm border border-neutral-100 p-4 mb-6">
 							<div className="relative max-w-md">
-								<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+								<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
 								<input
 									type="text"
 									placeholder={`Search ${activeTab}...`}
@@ -1283,16 +1290,16 @@ function InventoryPage() {
 										setSearch(e.target.value);
 										setPage(1);
 									}}
-									className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+									className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
 								/>
 							</div>
 						</div>
 					)}
 
-					<div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+					<div className="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden">
 						{isLoading ? (
 							<div className="flex items-center justify-center py-12">
-								<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+								<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
 							</div>
 						) : activeTab === "communications" ? (
 							<InventoryCommunicationsTab
@@ -1301,8 +1308,8 @@ function InventoryPage() {
 							/>
 						) : paginatedData.length === 0 ? (
 							<div className="flex flex-col items-center justify-center py-12">
-								<Package className="w-12 h-12 text-gray-300 mb-4" />
-								<p className="text-gray-500">No {activeTab} found</p>
+								<Package className="w-12 h-12 text-neutral-300 mb-4" />
+								<p className="text-neutral-500">No {activeTab} found</p>
 							</div>
 						) : (
 							<>
@@ -1359,8 +1366,8 @@ function InventoryPage() {
 								</div>
 
 								{/* Pagination */}
-								<div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
-									<p className="text-sm text-gray-500">
+								<div className="flex items-center justify-between px-6 py-4 border-t border-neutral-100">
+									<p className="text-sm text-neutral-500">
 										Showing {(page - 1) * perPage + 1} to{" "}
 										{Math.min(page * perPage, currentData.length)} of{" "}
 										{currentData.length}
@@ -1369,12 +1376,12 @@ function InventoryPage() {
 										<button
 											onClick={() => setPage((p) => Math.max(1, p - 1))}
 											disabled={page === 1}
-											className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+											className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
 										>
 											<ChevronLeft className="w-4 h-4" />
 											Previous
 										</button>
-										<span className="text-sm text-gray-600 font-medium">
+										<span className="text-sm text-neutral-600 font-medium">
 											Page {page} of {totalPages || 1}
 										</span>
 										<button
@@ -1382,7 +1389,7 @@ function InventoryPage() {
 												setPage((p) => Math.min(totalPages, p + 1))
 											}
 											disabled={page >= totalPages}
-											className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+											className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
 										>
 											Next
 											<ChevronRight className="w-4 h-4" />
@@ -1403,7 +1410,7 @@ function InventoryPage() {
 							isVariantCreateWizard ? "max-w-3xl" : "max-w-xl"
 						} max-h-[88vh] overflow-y-auto bg-white rounded-xl shadow-2xl p-6`}
 					>
-						<Dialog.Title className="text-lg font-semibold text-gray-900">
+						<Dialog.Title className="text-lg font-semibold text-neutral-900">
 							{modalMode === "create"
 								? "Create"
 								: modalMode === "edit"
@@ -1415,7 +1422,7 @@ function InventoryPage() {
 									? "Variant"
 									: "Supplier"}
 						</Dialog.Title>
-						<Dialog.Description className="text-sm text-gray-500 mb-4">
+						<Dialog.Description className="text-sm text-neutral-500 mb-4">
 							{modalMode === "create"
 								? "Add a new record with the required details below."
 								: modalMode === "edit"
@@ -1432,7 +1439,7 @@ function InventoryPage() {
 											<div>
 												<label
 													htmlFor="edit-material-name"
-													className="text-xs text-gray-500"
+													className="text-xs text-neutral-500"
 												>
 													Name
 												</label>
@@ -1449,7 +1456,7 @@ function InventoryPage() {
 											<div>
 												<label
 													htmlFor="edit-material-description"
-													className="text-xs text-gray-500"
+													className="text-xs text-neutral-500"
 												>
 													Description
 												</label>
@@ -1469,7 +1476,7 @@ function InventoryPage() {
 											<div>
 												<label
 													htmlFor="edit-material-unit"
-													className="text-xs text-gray-500"
+													className="text-xs text-neutral-500"
 												>
 													Unit
 												</label>
@@ -1494,7 +1501,7 @@ function InventoryPage() {
 											</div>
 											{modalMode === "create" && (
 												<div>
-													<p className="text-xs text-gray-500">Tags</p>
+													<p className="text-xs text-neutral-500">Tags</p>
 													<div className="mt-2 flex gap-2">
 														<input
 															type="text"
@@ -1506,7 +1513,7 @@ function InventoryPage() {
 														<button
 															type="button"
 															onClick={handleAddTagToForm}
-															className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+															className="px-3 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
 														>
 															Add
 														</button>
@@ -1523,8 +1530,8 @@ function InventoryPage() {
 																	onClick={() => toggleTagSelection(tag.id)}
 																	className={`px-3 py-1.5 rounded-full text-sm border ${
 																		selected
-																			? "bg-blue-100 border-blue-300 text-blue-800"
-																			: "bg-gray-50 border-gray-200 text-gray-700"
+																			? "bg-primary-100 border-primary-300 text-primary-800"
+																			: "bg-neutral-50 border-neutral-200 text-neutral-700"
 																	}`}
 																>
 																	{tag.name}
@@ -1540,7 +1547,7 @@ function InventoryPage() {
 									{modalEntity === "variants" &&
 										(modalMode === "create" ? (
 											<>
-												<div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+												<div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
 													<div className="grid grid-cols-3 gap-2">
 														{[
 															{
@@ -1579,17 +1586,17 @@ function InventoryPage() {
 																	}
 																	className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${
 																		active
-																			? "border-blue-400 bg-blue-50 text-blue-800"
-																			: "border-gray-200 bg-white text-gray-700"
+																			? "border-primary-400 bg-primary-50 text-primary-800"
+																			: "border-neutral-200 bg-white text-neutral-700"
 																	}`}
 																>
 																	<span>{step.label}</span>
 																	{step.complete ? (
-																		<span className="text-green-600 font-semibold">
+																		<span className="text-success-600 font-semibold">
 																			✓
 																		</span>
 																	) : (
-																		<span className="text-gray-300">○</span>
+																		<span className="text-neutral-300">○</span>
 																	)}
 																</button>
 															);
@@ -1602,7 +1609,7 @@ function InventoryPage() {
 														<div>
 															<label
 																htmlFor="create-variant-material"
-																className="text-xs text-gray-500"
+																className="text-xs text-neutral-500"
 															>
 																Material *
 															</label>
@@ -1624,7 +1631,7 @@ function InventoryPage() {
 																	</option>
 																))}
 															</select>
-															<p className="mt-1 text-xs text-gray-500">
+															<p className="mt-1 text-xs text-neutral-500">
 																If you can’t find the material, continue to step
 																2 and create it inline.
 															</p>
@@ -1637,7 +1644,7 @@ function InventoryPage() {
 																	});
 																	setVariantCreateStep("material");
 																}}
-																className="mt-2 text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100"
+																className="mt-2 text-xs px-2 py-1 rounded bg-primary-50 text-primary-700 hover:bg-primary-100"
 															>
 																I need to create a material
 															</button>
@@ -1645,7 +1652,7 @@ function InventoryPage() {
 														<div>
 															<label
 																htmlFor="edit-variant-name"
-																className="text-xs text-gray-500"
+																className="text-xs text-neutral-500"
 															>
 																Variant name *
 															</label>
@@ -1665,7 +1672,7 @@ function InventoryPage() {
 														<div>
 															<label
 																htmlFor="create-variant-unit"
-																className="text-xs text-gray-500"
+																className="text-xs text-neutral-500"
 															>
 																Unit *
 															</label>
@@ -1691,7 +1698,7 @@ function InventoryPage() {
 														<div>
 															<label
 																htmlFor="edit-variant-description"
-																className="text-xs text-gray-500"
+																className="text-xs text-neutral-500"
 															>
 																Description
 															</label>
@@ -1708,7 +1715,7 @@ function InventoryPage() {
 																rows={2}
 															/>
 														</div>
-														<p className="text-xs text-gray-500">
+														<p className="text-xs text-neutral-500">
 															Optional dimensions, attributes, and tags are in
 															step 3.
 														</p>
@@ -1716,10 +1723,10 @@ function InventoryPage() {
 												)}
 
 												{variantCreateStep === "material" && (
-													<div className="rounded-lg border border-gray-200 p-4 space-y-3">
+													<div className="rounded-lg border border-neutral-200 p-4 space-y-3">
 														{isInlineMaterialRequested ? (
 															<>
-																<p className="text-xs font-medium text-gray-600">
+																<p className="text-xs font-medium text-neutral-600">
 																	Create material inline
 																</p>
 																<input
@@ -1768,7 +1775,7 @@ function InventoryPage() {
 															</>
 														) : (
 															<div className="space-y-3">
-																<p className="text-sm text-gray-600">
+																<p className="text-sm text-neutral-600">
 																	You selected an existing material. Step 2 is
 																	optional.
 																</p>
@@ -1786,7 +1793,7 @@ function InventoryPage() {
 																			});
 																		})()
 																	}
-																	className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+																	className="px-3 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
 																>
 																	Switch to create new material
 																</button>
@@ -1797,14 +1804,14 @@ function InventoryPage() {
 
 												{variantCreateStep === "pricing" && (
 													<div>
-														<p className="text-xs text-gray-500">
+														<p className="text-xs text-neutral-500">
 															Supplier pricing (optional)
 														</p>
 														<div className="mt-2 space-y-3">
 															<div>
 																<label
 																	htmlFor="create-variant-supplier"
-																	className="text-xs text-gray-500"
+																	className="text-xs text-neutral-500"
 																>
 																	Supplier
 																</label>
@@ -1834,7 +1841,7 @@ function InventoryPage() {
 																<div>
 																	<label
 																		htmlFor="create-variant-supplier-qty"
-																		className="text-xs text-gray-500"
+																		className="text-xs text-neutral-500"
 																	>
 																		Supplier Qty
 																	</label>
@@ -1854,7 +1861,7 @@ function InventoryPage() {
 																<div>
 																	<label
 																		htmlFor="create-variant-price"
-																		className="text-xs text-gray-500"
+																		className="text-xs text-neutral-500"
 																	>
 																		Price *
 																	</label>
@@ -1874,7 +1881,7 @@ function InventoryPage() {
 																<div>
 																	<label
 																		htmlFor="create-variant-price-per-unit"
-																		className="text-xs text-gray-500"
+																		className="text-xs text-neutral-500"
 																	>
 																		Price / Unit
 																	</label>
@@ -1894,7 +1901,7 @@ function InventoryPage() {
 																<div>
 																	<label
 																		htmlFor="create-variant-supplier-reference"
-																		className="text-xs text-gray-500"
+																		className="text-xs text-neutral-500"
 																	>
 																		Supplier Reference
 																	</label>
@@ -1912,19 +1919,19 @@ function InventoryPage() {
 																	/>
 																</div>
 															</div>
-															<p className="text-xs text-gray-400">
+															<p className="text-xs text-neutral-400">
 																Price is required only if you select a supplier.
 																Otherwise this step can be skipped.
 															</p>
-															<div className="pt-2 border-t border-gray-200" />
-															<p className="text-xs text-gray-500">
+															<div className="pt-2 border-t border-neutral-200" />
+															<p className="text-xs text-neutral-500">
 																Optional variant details
 															</p>
 															<div className="grid grid-cols-1 md:grid-cols-4 gap-3">
 																<div>
 																	<label
 																		htmlFor="create-variant-length"
-																		className="text-xs text-gray-500"
+																		className="text-xs text-neutral-500"
 																	>
 																		Length
 																	</label>
@@ -1944,7 +1951,7 @@ function InventoryPage() {
 																<div>
 																	<label
 																		htmlFor="create-variant-width"
-																		className="text-xs text-gray-500"
+																		className="text-xs text-neutral-500"
 																	>
 																		Width
 																	</label>
@@ -1964,7 +1971,7 @@ function InventoryPage() {
 																<div>
 																	<label
 																		htmlFor="create-variant-thickness"
-																		className="text-xs text-gray-500"
+																		className="text-xs text-neutral-500"
 																	>
 																		Thickness
 																	</label>
@@ -1984,7 +1991,7 @@ function InventoryPage() {
 																<div>
 																	<label
 																		htmlFor="create-variant-weight-per-unit"
-																		className="text-xs text-gray-500"
+																		className="text-xs text-neutral-500"
 																	>
 																		Weight per unit
 																	</label>
@@ -2004,13 +2011,13 @@ function InventoryPage() {
 															</div>
 															<div>
 																<div className="flex items-center justify-between">
-																	<p className="text-xs text-gray-500">
+																	<p className="text-xs text-neutral-500">
 																		Attributes
 																	</p>
 																	<button
 																		type="button"
 																		onClick={addAttributeRow}
-																		className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100"
+																		className="text-xs px-2 py-1 rounded bg-primary-50 text-primary-700 hover:bg-primary-100"
 																	>
 																		+ Add
 																	</button>
@@ -2018,7 +2025,7 @@ function InventoryPage() {
 																<div className="mt-2 space-y-2">
 																	{(editData.attribute_rows || []).length ===
 																		0 && (
-																		<p className="text-xs text-gray-400">
+																		<p className="text-xs text-neutral-400">
 																			No attributes added
 																		</p>
 																	)}
@@ -2059,7 +2066,7 @@ function InventoryPage() {
 																					onClick={() =>
 																						removeAttributeRow(index)
 																					}
-																					className="px-2 py-2 text-xs rounded bg-red-50 text-red-700 hover:bg-red-100"
+																					className="px-2 py-2 text-xs rounded bg-danger-50 text-danger-700 hover:bg-danger-100"
 																				>
 																					Remove
 																				</button>
@@ -2069,7 +2076,7 @@ function InventoryPage() {
 																</div>
 															</div>
 															<div>
-																<p className="text-xs text-gray-500">Tags</p>
+																<p className="text-xs text-neutral-500">Tags</p>
 																<div className="mt-2 flex gap-2">
 																	<input
 																		type="text"
@@ -2083,7 +2090,7 @@ function InventoryPage() {
 																	<button
 																		type="button"
 																		onClick={handleAddTagToForm}
-																		className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+																		className="px-3 py-2 text-sm bg-success-600 text-white rounded-lg hover:bg-success-700"
 																	>
 																		Add
 																	</button>
@@ -2096,7 +2103,7 @@ function InventoryPage() {
 																		return (
 																			<label
 																				key={tag.id}
-																				className="flex items-center gap-2 text-sm text-gray-700"
+																				className="flex items-center gap-2 text-sm text-neutral-700"
 																			>
 																				<input
 																					type="checkbox"
@@ -2104,7 +2111,7 @@ function InventoryPage() {
 																					onChange={() =>
 																						toggleTagSelection(tag.id)
 																					}
-																					className="rounded border-gray-300"
+																					className="rounded border-neutral-300"
 																				/>
 																				{tag.name}
 																			</label>
@@ -2121,7 +2128,7 @@ function InventoryPage() {
 												<div>
 													<label
 														htmlFor="edit-variant-name"
-														className="text-xs text-gray-500"
+														className="text-xs text-neutral-500"
 													>
 														Variant name
 													</label>
@@ -2141,7 +2148,7 @@ function InventoryPage() {
 												<div>
 													<label
 														htmlFor="edit-variant-description"
-														className="text-xs text-gray-500"
+														className="text-xs text-neutral-500"
 													>
 														Description
 													</label>
@@ -2162,7 +2169,7 @@ function InventoryPage() {
 													<div>
 														<label
 															htmlFor="edit-variant-length"
-															className="text-xs text-gray-500"
+															className="text-xs text-neutral-500"
 														>
 															Length
 														</label>
@@ -2182,7 +2189,7 @@ function InventoryPage() {
 													<div>
 														<label
 															htmlFor="edit-variant-width"
-															className="text-xs text-gray-500"
+															className="text-xs text-neutral-500"
 														>
 															Width
 														</label>
@@ -2202,7 +2209,7 @@ function InventoryPage() {
 													<div>
 														<label
 															htmlFor="edit-variant-thickness"
-															className="text-xs text-gray-500"
+															className="text-xs text-neutral-500"
 														>
 															Thickness
 														</label>
@@ -2222,7 +2229,7 @@ function InventoryPage() {
 													<div>
 														<label
 															htmlFor="edit-variant-weight-per-unit"
-															className="text-xs text-gray-500"
+															className="text-xs text-neutral-500"
 														>
 															Weight per unit
 														</label>
@@ -2242,7 +2249,7 @@ function InventoryPage() {
 													<div>
 														<label
 															htmlFor="edit-variant-unit"
-															className="text-xs text-gray-500"
+															className="text-xs text-neutral-500"
 														>
 															Unit
 														</label>
@@ -2268,18 +2275,20 @@ function InventoryPage() {
 												</div>
 												<div>
 													<div className="flex items-center justify-between">
-														<p className="text-xs text-gray-500">Attributes</p>
+														<p className="text-xs text-neutral-500">
+															Attributes
+														</p>
 														<button
 															type="button"
 															onClick={addAttributeRow}
-															className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100"
+															className="text-xs px-2 py-1 rounded bg-primary-50 text-primary-700 hover:bg-primary-100"
 														>
 															+ Add
 														</button>
 													</div>
 													<div className="mt-2 space-y-2">
 														{(editData.attribute_rows || []).length === 0 && (
-															<p className="text-xs text-gray-400">
+															<p className="text-xs text-neutral-400">
 																No attributes added
 															</p>
 														)}
@@ -2318,7 +2327,7 @@ function InventoryPage() {
 																	<button
 																		type="button"
 																		onClick={() => removeAttributeRow(index)}
-																		className="px-2 py-2 text-xs rounded bg-red-50 text-red-700 hover:bg-red-100"
+																		className="px-2 py-2 text-xs rounded bg-danger-50 text-danger-700 hover:bg-danger-100"
 																	>
 																		Remove
 																	</button>
@@ -2328,10 +2337,10 @@ function InventoryPage() {
 													</div>
 												</div>
 												<div>
-													<p className="text-xs text-gray-500">Tags</p>
+													<p className="text-xs text-neutral-500">Tags</p>
 													<div className="mt-2 grid grid-cols-2 gap-2">
 														{tags.length === 0 && (
-															<p className="text-xs text-gray-400">
+															<p className="text-xs text-neutral-400">
 																No tags available
 															</p>
 														)}
@@ -2342,13 +2351,13 @@ function InventoryPage() {
 															return (
 																<label
 																	key={tag.id}
-																	className="flex items-center gap-2 text-sm text-gray-700"
+																	className="flex items-center gap-2 text-sm text-neutral-700"
 																>
 																	<input
 																		type="checkbox"
 																		checked={selected}
 																		onChange={() => toggleTagSelection(tag.id)}
-																		className="rounded border-gray-300"
+																		className="rounded border-neutral-300"
 																	/>
 																	{tag.name}
 																</label>
@@ -2357,14 +2366,14 @@ function InventoryPage() {
 													</div>
 												</div>
 												<div>
-													<p className="text-xs text-gray-500">
+													<p className="text-xs text-neutral-500">
 														Supplier pricing
 													</p>
 													<div className="mt-2 space-y-3">
 														<div>
 															<label
 																htmlFor="edit-variant-supplier"
-																className="text-xs text-gray-500"
+																className="text-xs text-neutral-500"
 															>
 																Supplier
 															</label>
@@ -2391,7 +2400,7 @@ function InventoryPage() {
 															<div>
 																<label
 																	htmlFor="edit-variant-supplier-qty"
-																	className="text-xs text-gray-500"
+																	className="text-xs text-neutral-500"
 																>
 																	Supplier Qty
 																</label>
@@ -2411,7 +2420,7 @@ function InventoryPage() {
 															<div>
 																<label
 																	htmlFor="edit-variant-price"
-																	className="text-xs text-gray-500"
+																	className="text-xs text-neutral-500"
 																>
 																	Price
 																</label>
@@ -2431,7 +2440,7 @@ function InventoryPage() {
 															<div>
 																<label
 																	htmlFor="edit-variant-price-per-unit"
-																	className="text-xs text-gray-500"
+																	className="text-xs text-neutral-500"
 																>
 																	Price / Unit
 																</label>
@@ -2451,7 +2460,7 @@ function InventoryPage() {
 															<div>
 																<label
 																	htmlFor="edit-variant-supplier-reference"
-																	className="text-xs text-gray-500"
+																	className="text-xs text-neutral-500"
 																>
 																	Supplier Reference
 																</label>
@@ -2470,7 +2479,7 @@ function InventoryPage() {
 																/>
 															</div>
 														</div>
-														<p className="text-xs text-gray-400">
+														<p className="text-xs text-neutral-400">
 															Save to update the first supplier pricing entry
 															for this variant.
 														</p>
@@ -2484,7 +2493,7 @@ function InventoryPage() {
 											<div>
 												<label
 													htmlFor="edit-supplier-name"
-													className="text-xs text-gray-500"
+													className="text-xs text-neutral-500"
 												>
 													Name
 												</label>
@@ -2502,7 +2511,7 @@ function InventoryPage() {
 												<div>
 													<label
 														htmlFor="edit-supplier-contact"
-														className="text-xs text-gray-500"
+														className="text-xs text-neutral-500"
 													>
 														Contact person
 													</label>
@@ -2522,7 +2531,7 @@ function InventoryPage() {
 												<div>
 													<label
 														htmlFor="edit-supplier-email"
-														className="text-xs text-gray-500"
+														className="text-xs text-neutral-500"
 													>
 														Email
 													</label>
@@ -2542,7 +2551,7 @@ function InventoryPage() {
 												<div>
 													<label
 														htmlFor="edit-supplier-phone"
-														className="text-xs text-gray-500"
+														className="text-xs text-neutral-500"
 													>
 														Phone
 													</label>
@@ -2562,7 +2571,7 @@ function InventoryPage() {
 												<div>
 													<label
 														htmlFor="edit-supplier-address"
-														className="text-xs text-gray-500"
+														className="text-xs text-neutral-500"
 													>
 														Address
 													</label>
@@ -2583,7 +2592,7 @@ function InventoryPage() {
 											<div>
 												<label
 													htmlFor="edit-supplier-other-info"
-													className="text-xs text-gray-500"
+													className="text-xs text-neutral-500"
 												>
 													Other info
 												</label>
@@ -2608,12 +2617,12 @@ function InventoryPage() {
 						{modalMode === "delete" && modalEntity && modalItem && (
 							<div className="space-y-3">
 								{deleteImpactLoading ? (
-									<div className="flex items-center gap-2 text-sm text-gray-500">
+									<div className="flex items-center gap-2 text-sm text-neutral-500">
 										<Loader2 className="w-4 h-4 animate-spin" />
 										Loading delete impact...
 									</div>
 								) : (
-									<ul className="space-y-2 text-sm text-gray-700">
+									<ul className="space-y-2 text-sm text-neutral-700">
 										{modalEntity === "materials" && (
 											<>
 												<li>
@@ -2682,14 +2691,14 @@ function InventoryPage() {
 						)}
 
 						{modalError && (
-							<div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+							<div className="mt-4 rounded-lg border border-danger-200 bg-danger-50 p-3 text-sm text-danger-700">
 								{modalError}
 							</div>
 						)}
 
 						<div className="flex justify-end gap-2 mt-6">
 							<Dialog.Close asChild>
-								<button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
+								<button className="px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100 rounded-lg">
 									Cancel
 								</button>
 							</Dialog.Close>
@@ -2698,7 +2707,7 @@ function InventoryPage() {
 									{variantCreateStep !== "variant" && (
 										<button
 											onClick={handleVariantWizardBack}
-											className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+											className="px-4 py-2 text-sm text-neutral-700 bg-neutral-100 rounded-lg hover:bg-neutral-200"
 										>
 											Back
 										</button>
@@ -2706,7 +2715,7 @@ function InventoryPage() {
 									{variantCreateStep === "pricing" ? (
 										<button
 											onClick={handleCreateEntity}
-											className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+											className="flex items-center gap-2 px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
 										>
 											<Save className="w-4 h-4" />
 											Create
@@ -2714,7 +2723,7 @@ function InventoryPage() {
 									) : (
 										<button
 											onClick={handleVariantWizardNext}
-											className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+											className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
 										>
 											Next
 										</button>
@@ -2723,7 +2732,7 @@ function InventoryPage() {
 							) : modalMode === "edit" ? (
 								<button
 									onClick={handleSaveEdit}
-									className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+									className="flex items-center gap-2 px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
 								>
 									<Save className="w-4 h-4" />
 									Save changes
@@ -2731,7 +2740,7 @@ function InventoryPage() {
 							) : modalMode === "create" ? (
 								<button
 									onClick={handleCreateEntity}
-									className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+									className="flex items-center gap-2 px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
 								>
 									<Save className="w-4 h-4" />
 									Create
@@ -2739,7 +2748,7 @@ function InventoryPage() {
 							) : (
 								<button
 									onClick={handleDeleteConfirm}
-									className="flex items-center gap-2 px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
+									className="flex items-center gap-2 px-4 py-2 text-sm bg-danger-600 text-white rounded-lg hover:bg-danger-700"
 								>
 									<Trash2 className="w-4 h-4" />
 									Delete

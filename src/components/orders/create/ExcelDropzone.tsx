@@ -81,20 +81,20 @@ export function ExcelDropzone({
 				}}
 				className={`border-2 border-dashed rounded-xl p-4 transition-colors ${
 					isDragging
-						? "border-blue-500 bg-blue-50"
-						: "border-gray-200 bg-gray-50"
+						? "border-primary-500 bg-primary-50"
+						: "border-neutral-200 bg-neutral-50"
 				}`}
 			>
 				<div className="flex items-center justify-between gap-4">
 					<div className="flex items-center gap-3">
-						<div className="h-10 w-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
-							<FileSpreadsheet className="w-5 h-5 text-blue-600" />
+						<div className="h-10 w-10 rounded-lg bg-white border border-neutral-200 flex items-center justify-center">
+							<FileSpreadsheet className="w-5 h-5 text-primary-600" />
 						</div>
 						<div>
-							<p className="text-sm font-medium text-gray-900">
+							<p className="text-sm font-medium text-neutral-900">
 								{file ? file.name : "Drop Excel file here"}
 							</p>
-							<p className="text-xs text-gray-500">
+							<p className="text-xs text-neutral-500">
 								{helperText || "Excel .xlsx, .xlsm, .xls, or .xlsb"}
 							</p>
 						</div>
@@ -107,7 +107,7 @@ export function ExcelDropzone({
 									event.stopPropagation();
 									onClear();
 								}}
-								className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-white"
+								className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-neutral-600 border border-neutral-200 rounded-lg hover:bg-white"
 							>
 								<X className="w-3 h-3" />
 								Clear
@@ -119,7 +119,7 @@ export function ExcelDropzone({
 									event.stopPropagation();
 									inputRef.current?.click();
 								}}
-								className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100"
+								className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-primary-700 bg-primary-50 border border-primary-100 rounded-lg hover:bg-primary-100"
 							>
 								<Upload className="w-3 h-3" />
 								Browse
@@ -128,7 +128,7 @@ export function ExcelDropzone({
 					</div>
 				</div>
 			</div>
-			{error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+			{error && <p className="mt-2 text-xs text-danger-600">{error}</p>}
 		</div>
 	);
 }

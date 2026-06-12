@@ -251,33 +251,35 @@ function TokenResolver() {
 
 	if (resolving || authLoading) {
 		return (
-			<div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+			<div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50">
 				<div className="relative">
-					<div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+					<div className="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
 					<div className="absolute inset-0 flex items-center justify-center">
-						<div className="w-6 h-6 bg-blue-600 rounded-sm"></div>
+						<div className="w-6 h-6 bg-primary-600 rounded-sm"></div>
 					</div>
 				</div>
-				<h2 className="mt-6 text-xl font-bold text-gray-900">
+				<h2 className="mt-6 text-xl font-bold text-neutral-900">
 					Resolving QR Code...
 				</h2>
-				<p className="text-gray-500 mt-2">Checking security clearance</p>
+				<p className="text-neutral-500 mt-2">Checking security clearance</p>
 			</div>
 		);
 	}
 
 	// Only reached if there was an error
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-			<div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center">
-				<div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-					<AlertCircle className="w-8 h-8 text-red-600" />
+		<div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
+			<div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-neutral-100 p-8 text-center">
+				<div className="w-16 h-16 bg-danger-100 rounded-full flex items-center justify-center mx-auto mb-6">
+					<AlertCircle className="w-8 h-8 text-danger-600" />
 				</div>
-				<h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-				<p className="text-gray-600 mb-8">{error}</p>
+				<h2 className="text-2xl font-bold text-neutral-900 mb-2">
+					Access Denied
+				</h2>
+				<p className="text-neutral-600 mb-8">{error}</p>
 				<button
 					onClick={() => navigate({ to: "/portal/login" })}
-					className="w-full py-3 px-4 bg-gray-900 hover:bg-black text-white rounded-xl font-medium transition-colors"
+					className="w-full py-3 px-4 bg-neutral-900 hover:bg-black text-white rounded-xl font-medium transition-colors"
 				>
 					Return Home
 				</button>

@@ -222,11 +222,11 @@ export function OrderCreateFormDialog({
 	const isV54Applied = appliedTemplateMode === "v54plus";
 	const appliedVersionLabel = isV54Applied ? "54+" : "53-";
 	const versionTextClassName = isV54Applied
-		? "text-blue-700"
-		: "text-amber-600";
+		? "text-primary-700"
+		: "text-warning-600";
 	const versionBadgeClassName = isV54Applied
-		? "border-blue-200 bg-blue-50 text-blue-700"
-		: "border-amber-200 bg-amber-50 text-amber-600";
+		? "border-primary-200 bg-primary-50 text-primary-700"
+		: "border-warning-200 bg-warning-50 text-warning-600";
 	const shouldShowCategoryMapping =
 		clientMode === "existing" &&
 		!!selectedClientId &&
@@ -240,10 +240,10 @@ export function OrderCreateFormDialog({
 				<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-2xl bg-white rounded-xl shadow-2xl p-6">
 					<div className="mb-6 flex items-start justify-between gap-4">
 						<div>
-							<Dialog.Title className="text-lg font-semibold text-gray-900 mb-1">
+							<Dialog.Title className="text-lg font-semibold text-neutral-900 mb-1">
 								Create order from Excel
 							</Dialog.Title>
-							<Dialog.Description className="text-sm text-gray-500">
+							<Dialog.Description className="text-sm text-neutral-500">
 								Upload a spreadsheet, confirm the details, and generate the base
 								order.
 							</Dialog.Description>
@@ -271,7 +271,7 @@ export function OrderCreateFormDialog({
 									onClick={() => {
 										void onExcelVersionModeChange("auto");
 									}}
-									className="text-xs text-gray-500 hover:text-gray-700"
+									className="text-xs text-neutral-500 hover:text-neutral-700"
 								>
 									Auto
 								</button>
@@ -281,19 +281,19 @@ export function OrderCreateFormDialog({
 
 					<div className="space-y-6">
 						<div className="space-y-2">
-							<p className="text-sm font-medium text-gray-900">Client</p>
+							<p className="text-sm font-medium text-neutral-900">Client</p>
 							<div className="flex flex-wrap gap-2">
 								<button
 									type="button"
 									onClick={() => setClientMode("existing")}
-									className={`px-3 py-1.5 text-xs rounded-full border ${clientMode === "existing" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-600"}`}
+									className={`px-3 py-1.5 text-xs rounded-full border ${clientMode === "existing" ? "border-primary-600 bg-primary-50 text-primary-700" : "border-neutral-200 text-neutral-600"}`}
 								>
 									Existing client
 								</button>
 								<button
 									type="button"
 									onClick={() => setClientMode("new")}
-									className={`px-3 py-1.5 text-xs rounded-full border ${clientMode === "new" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-600"}`}
+									className={`px-3 py-1.5 text-xs rounded-full border ${clientMode === "new" ? "border-primary-600 bg-primary-50 text-primary-700" : "border-neutral-200 text-neutral-600"}`}
 								>
 									Create new client
 								</button>
@@ -316,7 +316,7 @@ export function OrderCreateFormDialog({
 											setIsClientDropdownOpen(true);
 										}}
 										placeholder="Type to search client by name, contact, or email"
-										className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-32 focus:outline-none focus:ring-2 focus:ring-blue-500"
+										className="w-full rounded-lg border border-neutral-300 px-3 py-2 pr-32 focus:outline-none focus:ring-2 focus:ring-primary-500"
 									/>
 									{shouldShowCreateClientAction && (
 										<button
@@ -325,27 +325,27 @@ export function OrderCreateFormDialog({
 												event.preventDefault();
 											}}
 											onClick={handleUseSearchAsNewClient}
-											className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+											className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-primary-100 bg-primary-50 px-2.5 py-1 text-xs font-medium text-primary-700 hover:bg-primary-100"
 										>
 											Create client
 										</button>
 									)}
 									{isClientDropdownOpen && (
-										<div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+										<div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-neutral-200 bg-white shadow-lg">
 											{clientsLoading ? (
-												<p className="px-3 py-2 text-xs text-gray-500">
+												<p className="px-3 py-2 text-xs text-neutral-500">
 													Loading clients...
 												</p>
 											) : filteredClients.length === 0 ? (
 												<div className="px-3 py-2">
-													<p className="text-xs text-gray-500">
+													<p className="text-xs text-neutral-500">
 														No clients match your search
 													</p>
 													{shouldShowCreateClientAction && (
 														<button
 															type="button"
 															onClick={handleUseSearchAsNewClient}
-															className="mt-2 rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+															className="mt-2 rounded-md border border-primary-100 bg-primary-50 px-2.5 py-1 text-xs font-medium text-primary-700 hover:bg-primary-100"
 														>
 															Create client “{trimmedClientSearchQuery}”
 														</button>
@@ -365,7 +365,7 @@ export function OrderCreateFormDialog({
 															}));
 															setIsClientDropdownOpen(false);
 														}}
-														className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+														className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50"
 													>
 														{client.name}
 													</button>
@@ -415,13 +415,13 @@ export function OrderCreateFormDialog({
 															? "Address"
 															: field[0].toUpperCase() + field.slice(1)
 											}
-											className={`px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${field === "address" ? "md:col-span-2" : ""}`}
+											className={`px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${field === "address" ? "md:col-span-2" : ""}`}
 										/>
 									))}
 								</div>
 							)}
 							{validationErrors.client && (
-								<p className="text-xs text-red-600 mt-1">
+								<p className="text-xs text-danger-600 mt-1">
 									{validationErrors.client}
 								</p>
 							)}
@@ -430,7 +430,7 @@ export function OrderCreateFormDialog({
 						<div>
 							<label
 								htmlFor="order-name"
-								className="block text-sm font-medium text-gray-900 mb-1"
+								className="block text-sm font-medium text-neutral-900 mb-1"
 							>
 								Order name
 							</label>
@@ -443,10 +443,10 @@ export function OrderCreateFormDialog({
 									setValidationErrors((prev) => ({ ...prev, orderName: "" }));
 								}}
 								placeholder="Order name (defaults to Excel filename)"
-								className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+								className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
 							/>
 							{validationErrors.orderName && (
-								<p className="text-xs text-red-600 mt-1">
+								<p className="text-xs text-danger-600 mt-1">
 									{validationErrors.orderName}
 								</p>
 							)}
@@ -455,7 +455,7 @@ export function OrderCreateFormDialog({
 						<div>
 							<label
 								htmlFor="global-destination"
-								className="block text-sm font-medium text-gray-900 mb-1"
+								className="block text-sm font-medium text-neutral-900 mb-1"
 							>
 								Global destination (Optional)
 							</label>
@@ -465,9 +465,9 @@ export function OrderCreateFormDialog({
 								value={globalDestination}
 								onChange={(event) => setGlobalDestination(event.target.value)}
 								placeholder="e.g. MZC, ALD, or leave empty"
-								className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+								className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
 							/>
-							<p className="mt-1 text-[11px] text-gray-500">
+							<p className="mt-1 text-[11px] text-neutral-500">
 								When set, this will be applied to all boxes as the default
 								destination.
 							</p>
@@ -478,11 +478,11 @@ export function OrderCreateFormDialog({
 								id="generateRandomBoxIds"
 								checked={generateRandomBoxIds}
 								onChange={(e) => setGenerateRandomBoxIds(e.target.checked)}
-								className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+								className="w-4 h-4 text-primary-600 rounded border-neutral-300 focus:ring-primary-500"
 							/>
 							<label
 								htmlFor="generateRandomBoxIds"
-								className="text-sm font-medium text-gray-900"
+								className="text-sm font-medium text-neutral-900"
 							>
 								Generate Random Reference IDs (e.g. DDMMYYYY-XXXXXXXX)
 							</label>
@@ -490,16 +490,16 @@ export function OrderCreateFormDialog({
 						{shouldShowCategoryMapping && (
 							<div className="space-y-2">
 								<div className="flex items-center justify-between">
-									<p className="text-sm font-medium text-gray-900">
+									<p className="text-sm font-medium text-neutral-900">
 										Category mapping (optional)
 									</p>
 									{selectedCategoryIds.length > 0 && (
-										<span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+										<span className="rounded-full border border-primary-200 bg-primary-50 px-2 py-0.5 text-[11px] font-semibold text-primary-700">
 											{selectedCategoryIds.length} selected
 										</span>
 									)}
 								</div>
-								<p className="text-xs text-gray-500">
+								<p className="text-xs text-neutral-500">
 									When selected, packers will only browse catalog items from
 									these categories for this order.
 								</p>
@@ -508,14 +508,14 @@ export function OrderCreateFormDialog({
 									<button
 										type="button"
 										onClick={() => setCategorySelection(powerCategoryIds)}
-										className="rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+										className="rounded-md border border-iris-200 bg-iris-50 px-2.5 py-1 text-xs font-medium text-iris-700 hover:bg-iris-100"
 									>
 										Select power
 									</button>
 									<button
 										type="button"
 										onClick={() => setCategorySelection(waterCategoryIds)}
-										className="rounded-md border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs font-medium text-cyan-700 hover:bg-cyan-100"
+										className="rounded-md border border-aqua-200 bg-aqua-50 px-2.5 py-1 text-xs font-medium text-aqua-700 hover:bg-aqua-100"
 									>
 										Select water
 									</button>
@@ -526,26 +526,26 @@ export function OrderCreateFormDialog({
 												clientCategories.map((category) => category.id),
 											)
 										}
-										className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
+										className="rounded-md border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
 									>
 										Select all
 									</button>
 									<button
 										type="button"
 										onClick={() => setCategorySelection([])}
-										className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+										className="rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
 									>
 										Clear
 									</button>
 								</div>
 
-								<div className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 bg-white p-2">
+								<div className="max-h-40 overflow-y-auto rounded-lg border border-neutral-200 bg-white p-2">
 									{clientCategories.map((category) => {
 										const checked = selectedCategoryIds.includes(category.id);
 										return (
 											<label
 												key={category.id}
-												className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-gray-50"
+												className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-neutral-50"
 											>
 												<input
 													type="checkbox"
@@ -559,7 +559,7 @@ export function OrderCreateFormDialog({
 													className="mt-0.5"
 												/>
 												<div>
-													<p className="text-sm text-gray-800">
+													<p className="text-sm text-neutral-800">
 														{category.label}
 													</p>
 													{category.tags.length > 0 && (
@@ -567,7 +567,7 @@ export function OrderCreateFormDialog({
 															{category.tags.map((tag) => (
 																<span
 																	key={`${category.id}-${tag}`}
-																	className="rounded-full border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-600"
+																	className="rounded-full border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 text-[10px] text-neutral-600"
 																>
 																	{tag}
 																</span>
@@ -583,7 +583,7 @@ export function OrderCreateFormDialog({
 						)}
 
 						{excelVersionMode === "auto" && (
-							<p className="-mt-2 text-xs text-gray-600">
+							<p className="-mt-2 text-xs text-neutral-600">
 								{detectedExcelVersion === null
 									? "Auto detect could not find a version in the order name; using v53 and below."
 									: `Detected V${detectedExcelVersion} from order name.`}
@@ -592,17 +592,17 @@ export function OrderCreateFormDialog({
 
 						<div>
 							<div className="flex items-center justify-between mb-2">
-								<p className="text-sm font-medium text-gray-900">
+								<p className="text-sm font-medium text-neutral-900">
 									Excel upload
 								</p>
 								{isParsing ? (
-									<span className="inline-flex items-center gap-2 text-xs text-gray-500">
+									<span className="inline-flex items-center gap-2 text-xs text-neutral-500">
 										<Loader2 className="w-3.5 h-3.5 animate-spin" />
 										Processing...
 									</span>
 								) : (
 									worksheetNames.length > 0 && (
-										<span className="text-xs text-gray-500">
+										<span className="text-xs text-neutral-500">
 											{worksheetNames.length} sheet(s) detected
 										</span>
 									)
@@ -621,13 +621,13 @@ export function OrderCreateFormDialog({
 								helperText="We parse the Calculation sheet and detect package rows."
 							/>
 							{packageCount > 0 && (
-								<p className="mt-2 text-xs text-gray-600">
+								<p className="mt-2 text-xs text-neutral-600">
 									Detected {packageCount} package row(s) in column B starting at
 									row 4.
 								</p>
 							)}
 							{hasUnresolvedMappings && (
-								<p className="mt-1 text-xs text-amber-600">
+								<p className="mt-1 text-xs text-warning-600">
 									Some rows need box type,
 									{isV54Applied
 										? " SEI category/protection,"
@@ -641,7 +641,7 @@ export function OrderCreateFormDialog({
 
 					<div className="flex justify-end gap-2 mt-6">
 						<Dialog.Close asChild>
-							<button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
+							<button className="px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100 rounded-lg">
 								Cancel
 							</button>
 						</Dialog.Close>
@@ -665,7 +665,7 @@ export function OrderCreateFormDialog({
 								);
 							}}
 							disabled={isParsing}
-							className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg text-white transition-colors ${isParsing ? "bg-blue-300" : "bg-blue-600 hover:bg-blue-700"}`}
+							className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg text-white transition-colors ${isParsing ? "bg-primary-300" : "bg-primary-600 hover:bg-primary-700"}`}
 						>
 							{(isParsing || isSubmitting) && (
 								<Loader2 className="w-4 h-4 animate-spin" />

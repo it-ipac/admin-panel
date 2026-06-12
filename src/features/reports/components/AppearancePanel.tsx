@@ -19,7 +19,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
 	children,
 }) => (
 	<div className="flex flex-col gap-2 pt-3">
-		<div className="text-xs font-bold text-gray-500 uppercase tracking-widest border-b pb-1">
+		<div className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b pb-1">
 			{title}
 		</div>
 		{children}
@@ -33,7 +33,7 @@ const Toggle: React.FC<{
 	disabled?: boolean;
 }> = ({ label, checked, onChange, disabled }) => (
 	<label
-		className={`flex items-center gap-2 text-sm text-gray-700 cursor-pointer ${disabled ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
+		className={`flex items-center gap-2 text-sm text-neutral-700 cursor-pointer ${disabled ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
 	>
 		<input
 			type="checkbox"
@@ -71,14 +71,14 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 								key={o}
 								type="button"
 								onClick={() => setD("orientation", o)}
-								className={`flex-1 py-1.5 rounded text-xs font-medium border transition-colors capitalize ${display.orientation === o ? "bg-blue-600 text-white border-blue-600" : "bg-white border-gray-300 text-gray-600 hover:bg-gray-50"}`}
+								className={`flex-1 py-1.5 rounded text-xs font-medium border transition-colors capitalize ${display.orientation === o ? "bg-primary-600 text-white border-primary-600" : "bg-white border-neutral-300 text-neutral-600 hover:bg-neutral-50"}`}
 							>
 								{o === "portrait" ? "📄 Portrait" : "📄 Landscape"}
 							</button>
 						))}
 					</div>
 					<div className="flex flex-col gap-1">
-						<label htmlFor="font-size" className="text-xs text-gray-500">
+						<label htmlFor="font-size" className="text-xs text-neutral-500">
 							Font Size Preset
 						</label>
 						<select
@@ -96,11 +96,11 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						<div className="flex justify-between items-center">
 							<label
 								htmlFor="font-size-px-slider"
-								className="text-xs text-gray-500"
+								className="text-xs text-neutral-500"
 							>
 								Text Font Size
 							</label>
-							<span className="text-xs font-semibold text-gray-700">
+							<span className="text-xs font-semibold text-neutral-700">
 								{display.font_size_px ?? 12}px
 							</span>
 						</div>
@@ -114,18 +114,18 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 							onChange={(e) =>
 								setD("font_size_px", parseInt(e.target.value, 10))
 							}
-							className="w-full cursor-pointer accent-blue-600"
+							className="w-full cursor-pointer accent-primary-600"
 						/>
 					</div>
 					<div className="flex flex-col gap-1 mt-1">
 						<div className="flex justify-between items-center">
 							<label
 								htmlFor="logo-size-slider"
-								className="text-xs text-gray-500"
+								className="text-xs text-neutral-500"
 							>
 								Logo Size (Height)
 							</label>
-							<span className="text-xs font-semibold text-gray-700">
+							<span className="text-xs font-semibold text-neutral-700">
 								{display.logo_size ?? 90}px
 							</span>
 						</div>
@@ -137,18 +137,18 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 							step="5"
 							value={display.logo_size ?? 90}
 							onChange={(e) => setD("logo_size", parseInt(e.target.value, 10))}
-							className="w-full cursor-pointer accent-blue-600"
+							className="w-full cursor-pointer accent-primary-600"
 						/>
 					</div>
 					<div className="flex flex-col gap-1 mt-1">
 						<div className="flex justify-between items-center">
 							<label
 								htmlFor="header-top-margin-slider"
-								className="text-xs text-gray-500"
+								className="text-xs text-neutral-500"
 							>
 								Header Top Margin
 							</label>
-							<span className="text-xs font-semibold text-gray-700">
+							<span className="text-xs font-semibold text-neutral-700">
 								{display.header_top_margin ?? 20}mm
 							</span>
 						</div>
@@ -162,11 +162,11 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 							onChange={(e) =>
 								setD("header_top_margin", parseInt(e.target.value, 10))
 							}
-							className="w-full cursor-pointer accent-blue-600"
+							className="w-full cursor-pointer accent-primary-600"
 						/>
 					</div>
 					<div className="flex flex-col gap-1">
-						<label htmlFor="header-layout" className="text-xs text-gray-500">
+						<label htmlFor="header-layout" className="text-xs text-neutral-500">
 							Header Layout
 						</label>
 						<select
@@ -181,7 +181,10 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						</select>
 					</div>
 					<div className="flex flex-col gap-1">
-						<label htmlFor="header-show-mode" className="text-xs text-gray-500">
+						<label
+							htmlFor="header-show-mode"
+							className="text-xs text-neutral-500"
+						>
 							Page Header Visibility
 						</label>
 						<select
@@ -217,7 +220,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 					<div className="flex gap-2 items-center">
 						<label
 							htmlFor="theme-color-picker"
-							className="text-xs text-gray-500 w-24"
+							className="text-xs text-neutral-500 w-24"
 						>
 							Theme Color
 						</label>
@@ -228,14 +231,14 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 							value={display.theme_color}
 							onChange={(e) => setD("theme_color", e.target.value)}
 						/>
-						<span className="text-xs font-mono text-gray-500">
+						<span className="text-xs font-mono text-neutral-500">
 							{display.theme_color}
 						</span>
 					</div>
 					<div className="flex gap-2 items-center">
 						<label
 							htmlFor="accent-color-picker"
-							className="text-xs text-gray-500 w-24"
+							className="text-xs text-neutral-500 w-24"
 						>
 							Accent / Row Color
 						</label>
@@ -246,7 +249,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 							value={display.accent_color}
 							onChange={(e) => setD("accent_color", e.target.value)}
 						/>
-						<span className="text-xs font-mono text-gray-500">
+						<span className="text-xs font-mono text-neutral-500">
 							{display.accent_color}
 						</span>
 					</div>
@@ -296,7 +299,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 							<div className="flex flex-col gap-1 pl-4 mb-2">
 								<label
 									htmlFor="signatures-scope"
-									className="text-xs text-gray-500 font-medium"
+									className="text-xs text-neutral-500 font-medium"
 								>
 									Placement / Scope
 								</label>
@@ -317,7 +320,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 								</select>
 							</div>
 							<div className="pl-4 flex flex-col gap-2 mb-2">
-								<span className="text-xs text-gray-500 font-medium">
+								<span className="text-xs text-neutral-500 font-medium">
 									Signature Fields
 								</span>
 								{display.signature_fields.map((sig, i) => {
@@ -353,14 +356,14 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 														}}
 													/>
 												) : (
-													<span className="text-xs text-gray-400 italic">
+													<span className="text-xs text-neutral-400 italic">
 														No image
 													</span>
 												)}
 												<button
 													type="button"
 													onClick={() => setPickerOpenIndex(i)}
-													className="text-xs px-2 py-0.5 border border-gray-300 rounded bg-white hover:bg-gray-50 text-gray-600"
+													className="text-xs px-2 py-0.5 border border-neutral-300 rounded bg-white hover:bg-neutral-50 text-neutral-600"
 												>
 													{assignedSig ? "Change…" : "Choose…"}
 												</button>
@@ -372,7 +375,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 															updated[i] = { ...updated[i], image_id: null };
 															setD("signature_fields", updated);
 														}}
-														className="text-xs text-red-400 hover:text-red-600"
+														className="text-xs text-danger-400 hover:text-danger-600"
 													>
 														×
 													</button>
@@ -385,7 +388,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						</>
 					)}
 					<div className="flex flex-col gap-1">
-						<label htmlFor="footer-text" className="text-xs text-gray-500">
+						<label htmlFor="footer-text" className="text-xs text-neutral-500">
 							Footer Text (optional)
 						</label>
 						<input
@@ -401,11 +404,11 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						<div className="flex justify-between items-center">
 							<label
 								htmlFor="footer-height-slider"
-								className="text-xs text-gray-500"
+								className="text-xs text-neutral-500"
 							>
 								Footer Height
 							</label>
-							<span className="text-xs font-semibold text-gray-700">
+							<span className="text-xs font-semibold text-neutral-700">
 								{display.footer_height_px ?? 40}px
 							</span>
 						</div>
@@ -419,18 +422,18 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 							onChange={(e) =>
 								setD("footer_height_px", parseInt(e.target.value, 10))
 							}
-							className="w-full cursor-pointer accent-blue-600"
+							className="w-full cursor-pointer accent-primary-600"
 						/>
 					</div>
 					<div className="flex flex-col gap-1 mt-1">
 						<div className="flex justify-between items-center">
 							<label
 								htmlFor="signature-height-slider"
-								className="text-xs text-gray-500"
+								className="text-xs text-neutral-500"
 							>
 								Signature Line Height
 							</label>
-							<span className="text-xs font-semibold text-gray-700">
+							<span className="text-xs font-semibold text-neutral-700">
 								{display.signature_height_px ?? 30}px
 							</span>
 						</div>
@@ -444,15 +447,15 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 							onChange={(e) =>
 								setD("signature_height_px", parseInt(e.target.value, 10))
 							}
-							className="w-full cursor-pointer accent-blue-600"
+							className="w-full cursor-pointer accent-primary-600"
 						/>
 					</div>
 					<div className="flex flex-col gap-1 mt-1">
 						<div className="flex justify-between items-center">
-							<label className="text-xs text-gray-500">
+							<label className="text-xs text-neutral-500">
 								Signature Image Width
 							</label>
-							<span className="text-xs font-semibold text-gray-700">
+							<span className="text-xs font-semibold text-neutral-700">
 								{display.signature_width_pct ?? 80}%
 							</span>
 						</div>
@@ -465,18 +468,20 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 							onChange={(e) =>
 								setD("signature_width_pct", parseInt(e.target.value, 10))
 							}
-							className="w-full cursor-pointer accent-blue-600"
+							className="w-full cursor-pointer accent-primary-600"
 						/>
 					</div>
 					<div className="flex flex-col gap-1 mt-1">
-						<label className="text-xs text-gray-500">Signature Alignment</label>
+						<label className="text-xs text-neutral-500">
+							Signature Alignment
+						</label>
 						<div className="flex gap-1">
 							{(["left", "center", "right"] as const).map((a) => (
 								<button
 									key={a}
 									type="button"
 									onClick={() => setD("signature_align", a)}
-									className={`flex-1 py-0.5 text-xs border rounded capitalize ${(display.signature_align ?? "center") === a ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"}`}
+									className={`flex-1 py-0.5 text-xs border rounded capitalize ${(display.signature_align ?? "center") === a ? "bg-primary-600 text-white border-primary-600" : "bg-white text-neutral-600 border-neutral-300 hover:bg-neutral-50"}`}
 								>
 									{a}
 								</button>
@@ -487,11 +492,11 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						<div className="flex justify-between items-center">
 							<label
 								htmlFor="footer-gap-slider"
-								className="text-xs text-gray-500"
+								className="text-xs text-neutral-500"
 							>
 								Space Above Footer
 							</label>
-							<span className="text-xs font-semibold text-gray-700">
+							<span className="text-xs font-semibold text-neutral-700">
 								{display.footer_body_gap_px ?? 0}px
 							</span>
 						</div>
@@ -505,14 +510,17 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 							onChange={(e) =>
 								setD("footer_body_gap_px", parseInt(e.target.value, 10))
 							}
-							className="w-full cursor-pointer accent-blue-600"
+							className="w-full cursor-pointer accent-primary-600"
 						/>
 					</div>
 				</Section>
 
 				<Section title="Box Card">
 					<div className="flex flex-col gap-1">
-						<label htmlFor="box-display-mode" className="text-xs text-gray-500">
+						<label
+							htmlFor="box-display-mode"
+							className="text-xs text-neutral-500"
+						>
 							Box Display Mode
 						</label>
 						<select
@@ -534,7 +542,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						</select>
 					</div>
 					<div className="flex flex-col gap-1 mt-1">
-						<label htmlFor="boxes-sort" className="text-xs text-gray-500">
+						<label htmlFor="boxes-sort" className="text-xs text-neutral-500">
 							Sort Boxes By
 						</label>
 						<select
@@ -550,8 +558,8 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						</select>
 					</div>
 
-					<div className="mt-3 border rounded-lg p-2.5 bg-gray-50/50">
-						<div className="text-xs font-semibold text-gray-700 mb-2">
+					<div className="mt-3 border rounded-lg p-2.5 bg-neutral-50/50">
+						<div className="text-xs font-semibold text-neutral-700 mb-2">
 							Line 1 Options (Compact & Detailed)
 						</div>
 						<div className="grid grid-cols-1 gap-1.5">
@@ -653,7 +661,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						</div>
 					</div>
 
-					<div className="mt-2 border rounded-lg p-2.5 bg-gray-50/50">
+					<div className="mt-2 border rounded-lg p-2.5 bg-neutral-50/50">
 						<Toggle
 							label="Tab Navigation: Dimensions Only"
 							checked={pkgDetails.tab_dimensions_only || false}
@@ -662,12 +670,12 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 					</div>
 
 					<div
-						className={`mt-2 border rounded-lg p-2.5 bg-gray-50/50 transition-opacity ${pkgDetails.box_display_mode === "compact" ? "opacity-40 pointer-events-none" : ""}`}
+						className={`mt-2 border rounded-lg p-2.5 bg-neutral-50/50 transition-opacity ${pkgDetails.box_display_mode === "compact" ? "opacity-40 pointer-events-none" : ""}`}
 					>
-						<div className="text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
+						<div className="text-xs font-semibold text-neutral-700 mb-1 flex items-center justify-between">
 							<span>Line 2 Options (Detailed Only)</span>
 							{pkgDetails.box_display_mode === "compact" && (
-								<span className="text-[10px] text-amber-600 font-normal">
+								<span className="text-[10px] text-warning-600 font-normal">
 									Requires Detailed Mode
 								</span>
 							)}
@@ -692,12 +700,12 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 					</div>
 
 					<div
-						className={`mt-2 border rounded-lg p-2.5 bg-gray-50/50 transition-opacity ${pkgDetails.box_display_mode === "compact" ? "opacity-40 pointer-events-none" : ""}`}
+						className={`mt-2 border rounded-lg p-2.5 bg-neutral-50/50 transition-opacity ${pkgDetails.box_display_mode === "compact" ? "opacity-40 pointer-events-none" : ""}`}
 					>
-						<div className="text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
+						<div className="text-xs font-semibold text-neutral-700 mb-1 flex items-center justify-between">
 							<span>Line 3 Options (Detailed Only)</span>
 							{pkgDetails.box_display_mode === "compact" && (
-								<span className="text-[10px] text-amber-600 font-normal">
+								<span className="text-[10px] text-warning-600 font-normal">
 									Requires Detailed Mode
 								</span>
 							)}
@@ -729,7 +737,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 							<div className="flex flex-col gap-1 pl-2">
 								<label
 									htmlFor="item-detail-level-select"
-									className="text-xs text-gray-500"
+									className="text-xs text-neutral-500"
 								>
 									Detail Level
 								</label>
@@ -750,7 +758,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 									<div className="flex flex-col gap-1">
 										<label
 											htmlFor="items-sort"
-											className="text-xs text-gray-500"
+											className="text-xs text-neutral-500"
 										>
 											Sort Items By
 										</label>
@@ -765,8 +773,8 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 										</select>
 									</div>
 
-									<div className="mt-2 border rounded-lg p-2.5 bg-gray-50/50">
-										<div className="text-xs font-semibold text-gray-700 mb-1.5">
+									<div className="mt-2 border rounded-lg p-2.5 bg-neutral-50/50">
+										<div className="text-xs font-semibold text-neutral-700 mb-1.5">
 											Line 1 Options (Compact & Detailed)
 										</div>
 										<div className="grid grid-cols-1 gap-1.5">
@@ -794,12 +802,12 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 									</div>
 
 									<div
-										className={`mt-2 border rounded-lg p-2.5 bg-gray-50/50 transition-opacity ${pkgDetails.items_detail_level !== "detailed" ? "opacity-40 pointer-events-none" : ""}`}
+										className={`mt-2 border rounded-lg p-2.5 bg-neutral-50/50 transition-opacity ${pkgDetails.items_detail_level !== "detailed" ? "opacity-40 pointer-events-none" : ""}`}
 									>
-										<div className="text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
+										<div className="text-xs font-semibold text-neutral-700 mb-1 flex items-center justify-between">
 											<span>Line 2 Options (Detailed Only)</span>
 											{pkgDetails.items_detail_level !== "detailed" && (
-												<span className="text-[10px] text-amber-600 font-normal">
+												<span className="text-[10px] text-warning-600 font-normal">
 													Requires Detailed Card
 												</span>
 											)}
@@ -819,12 +827,12 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 									</div>
 
 									<div
-										className={`mt-2 border rounded-lg p-2.5 bg-gray-50/50 transition-opacity ${pkgDetails.items_detail_level !== "detailed" ? "opacity-40 pointer-events-none" : ""}`}
+										className={`mt-2 border rounded-lg p-2.5 bg-neutral-50/50 transition-opacity ${pkgDetails.items_detail_level !== "detailed" ? "opacity-40 pointer-events-none" : ""}`}
 									>
-										<div className="text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
+										<div className="text-xs font-semibold text-neutral-700 mb-1 flex items-center justify-between">
 											<span>Line 3 Options (Detailed Only)</span>
 											{pkgDetails.items_detail_level !== "detailed" && (
-												<span className="text-[10px] text-amber-600 font-normal">
+												<span className="text-[10px] text-warning-600 font-normal">
 													Requires Detailed Card
 												</span>
 											)}

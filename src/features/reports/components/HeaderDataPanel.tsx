@@ -102,16 +102,16 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 	return (
 		<div className="flex flex-col gap-6">
 			{/* ─── Mode Toggle ─────────────────────────────── */}
-			<div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border">
-				<span className="text-sm font-medium text-gray-700">Mode:</span>
+			<div className="flex items-center justify-between p-2 bg-neutral-50 rounded-lg border">
+				<span className="text-sm font-medium text-neutral-700">Mode:</span>
 				<div className="flex gap-2">
 					<button
 						type="button"
 						onClick={() => setIsTemplateMode(false)}
 						className={`px-3 py-1 text-xs font-semibold rounded ${
 							!isTemplateMode
-								? "bg-blue-600 text-white"
-								: "bg-white text-gray-700 border"
+								? "bg-primary-600 text-white"
+								: "bg-white text-neutral-700 border"
 						}`}
 					>
 						Report
@@ -121,8 +121,8 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 						onClick={() => setIsTemplateMode(true)}
 						className={`px-3 py-1 text-xs font-semibold rounded ${
 							isTemplateMode
-								? "bg-purple-600 text-white"
-								: "bg-white text-gray-700 border"
+								? "bg-accent-600 text-white"
+								: "bg-white text-neutral-700 border"
 						}`}
 					>
 						Template
@@ -131,32 +131,32 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 			</div>
 
 			{isTemplateMode && (
-				<div className="text-xs text-purple-600 font-semibold text-center -mt-4">
+				<div className="text-xs text-accent-600 font-semibold text-center -mt-4">
 					You are currently editing a Template.
 				</div>
 			)}
 
 			{/* ─── Basic Report Info ─────────────────────────── */}
 			<div className="space-y-4">
-				<h3 className="text-sm font-bold text-gray-800 border-b pb-1">
+				<h3 className="text-sm font-bold text-neutral-800 border-b pb-1">
 					Basic Info
 				</h3>
 				<div className="flex flex-col gap-1">
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="reportName"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Report Name *
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={data.showReportName !== false}
 								onChange={(e) =>
 									handleChange("showReportName", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -176,18 +176,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="reportNumber"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Report Number
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={data.showReportNumber !== false}
 								onChange={(e) =>
 									handleChange("showReportNumber", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -206,18 +206,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="reportDate"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Report Date
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={data.showReportDate !== false}
 								onChange={(e) =>
 									handleChange("showReportDate", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -235,18 +235,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="projectReference"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Project Reference
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={data.showProjectReference !== false}
 								onChange={(e) =>
 									handleChange("showProjectReference", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -265,18 +265,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="finalDestinationCountry"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Final Destination Country
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={data.showFinalDestinationCountry !== false}
 								onChange={(e) =>
 									handleChange("showFinalDestinationCountry", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -296,7 +296,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 				{/* ─── Summary Totals ─── */}
 				<div className="flex gap-2">
 					<div className="flex flex-col gap-1 flex-1">
-						<label className="text-xs font-medium text-gray-600">
+						<label className="text-xs font-medium text-neutral-600">
 							Net Weight (Kg)
 						</label>
 						<input
@@ -307,7 +307,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 						/>
 					</div>
 					<div className="flex flex-col gap-1 flex-1">
-						<label className="text-xs font-medium text-gray-600">
+						<label className="text-xs font-medium text-neutral-600">
 							Gross Weight (Kg)
 						</label>
 						<input
@@ -318,7 +318,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 						/>
 					</div>
 					<div className="flex flex-col gap-1 flex-1">
-						<label className="text-xs font-medium text-gray-600">
+						<label className="text-xs font-medium text-neutral-600">
 							Volume (m³)
 						</label>
 						<input
@@ -334,13 +334,13 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 
 			{/* ─── Client Info ─────────────────────────────── */}
 			<div className="space-y-4">
-				<h3 className="text-sm font-bold text-gray-800 border-b pb-1 flex justify-between items-center">
+				<h3 className="text-sm font-bold text-neutral-800 border-b pb-1 flex justify-between items-center">
 					Client Info
 					<button
 						type="button"
 						onClick={handleSaveClient}
 						disabled={clientSaving || !onSaveClientDetails}
-						className="text-xs font-normal text-blue-600 hover:underline disabled:opacity-50"
+						className="text-xs font-normal text-primary-600 hover:underline disabled:opacity-50"
 					>
 						{clientSaving ? "Saving…" : clientSaved ? "✓ Saved" : "Save to DB"}
 					</button>
@@ -349,18 +349,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="clientName"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Name
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={clientData?.showName !== false}
 								onChange={(e) =>
 									handleClientChange("showName", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -377,18 +377,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="clientTrn"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							TRN
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={clientData?.showTrn !== false}
 								onChange={(e) =>
 									handleClientChange("showTrn", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -405,18 +405,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="clientAddr1"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Address Line 1
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={clientData?.showAddressLine1 !== false}
 								onChange={(e) =>
 									handleClientChange("showAddressLine1", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -432,7 +432,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">
+					<label className="text-xs font-medium text-neutral-600">
 						Address Line 2
 					</label>
 					<input
@@ -445,7 +445,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">
+					<label className="text-xs font-medium text-neutral-600">
 						Address Line 3
 					</label>
 					<input
@@ -458,7 +458,9 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">Post Code</label>
+					<label className="text-xs font-medium text-neutral-600">
+						Post Code
+					</label>
 					<input
 						type="text"
 						className="border rounded-md p-2 text-sm w-full"
@@ -467,7 +469,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">
+					<label className="text-xs font-medium text-neutral-600">
 						Contact Person
 					</label>
 					<input
@@ -480,7 +482,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">Phone</label>
+					<label className="text-xs font-medium text-neutral-600">Phone</label>
 					<input
 						type="text"
 						className="border rounded-md p-2 text-sm w-full"
@@ -489,7 +491,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">Email</label>
+					<label className="text-xs font-medium text-neutral-600">Email</label>
 					<input
 						type="text"
 						className="border rounded-md p-2 text-sm w-full"
@@ -501,18 +503,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="clientCity"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							City
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={clientData?.showCity !== false}
 								onChange={(e) =>
 									handleClientChange("showCity", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -529,18 +531,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="clientCountry"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Country
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={clientData?.showCountry !== false}
 								onChange={(e) =>
 									handleClientChange("showCountry", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -557,25 +559,25 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 
 			{/* ─── Client Order Info ─────────────────────────── */}
 			<div className="space-y-4">
-				<h3 className="text-sm font-bold text-gray-800 border-b pb-1">
+				<h3 className="text-sm font-bold text-neutral-800 border-b pb-1">
 					Client Order Info
 				</h3>
 				<div className="flex flex-col gap-1">
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="custOrderRef"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Customer Order #
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={clientOrderData?.showCustomerOrderRef !== false}
 								onChange={(e) =>
 									handleOrderChange("showCustomerOrderRef", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -594,18 +596,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="quotationRef"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Quotation Reference
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={clientOrderData?.showQuotationRef !== false}
 								onChange={(e) =>
 									handleOrderChange("showQuotationRef", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -620,7 +622,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 				</div>
 
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">
+					<label className="text-xs font-medium text-neutral-600">
 						Delivery Note #
 					</label>
 					<input
@@ -631,7 +633,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">
+					<label className="text-xs font-medium text-neutral-600">
 						Delivery Date
 					</label>
 					<input
@@ -645,25 +647,25 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 
 			{/* ─── Client Shipment Info ───────────────────────── */}
 			<div className="space-y-4">
-				<h3 className="text-sm font-bold text-gray-800 border-b pb-1">
+				<h3 className="text-sm font-bold text-neutral-800 border-b pb-1">
 					Shipment Details
 				</h3>
 				<div className="flex flex-col gap-1">
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="consignee"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Consignee
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={clientShipmentData?.showConsignee !== false}
 								onChange={(e) =>
 									handleShipmentChange("showConsignee", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -680,18 +682,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="shippingDate"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Shipping Date
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={clientShipmentData?.showShippingDate !== false}
 								onChange={(e) =>
 									handleShipmentChange("showShippingDate", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -707,7 +709,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">
+					<label className="text-xs font-medium text-neutral-600">
 						Address Line 1
 					</label>
 					<input
@@ -718,7 +720,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">
+					<label className="text-xs font-medium text-neutral-600">
 						Address Line 2
 					</label>
 					<input
@@ -729,7 +731,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">
+					<label className="text-xs font-medium text-neutral-600">
 						Address Line 3
 					</label>
 					<input
@@ -740,7 +742,9 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">Post Code</label>
+					<label className="text-xs font-medium text-neutral-600">
+						Post Code
+					</label>
 					<input
 						type="text"
 						className="border rounded-md p-2 text-sm w-full"
@@ -749,7 +753,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">
+					<label className="text-xs font-medium text-neutral-600">
 						Contact Person
 					</label>
 					<input
@@ -760,7 +764,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">Phone</label>
+					<label className="text-xs font-medium text-neutral-600">Phone</label>
 					<input
 						type="text"
 						className="border rounded-md p-2 text-sm w-full"
@@ -769,7 +773,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-xs font-medium text-gray-600">Email</label>
+					<label className="text-xs font-medium text-neutral-600">Email</label>
 					<input
 						type="text"
 						className="border rounded-md p-2 text-sm w-full"
@@ -781,18 +785,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="shipCity"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							City
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={clientShipmentData?.showCity !== false}
 								onChange={(e) =>
 									handleShipmentChange("showCity", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -809,18 +813,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="shipCountry"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Country
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={clientShipmentData?.showCountry !== false}
 								onChange={(e) =>
 									handleShipmentChange("showCountry", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -837,13 +841,13 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 
 			{/* ─── Company Info ─────────────────────────────── */}
 			<div className="space-y-4">
-				<h3 className="text-sm font-bold text-gray-800 border-b pb-1 flex justify-between items-center">
+				<h3 className="text-sm font-bold text-neutral-800 border-b pb-1 flex justify-between items-center">
 					Company Info (Our Info)
 					<button
 						type="button"
 						onClick={handleSaveCompany}
 						disabled={saving}
-						className="text-xs font-normal text-blue-600 hover:underline disabled:opacity-50"
+						className="text-xs font-normal text-primary-600 hover:underline disabled:opacity-50"
 					>
 						{saving ? "Saving…" : saved ? "✓ Saved" : "Save to DB"}
 					</button>
@@ -854,18 +858,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="compLogo"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Logo
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={companyData?.showLogo !== false}
 								onChange={(e) =>
 									handleCompanyChange("showLogo", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -879,7 +883,7 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 							/>
 							<button
 								type="button"
-								className="text-xs text-red-500 hover:underline"
+								className="text-xs text-danger-500 hover:underline"
 								onClick={() => handleCompanyChange("logoUrl", null)}
 							>
 								Remove
@@ -906,18 +910,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="compName"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Name
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={companyData?.showName !== false}
 								onChange={(e) =>
 									handleCompanyChange("showName", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -934,18 +938,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="compTel"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Tel
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={companyData?.showTel !== false}
 								onChange={(e) =>
 									handleCompanyChange("showTel", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -962,18 +966,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="compPoBox"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							PO Box
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={companyData?.showPoBox !== false}
 								onChange={(e) =>
 									handleCompanyChange("showPoBox", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -991,18 +995,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="compStreet"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Street
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={companyData?.showStreet !== false}
 								onChange={(e) =>
 									handleCompanyChange("showStreet", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -1020,18 +1024,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="compArea"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Area / District
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={companyData?.showArea !== false}
 								onChange={(e) =>
 									handleCompanyChange("showArea", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -1049,18 +1053,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="compCity"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							City
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={companyData?.showCity !== false}
 								onChange={(e) =>
 									handleCompanyChange("showCity", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -1078,18 +1082,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="compCountry"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Country
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={companyData?.showCountry !== false}
 								onChange={(e) =>
 									handleCompanyChange("showCountry", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -1107,18 +1111,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="compWebsite"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							Website
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={companyData?.showWebsite !== false}
 								onChange={(e) =>
 									handleCompanyChange("showWebsite", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>
@@ -1135,18 +1139,18 @@ export const HeaderDataPanel: React.FC<HeaderDataPanelProps> = ({
 					<div className="flex items-center justify-between">
 						<label
 							htmlFor="compTrn"
-							className="text-xs font-medium text-gray-600"
+							className="text-xs font-medium text-neutral-600"
 						>
 							TRN
 						</label>
-						<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none">
+						<label className="flex items-center gap-1 text-xs text-neutral-500 cursor-pointer select-none">
 							<input
 								type="checkbox"
 								checked={companyData?.showTrn !== false}
 								onChange={(e) =>
 									handleCompanyChange("showTrn", e.target.checked)
 								}
-								className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+								className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500 w-3 h-3"
 							/>
 							Show on report
 						</label>

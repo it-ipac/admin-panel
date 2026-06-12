@@ -268,25 +268,25 @@ function DataImportPage() {
 	});
 
 	return (
-		<div className="flex h-screen bg-gray-50">
+		<div className="flex h-screen bg-neutral-50">
 			<Sidebar />
 			<main className="flex-1 overflow-y-auto p-8">
 				<div className="max-w-4xl mx-auto">
 					<div className="mb-8">
-						<h1 className="text-2xl font-bold text-gray-900">
+						<h1 className="text-2xl font-bold text-neutral-900">
 							Legacy Data Import
 						</h1>
-						<p className="text-gray-500 mt-1">
+						<p className="text-neutral-500 mt-1">
 							Import legacy Excel maintenance sheets into the exact categories.
 						</p>
 					</div>
 
-					<div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+					<div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-8">
 						<div className="grid grid-cols-1 gap-6 mb-8">
 							<div>
 								<label
 									htmlFor="import-client"
-									className="block text-sm font-semibold text-gray-700 mb-2"
+									className="block text-sm font-semibold text-neutral-700 mb-2"
 								>
 									1. Select Target Client
 								</label>
@@ -298,7 +298,7 @@ function DataImportPage() {
 										setFile(null);
 										setParsedData([]);
 									}}
-									className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
+									className="w-full px-4 py-2 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-primary-500"
 								>
 									<option value="">-- Choose Client --</option>
 									{clients?.map((c) => (
@@ -310,10 +310,10 @@ function DataImportPage() {
 							</div>
 						</div>
 
-						<div className="border-t border-gray-100 pt-8">
+						<div className="border-t border-neutral-100 pt-8">
 							<label
 								htmlFor="import-file"
-								className="block text-sm font-semibold text-gray-700 mb-2"
+								className="block text-sm font-semibold text-neutral-700 mb-2"
 							>
 								2. Upload Excel File (.xlsx)
 							</label>
@@ -321,7 +321,7 @@ function DataImportPage() {
 								id="import-file"
 								role="button"
 								tabIndex={0}
-								className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${isDragging ? "border-blue-500 bg-blue-100 scale-[1.02]" : file ? "border-blue-400 bg-blue-50" : "border-gray-300 hover:border-blue-500 cursor-pointer bg-gray-50"}`}
+								className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${isDragging ? "border-primary-500 bg-primary-100 scale-[1.02]" : file ? "border-primary-400 bg-primary-50" : "border-neutral-300 hover:border-primary-500 cursor-pointer bg-neutral-50"}`}
 								onDragOver={handleDragOver}
 								onDragLeave={handleDragLeave}
 								onDrop={handleDrop}
@@ -353,17 +353,19 @@ function DataImportPage() {
 								}}
 							>
 								<FileUp
-									className={`w-8 h-8 mx-auto mb-3 transition-colors ${isDragging ? "text-blue-600" : "text-gray-400"}`}
+									className={`w-8 h-8 mx-auto mb-3 transition-colors ${isDragging ? "text-primary-600" : "text-neutral-400"}`}
 								/>
 								{file ? (
-									<div className="font-medium text-blue-700">{file.name}</div>
+									<div className="font-medium text-primary-700">
+										{file.name}
+									</div>
 								) : (
 									<div>
-										<span className="font-medium text-blue-600">
+										<span className="font-medium text-primary-600">
 											Click to upload
 										</span>{" "}
 										or drag and drop
-										<p className="text-xs text-gray-500 mt-1">
+										<p className="text-xs text-neutral-500 mt-1">
 											Upload the native .xlsx, .xlsm, or .xls TAQA manifest
 										</p>
 									</div>
@@ -379,23 +381,23 @@ function DataImportPage() {
 						</div>
 
 						{parsingError && (
-							<div className="mt-6 flex items-start gap-3 bg-red-50 text-red-700 p-4 rounded-xl border border-red-200">
+							<div className="mt-6 flex items-start gap-3 bg-danger-50 text-danger-700 p-4 rounded-xl border border-danger-200">
 								<AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
 								<p className="text-sm font-medium">{parsingError}</p>
 							</div>
 						)}
 
 						{parsedData.length > 0 && !parsingError && (
-							<div className="mt-8 border-t border-gray-100 pt-8">
+							<div className="mt-8 border-t border-neutral-100 pt-8">
 								<div className="flex items-center justify-between mb-4">
-									<div className="flex items-center gap-2 text-green-700 font-bold bg-green-50 px-4 py-2 rounded-lg border border-green-200">
+									<div className="flex items-center gap-2 text-success-700 font-bold bg-success-50 px-4 py-2 rounded-lg border border-success-200">
 										<CheckCircle2 className="w-5 h-5" />
 										Validated {parsedData.length} items to import
 									</div>
 									<button
 										onClick={() => uploadMutation.mutate()}
 										disabled={uploadMutation.isPending}
-										className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
+										className="bg-primary-600 hover:bg-primary-700 text-white font-bold py-2.5 px-6 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
 									>
 										{uploadMutation.isPending ? (
 											<Loader2 className="w-5 h-5 animate-spin" />
@@ -406,46 +408,48 @@ function DataImportPage() {
 								</div>
 
 								{/* Preview */}
-								<div className="bg-gray-50 rounded-xl overflow-y-auto max-h-64 border border-gray-200 text-sm">
+								<div className="bg-neutral-50 rounded-xl overflow-y-auto max-h-64 border border-neutral-200 text-sm">
 									<table className="w-full text-left">
-										<thead className="bg-gray-100 sticky top-0 z-10">
+										<thead className="bg-neutral-100 sticky top-0 z-10">
 											<tr>
-												<th className="p-3 font-semibold text-gray-700">
+												<th className="p-3 font-semibold text-neutral-700">
 													Source Sheet
 												</th>
-												<th className="p-3 font-semibold text-gray-700">
+												<th className="p-3 font-semibold text-neutral-700">
 													Item Num
 												</th>
-												<th className="p-3 font-semibold text-gray-700">
+												<th className="p-3 font-semibold text-neutral-700">
 													Reference
 												</th>
-												<th className="p-3 font-semibold text-gray-700">
+												<th className="p-3 font-semibold text-neutral-700">
 													Expected
 												</th>
-												<th className="p-3 font-semibold text-gray-700">
+												<th className="p-3 font-semibold text-neutral-700">
 													Location
 												</th>
 											</tr>
 										</thead>
-										<tbody className="divide-y divide-gray-200">
+										<tbody className="divide-y divide-neutral-200">
 											{parsedData.slice(0, 100).map((row, idx) => (
 												<tr
 													key={`${row.item_num}-${idx}`}
-													className="hover:bg-gray-100"
+													className="hover:bg-neutral-100"
 												>
-													<td className="p-3 text-gray-500">
-														<span className="bg-gray-200 px-2 py-1 rounded text-xs">
+													<td className="p-3 text-neutral-500">
+														<span className="bg-neutral-200 px-2 py-1 rounded text-xs">
 															{row._source_sheet}
 														</span>
 													</td>
-													<td className="p-3 font-medium text-gray-900">
+													<td className="p-3 font-medium text-neutral-900">
 														{row.item_num}
 													</td>
-													<td className="p-3 text-gray-600">{row.reference}</td>
-													<td className="p-3 text-gray-600">
+													<td className="p-3 text-neutral-600">
+														{row.reference}
+													</td>
+													<td className="p-3 text-neutral-600">
 														{row.expected_qty}
 													</td>
-													<td className="p-3 text-gray-600">
+													<td className="p-3 text-neutral-600">
 														{row.warehouse_location}
 													</td>
 												</tr>
@@ -453,7 +457,7 @@ function DataImportPage() {
 										</tbody>
 									</table>
 								</div>
-								<p className="text-xs text-gray-500 mt-2 text-right">
+								<p className="text-xs text-neutral-500 mt-2 text-right">
 									Showing top 100 preview rows only.
 								</p>
 							</div>

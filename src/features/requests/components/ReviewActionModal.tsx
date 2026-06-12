@@ -79,10 +79,10 @@ export function ReviewActionModal({
 					{/* Header */}
 					<div className="flex items-start justify-between gap-4 mb-5">
 						<div>
-							<Dialog.Title className="text-base font-semibold text-gray-900">
+							<Dialog.Title className="text-base font-semibold text-neutral-900">
 								{isApprove ? "Approve" : "Reject"} {typeLabel} request
 							</Dialog.Title>
-							<Dialog.Description className="text-sm text-gray-500 mt-0.5">
+							<Dialog.Description className="text-sm text-neutral-500 mt-0.5">
 								{subjectLabel}
 							</Dialog.Description>
 						</div>
@@ -90,29 +90,29 @@ export function ReviewActionModal({
 							type="button"
 							onClick={onClose}
 							disabled={isPending}
-							className="text-gray-400 hover:text-gray-600 disabled:opacity-40"
+							className="text-neutral-400 hover:text-neutral-600 disabled:opacity-40"
 						>
 							<X className="w-5 h-5" />
 						</button>
 					</div>
 
 					{/* Context */}
-					<p className="text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-md mb-4">
+					<p className="text-xs text-neutral-500 bg-neutral-50 px-3 py-2 rounded-md mb-4">
 						{contextLine}
 					</p>
 
 					{/* Cascade warning for material rejection */}
 					{hasCascadeWarning && (
-						<div className="mb-4 p-3 border border-yellow-200 bg-yellow-50 rounded-lg">
+						<div className="mb-4 p-3 border border-warning-200 bg-warning-50 rounded-lg">
 							{isLoadingImpact ? (
-								<div className="flex items-center gap-2 text-sm text-yellow-700">
+								<div className="flex items-center gap-2 text-sm text-warning-700">
 									<Loader2 className="w-4 h-4 animate-spin" />
 									Checking impact…
 								</div>
 							) : (
 								<div className="flex items-start gap-2">
-									<AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" />
-									<p className="text-sm text-yellow-800">
+									<AlertTriangle className="w-4 h-4 text-warning-600 mt-0.5 shrink-0" />
+									<p className="text-sm text-warning-800">
 										This will also automatically delete{" "}
 										<strong>
 											{rejectionImpact!.dependentVariantCount} pending variant
@@ -138,11 +138,11 @@ export function ReviewActionModal({
 					<div className="mb-5">
 						<label
 							htmlFor="admin-notes"
-							className="block text-sm font-medium text-gray-700 mb-1.5"
+							className="block text-sm font-medium text-neutral-700 mb-1.5"
 						>
 							Admin notes{" "}
 							{!isApprove && (
-								<span className="text-gray-400 font-normal">
+								<span className="text-neutral-400 font-normal">
 									(encouraged on rejection)
 								</span>
 							)}
@@ -159,8 +159,8 @@ export function ReviewActionModal({
 									: "Explain why this request is being rejected…"
 							}
 							className={cn(
-								"w-full rounded-lg border border-gray-200 px-3 py-2 text-sm",
-								"placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500",
+								"w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm",
+								"placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500",
 								"resize-none disabled:opacity-50",
 							)}
 						/>
@@ -172,7 +172,7 @@ export function ReviewActionModal({
 							type="button"
 							onClick={onClose}
 							disabled={isPending}
-							className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+							className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-50 disabled:opacity-50"
 						>
 							Cancel
 						</button>
@@ -184,8 +184,8 @@ export function ReviewActionModal({
 								"px-4 py-2 text-sm font-medium text-white rounded-lg flex items-center gap-1.5",
 								"disabled:opacity-50 transition-colors",
 								isApprove
-									? "bg-green-600 hover:bg-green-700"
-									: "bg-red-600 hover:bg-red-700",
+									? "bg-success-600 hover:bg-success-700"
+									: "bg-danger-600 hover:bg-danger-700",
 							)}
 						>
 							{isPending && <Loader2 className="w-4 h-4 animate-spin" />}

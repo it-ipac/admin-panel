@@ -41,26 +41,26 @@ const TripleRowReadOnly: React.FC<{
 	title: string;
 	dims: DimensionsTriple | null | undefined;
 }> = ({ title, dims }) => (
-	<div className="bg-white border border-indigo-200 rounded-lg px-2 py-2 mb-2 flex flex-col items-center justify-center">
-		<span className="text-[10px] text-amber-900 mb-1 bg-amber-100 text-center w-full rounded-sm">
+	<div className="bg-white border border-iris-200 rounded-lg px-2 py-2 mb-2 flex flex-col items-center justify-center">
+		<span className="text-[10px] text-warning-900 mb-1 bg-warning-100 text-center w-full rounded-sm">
 			{title}
 		</span>
 		<div className="flex flex-row items-center justify-between w-[75%] gap-2">
 			<div className="flex flex-col items-center w-[70px]">
-				<span className="text-[10px] text-gray-500">Length</span>
-				<span className="text-gray-900 text-sm font-semibold text-center">
+				<span className="text-[10px] text-neutral-500">Length</span>
+				<span className="text-neutral-900 text-sm font-semibold text-center">
 					{fmt(dims?.length)}
 				</span>
 			</div>
 			<div className="flex flex-col items-center w-[70px]">
-				<span className="text-[10px] text-gray-500">Width</span>
-				<span className="text-gray-900 text-sm font-semibold text-center">
+				<span className="text-[10px] text-neutral-500">Width</span>
+				<span className="text-neutral-900 text-sm font-semibold text-center">
 					{fmt(dims?.width)}
 				</span>
 			</div>
 			<div className="flex flex-col items-center w-[70px]">
-				<span className="text-[10px] text-gray-500">Height</span>
-				<span className="text-gray-900 text-sm font-semibold text-center">
+				<span className="text-[10px] text-neutral-500">Height</span>
+				<span className="text-neutral-900 text-sm font-semibold text-center">
 					{fmt(dims?.height)}
 				</span>
 			</div>
@@ -119,11 +119,11 @@ const TripleRowEditable: React.FC<{
 		return Number.isFinite(n) ? n : null;
 	};
 	const labelColor = isOriginal
-		? "text-amber-900 bg-amber-100"
-		: "text-green-900 bg-green-100";
+		? "text-warning-900 bg-warning-100"
+		: "text-success-900 bg-success-100";
 
 	return (
-		<div className="bg-gray-50 border border-indigo-200 rounded-lg px-2 py-2 mb-2 flex flex-col items-center justify-center">
+		<div className="bg-neutral-50 border border-iris-200 rounded-lg px-2 py-2 mb-2 flex flex-col items-center justify-center">
 			<span
 				className={cn(
 					"text-[10px] mb-1 text-center w-full rounded-sm",
@@ -134,9 +134,9 @@ const TripleRowEditable: React.FC<{
 			</span>
 			<div className="flex flex-row items-center justify-between w-[75%] gap-2">
 				<div className="flex flex-col items-center">
-					<span className="text-[10px] text-gray-500">Length</span>
+					<span className="text-[10px] text-neutral-500">Length</span>
 					<input
-						className="border border-gray-300 bg-white rounded py-1 text-center w-[70px] text-sm focus:outline-none focus:border-blue-500"
+						className="border border-neutral-300 bg-white rounded py-1 text-center w-[70px] text-sm focus:outline-none focus:border-primary-500"
 						value={pick("length")}
 						onChange={(e) =>
 							setDraft((prev) => ({
@@ -148,9 +148,9 @@ const TripleRowEditable: React.FC<{
 					/>
 				</div>
 				<div className="flex flex-col items-center">
-					<span className="text-[10px] text-gray-500">Width</span>
+					<span className="text-[10px] text-neutral-500">Width</span>
 					<input
-						className="border border-gray-300 bg-white rounded py-1 text-center w-[70px] text-sm focus:outline-none focus:border-blue-500"
+						className="border border-neutral-300 bg-white rounded py-1 text-center w-[70px] text-sm focus:outline-none focus:border-primary-500"
 						value={pick("width")}
 						onChange={(e) =>
 							setDraft((prev) => ({
@@ -162,9 +162,9 @@ const TripleRowEditable: React.FC<{
 					/>
 				</div>
 				<div className="flex flex-col items-center">
-					<span className="text-[10px] text-gray-500">Height</span>
+					<span className="text-[10px] text-neutral-500">Height</span>
 					<input
-						className="border border-gray-300 bg-white rounded py-1 text-center w-[70px] text-sm focus:outline-none focus:border-blue-500"
+						className="border border-neutral-300 bg-white rounded py-1 text-center w-[70px] text-sm focus:outline-none focus:border-primary-500"
 						value={pick("height")}
 						onChange={(e) =>
 							setDraft((prev) => ({
@@ -193,12 +193,12 @@ export const DimensionsCard: React.FC<DimensionsCardProps> = ({
 	return (
 		<div
 			className={cn(
-				"bg-blue-50 rounded-xl border border-indigo-200 p-2 m-1 flex-1 min-w-[300px]",
+				"bg-primary-50 rounded-xl border border-iris-200 p-2 m-1 flex-1 min-w-[300px]",
 				className,
 			)}
 		>
 			<div className="px-3 py-1 rounded-full self-center mb-2 flex justify-center">
-				<span className="text-blue-800 text-xs font-semibold text-center">
+				<span className="text-primary-800 text-xs font-semibold text-center">
 					{heading}
 				</span>
 			</div>

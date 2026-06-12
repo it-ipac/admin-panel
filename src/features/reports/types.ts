@@ -13,6 +13,14 @@ export type FilterParams = {
 	hasItemsOnly: boolean;
 	// Only show boxes marked as packed
 	packedOnly: boolean;
+	/**
+	 * Show only boxes whose (computed) status matches. Unlike packedOnly /
+	 * hasItemsOnly this targets a specific non-packed lifecycle stage.
+	 * Undefined/null = no status restriction.
+	 */
+	statusFilter?: "design" | "approved" | "in_production" | null;
+	/** Stable re-sort that moves boxes with box/item photos to the top. */
+	photosFirst?: boolean;
 	// Split mode for batch printing
 	splitBy: "none" | "destination" | "order" | "report_per_order";
 	// Sort order for the order picker list

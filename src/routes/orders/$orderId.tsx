@@ -495,6 +495,7 @@ function OrderDetailPage() {
 			return unwrapped as Order;
 		},
 		enabled: !!user,
+		staleTime: 30_000,
 	});
 
 	useEffect(() => {
@@ -784,7 +785,10 @@ function OrderDetailPage() {
 				.eq("id", orderId);
 			if (orderDeleteError) throw orderDeleteError;
 
-			queryClient.invalidateQueries();
+			queryClient.removeQueries({
+				predicate: (q) => q.queryKey.includes(orderId),
+			});
+			queryClient.invalidateQueries({ queryKey: ["orders"] });
 			navigate({ to: "/orders" });
 		} catch (err: any) {
 			setDeleteOrderError(err?.message || "Delete failed. Please try again.");
@@ -977,29 +981,38 @@ function OrderDetailPage() {
 					new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
 			);
 
-			// Generate signed URLs for each media item (bucket is private)
-			const mediaWithSignedUrls = await Promise.all(
-				sortedMedia.map(async (item) => {
-					if (!item.image_url) {
-						return { ...item, signed_url: null } as Media;
+			// Generate signed URLs in one batch request (bucket is private)
+			const paths = sortedMedia
+				.map((item) => item.image_url)
+				.filter((p): p is string => !!p);
+
+			const signedByPath = new Map<string, string>();
+			if (paths.length > 0) {
+				// Signed URLs valid for 1 hour (3600 seconds)
+				const { data: signedData, error: signedError } = await supabase.storage
+					.from("media")
+					.createSignedUrls(paths, 3600);
+
+				if (signedError) {
+					console.error("Error creating signed URLs:", signedError);
+				} else {
+					for (const entry of signedData || []) {
+						if (entry.path && entry.signedUrl) {
+							signedByPath.set(entry.path, entry.signedUrl);
+						}
 					}
+				}
+			}
 
-					// Generate a signed URL valid for 1 hour (3600 seconds)
-					const { data: signedData, error: signedError } =
-						await supabase.storage
-							.from("media")
-							.createSignedUrl(item.image_url, 3600);
-
-					if (signedError) {
-						console.error("Error creating signed URL:", signedError);
-						return { ...item, signed_url: null } as Media;
-					}
-
-					return { ...item, signed_url: signedData.signedUrl } as Media;
-				}),
+			return sortedMedia.map(
+				(item) =>
+					({
+						...item,
+						signed_url: item.image_url
+							? (signedByPath.get(item.image_url) ?? null)
+							: null,
+					}) as Media,
 			);
-
-			return mediaWithSignedUrls;
 		},
 		enabled: !!user && !!order,
 	});
@@ -1021,7 +1034,9 @@ function OrderDetailPage() {
 			const data = await queryRowsInChunks<PackageItem>(packageIds, (chunk) =>
 				supabase
 					.from("package_items")
-					.select("*")
+					.select(
+						"id, order_package_id, quantity, designation, length, width, height, instance_number, warehouse_location, item_num, items_db_id, reference",
+					)
 					.in("order_package_id", chunk),
 			);
 
@@ -1035,9 +1050,13 @@ function OrderDetailPage() {
 		queryKey: ["clientInventory", order?.clients?.id],
 		queryFn: async () => {
 			if (!order?.clients?.id) return [];
+			// Narrowed to fields actually consumed (dropdowns, dimension
+			// matching, availability calc) — items_db is a wide table
 			const { data, error } = await supabase
 				.from("items_db")
-				.select("*")
+				.select(
+					"id, item_num, description, warehouse_location, expected_qty, packed_qty, length, width, height",
+				)
 				.eq("client_id", order.clients.id)
 				.order("item_num");
 			if (error) throw error;
@@ -3198,36 +3217,36 @@ function OrderDetailPage() {
 			case "completed":
 			case "packed":
 			case "delivered":
-				return "bg-blue-100 text-blue-800 border-blue-200";
+				return "bg-primary-100 text-primary-800 border-primary-200";
 			case "in_progress":
 			case "in_production":
-				return "bg-green-100 text-green-800 border-green-200";
+				return "bg-success-100 text-success-800 border-success-200";
 			case "pending":
 			case "design":
-				return "bg-yellow-100 text-yellow-800 border-yellow-200";
+				return "bg-warning-100 text-warning-800 border-warning-200";
 			case "on_hold":
-				return "bg-orange-100 text-orange-800 border-orange-200";
+				return "bg-ember-100 text-ember-800 border-ember-200";
 			case "approved":
-				return "bg-purple-100 text-purple-800 border-purple-200";
+				return "bg-accent-100 text-accent-800 border-accent-200";
 			default:
-				return "bg-gray-100 text-gray-800 border-gray-200";
+				return "bg-neutral-100 text-neutral-800 border-neutral-200";
 		}
 	};
 
 	const getCommercialStatusColor = (status: string) => {
 		switch (status?.toLowerCase()) {
 			case "paid":
-				return "bg-green-100 text-green-700";
+				return "bg-success-100 text-success-700";
 			case "invoiced":
-				return "bg-blue-100 text-blue-700";
+				return "bg-primary-100 text-primary-700";
 			case "approved":
-				return "bg-purple-100 text-purple-700";
+				return "bg-accent-100 text-accent-700";
 			case "quoted":
-				return "bg-yellow-100 text-yellow-700";
+				return "bg-warning-100 text-warning-700";
 			case "draft":
-				return "bg-gray-100 text-gray-700";
+				return "bg-neutral-100 text-neutral-700";
 			default:
-				return "bg-gray-100 text-gray-700";
+				return "bg-neutral-100 text-neutral-700";
 		}
 	};
 
@@ -3263,13 +3282,13 @@ function OrderDetailPage() {
 	const getShiftIcon = (shift: string) => {
 		switch (shift) {
 			case "morning":
-				return <Sun className="w-4 h-4 text-yellow-500" />;
+				return <Sun className="w-4 h-4 text-warning-500" />;
 			case "afternoon":
-				return <Sunset className="w-4 h-4 text-orange-500" />;
+				return <Sunset className="w-4 h-4 text-ember-500" />;
 			case "full_day":
-				return <Moon className="w-4 h-4 text-blue-500" />;
+				return <Moon className="w-4 h-4 text-primary-500" />;
 			default:
-				return <Clock className="w-4 h-4 text-gray-500" />;
+				return <Clock className="w-4 h-4 text-neutral-500" />;
 		}
 	};
 
@@ -3864,22 +3883,25 @@ function OrderDetailPage() {
 
 	if (authLoading || orderLoading) {
 		return (
-			<div className="flex h-screen bg-gray-50">
+			<div className="flex h-screen bg-neutral-50">
 				<Sidebar />
 				<main className="flex-1 overflow-y-auto">
 					<div className="p-6">
 						<div className="flex items-center gap-4 mb-6">
-							<Link to="/orders" className="p-2 hover:bg-gray-100 rounded-lg">
+							<Link
+								to="/orders"
+								className="p-2 hover:bg-neutral-100 rounded-lg"
+							>
 								<ArrowLeft className="w-4 h-4" />
 							</Link>
-							<div className="h-8 w-48 bg-gray-200 animate-pulse rounded"></div>
+							<div className="h-8 w-48 bg-neutral-200 animate-pulse rounded"></div>
 						</div>
 						<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 							<div className="lg:col-span-2 space-y-6">
-								<div className="h-48 bg-gray-200 animate-pulse rounded-lg"></div>
-								<div className="h-64 bg-gray-200 animate-pulse rounded-lg"></div>
+								<div className="h-48 bg-neutral-200 animate-pulse rounded-lg"></div>
+								<div className="h-64 bg-neutral-200 animate-pulse rounded-lg"></div>
 							</div>
-							<div className="h-64 bg-gray-200 animate-pulse rounded-lg"></div>
+							<div className="h-64 bg-neutral-200 animate-pulse rounded-lg"></div>
 						</div>
 					</div>
 				</main>
@@ -3889,29 +3911,32 @@ function OrderDetailPage() {
 
 	if (error || !order) {
 		return (
-			<div className="flex h-screen bg-gray-50">
+			<div className="flex h-screen bg-neutral-50">
 				<Sidebar />
 				<main className="flex-1 overflow-y-auto">
 					<div className="p-6">
 						<div className="flex items-center gap-4 mb-6">
-							<Link to="/orders" className="p-2 hover:bg-gray-100 rounded-lg">
+							<Link
+								to="/orders"
+								className="p-2 hover:bg-neutral-100 rounded-lg"
+							>
 								<ArrowLeft className="w-5 h-5" />
 							</Link>
-							<h1 className="text-2xl font-bold text-gray-900">
+							<h1 className="text-2xl font-bold text-neutral-900">
 								Order Not Found
 							</h1>
 						</div>
-						<div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-							<XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-							<p className="text-red-700 mb-2">
+						<div className="bg-danger-50 border border-danger-200 rounded-lg p-6 text-center">
+							<XCircle className="w-12 h-12 text-danger-500 mx-auto mb-4" />
+							<p className="text-danger-700 mb-2">
 								The order you're looking for doesn't exist or has been removed.
 							</p>
-							<p className="text-red-600 text-sm mb-4">
+							<p className="text-danger-600 text-sm mb-4">
 								{error instanceof Error ? error.message : "Unknown error"}
 							</p>
 							<Link
 								to="/orders"
-								className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+								className="inline-block px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
 							>
 								Back to Orders
 							</Link>
@@ -4179,24 +4204,27 @@ function OrderDetailPage() {
 	};
 
 	return (
-		<div className="flex h-screen bg-gray-50">
+		<div className="flex h-screen bg-neutral-50">
 			<Sidebar />
 			<Suspense
 				fallback={
 					<main className="flex-1 overflow-y-auto">
 						<div className="p-6">
 							<div className="flex items-center gap-4 mb-6">
-								<Link to="/orders" className="p-2 hover:bg-gray-100 rounded-lg">
+								<Link
+									to="/orders"
+									className="p-2 hover:bg-neutral-100 rounded-lg"
+								>
 									<ArrowLeft className="w-4 h-4" />
 								</Link>
-								<div className="h-8 w-48 bg-gray-200 animate-pulse rounded"></div>
+								<div className="h-8 w-48 bg-neutral-200 animate-pulse rounded"></div>
 							</div>
 							<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 								<div className="lg:col-span-2 space-y-6">
-									<div className="h-48 bg-gray-200 animate-pulse rounded-lg"></div>
-									<div className="h-64 bg-gray-200 animate-pulse rounded-lg"></div>
+									<div className="h-48 bg-neutral-200 animate-pulse rounded-lg"></div>
+									<div className="h-64 bg-neutral-200 animate-pulse rounded-lg"></div>
 								</div>
-								<div className="h-64 bg-gray-200 animate-pulse rounded-lg"></div>
+								<div className="h-64 bg-neutral-200 animate-pulse rounded-lg"></div>
 							</div>
 						</div>
 					</main>
@@ -4209,7 +4237,7 @@ function OrderDetailPage() {
 							<div className="flex items-center gap-4">
 								<Link
 									to="/orders"
-									className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+									className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
 								>
 									<ArrowLeft className="w-5 h-5" />
 								</Link>
@@ -4228,7 +4256,7 @@ function OrderDetailPage() {
 														setEditedName(order.order_name);
 													}
 												}}
-												className="text-2xl font-bold text-gray-900 border-b border-gray-300 focus:outline-none focus:border-blue-500 bg-transparent px-1 py-0.5"
+												className="text-2xl font-bold text-neutral-900 border-b border-neutral-300 focus:outline-none focus:border-primary-500 bg-transparent px-1 py-0.5"
 												// biome-ignore lint/a11y/noAutofocus: Focus input when editing name
 												autoFocus
 											/>
@@ -4237,7 +4265,7 @@ function OrderDetailPage() {
 													updateOrderNameMutation.mutate(editedName)
 												}
 												disabled={updateOrderNameMutation.isPending}
-												className="p-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
+												className="p-1.5 bg-primary-50 text-primary-600 rounded-md hover:bg-primary-100 transition-colors cursor-pointer"
 												title="Save"
 											>
 												{updateOrderNameMutation.isPending ? (
@@ -4251,7 +4279,7 @@ function OrderDetailPage() {
 													setIsEditingName(false);
 													setEditedName(order.order_name);
 												}}
-												className="p-1.5 bg-gray-50 text-gray-600 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+												className="p-1.5 bg-neutral-50 text-neutral-600 rounded-md hover:bg-neutral-100 transition-colors cursor-pointer"
 												title="Cancel"
 											>
 												<X className="w-4 h-4" />
@@ -4259,31 +4287,31 @@ function OrderDetailPage() {
 										</div>
 									) : (
 										<div className="flex items-center gap-2 group">
-											<h1 className="text-2xl font-bold text-gray-900">
+											<h1 className="text-2xl font-bold text-neutral-900">
 												{order.order_name}
 											</h1>
 											<button
 												onClick={() => setIsEditingName(true)}
-												className="p-1 text-gray-455 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
+												className="p-1 text-neutral-455 hover:text-neutral-700 hover:bg-neutral-100 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
 												title="Edit Name"
 											>
 												<Edit className="w-4 h-4" />
 											</button>
 										</div>
 									)}
-									<p className="text-gray-500 text-sm mt-1">
+									<p className="text-neutral-500 text-sm mt-1">
 										Created {formatDateTime(order.created_at)}
 									</p>
 								</div>
 							</div>
 							<div className="flex items-center gap-2">
-								<button className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+								<button className="flex items-center gap-2 px-3 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50">
 									<Printer className="w-4 h-4" />
 									Print
 								</button>
 								<DropdownMenu.Root>
 									<DropdownMenu.Trigger asChild>
-										<button className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+										<button className="flex items-center gap-2 px-3 py-2 bg-success-600 text-white rounded-lg hover:bg-success-700 transition-colors">
 											<Download className="w-4 h-4" />
 											Export
 											<ChevronDown className="w-4 h-4" />
@@ -4296,7 +4324,7 @@ function OrderDetailPage() {
 										>
 											<DropdownMenu.Item
 												onClick={exportToExcel}
-												className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-green-50 hover:text-green-700 cursor-pointer outline-none"
+												className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 rounded-md hover:bg-success-50 hover:text-success-700 cursor-pointer outline-none"
 											>
 												<FileSpreadsheet className="w-4 h-4" />
 												Export to Excel
@@ -4307,7 +4335,7 @@ function OrderDetailPage() {
 								<button
 									onClick={handleScanInventory}
 									disabled={isScanningInventory}
-									className="flex items-center gap-2 px-3 py-2 border border-violet-200 bg-violet-50 text-violet-700 rounded-lg hover:bg-violet-100 disabled:opacity-50 transition-colors"
+									className="flex items-center gap-2 px-3 py-2 border border-accent-200 bg-accent-50 text-accent-700 rounded-lg hover:bg-accent-100 disabled:opacity-50 transition-colors"
 								>
 									{isScanningInventory ? (
 										<Loader2 className="w-4 h-4 animate-spin" />
@@ -4318,12 +4346,12 @@ function OrderDetailPage() {
 								</button>
 								<button
 									onClick={handlePrepareGlobalSync}
-									className="flex items-center gap-2 px-3 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100"
+									className="flex items-center gap-2 px-3 py-2 border border-primary-200 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100"
 								>
 									<RefreshCw className="w-4 h-4" />
 									Sync Destinations
 								</button>
-								<button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+								<button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
 									<Edit className="w-4 h-4" />
 									Edit Order
 								</button>
@@ -4334,26 +4362,26 @@ function OrderDetailPage() {
 						{showGlobalSyncModal && (
 							<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 								<div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 overflow-hidden">
-									<div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-										<h3 className="font-semibold text-gray-800">
+									<div className="px-4 py-3 border-b border-neutral-100 flex justify-between items-center bg-neutral-50">
+										<h3 className="font-semibold text-neutral-800">
 											Global Destination Sync
 										</h3>
 										<button
 											onClick={() => setShowGlobalSyncModal(false)}
-											className="text-gray-400 hover:text-gray-600"
+											className="text-neutral-400 hover:text-neutral-600"
 										>
 											<X className="w-5 h-5" />
 										</button>
 									</div>
 									<div className="p-4">
 										{globalSyncInstances.length === 0 ? (
-											<p className="text-gray-600 text-sm">
+											<p className="text-neutral-600 text-sm">
 												All instance destinations are already up to date with
 												their respective items.
 											</p>
 										) : (
 											<>
-												<p className="text-gray-600 text-sm mb-4">
+												<p className="text-neutral-600 text-sm mb-4">
 													You are about to update the destination for{" "}
 													<strong>{globalSyncInstances.length}</strong>{" "}
 													instances across the order based on their item's
@@ -4363,18 +4391,18 @@ function OrderDetailPage() {
 													{globalSyncInstances.map((sync, i) => (
 														<div
 															key={i}
-															className="flex justify-between items-center text-sm p-2 bg-gray-50 rounded border border-gray-100"
+															className="flex justify-between items-center text-sm p-2 bg-neutral-50 rounded border border-neutral-100"
 														>
-															<span className="font-medium text-gray-700">
+															<span className="font-medium text-neutral-700">
 																Box #{sync.package_number ?? "?"} - Inst #
 																{sync.instance.instance_number ?? "All"}
 															</span>
-															<div className="flex items-center gap-2 text-gray-500">
+															<div className="flex items-center gap-2 text-neutral-500">
 																<span className="line-through">
 																	{sync.instance.destination || "None"}
 																</span>
 																<span>→</span>
-																<span className="text-blue-600 font-semibold">
+																<span className="text-primary-600 font-semibold">
 																	{sync.newDestination}
 																</span>
 															</div>
@@ -4384,10 +4412,10 @@ function OrderDetailPage() {
 											</>
 										)}
 									</div>
-									<div className="px-4 py-3 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
+									<div className="px-4 py-3 border-t border-neutral-100 flex justify-end gap-2 bg-neutral-50">
 										<button
 											onClick={() => setShowGlobalSyncModal(false)}
-											className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded"
+											className="px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-200 rounded"
 										>
 											Cancel
 										</button>
@@ -4396,7 +4424,7 @@ function OrderDetailPage() {
 											disabled={
 												isGlobalSyncing || globalSyncInstances.length === 0
 											}
-											className="px-3 py-1.5 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded flex items-center gap-2 disabled:opacity-50"
+											className="px-3 py-1.5 text-sm bg-primary-600 text-white hover:bg-primary-700 rounded flex items-center gap-2 disabled:opacity-50"
 										>
 											{isGlobalSyncing && (
 												<Loader2 className="w-4 h-4 animate-spin" />
@@ -4412,29 +4440,29 @@ function OrderDetailPage() {
 						{showSyncInventoryModal && (
 							<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
 								<div className="bg-white rounded-lg shadow-xl max-w-4xl w-[90vw] mx-4 overflow-hidden flex flex-col max-h-[90vh]">
-									<div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+									<div className="px-6 py-4 border-b border-neutral-100 flex justify-between items-center bg-neutral-50 shrink-0">
 										<div className="flex items-center gap-2">
-											<Sparkles className="w-5 h-5 text-violet-600 animate-pulse" />
-											<h3 className="font-bold text-gray-800 text-lg">
+											<Sparkles className="w-5 h-5 text-accent-600 animate-pulse" />
+											<h3 className="font-bold text-neutral-800 text-lg">
 												Sync & Link Inventory
 											</h3>
 										</div>
 										<button
 											onClick={() => setShowSyncInventoryModal(false)}
-											className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+											className="text-neutral-400 hover:text-neutral-600 p-1.5 rounded-lg hover:bg-neutral-100 transition-colors"
 										>
 											<X className="w-5 h-5" />
 										</button>
 									</div>
 
 									{/* Tab Headers */}
-									<div className="flex border-b shrink-0 bg-gray-50/50">
+									<div className="flex border-b shrink-0 bg-neutral-50/50">
 										<button
 											onClick={() => setSyncInventoryTab("counters")}
 											className={`flex-1 py-3 text-sm font-semibold border-b-2 transition-all ${
 												syncInventoryTab === "counters"
-													? "border-violet-600 text-violet-700 bg-violet-50/20"
-													: "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+													? "border-accent-600 text-accent-700 bg-accent-50/20"
+													: "border-transparent text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50"
 											}`}
 										>
 											Out-of-Sync Counters ({outOfSyncItems.length})
@@ -4443,8 +4471,8 @@ function OrderDetailPage() {
 											onClick={() => setSyncInventoryTab("unlinked")}
 											className={`flex-1 py-3 text-sm font-semibold border-b-2 transition-all ${
 												syncInventoryTab === "unlinked"
-													? "border-violet-600 text-violet-700 bg-violet-50/20"
-													: "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+													? "border-accent-600 text-accent-700 bg-accent-50/20"
+													: "border-transparent text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50"
 											}`}
 										>
 											Unlinked Custom Items (
@@ -4462,8 +4490,8 @@ function OrderDetailPage() {
 									<div className="p-6 overflow-y-auto flex-1 space-y-4">
 										{syncInventoryTab === "counters" ? (
 											<div className="space-y-4">
-												<div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm leading-relaxed flex gap-3">
-													<AlertTriangle className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
+												<div className="p-4 bg-warning-50 border border-warning-200 rounded-lg text-warning-900 text-sm leading-relaxed flex gap-3">
+													<AlertTriangle className="w-5 h-5 shrink-0 text-warning-600 mt-0.5" />
 													<div>
 														<p className="font-bold">
 															About Counter Discrepancies
@@ -4481,9 +4509,9 @@ function OrderDetailPage() {
 												</div>
 
 												{outOfSyncItems.length === 0 ? (
-													<div className="p-8 text-center text-gray-500 border border-dashed rounded-lg bg-gray-50">
-														<CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-2" />
-														<p className="font-medium text-gray-700">
+													<div className="p-8 text-center text-neutral-500 border border-dashed rounded-lg bg-neutral-50">
+														<CheckCircle2 className="w-12 h-12 text-success-500 mx-auto mb-2" />
+														<p className="font-medium text-neutral-700">
 															All inventory counters are fully synchronized!
 														</p>
 														<p className="text-sm mt-1">
@@ -4493,30 +4521,30 @@ function OrderDetailPage() {
 													</div>
 												) : (
 													<div className="border rounded-lg overflow-hidden">
-														<table className="min-w-full divide-y divide-gray-200 text-left text-sm">
-															<thead className="bg-gray-50 font-semibold text-gray-700">
+														<table className="min-w-full divide-y divide-neutral-200 text-left text-sm">
+															<thead className="bg-neutral-50 font-semibold text-neutral-700">
 																<tr>
 																	<th className="px-4 py-3">Item Ref</th>
 																	<th className="px-4 py-3">Description</th>
 																	<th className="px-4 py-3 text-center">
 																		Expected
 																	</th>
-																	<th className="px-4 py-3 text-center text-amber-700">
+																	<th className="px-4 py-3 text-center text-warning-700">
 																		Current Counter
 																	</th>
-																	<th className="px-4 py-3 text-center text-green-700">
+																	<th className="px-4 py-3 text-center text-success-700">
 																		Actual Packed
 																	</th>
 																</tr>
 															</thead>
-															<tbody className="divide-y divide-gray-200 bg-white">
+															<tbody className="divide-y divide-neutral-200 bg-white">
 																{outOfSyncItems.map((item) => (
 																	<tr key={item.id}>
-																		<td className="px-4 py-3 font-mono text-xs font-semibold text-blue-700 bg-blue-50/50">
+																		<td className="px-4 py-3 font-mono text-xs font-semibold text-primary-700 bg-primary-50/50">
 																			#{item.item_num || "—"}
 																		</td>
 																		<td
-																			className="px-4 py-3 text-gray-800 font-medium max-w-sm truncate"
+																			className="px-4 py-3 text-neutral-800 font-medium max-w-sm truncate"
 																			title={item.description || ""}
 																		>
 																			{item.description || "—"}
@@ -4524,10 +4552,10 @@ function OrderDetailPage() {
 																		<td className="px-4 py-3 text-center font-medium">
 																			{item.expected_qty}
 																		</td>
-																		<td className="px-4 py-3 text-center font-bold text-amber-700 bg-amber-50/30">
+																		<td className="px-4 py-3 text-center font-bold text-warning-700 bg-warning-50/30">
 																			{item.stored_packed_qty}
 																		</td>
-																		<td className="px-4 py-3 text-center font-bold text-green-700 bg-green-50/30">
+																		<td className="px-4 py-3 text-center font-bold text-success-700 bg-success-50/30">
 																			{item.actual_pkd_sum}
 																		</td>
 																	</tr>
@@ -4539,8 +4567,8 @@ function OrderDetailPage() {
 											</div>
 										) : (
 											<div className="space-y-4">
-												<div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-sm leading-relaxed flex gap-3">
-													<Info className="w-5 h-5 shrink-0 text-blue-600 mt-0.5" />
+												<div className="p-4 bg-primary-50 border border-primary-200 rounded-lg text-primary-900 text-sm leading-relaxed flex gap-3">
+													<Info className="w-5 h-5 shrink-0 text-primary-600 mt-0.5" />
 													<div>
 														<p className="font-bold">
 															Linking Custom Items to Inventory
@@ -4562,9 +4590,9 @@ function OrderDetailPage() {
 														[];
 													if (unlinkedItems.length === 0) {
 														return (
-															<div className="p-8 text-center text-gray-500 border border-dashed rounded-lg bg-gray-50">
-																<CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-2" />
-																<p className="font-medium text-gray-700">
+															<div className="p-8 text-center text-neutral-500 border border-dashed rounded-lg bg-neutral-50">
+																<CheckCircle2 className="w-12 h-12 text-success-500 mx-auto mb-2" />
+																<p className="font-medium text-neutral-700">
 																	No unlinked custom items found!
 																</p>
 																<p className="text-sm mt-1">
@@ -4598,31 +4626,31 @@ function OrderDetailPage() {
 																return (
 																	<div
 																		key={item.id}
-																		className="border rounded-xl p-4 bg-white shadow-xs flex flex-col md:flex-row gap-6 hover:border-violet-300 transition-colors"
+																		className="border rounded-xl p-4 bg-white shadow-xs flex flex-col md:flex-row gap-6 hover:border-accent-300 transition-colors"
 																	>
 																		{/* Left: Custom Item Details */}
 																		<div className="md:w-1/3 space-y-2">
 																			<div className="flex items-center gap-2">
-																				<span className="bg-gray-100 text-gray-800 text-xs font-bold px-2 py-0.5 rounded-full">
+																				<span className="bg-neutral-100 text-neutral-800 text-xs font-bold px-2 py-0.5 rounded-full">
 																					Box #{pkg?.package_number || "?"}
 																				</span>
-																				<span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+																				<span className="bg-warning-100 text-warning-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
 																					Unlinked
 																				</span>
 																			</div>
-																			<p className="font-bold text-gray-900 text-base leading-tight">
+																			<p className="font-bold text-neutral-900 text-base leading-tight">
 																				{item.designation || "—"}
 																			</p>
-																			<div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+																			<div className="grid grid-cols-2 gap-2 text-xs text-neutral-600">
 																				<div>
 																					Qty:{" "}
-																					<span className="font-semibold text-gray-800">
+																					<span className="font-semibold text-neutral-800">
 																						{item.quantity}
 																					</span>
 																				</div>
 																				<div>
 																					L×W×H:{" "}
-																					<span className="font-semibold text-gray-800">
+																					<span className="font-semibold text-neutral-800">
 																						{item.length || "—"}×
 																						{item.width || "—"}×
 																						{item.height || "—"}
@@ -4634,7 +4662,7 @@ function OrderDetailPage() {
 																		{/* Right: Mapping Controls */}
 																		<div className="md:w-2/3 space-y-3">
 																			<div>
-																				<label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+																				<label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">
 																					Match with Inventory Item
 																				</label>
 																				<select
@@ -4648,7 +4676,7 @@ function OrderDetailPage() {
 																							},
 																						}));
 																					}}
-																					className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:border-violet-500 focus:ring-violet-500 outline-hidden"
+																					className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:border-accent-500 focus:ring-accent-500 outline-hidden"
 																				>
 																					<option value="">
 																						Do not link (leave as custom item)
@@ -4681,12 +4709,12 @@ function OrderDetailPage() {
 																			{config.itemsDbId &&
 																				hasMultipleInstances && (
 																					<div>
-																						<label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+																						<label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1.5">
 																							How to distribute {item.quantity}{" "}
 																							packed items?
 																						</label>
 																						<div className="flex gap-4">
-																							<label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 cursor-pointer">
+																							<label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700 cursor-pointer">
 																								<input
 																									type="radio"
 																									name={`dist-mode-${item.id}`}
@@ -4706,12 +4734,12 @@ function OrderDetailPage() {
 																											}),
 																										);
 																									}}
-																									className="w-4 h-4 text-violet-600 focus:ring-violet-500"
+																									className="w-4 h-4 text-accent-600 focus:ring-accent-500"
 																								/>
 																								Distribute evenly across all{" "}
 																								{pkgInstances.length} instances
 																							</label>
-																							<label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 cursor-pointer">
+																							<label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700 cursor-pointer">
 																								<input
 																									type="radio"
 																									name={`dist-mode-${item.id}`}
@@ -4731,7 +4759,7 @@ function OrderDetailPage() {
 																											}),
 																										);
 																									}}
-																									className="w-4 h-4 text-violet-600 focus:ring-violet-500"
+																									className="w-4 h-4 text-accent-600 focus:ring-accent-500"
 																								/>
 																								Place all in a single instance
 																							</label>
@@ -4743,7 +4771,7 @@ function OrderDetailPage() {
 																				config.distributionMode ===
 																					"single" && (
 																					<div>
-																						<label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+																						<label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">
 																							Target Box Instance
 																						</label>
 																						<select
@@ -4787,10 +4815,10 @@ function OrderDetailPage() {
 									</div>
 
 									{/* Modal Footer */}
-									<div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 shrink-0">
+									<div className="px-6 py-4 border-t border-neutral-100 flex justify-end gap-3 bg-neutral-50 shrink-0">
 										<button
 											onClick={() => setShowSyncInventoryModal(false)}
-											className="px-4 py-2 border border-gray-300 text-sm font-medium text-gray-700 bg-white rounded-lg hover:bg-gray-50 transition-colors"
+											className="px-4 py-2 border border-neutral-300 text-sm font-medium text-neutral-700 bg-white rounded-lg hover:bg-neutral-50 transition-colors"
 										>
 											Cancel
 										</button>
@@ -4803,7 +4831,7 @@ function OrderDetailPage() {
 														(c) => c.itemsDbId !== "",
 													))
 											}
-											className="px-4 py-2 text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 transition-colors"
+											className="px-4 py-2 text-sm font-medium bg-accent-600 hover:bg-accent-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 transition-colors"
 										>
 											{isSavingSync && (
 												<Loader2 className="w-4 h-4 animate-spin" />
@@ -4821,14 +4849,14 @@ function OrderDetailPage() {
 								{/* Order Status Card */}
 								<div className="bg-white rounded-lg border shadow-sm p-6">
 									<div className="flex items-center justify-between mb-4">
-										<h2 className="text-lg font-semibold text-gray-900">
+										<h2 className="text-lg font-semibold text-neutral-900">
 											Order Status
 										</h2>
 										<div className="flex items-center gap-3">
 											<div className="flex items-center gap-2">
 												<label
 													htmlFor="order-production-status"
-													className="text-xs text-gray-500"
+													className="text-xs text-neutral-500"
 												>
 													Production:
 												</label>
@@ -4853,7 +4881,7 @@ function OrderDetailPage() {
 											<div className="flex items-center gap-2">
 												<label
 													htmlFor="order-commercial-status"
-													className="text-xs text-gray-500"
+													className="text-xs text-neutral-500"
 												>
 													Commercial:
 												</label>
@@ -4878,35 +4906,35 @@ function OrderDetailPage() {
 										</div>
 									</div>
 									<div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-										<div className="text-center p-3 bg-gray-50 rounded-lg">
-											<p className="text-2xl font-bold text-blue-600">
+										<div className="text-center p-3 bg-neutral-50 rounded-lg">
+											<p className="text-2xl font-bold text-primary-600">
 												{order.order_packages?.length || 0}
 											</p>
-											<p className="text-sm text-gray-500">Packages</p>
+											<p className="text-sm text-neutral-500">Packages</p>
 										</div>
-										<div className="text-center p-3 bg-blue-50 border border-blue-100 rounded-lg">
-											<p className="text-2xl font-bold text-blue-600">
+										<div className="text-center p-3 bg-primary-50 border border-primary-100 rounded-lg">
+											<p className="text-2xl font-bold text-primary-600">
 												{order.order_packages?.filter(
 													(p) =>
 														p.status === "packed" || p.status === "delivered",
 												).length || 0}
 											</p>
-											<p className="text-sm text-blue-700 font-medium">
+											<p className="text-sm text-primary-700 font-medium">
 												Completed
 											</p>
 										</div>
-										<div className="text-center p-3 bg-green-50 border border-green-100 rounded-lg">
-											<p className="text-2xl font-bold text-green-600">
+										<div className="text-center p-3 bg-success-50 border border-success-100 rounded-lg">
+											<p className="text-2xl font-bold text-success-600">
 												{order.order_packages?.filter(
 													(p) => p.status === "in_production",
 												).length || 0}
 											</p>
-											<p className="text-sm text-green-700 font-medium">
+											<p className="text-sm text-success-700 font-medium">
 												In Production
 											</p>
 										</div>
-										<div className="text-center p-3 bg-gray-50 rounded-lg">
-											<p className="text-2xl font-bold text-amber-600">
+										<div className="text-center p-3 bg-neutral-50 rounded-lg">
+											<p className="text-2xl font-bold text-warning-600">
 												{order.order_packages?.filter(
 													(p) =>
 														!p.status ||
@@ -4914,22 +4942,22 @@ function OrderDetailPage() {
 														p.status === "approved",
 												).length || 0}
 											</p>
-											<p className="text-sm text-gray-500">Pending</p>
+											<p className="text-sm text-neutral-500">Pending</p>
 										</div>
 									</div>
 								</div>
 
 								{/* Packages Table */}
 								<div className="bg-white rounded-lg border shadow-sm overflow-hidden flex flex-col">
-									<div className="px-6 py-4 border-b flex flex-wrap justify-between items-center bg-gray-50 gap-2">
-										<h2 className="text-lg font-semibold text-gray-900">
+									<div className="px-6 py-4 border-b flex flex-wrap justify-between items-center bg-neutral-50 gap-2">
+										<h2 className="text-lg font-semibold text-neutral-900">
 											Packages
 										</h2>
 										<div className="flex flex-wrap gap-2 text-xs font-semibold">
-											<span className="text-gray-600 bg-gray-200/80 px-2.5 py-1 rounded-full">
+											<span className="text-neutral-600 bg-neutral-200/80 px-2.5 py-1 rounded-full">
 												Total Boxes: {order.order_packages.length}
 											</span>
-											<span className="text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full">
+											<span className="text-primary-700 bg-primary-50 border border-primary-200 px-2.5 py-1 rounded-full">
 												Completed:{" "}
 												{
 													order.order_packages.filter(
@@ -4938,7 +4966,7 @@ function OrderDetailPage() {
 													).length
 												}
 											</span>
-											<span className="text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+											<span className="text-success-700 bg-success-50 border border-success-200 px-2.5 py-1 rounded-full">
 												In Production:{" "}
 												{
 													order.order_packages.filter(
@@ -4946,7 +4974,7 @@ function OrderDetailPage() {
 													).length
 												}
 											</span>
-											<span className="text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+											<span className="text-warning-700 bg-warning-50 border border-warning-200 px-2.5 py-1 rounded-full">
 												Pending:{" "}
 												{
 													order.order_packages.filter(
@@ -4958,7 +4986,7 @@ function OrderDetailPage() {
 													).length
 												}
 											</span>
-											<span className="text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+											<span className="text-danger-700 bg-danger-50 border border-danger-200 px-2.5 py-1 rounded-full">
 												Cancelled:{" "}
 												{
 													order.order_packages.filter(
@@ -4973,17 +5001,17 @@ function OrderDetailPage() {
 											<div className="overflow-x-auto max-h-[680px] overflow-y-auto">
 												<table className="excel-table w-full border-collapse">
 													<thead>
-														<tr className="sticky top-0 bg-gray-100 z-10 shadow-[inset_0_-2px_0_rgba(0,0,0,0.05)]">
-															<th className="sticky top-0 bg-gray-100 z-10 py-3 px-4 border-b text-left">
+														<tr className="sticky top-0 bg-neutral-100 z-10 shadow-[inset_0_-2px_0_rgba(0,0,0,0.05)]">
+															<th className="sticky top-0 bg-neutral-100 z-10 py-3 px-4 border-b text-left">
 																#
 															</th>
-															<th className="sticky top-0 bg-gray-100 z-10 py-3 px-4 border-b text-left">
+															<th className="sticky top-0 bg-neutral-100 z-10 py-3 px-4 border-b text-left">
 																Dimensions (L×W×H)
 															</th>
-															<th className="sticky top-0 bg-gray-100 z-10 py-3 px-4 border-b text-left">
+															<th className="sticky top-0 bg-neutral-100 z-10 py-3 px-4 border-b text-left">
 																Weight
 															</th>
-															<th className="sticky top-0 bg-gray-100 z-10 py-3 px-4 border-b text-left">
+															<th className="sticky top-0 bg-neutral-100 z-10 py-3 px-4 border-b text-left">
 																Status
 															</th>
 														</tr>
@@ -5041,11 +5069,11 @@ function OrderDetailPage() {
 													</tbody>
 												</table>
 											</div>
-											<div className="px-6 py-3 border-t flex flex-wrap justify-end items-center bg-gray-50 gap-2 text-xs font-semibold">
-												<span className="text-gray-600 bg-gray-200/80 px-2.5 py-1 rounded-full">
+											<div className="px-6 py-3 border-t flex flex-wrap justify-end items-center bg-neutral-50 gap-2 text-xs font-semibold">
+												<span className="text-neutral-600 bg-neutral-200/80 px-2.5 py-1 rounded-full">
 													Total Boxes: {order.order_packages.length}
 												</span>
-												<span className="text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full">
+												<span className="text-primary-700 bg-primary-50 border border-primary-200 px-2.5 py-1 rounded-full">
 													Completed:{" "}
 													{
 														order.order_packages.filter(
@@ -5055,7 +5083,7 @@ function OrderDetailPage() {
 														).length
 													}
 												</span>
-												<span className="text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+												<span className="text-success-700 bg-success-50 border border-success-200 px-2.5 py-1 rounded-full">
 													In Production:{" "}
 													{
 														order.order_packages.filter(
@@ -5063,7 +5091,7 @@ function OrderDetailPage() {
 														).length
 													}
 												</span>
-												<span className="text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+												<span className="text-warning-700 bg-warning-50 border border-warning-200 px-2.5 py-1 rounded-full">
 													Pending:{" "}
 													{
 														order.order_packages.filter(
@@ -5075,7 +5103,7 @@ function OrderDetailPage() {
 														).length
 													}
 												</span>
-												<span className="text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+												<span className="text-danger-700 bg-danger-50 border border-danger-200 px-2.5 py-1 rounded-full">
 													Cancelled:{" "}
 													{
 														order.order_packages.filter(
@@ -5086,8 +5114,8 @@ function OrderDetailPage() {
 											</div>
 										</>
 									) : (
-										<div className="p-6 text-center text-gray-500">
-											<Package className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+										<div className="p-6 text-center text-neutral-500">
+											<Package className="w-12 h-12 mx-auto mb-2 text-neutral-300" />
 											<p>No packages added yet</p>
 										</div>
 									)}
@@ -5096,11 +5124,11 @@ function OrderDetailPage() {
 								{/* Team Members */}
 								<div className="bg-white rounded-lg border shadow-sm overflow-hidden">
 									<div className="px-6 py-4 border-b flex items-center gap-2">
-										<Users className="w-5 h-5 text-gray-500" />
-										<h2 className="text-lg font-semibold text-gray-900">
+										<Users className="w-5 h-5 text-neutral-500" />
+										<h2 className="text-lg font-semibold text-neutral-900">
 											Team Members
 										</h2>
-										<span className="ml-auto text-sm text-gray-500">
+										<span className="ml-auto text-sm text-neutral-500">
 											{teamMembers?.length || 0} packers
 										</span>
 									</div>
@@ -5116,25 +5144,25 @@ function OrderDetailPage() {
 														key={member.id}
 														className={`flex items-center gap-3 p-3 rounded-lg border ${
 															member.is_team_lead
-																? "bg-blue-50 border-blue-200"
-																: "bg-gray-50 border-gray-200"
+																? "bg-primary-50 border-primary-200"
+																: "bg-neutral-50 border-neutral-200"
 														}`}
 													>
 														<div
 															className={`w-10 h-10 rounded-full flex items-center justify-center ${
 																member.is_team_lead
-																	? "bg-blue-500"
-																	: "bg-gray-400"
+																	? "bg-primary-500"
+																	: "bg-neutral-400"
 															}`}
 														>
 															<User className="w-5 h-5 text-white" />
 														</div>
 														<div className="min-w-0 flex-1">
-															<p className="font-medium text-gray-900 truncate">
+															<p className="font-medium text-neutral-900 truncate">
 																{member.packer?.full_name || "Unknown"}
 															</p>
 															{member.is_team_lead && (
-																<span className="text-xs text-blue-600 font-medium">
+																<span className="text-xs text-primary-600 font-medium">
 																	Team Lead
 																</span>
 															)}
@@ -5143,8 +5171,8 @@ function OrderDetailPage() {
 												))}
 										</div>
 									) : (
-										<div className="p-6 text-center text-gray-500">
-											<Users className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+										<div className="p-6 text-center text-neutral-500">
+											<Users className="w-12 h-12 mx-auto mb-2 text-neutral-300" />
 											<p>No team members assigned</p>
 										</div>
 									)}
@@ -5153,19 +5181,19 @@ function OrderDetailPage() {
 								{/* Attendance Logs with Day Tabs */}
 								<div className="bg-white rounded-lg border shadow-sm overflow-hidden">
 									<div className="px-6 py-4 border-b flex items-center gap-2">
-										<ClipboardList className="w-5 h-5 text-gray-600" />
-										<h2 className="text-lg font-semibold text-gray-900">
+										<ClipboardList className="w-5 h-5 text-neutral-600" />
+										<h2 className="text-lg font-semibold text-neutral-900">
 											Attendance & Work Sessions
 										</h2>
 										<div className="ml-auto flex items-center gap-3">
-											<span className="text-sm text-gray-600">
+											<span className="text-sm text-neutral-600">
 												{attendanceDates.length} days •{" "}
 												{attendanceLogs?.length || 0} records
 											</span>
 											{selectedAttendanceDate && (
 												<button
 													onClick={calculateProposedChanges}
-													className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+													className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-warning-700 bg-warning-50 border border-warning-200 rounded-lg hover:bg-warning-100 transition-colors"
 													title="Fix morning shift end times (set missing/invalid end times to 12:00 PM)"
 												>
 													<Sparkles className="w-4 h-4" />
@@ -5178,7 +5206,7 @@ function OrderDetailPage() {
 									{attendanceDates.length > 0 ? (
 										<>
 											{/* Day Tabs */}
-											<div className="border-b bg-gray-50 px-4 py-2 overflow-x-auto">
+											<div className="border-b bg-neutral-50 px-4 py-2 overflow-x-auto">
 												<div className="flex gap-1 min-w-max">
 													{attendanceDates.map((date) => {
 														const dayLogs =
@@ -5194,8 +5222,8 @@ function OrderDetailPage() {
 																onClick={() => setSelectedAttendanceDate(date)}
 																className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
 																	selectedAttendanceDate === date
-																		? "bg-blue-600 text-white"
-																		: "bg-white text-gray-700 hover:bg-gray-100 border"
+																		? "bg-primary-600 text-white"
+																		: "bg-white text-neutral-700 hover:bg-neutral-100 border"
 																}`}
 															>
 																{new Date(date).toLocaleDateString("en-US", {
@@ -5208,14 +5236,14 @@ function OrderDetailPage() {
 																		className={`ml-1.5 text-xs px-1 py-0.5 rounded ${
 																			selectedAttendanceDate === date
 																				? "bg-white/20"
-																				: "bg-purple-100 text-purple-700"
+																				: "bg-accent-100 text-accent-700"
 																		}`}
 																	>
 																		Start
 																	</span>
 																)}
 																<span
-																	className={`ml-1.5 text-xs ${selectedAttendanceDate === date ? "text-blue-200" : "text-gray-400"}`}
+																	className={`ml-1.5 text-xs ${selectedAttendanceDate === date ? "text-primary-200" : "text-neutral-400"}`}
 																>
 																	({dayLogs.length})
 																</span>
@@ -5228,7 +5256,7 @@ function OrderDetailPage() {
 											{/* Attendance Table for Selected Day */}
 											<div className="overflow-x-auto max-h-96 overflow-y-auto">
 												<table className="excel-table">
-													<thead className="sticky top-0 bg-gray-50 z-10">
+													<thead className="sticky top-0 bg-neutral-50 z-10">
 														<tr>
 															<th>Packer</th>
 															<th>Shift</th>
@@ -5251,32 +5279,32 @@ function OrderDetailPage() {
 																	: null;
 															return (
 																<tr key={log.id}>
-																	<td className="font-medium text-gray-900">
+																	<td className="font-medium text-neutral-900">
 																		{log.packer?.full_name || "Unknown"}
 																	</td>
 																	<td>
 																		<div className="flex items-center gap-1.5">
 																			{getShiftIcon(log.shift_period)}
-																			<span className="text-gray-700">
+																			<span className="text-neutral-700">
 																				{getShiftLabel(log.shift_period)}
 																			</span>
 																		</div>
 																	</td>
-																	<td className="text-gray-700">
+																	<td className="text-neutral-700">
 																		{formatTime(log.start_time)}
 																	</td>
-																	<td className="text-gray-700">
+																	<td className="text-neutral-700">
 																		{formatTime(log.end_time)}
 																	</td>
-																	<td className="text-gray-700">
+																	<td className="text-neutral-700">
 																		{hours ? `${hours}h` : "—"}
 																	</td>
 																	<td>
 																		<span
 																			className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
 																				log.status === "present"
-																					? "bg-green-100 text-green-700"
-																					: "bg-red-100 text-red-700"
+																					? "bg-success-100 text-success-700"
+																					: "bg-danger-100 text-danger-700"
 																			}`}
 																		>
 																			{log.status === "present" ? (
@@ -5289,9 +5317,11 @@ function OrderDetailPage() {
 																	</td>
 																	<td>
 																		{log.toolbox_briefing_completed ? (
-																			<CheckCircle2 className="w-5 h-5 text-green-500" />
+																			<CheckCircle2 className="w-5 h-5 text-success-500" />
 																		) : (
-																			<span className="text-gray-400">—</span>
+																			<span className="text-neutral-400">
+																				—
+																			</span>
 																		)}
 																	</td>
 																</tr>
@@ -5302,8 +5332,8 @@ function OrderDetailPage() {
 											</div>
 										</>
 									) : (
-										<div className="p-6 text-center text-gray-500">
-											<ClipboardList className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+										<div className="p-6 text-center text-neutral-500">
+											<ClipboardList className="w-12 h-12 mx-auto mb-2 text-neutral-300" />
 											<p>No attendance records yet</p>
 										</div>
 									)}
@@ -5312,11 +5342,11 @@ function OrderDetailPage() {
 								{/* Tasks by Package */}
 								<div className="bg-white rounded-lg border shadow-sm overflow-hidden">
 									<div className="px-6 py-4 border-b flex items-center gap-2">
-										<Wrench className="w-5 h-5 text-gray-600" />
-										<h2 className="text-lg font-semibold text-gray-900">
+										<Wrench className="w-5 h-5 text-neutral-600" />
+										<h2 className="text-lg font-semibold text-neutral-900">
 											Tasks by Package
 										</h2>
-										<span className="ml-auto text-sm text-gray-600">
+										<span className="ml-auto text-sm text-neutral-600">
 											{taskLogs?.length || 0} task sessions
 										</span>
 									</div>
@@ -5324,7 +5354,7 @@ function OrderDetailPage() {
 									{order.order_packages && order.order_packages.length > 0 ? (
 										<>
 											{/* Package Tabs */}
-											<div className="border-b bg-gray-50 px-4 py-2 overflow-x-auto">
+											<div className="border-b bg-neutral-50 px-4 py-2 overflow-x-auto">
 												<div className="flex gap-1 min-w-max">
 													{[...order.order_packages]
 														.sort((a, b) => a.package_number - b.package_number)
@@ -5344,14 +5374,14 @@ function OrderDetailPage() {
 																	}}
 																	className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
 																		selectedPackageId === pkg.id
-																			? "bg-blue-600 text-white"
-																			: "bg-white text-gray-700 hover:bg-gray-100 border"
+																			? "bg-primary-600 text-white"
+																			: "bg-white text-neutral-700 hover:bg-neutral-100 border"
 																	}`}
 																>
 																	<Package className="w-4 h-4 inline mr-1" />
 																	Box #{pkg.package_number}
 																	<span
-																		className={`ml-1.5 text-xs ${selectedPackageId === pkg.id ? "text-blue-200" : "text-gray-400"}`}
+																		className={`ml-1.5 text-xs ${selectedPackageId === pkg.id ? "text-primary-200" : "text-neutral-400"}`}
 																	>
 																		({pkgTasks.length})
 																	</span>
@@ -5369,8 +5399,8 @@ function OrderDetailPage() {
 															onClick={() => setSelectedTaskDay("all")}
 															className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
 																selectedTaskDay === "all"
-																	? "bg-gray-800 text-white"
-																	: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+																	? "bg-neutral-800 text-white"
+																	: "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
 															}`}
 														>
 															All Days (
@@ -5401,8 +5431,8 @@ function OrderDetailPage() {
 																	onClick={() => setSelectedTaskDay(day)}
 																	className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
 																		selectedTaskDay === day
-																			? "bg-gray-800 text-white"
-																			: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+																			? "bg-neutral-800 text-white"
+																			: "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
 																	}`}
 																>
 																	{new Date(day).toLocaleDateString("en-US", {
@@ -5446,13 +5476,13 @@ function OrderDetailPage() {
 																	: null;
 																return (
 																	<tr key={log.id}>
-																		<td className="font-medium text-gray-900">
+																		<td className="font-medium text-neutral-900">
 																			<div className="flex items-center gap-2">
-																				<Play className="w-4 h-4 text-blue-500" />
+																				<Play className="w-4 h-4 text-primary-500" />
 																				{log.task?.name || "Unknown Task"}
 																			</div>
 																		</td>
-																		<td className="text-gray-700 max-w-[200px]">
+																		<td className="text-neutral-700 max-w-[200px]">
 																			<span className="line-clamp-2">
 																				{log.task_assignments
 																					.map((a) => a.packer?.full_name)
@@ -5460,7 +5490,7 @@ function OrderDetailPage() {
 																					.join(", ") || "—"}
 																			</span>
 																		</td>
-																		<td className="text-gray-700 whitespace-nowrap">
+																		<td className="text-neutral-700 whitespace-nowrap">
 																			{new Date(log.start_time).toLocaleString(
 																				"en-US",
 																				{
@@ -5471,7 +5501,7 @@ function OrderDetailPage() {
 																				},
 																			)}
 																		</td>
-																		<td className="text-gray-700 whitespace-nowrap">
+																		<td className="text-neutral-700 whitespace-nowrap">
 																			{log.end_time ? (
 																				new Date(log.end_time).toLocaleString(
 																					"en-US",
@@ -5483,28 +5513,28 @@ function OrderDetailPage() {
 																					},
 																				)
 																			) : (
-																				<span className="text-blue-600 flex items-center gap-1">
+																				<span className="text-primary-600 flex items-center gap-1">
 																					<Timer className="w-3 h-3" /> In
 																					Progress
 																				</span>
 																			)}
 																		</td>
-																		<td className="text-gray-700">
+																		<td className="text-neutral-700">
 																			{log.duration_minutes
 																				? `${Math.floor(log.duration_minutes / 60)}h ${Math.round(log.duration_minutes % 60)}m`
 																				: "—"}
 																		</td>
-																		<td className="text-gray-900 font-medium">
+																		<td className="text-neutral-900 font-medium">
 																			{totalMinutes
 																				? `${Math.floor(totalMinutes / 60)}h ${Math.round(totalMinutes % 60)}m`
 																				: "—"}
 																			{packerCount > 1 && totalMinutes && (
-																				<span className="text-xs text-gray-400 ml-1">
+																				<span className="text-xs text-neutral-400 ml-1">
 																					({packerCount}×)
 																				</span>
 																			)}
 																		</td>
-																		<td className="text-gray-600 max-w-[150px]">
+																		<td className="text-neutral-600 max-w-[150px]">
 																			<span className="line-clamp-1">
 																				{log.notes || "—"}
 																			</span>
@@ -5515,7 +5545,7 @@ function OrderDetailPage() {
 																					onClick={() =>
 																						handleOpenEndTaskModal(log)
 																					}
-																					className="flex items-center gap-1 px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+																					className="flex items-center gap-1 px-2 py-1 text-xs bg-danger-100 text-danger-700 rounded hover:bg-danger-200 transition-colors"
 																					title="End Task"
 																				>
 																					<StopCircle className="w-3 h-3" />
@@ -5523,7 +5553,7 @@ function OrderDetailPage() {
 																				</button>
 																			)}
 																			{log.end_time && (
-																				<span className="text-gray-400 text-xs">
+																				<span className="text-neutral-400 text-xs">
 																					Completed
 																				</span>
 																			)}
@@ -5535,8 +5565,8 @@ function OrderDetailPage() {
 													</table>
 												</div>
 											) : (
-												<div className="p-6 text-center text-gray-500">
-													<Wrench className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+												<div className="p-6 text-center text-neutral-500">
+													<Wrench className="w-12 h-12 mx-auto mb-2 text-neutral-300" />
 													<p>
 														No tasks recorded for this{" "}
 														{selectedTaskDay !== "all" ? "day" : "package"}
@@ -5545,8 +5575,8 @@ function OrderDetailPage() {
 											)}
 										</>
 									) : (
-										<div className="p-6 text-center text-gray-500">
-											<Package className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+										<div className="p-6 text-center text-neutral-500">
+											<Package className="w-12 h-12 mx-auto mb-2 text-neutral-300" />
 											<p>No packages in this order</p>
 										</div>
 									)}
@@ -5555,8 +5585,8 @@ function OrderDetailPage() {
 								{/* Package Details Section */}
 								<div className="bg-white rounded-lg border shadow-sm overflow-hidden">
 									<div className="px-6 py-4 border-b flex items-center gap-2">
-										<Package className="w-5 h-5 text-gray-600" />
-										<h2 className="text-lg font-semibold text-gray-900">
+										<Package className="w-5 h-5 text-neutral-600" />
+										<h2 className="text-lg font-semibold text-neutral-900">
 											Package Details
 										</h2>
 									</div>
@@ -5577,16 +5607,16 @@ function OrderDetailPage() {
 																}}
 																className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
 																	selectedPackageId === pkg.id
-																		? "bg-blue-600 text-white"
-																		: "text-gray-600 hover:bg-gray-100"
+																		? "bg-primary-600 text-white"
+																		: "text-neutral-600 hover:bg-neutral-100"
 																}`}
 															>
 																Box #{pkg.package_number}
 																<span
 																	className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
 																		selectedPackageId === pkg.id
-																			? "bg-blue-500 text-white"
-																			: "bg-gray-200 text-gray-600"
+																			? "bg-primary-500 text-white"
+																			: "bg-neutral-200 text-neutral-600"
 																	}`}
 																>
 																	{pkg.status || "pending"}
@@ -5599,7 +5629,7 @@ function OrderDetailPage() {
 											{selectedPackage && (
 												<>
 													{/* Section Tabs */}
-													<div className="border-b bg-gray-50">
+													<div className="border-b bg-neutral-50">
 														<div className="flex p-2 gap-1 overflow-x-auto">
 															{[
 																{ key: "info", label: "Info" },
@@ -5644,8 +5674,8 @@ function OrderDetailPage() {
 																	}
 																	className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
 																		selectedPackageTab === tab.key
-																			? "bg-white text-gray-900 shadow-sm"
-																			: "text-gray-600 hover:text-gray-900"
+																			? "bg-white text-neutral-900 shadow-sm"
+																			: "text-neutral-600 hover:text-neutral-900"
 																	}`}
 																>
 																	{tab.label}
@@ -5653,8 +5683,8 @@ function OrderDetailPage() {
 																		<span
 																			className={`ml-1 text-xs ${
 																				selectedPackageTab === tab.key
-																					? "text-gray-500"
-																					: "text-gray-400"
+																					? "text-neutral-500"
+																					: "text-neutral-400"
 																			}`}
 																		>
 																			({tab.count})
@@ -5781,8 +5811,8 @@ function OrderDetailPage() {
 											)}
 										</>
 									) : (
-										<div className="p-6 text-center text-gray-500">
-											<Package className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+										<div className="p-6 text-center text-neutral-500">
+											<Package className="w-12 h-12 mx-auto mb-2 text-neutral-300" />
 											<p>No packages in this order</p>
 										</div>
 									)}
@@ -5802,20 +5832,20 @@ function OrderDetailPage() {
 									<Dialog.Portal>
 										<Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
 										<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md bg-white rounded-xl shadow-2xl p-6">
-											<Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">
+											<Dialog.Title className="text-lg font-semibold text-neutral-900 mb-4">
 												Add Package Item
 											</Dialog.Title>
 											<Dialog.Description className="sr-only">
 												Add a new item to this package
 											</Dialog.Description>
 
-											<div className="flex p-1 bg-gray-100 rounded-lg mb-6">
+											<div className="flex p-1 bg-neutral-100 rounded-lg mb-6">
 												<button
 													onClick={() => setItemSource("custom")}
 													className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
 														itemSource === "custom"
-															? "bg-white text-blue-600 shadow-sm"
-															: "text-gray-500 hover:text-gray-700"
+															? "bg-white text-primary-600 shadow-sm"
+															: "text-neutral-500 hover:text-neutral-700"
 													}`}
 												>
 													Custom Item
@@ -5824,8 +5854,8 @@ function OrderDetailPage() {
 													onClick={() => setItemSource("inventory")}
 													className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
 														itemSource === "inventory"
-															? "bg-white text-blue-600 shadow-sm"
-															: "text-gray-500 hover:text-gray-700"
+															? "bg-white text-primary-600 shadow-sm"
+															: "text-neutral-500 hover:text-neutral-700"
 													}`}
 												>
 													From Inventory
@@ -5838,7 +5868,7 @@ function OrderDetailPage() {
 														<div>
 															<label
 																htmlFor="inventoryTargetItem"
-																className="block text-sm font-medium text-gray-700 mb-1"
+																className="block text-sm font-medium text-neutral-700 mb-1"
 															>
 																Select Item from Inventory
 															</label>
@@ -5866,7 +5896,7 @@ function OrderDetailPage() {
 																}}
 																className={`w-full px-3 py-2 border rounded-lg ${
 																	itemValidationErrors.items_db
-																		? "border-red-500"
+																		? "border-danger-500"
 																		: ""
 																}`}
 															>
@@ -5881,7 +5911,7 @@ function OrderDetailPage() {
 																))}
 															</select>
 															{itemValidationErrors.items_db && (
-																<p className="mt-1 text-sm text-red-600">
+																<p className="mt-1 text-sm text-danger-600">
 																	{itemValidationErrors.items_db}
 																</p>
 															)}
@@ -5890,7 +5920,7 @@ function OrderDetailPage() {
 														<div>
 															<label
 																htmlFor="boxInstanceSelect"
-																className="block text-sm font-medium text-gray-700 mb-1"
+																className="block text-sm font-medium text-neutral-700 mb-1"
 															>
 																Box Instance
 															</label>
@@ -5906,7 +5936,7 @@ function OrderDetailPage() {
 																}}
 																className={`w-full px-3 py-2 border rounded-lg ${
 																	itemValidationErrors.instance
-																		? "border-red-500"
+																		? "border-danger-500"
 																		: ""
 																}`}
 															>
@@ -5919,7 +5949,7 @@ function OrderDetailPage() {
 																))}
 															</select>
 															{itemValidationErrors.instance && (
-																<p className="mt-1 text-sm text-red-600">
+																<p className="mt-1 text-sm text-danger-600">
 																	{itemValidationErrors.instance}
 																</p>
 															)}
@@ -5928,7 +5958,7 @@ function OrderDetailPage() {
 														<div>
 															<label
 																htmlFor="add-item-quantity"
-																className="block text-sm font-medium text-gray-700 mb-1"
+																className="block text-sm font-medium text-neutral-700 mb-1"
 															>
 																Quantity
 															</label>
@@ -5948,13 +5978,13 @@ function OrderDetailPage() {
 																}}
 																className={`w-full px-3 py-2 border rounded-lg ${
 																	itemValidationErrors.quantity
-																		? "border-red-500"
+																		? "border-danger-500"
 																		: ""
 																}`}
 																min={1}
 															/>
 															{itemValidationErrors.quantity && (
-																<p className="mt-1 text-sm text-red-600">
+																<p className="mt-1 text-sm text-danger-600">
 																	{itemValidationErrors.quantity}
 																</p>
 															)}
@@ -5965,7 +5995,7 @@ function OrderDetailPage() {
 														<div>
 															<label
 																htmlFor="add-item-designation"
-																className="block text-sm font-medium text-gray-700 mb-1"
+																className="block text-sm font-medium text-neutral-700 mb-1"
 															>
 																Item Name / Designation
 															</label>
@@ -5985,13 +6015,13 @@ function OrderDetailPage() {
 																}}
 																className={`w-full px-3 py-2 border rounded-lg ${
 																	itemValidationErrors.designation
-																		? "border-red-500 focus:ring-red-500"
+																		? "border-danger-500 focus:ring-danger-500"
 																		: ""
 																}`}
 																placeholder="Enter item name"
 															/>
 															{itemValidationErrors.designation && (
-																<p className="mt-1 text-sm text-red-600">
+																<p className="mt-1 text-sm text-danger-600">
 																	{itemValidationErrors.designation}
 																</p>
 															)}
@@ -5999,7 +6029,7 @@ function OrderDetailPage() {
 														<div>
 															<label
 																htmlFor="add-item-quantity"
-																className="block text-sm font-medium text-gray-700 mb-1"
+																className="block text-sm font-medium text-neutral-700 mb-1"
 															>
 																Quantity
 															</label>
@@ -6019,19 +6049,19 @@ function OrderDetailPage() {
 																}}
 																className={`w-full px-3 py-2 border rounded-lg ${
 																	itemValidationErrors.quantity
-																		? "border-red-500 focus:ring-red-500"
+																		? "border-danger-500 focus:ring-danger-500"
 																		: ""
 																}`}
 																min={1}
 															/>
 															{itemValidationErrors.quantity && (
-																<p className="mt-1 text-sm text-red-600">
+																<p className="mt-1 text-sm text-danger-600">
 																	{itemValidationErrors.quantity}
 																</p>
 															)}
 														</div>
 														<div>
-															<p className="block text-sm font-medium text-gray-700 mb-1">
+															<p className="block text-sm font-medium text-neutral-700 mb-1">
 																Dimensions (L × W × H) - Optional
 															</p>
 															<div className="grid grid-cols-3 gap-2">
@@ -6052,12 +6082,12 @@ function OrderDetailPage() {
 																		}}
 																		className={`px-3 py-2 border rounded-lg w-full ${
 																			itemValidationErrors.length
-																				? "border-red-500"
+																				? "border-danger-500"
 																				: ""
 																		}`}
 																	/>
 																	{itemValidationErrors.length && (
-																		<p className="mt-0.5 text-xs text-red-600">
+																		<p className="mt-0.5 text-xs text-danger-600">
 																			{itemValidationErrors.length}
 																		</p>
 																	)}
@@ -6079,12 +6109,12 @@ function OrderDetailPage() {
 																		}}
 																		className={`px-3 py-2 border rounded-lg w-full ${
 																			itemValidationErrors.width
-																				? "border-red-500"
+																				? "border-danger-500"
 																				: ""
 																		}`}
 																	/>
 																	{itemValidationErrors.width && (
-																		<p className="mt-0.5 text-xs text-red-600">
+																		<p className="mt-0.5 text-xs text-danger-600">
 																			{itemValidationErrors.width}
 																		</p>
 																	)}
@@ -6106,12 +6136,12 @@ function OrderDetailPage() {
 																		}}
 																		className={`px-3 py-2 border rounded-lg w-full ${
 																			itemValidationErrors.height
-																				? "border-red-500"
+																				? "border-danger-500"
 																				: ""
 																		}`}
 																	/>
 																	{itemValidationErrors.height && (
-																		<p className="mt-0.5 text-xs text-red-600">
+																		<p className="mt-0.5 text-xs text-danger-600">
 																			{itemValidationErrors.height}
 																		</p>
 																	)}
@@ -6124,7 +6154,7 @@ function OrderDetailPage() {
 
 											<div className="flex justify-end gap-2 mt-6">
 												<Dialog.Close asChild>
-													<button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
+													<button className="px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100 rounded-lg">
 														Cancel
 													</button>
 												</Dialog.Close>
@@ -6134,7 +6164,7 @@ function OrderDetailPage() {
 														addPackageItemMutation.isPending ||
 														addPkdItemMutation.isPending
 													}
-													className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+													className="flex items-center gap-2 px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
 												>
 													{(addPackageItemMutation.isPending ||
 														addPkdItemMutation.isPending) && (
@@ -6155,7 +6185,7 @@ function OrderDetailPage() {
 									<Dialog.Portal>
 										<Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
 										<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg bg-white rounded-xl shadow-2xl p-6">
-											<Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">
+											<Dialog.Title className="text-lg font-semibold text-neutral-900 mb-4">
 												Add{" "}
 												{materialType === "Accessories"
 													? "Accessory"
@@ -6169,7 +6199,7 @@ function OrderDetailPage() {
 												<div>
 													<label
 														htmlFor="add-material-type"
-														className="block text-sm font-medium text-gray-700 mb-1"
+														className="block text-sm font-medium text-neutral-700 mb-1"
 													>
 														Material Type
 													</label>
@@ -6195,7 +6225,7 @@ function OrderDetailPage() {
 												<div>
 													<label
 														htmlFor="add-material-variant"
-														className="block text-sm font-medium text-gray-700 mb-1"
+														className="block text-sm font-medium text-neutral-700 mb-1"
 													>
 														Material Variant
 													</label>
@@ -6214,7 +6244,7 @@ function OrderDetailPage() {
 														}}
 														className={`w-full px-3 py-2 border rounded-lg ${
 															materialValidationErrors.material_variant_id
-																? "border-red-500 focus:ring-red-500"
+																? "border-danger-500 focus:ring-danger-500"
 																: ""
 														}`}
 													>
@@ -6227,7 +6257,7 @@ function OrderDetailPage() {
 														))}
 													</select>
 													{materialValidationErrors.material_variant_id && (
-														<p className="mt-1 text-sm text-red-600">
+														<p className="mt-1 text-sm text-danger-600">
 															{materialValidationErrors.material_variant_id}
 														</p>
 													)}
@@ -6236,7 +6266,7 @@ function OrderDetailPage() {
 													<div>
 														<label
 															htmlFor="add-material-quantity"
-															className="block text-sm font-medium text-gray-700 mb-1"
+															className="block text-sm font-medium text-neutral-700 mb-1"
 														>
 															Quantity
 														</label>
@@ -6256,13 +6286,13 @@ function OrderDetailPage() {
 															}}
 															className={`w-full px-3 py-2 border rounded-lg ${
 																materialValidationErrors.quantity
-																	? "border-red-500 focus:ring-red-500"
+																	? "border-danger-500 focus:ring-danger-500"
 																	: ""
 															}`}
 															min={1}
 														/>
 														{materialValidationErrors.quantity && (
-															<p className="mt-1 text-sm text-red-600">
+															<p className="mt-1 text-sm text-danger-600">
 																{materialValidationErrors.quantity}
 															</p>
 														)}
@@ -6270,7 +6300,7 @@ function OrderDetailPage() {
 													<div>
 														<label
 															htmlFor="add-material-unit"
-															className="block text-sm font-medium text-gray-700 mb-1"
+															className="block text-sm font-medium text-neutral-700 mb-1"
 														>
 															Unit
 														</label>
@@ -6295,7 +6325,7 @@ function OrderDetailPage() {
 													</div>
 												</div>
 												<div>
-													<p className="block text-sm font-medium text-gray-700 mb-1">
+													<p className="block text-sm font-medium text-neutral-700 mb-1">
 														Dimensions (L × W × H)
 													</p>
 													<div className="grid grid-cols-3 gap-2">
@@ -6340,7 +6370,7 @@ function OrderDetailPage() {
 												<div>
 													<label
 														htmlFor="add-material-comment"
-														className="block text-sm font-medium text-gray-700 mb-1"
+														className="block text-sm font-medium text-neutral-700 mb-1"
 													>
 														Comment
 													</label>
@@ -6360,13 +6390,13 @@ function OrderDetailPage() {
 														}}
 														className={`w-full px-3 py-2 border rounded-lg ${
 															materialValidationErrors.comment
-																? "border-red-500 focus:ring-red-500"
+																? "border-danger-500 focus:ring-danger-500"
 																: ""
 														}`}
 														placeholder="Optional comment (max 2000 chars)"
 													/>
 													{materialValidationErrors.comment && (
-														<p className="mt-1 text-sm text-red-600">
+														<p className="mt-1 text-sm text-danger-600">
 															{materialValidationErrors.comment}
 														</p>
 													)}
@@ -6387,7 +6417,7 @@ function OrderDetailPage() {
 														/>
 														<label
 															htmlFor="is_final"
-															className="text-sm text-gray-700 font-medium cursor-pointer"
+															className="text-sm text-neutral-700 font-medium cursor-pointer"
 														>
 															Mark as Final
 														</label>
@@ -6407,7 +6437,7 @@ function OrderDetailPage() {
 														/>
 														<label
 															htmlFor="item_used"
-															className="text-sm text-gray-700 font-medium cursor-pointer"
+															className="text-sm text-neutral-700 font-medium cursor-pointer"
 														>
 															Used
 														</label>
@@ -6417,14 +6447,14 @@ function OrderDetailPage() {
 
 											<div className="flex justify-end gap-2 mt-6">
 												<Dialog.Close asChild>
-													<button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
+													<button className="px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100 rounded-lg">
 														Cancel
 													</button>
 												</Dialog.Close>
 												<button
 													onClick={handleAddMaterial}
 													disabled={addPackageMaterialMutation.isPending}
-													className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+													className="flex items-center gap-2 px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
 												>
 													{addPackageMaterialMutation.isPending && (
 														<Loader2 className="w-4 h-4 animate-spin" />
@@ -6444,24 +6474,24 @@ function OrderDetailPage() {
 									<Dialog.Portal>
 										<Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
 										<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md bg-white rounded-xl shadow-2xl p-6">
-											<Dialog.Title className="text-lg font-semibold text-gray-900 mb-2">
+											<Dialog.Title className="text-lg font-semibold text-neutral-900 mb-2">
 												End Task
 											</Dialog.Title>
-											<Dialog.Description className="text-sm text-gray-500 mb-4">
+											<Dialog.Description className="text-sm text-neutral-500 mb-4">
 												Mark this task as completed and set the end time
 											</Dialog.Description>
 
 											{endingTask && (
 												<div className="space-y-4">
 													{/* Task Info */}
-													<div className="bg-gray-50 rounded-lg p-4">
+													<div className="bg-neutral-50 rounded-lg p-4">
 														<div className="flex items-center gap-2 mb-2">
-															<Play className="w-4 h-4 text-blue-500" />
-															<span className="font-medium text-gray-900">
+															<Play className="w-4 h-4 text-primary-500" />
+															<span className="font-medium text-neutral-900">
 																{endingTask.task?.name || "Unknown Task"}
 															</span>
 														</div>
-														<div className="text-sm text-gray-600">
+														<div className="text-sm text-neutral-600">
 															<p>
 																<strong>Started:</strong>{" "}
 																{new Date(endingTask.start_time).toLocaleString(
@@ -6489,7 +6519,7 @@ function OrderDetailPage() {
 													<div>
 														<label
 															htmlFor="end-task-time"
-															className="block text-sm font-medium text-gray-700 mb-1"
+															className="block text-sm font-medium text-neutral-700 mb-1"
 														>
 															End Time
 														</label>
@@ -6499,17 +6529,17 @@ function OrderDetailPage() {
 															value={endTaskTime}
 															onChange={(e) => setEndTaskTime(e.target.value)}
 															min={endingTask.start_time.slice(0, 16)}
-															className="w-full px-3 py-2 border rounded-lg text-gray-900"
+															className="w-full px-3 py-2 border rounded-lg text-neutral-900"
 														/>
-														<p className="mt-1 text-xs text-gray-500">
+														<p className="mt-1 text-xs text-neutral-500">
 															Defaulted to shift end time. Adjust if needed.
 														</p>
 													</div>
 
 													{/* Duration Preview */}
 													{endTaskTime && (
-														<div className="bg-blue-50 rounded-lg p-3">
-															<p className="text-sm text-blue-700">
+														<div className="bg-primary-50 rounded-lg p-3">
+															<p className="text-sm text-primary-700">
 																<strong>Duration:</strong> {(() => {
 																	const start = new Date(endingTask.start_time);
 																	const end = new Date(endTaskTime);
@@ -6556,7 +6586,7 @@ function OrderDetailPage() {
 
 											<div className="flex justify-end gap-2 mt-6">
 												<Dialog.Close asChild>
-													<button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
+													<button className="px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100 rounded-lg">
 														Cancel
 													</button>
 												</Dialog.Close>
@@ -6570,7 +6600,7 @@ function OrderDetailPage() {
 														}
 													}}
 													disabled={!endTaskTime || endTaskMutation.isPending}
-													className="flex items-center gap-2 px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+													className="flex items-center gap-2 px-4 py-2 text-sm bg-danger-600 text-white rounded-lg hover:bg-danger-700 disabled:opacity-50"
 												>
 													{endTaskMutation.isPending && (
 														<Loader2 className="w-4 h-4 animate-spin" />
@@ -6586,11 +6616,11 @@ function OrderDetailPage() {
 								{/* Description Section */}
 								{order.description && (
 									<div className="bg-white rounded-lg border shadow-sm p-6">
-										<h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+										<h2 className="text-lg font-semibold text-neutral-900 mb-3 flex items-center gap-2">
 											<FileText className="w-5 h-5" />
 											Description
 										</h2>
-										<p className="text-gray-700 whitespace-pre-wrap">
+										<p className="text-neutral-700 whitespace-pre-wrap">
 											{order.description}
 										</p>
 									</div>
@@ -6601,27 +6631,27 @@ function OrderDetailPage() {
 							<div className="space-y-6">
 								{/* Client Information */}
 								<div className="bg-white rounded-lg border shadow-sm p-6">
-									<h2 className="text-lg font-semibold text-gray-900 mb-4">
+									<h2 className="text-lg font-semibold text-neutral-900 mb-4">
 										Client Information
 									</h2>
 									<div className="space-y-4">
 										<div className="flex items-start gap-3">
-											<User className="w-5 h-5 text-gray-400 mt-0.5" />
+											<User className="w-5 h-5 text-neutral-400 mt-0.5" />
 											<div>
-												<p className="text-sm text-gray-500">Client Name</p>
-												<p className="font-medium text-gray-900">
+												<p className="text-sm text-neutral-500">Client Name</p>
+												<p className="font-medium text-neutral-900">
 													{order.clients?.name || "N/A"}
 												</p>
 											</div>
 										</div>
 										{order.clients?.contact_person && (
 											<div className="flex items-start gap-3">
-												<User className="w-5 h-5 text-gray-400 mt-0.5" />
+												<User className="w-5 h-5 text-neutral-400 mt-0.5" />
 												<div>
-													<p className="text-sm text-gray-500">
+													<p className="text-sm text-neutral-500">
 														Contact Person
 													</p>
-													<p className="font-medium text-gray-900">
+													<p className="font-medium text-neutral-900">
 														{order.clients.contact_person}
 													</p>
 												</div>
@@ -6629,12 +6659,12 @@ function OrderDetailPage() {
 										)}
 										{order.clients?.email && (
 											<div className="flex items-start gap-3">
-												<Mail className="w-5 h-5 text-gray-400 mt-0.5" />
+												<Mail className="w-5 h-5 text-neutral-400 mt-0.5" />
 												<div>
-													<p className="text-sm text-gray-500">Email</p>
+													<p className="text-sm text-neutral-500">Email</p>
 													<a
 														href={`mailto:${order.clients.email}`}
-														className="font-medium text-blue-600 hover:underline"
+														className="font-medium text-primary-600 hover:underline"
 													>
 														{order.clients.email}
 													</a>
@@ -6643,12 +6673,12 @@ function OrderDetailPage() {
 										)}
 										{order.clients?.phone && (
 											<div className="flex items-start gap-3">
-												<Phone className="w-5 h-5 text-gray-400 mt-0.5" />
+												<Phone className="w-5 h-5 text-neutral-400 mt-0.5" />
 												<div>
-													<p className="text-sm text-gray-500">Phone</p>
+													<p className="text-sm text-neutral-500">Phone</p>
 													<a
 														href={`tel:${order.clients.phone}`}
-														className="font-medium text-blue-600 hover:underline"
+														className="font-medium text-primary-600 hover:underline"
 													>
 														{order.clients.phone}
 													</a>
@@ -6657,10 +6687,10 @@ function OrderDetailPage() {
 										)}
 										{order.clients?.address && (
 											<div className="flex items-start gap-3">
-												<MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
+												<MapPin className="w-5 h-5 text-neutral-400 mt-0.5" />
 												<div>
-													<p className="text-sm text-gray-500">Address</p>
-													<p className="font-medium text-gray-900">
+													<p className="text-sm text-neutral-500">Address</p>
+													<p className="font-medium text-neutral-900">
 														{order.clients.address}
 													</p>
 												</div>
@@ -6671,44 +6701,48 @@ function OrderDetailPage() {
 
 								{/* Order Details */}
 								<div className="bg-white rounded-lg border shadow-sm p-6">
-									<h2 className="text-lg font-semibold text-gray-900 mb-4">
+									<h2 className="text-lg font-semibold text-neutral-900 mb-4">
 										Order Details
 									</h2>
 									<div className="space-y-4">
 										<div className="flex items-start gap-3">
-											<Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
+											<Calendar className="w-5 h-5 text-neutral-400 mt-0.5" />
 											<div>
-												<p className="text-sm text-gray-500">Start Date</p>
-												<p className="font-medium text-gray-900">
+												<p className="text-sm text-neutral-500">Start Date</p>
+												<p className="font-medium text-neutral-900">
 													{formatDate(order.start_date)}
 												</p>
 											</div>
 										</div>
 										<div className="flex items-start gap-3">
-											<Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
+											<Calendar className="w-5 h-5 text-neutral-400 mt-0.5" />
 											<div>
-												<p className="text-sm text-gray-500">Completion Date</p>
-												<p className="font-medium text-gray-900">
+												<p className="text-sm text-neutral-500">
+													Completion Date
+												</p>
+												<p className="font-medium text-neutral-900">
 													{formatDate(order.completion_date)}
 												</p>
 											</div>
 										</div>
 										{order.project_lead && (
 											<div className="flex items-start gap-3">
-												<User className="w-5 h-5 text-gray-400 mt-0.5" />
+												<User className="w-5 h-5 text-neutral-400 mt-0.5" />
 												<div>
-													<p className="text-sm text-gray-500">Project Lead</p>
-													<p className="font-medium text-gray-900">
+													<p className="text-sm text-neutral-500">
+														Project Lead
+													</p>
+													<p className="font-medium text-neutral-900">
 														{order.project_lead.full_name}
 													</p>
 												</div>
 											</div>
 										)}
 										<div className="flex items-start gap-3">
-											<Clock className="w-5 h-5 text-gray-400 mt-0.5" />
+											<Clock className="w-5 h-5 text-neutral-400 mt-0.5" />
 											<div>
-												<p className="text-sm text-gray-500">Last Updated</p>
-												<p className="font-medium text-gray-900">
+												<p className="text-sm text-neutral-500">Last Updated</p>
+												<p className="font-medium text-neutral-900">
 													{formatDateTime(order.updated_at)}
 												</p>
 											</div>
@@ -6719,33 +6753,33 @@ function OrderDetailPage() {
 								{/* Work Summary */}
 								{teamMembers?.length || attendanceLogs?.length ? (
 									<div className="bg-white rounded-lg border shadow-sm p-6">
-										<h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+										<h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
 											<ClipboardList className="w-5 h-5" />
 											Work Summary
 										</h2>
 										<div className="space-y-4">
 											<div className="flex items-center justify-between">
-												<span className="text-gray-600">Team Size</span>
-												<span className="font-medium text-gray-900">
+												<span className="text-neutral-600">Team Size</span>
+												<span className="font-medium text-neutral-900">
 													{teamMembers?.length || 0} packers
 												</span>
 											</div>
 											<div className="flex items-center justify-between">
-												<span className="text-gray-600">Work Sessions</span>
-												<span className="font-medium text-gray-900">
+												<span className="text-neutral-600">Work Sessions</span>
+												<span className="font-medium text-neutral-900">
 													{attendanceLogs?.length || 0}
 												</span>
 											</div>
 											<div className="flex items-center justify-between">
-												<span className="text-gray-600">Work Days</span>
-												<span className="font-medium text-gray-900">
+												<span className="text-neutral-600">Work Days</span>
+												<span className="font-medium text-neutral-900">
 													{new Set(attendanceLogs?.map((l) => l.log_date))
 														.size || 0}
 												</span>
 											</div>
 											<div className="flex items-center justify-between">
-												<span className="text-gray-600">Total Hours</span>
-												<span className="font-medium text-gray-900">
+												<span className="text-neutral-600">Total Hours</span>
+												<span className="font-medium text-neutral-900">
 													{attendanceLogs
 														?.filter((l) => l.start_time && l.end_time)
 														.reduce((sum, l) => {
@@ -6762,13 +6796,13 @@ function OrderDetailPage() {
 								) : null}
 
 								{/* Danger Zone */}
-								<div className="bg-white rounded-lg border border-red-200 shadow-sm p-6 flex flex-col gap-6">
+								<div className="bg-white rounded-lg border border-danger-200 shadow-sm p-6 flex flex-col gap-6">
 									<div>
-										<h2 className="text-lg font-semibold text-red-700 mb-2 flex items-center gap-2">
+										<h2 className="text-lg font-semibold text-danger-700 mb-2 flex items-center gap-2">
 											<AlertTriangle className="w-5 h-5" />
 											Danger Zone
 										</h2>
-										<p className="text-sm text-gray-600 mb-4">
+										<p className="text-sm text-neutral-600 mb-4">
 											Deleting this order removes all related records, including
 											packages, materials, tasks, and manufacturing data.
 										</p>
@@ -6777,7 +6811,7 @@ function OrderDetailPage() {
 											onOpenChange={setDeleteOrderOpen}
 										>
 											<Dialog.Trigger asChild>
-												<button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
+												<button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-danger-600 rounded-lg hover:bg-danger-700">
 													<Trash2 className="w-4 h-4" />
 													Delete Order
 												</button>
@@ -6785,11 +6819,11 @@ function OrderDetailPage() {
 											<Dialog.Portal>
 												<Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
 												<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-50 w-full max-w-2xl p-6">
-													<Dialog.Title className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-														<Trash2 className="w-5 h-5 text-red-600" />
+													<Dialog.Title className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+														<Trash2 className="w-5 h-5 text-danger-600" />
 														Delete Order
 													</Dialog.Title>
-													<Dialog.Description className="text-sm text-gray-500 mt-1">
+													<Dialog.Description className="text-sm text-neutral-500 mt-1">
 														This action is permanent. The following tables will
 														be cleaned up for this order.
 													</Dialog.Description>
@@ -6798,30 +6832,30 @@ function OrderDetailPage() {
 														{deleteOrderTargets.map((target) => (
 															<div
 																key={target}
-																className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
+																className="flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-700"
 															>
-																<span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+																<span className="h-1.5 w-1.5 rounded-full bg-danger-500" />
 																{target}
 															</div>
 														))}
 													</div>
 
 													{deleteOrderError && (
-														<div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+														<div className="mt-4 rounded-lg border border-danger-200 bg-danger-50 p-3 text-sm text-danger-700">
 															{deleteOrderError}
 														</div>
 													)}
 
 													<div className="mt-6 flex justify-end gap-2">
 														<Dialog.Close asChild>
-															<button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
+															<button className="px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100 rounded-lg">
 																Cancel
 															</button>
 														</Dialog.Close>
 														<button
 															onClick={deleteOrderCascade}
 															disabled={deletingOrder}
-															className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
+															className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-danger-600 rounded-lg hover:bg-danger-700 disabled:opacity-50"
 														>
 															{deletingOrder ? (
 																<>
@@ -6841,12 +6875,12 @@ function OrderDetailPage() {
 										</Dialog.Root>
 									</div>
 
-									<div className="pt-6 border-t border-red-100">
-										<h3 className="text-md font-semibold text-red-700 mb-2 flex items-center gap-2">
+									<div className="pt-6 border-t border-danger-100">
+										<h3 className="text-md font-semibold text-danger-700 mb-2 flex items-center gap-2">
 											<RefreshCw className="w-5 h-5" />
 											Regenerate Custom Box References
 										</h3>
-										<p className="text-sm text-gray-600 mb-4">
+										<p className="text-sm text-neutral-600 mb-4">
 											This will loop through all custom boxes in this order,
 											find the matching item in the database, and update their
 											destination and regenerate their IPAC reference.
@@ -6854,7 +6888,7 @@ function OrderDetailPage() {
 										<button
 											onClick={handleRegenerateReferences}
 											disabled={regeneratingReferences}
-											className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
+											className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-danger-600 rounded-lg hover:bg-danger-700 disabled:opacity-50"
 										>
 											{regeneratingReferences ? (
 												<>
@@ -6882,19 +6916,19 @@ function OrderDetailPage() {
 					<Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
 					<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-50 w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
 						<div className="px-6 py-4 border-b flex items-center justify-between">
-							<Dialog.Title className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-								<Sparkles className="w-5 h-5 text-amber-500" />
+							<Dialog.Title className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+								<Sparkles className="w-5 h-5 text-warning-500" />
 								Clean Attendance Issues
 							</Dialog.Title>
-							<Dialog.Close className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-								<X className="w-5 h-5 text-gray-500" />
+							<Dialog.Close className="p-2 hover:bg-neutral-100 rounded-lg transition-colors">
+								<X className="w-5 h-5 text-neutral-500" />
 							</Dialog.Close>
 						</div>
 
 						<div className="flex-1 overflow-auto p-6">
 							{proposedChanges.length > 0 ? (
 								<>
-									<p className="text-sm text-gray-600 mb-4">
+									<p className="text-sm text-neutral-600 mb-4">
 										The following attendance records have issues (missing end
 										times, end times on wrong day, negative hours, or invalid
 										times). Morning shifts will be corrected to 12:00 PM,
@@ -6902,30 +6936,30 @@ function OrderDetailPage() {
 									</p>
 									<div className="overflow-x-auto border rounded-lg">
 										<table className="w-full text-sm">
-											<thead className="bg-gray-50 text-left">
+											<thead className="bg-neutral-50 text-left">
 												<tr>
-													<th className="px-4 py-3 font-semibold text-gray-700">
+													<th className="px-4 py-3 font-semibold text-neutral-700">
 														Packer
 													</th>
-													<th className="px-4 py-3 font-semibold text-gray-700">
+													<th className="px-4 py-3 font-semibold text-neutral-700">
 														Shift
 													</th>
-													<th className="px-4 py-3 font-semibold text-gray-700">
+													<th className="px-4 py-3 font-semibold text-neutral-700">
 														Start
 													</th>
-													<th className="px-4 py-3 font-semibold text-gray-700">
+													<th className="px-4 py-3 font-semibold text-neutral-700">
 														Current End
 													</th>
-													<th className="px-4 py-3 font-semibold text-gray-700">
+													<th className="px-4 py-3 font-semibold text-neutral-700">
 														Hours
 													</th>
-													<th className="px-4 py-3 font-semibold text-green-700">
+													<th className="px-4 py-3 font-semibold text-success-700">
 														New End
 													</th>
-													<th className="px-4 py-3 font-semibold text-green-700">
+													<th className="px-4 py-3 font-semibold text-success-700">
 														New Hours
 													</th>
-													<th className="px-4 py-3 font-semibold text-gray-700 text-center">
+													<th className="px-4 py-3 font-semibold text-neutral-700 text-center">
 														Approve
 													</th>
 												</tr>
@@ -6934,15 +6968,15 @@ function OrderDetailPage() {
 												{proposedChanges.map((change) => (
 													<tr
 														key={change.id}
-														className={change.approved ? "bg-green-50" : ""}
+														className={change.approved ? "bg-success-50" : ""}
 													>
-														<td className="px-4 py-3 font-medium text-gray-900">
+														<td className="px-4 py-3 font-medium text-neutral-900">
 															{change.packerName}
 														</td>
-														<td className="px-4 py-3 text-gray-700 capitalize">
+														<td className="px-4 py-3 text-neutral-700 capitalize">
 															{change.shift}
 														</td>
-														<td className="px-4 py-3 text-gray-700">
+														<td className="px-4 py-3 text-neutral-700">
 															{change.currentStart
 																? new Date(
 																		change.currentStart,
@@ -6952,9 +6986,9 @@ function OrderDetailPage() {
 																	})
 																: "—"}
 														</td>
-														<td className="px-4 py-3 text-gray-700">
+														<td className="px-4 py-3 text-neutral-700">
 															{change.currentEnd ? (
-																<span className="text-red-600">
+																<span className="text-danger-600">
 																	{new Date(change.currentEnd).toLocaleString(
 																		"en-US",
 																		{
@@ -6966,27 +7000,29 @@ function OrderDetailPage() {
 																	)}
 																</span>
 															) : (
-																<span className="text-amber-600">Not set</span>
+																<span className="text-warning-600">
+																	Not set
+																</span>
 															)}
 														</td>
 														<td className="px-4 py-3">
 															<span
 																className={
 																	parseFloat(change.currentHours) > 12
-																		? "text-red-600 font-semibold"
-																		: "text-gray-700"
+																		? "text-danger-600 font-semibold"
+																		: "text-neutral-700"
 																}
 															>
 																{change.currentHours}
 															</span>
 														</td>
-														<td className="px-4 py-3 text-green-700 font-medium">
+														<td className="px-4 py-3 text-success-700 font-medium">
 															{new Date(change.newEnd).toLocaleTimeString(
 																"en-US",
 																{ hour: "2-digit", minute: "2-digit" },
 															)}
 														</td>
-														<td className="px-4 py-3 text-green-700 font-medium">
+														<td className="px-4 py-3 text-success-700 font-medium">
 															{change.newHours}
 														</td>
 														<td className="px-4 py-3 text-center">
@@ -6994,8 +7030,8 @@ function OrderDetailPage() {
 																onClick={() => toggleApproval(change.id)}
 																className={`p-2 rounded-lg transition-colors ${
 																	change.approved
-																		? "bg-green-500 text-white hover:bg-green-600"
-																		: "bg-gray-100 text-gray-400 hover:bg-gray-200"
+																		? "bg-success-500 text-white hover:bg-success-600"
+																		: "bg-neutral-100 text-neutral-400 hover:bg-neutral-200"
 																}`}
 															>
 																<Check className="w-4 h-4" />
@@ -7009,11 +7045,11 @@ function OrderDetailPage() {
 								</>
 							) : (
 								<div className="text-center py-12">
-									<CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
-									<p className="text-gray-700 font-medium">
+									<CheckCircle2 className="w-12 h-12 text-success-500 mx-auto mb-3" />
+									<p className="text-neutral-700 font-medium">
 										All morning attendance records look good!
 									</p>
-									<p className="text-gray-500 text-sm mt-1">
+									<p className="text-neutral-500 text-sm mt-1">
 										No records need cleaning for the selected date.
 									</p>
 								</div>
@@ -7021,15 +7057,15 @@ function OrderDetailPage() {
 						</div>
 
 						{proposedChanges.length > 0 && (
-							<div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-between">
-								<div className="text-sm text-gray-600">
+							<div className="px-6 py-4 border-t bg-neutral-50 flex items-center justify-between">
+								<div className="text-sm text-neutral-600">
 									{proposedChanges.filter((c) => c.approved).length} of{" "}
 									{proposedChanges.length} records selected
 								</div>
 								<div className="flex items-center gap-3">
 									<button
 										onClick={approveAll}
-										className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+										className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors"
 									>
 										Select All
 									</button>
@@ -7039,7 +7075,7 @@ function OrderDetailPage() {
 											applyingChanges ||
 											proposedChanges.filter((c) => c.approved).length === 0
 										}
-										className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+										className="px-4 py-2 text-sm font-medium text-white bg-success-600 rounded-lg hover:bg-success-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 									>
 										{applyingChanges ? (
 											<>

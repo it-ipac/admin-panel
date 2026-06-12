@@ -408,18 +408,20 @@ export function PackagePreviewSection({
 	const tareColumn = shiftColumn("BAB", templateMode);
 
 	return (
-		<div className="rounded-lg border border-gray-200 p-4">
+		<div className="rounded-lg border border-neutral-200 p-4">
 			<div className="flex items-center justify-between mb-3">
 				<div>
-					<p className="text-sm font-semibold text-gray-900">Package preview</p>
-					<p className="text-xs text-gray-500">
+					<p className="text-sm font-semibold text-neutral-900">
+						Package preview
+					</p>
+					<p className="text-xs text-neutral-500">
 						Review each package row from the Calculation sheet.
 					</p>
 				</div>
 				<button
 					type="button"
 					onClick={() => onPackageRemove(pkg.packageNumber)}
-					className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+					className="rounded-md border border-danger-200 bg-danger-50 px-2.5 py-1.5 text-xs font-medium text-danger-700 hover:bg-danger-100"
 				>
 					Remove Box {pkg.packageNumber}
 				</button>
@@ -432,11 +434,11 @@ export function PackagePreviewSection({
 					const isActive = activePackage === index;
 					const tabClass = hasIssues
 						? isActive
-							? "border-red-600 bg-red-50 text-red-700"
-							: "border-red-200 bg-red-50/50 text-red-700"
+							? "border-danger-600 bg-danger-50 text-danger-700"
+							: "border-danger-200 bg-danger-50/50 text-danger-700"
 						: isActive
-							? "border-blue-600 bg-blue-50 text-blue-700"
-							: "border-gray-200 text-gray-600";
+							? "border-primary-600 bg-primary-50 text-primary-700"
+							: "border-neutral-200 text-neutral-600";
 
 					return (
 						<button
@@ -447,7 +449,7 @@ export function PackagePreviewSection({
 						>
 							Box {item.packageNumber}
 							{hasIssues && (
-								<span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] text-white">
+								<span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-600 px-1 text-[10px] text-white">
 									{issueCount}
 								</span>
 							)}
@@ -457,21 +459,21 @@ export function PackagePreviewSection({
 			</div>
 
 			{currentPackageIssueActions.length > 0 && (
-				<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+				<div className="rounded-lg border border-danger-200 bg-danger-50 p-3 text-xs text-danger-700">
 					<p className="font-semibold">Box {pkg.packageNumber} issues</p>
 					<div className="mt-2 space-y-2">
 						{currentPackageIssueActions.map((issue) => (
 							<div
 								key={issue.key}
-								className="flex flex-col gap-2 rounded-md border border-red-200 bg-white p-2 md:flex-row md:items-center md:justify-between"
+								className="flex flex-col gap-2 rounded-md border border-danger-200 bg-white p-2 md:flex-row md:items-center md:justify-between"
 							>
-								<p className="text-[12px] text-red-800">{issue.message}</p>
+								<p className="text-[12px] text-danger-800">{issue.message}</p>
 								<div className="flex items-center gap-1">
 									{issue.targetId && (
 										<button
 											type="button"
 											onClick={() => startIssueNavigationFrom(issue.key)}
-											className="rounded border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100"
+											className="rounded border border-danger-200 bg-danger-50 px-2 py-1 text-[11px] font-medium text-danger-700 hover:bg-danger-100"
 										>
 											Go to issue
 										</button>
@@ -483,10 +485,10 @@ export function PackagePreviewSection({
 				</div>
 			)}
 
-			<div className="space-y-3 text-xs text-gray-700">
+			<div className="space-y-3 text-xs text-neutral-700">
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 					<div>
-						<p className="text-xs text-gray-500">Quantity (col A)</p>
+						<p className="text-xs text-neutral-500">Quantity (col A)</p>
 						<NumberInput
 							inputId={getPackageInputId(pkg.packageNumber, "quantity")}
 							value={pkg.quantity}
@@ -495,14 +497,14 @@ export function PackagePreviewSection({
 							}
 						/>
 						{!isQuantityValid && (
-							<p className="mt-1 text-xs text-red-600">
+							<p className="mt-1 text-xs text-danger-600">
 								Quantity must be a positive whole number. Update it or remove
 								this package.
 							</p>
 						)}
 					</div>
 					<div>
-						<p className="text-xs text-gray-500">Destination</p>
+						<p className="text-xs text-neutral-500">Destination</p>
 						<input
 							type="text"
 							value={pkg.destination || ""}
@@ -514,11 +516,11 @@ export function PackagePreviewSection({
 								)
 							}
 							placeholder="e.g. MZC"
-							className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+							className="mt-1 w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary-500"
 						/>
 					</div>
 					<div>
-						<p className="text-xs text-gray-500">
+						<p className="text-xs text-neutral-500">
 							Box type (col {boxTypeColumn})
 						</p>
 						<input
@@ -532,10 +534,10 @@ export function PackagePreviewSection({
 									event.target.value,
 								)
 							}
-							className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+							className="mt-1 w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary-500"
 						/>
 						{!pkg.boxTypeResolved && (
-							<p className="mt-1 text-xs text-amber-600">
+							<p className="mt-1 text-xs text-warning-600">
 								Not found in box types.
 							</p>
 						)}
@@ -543,7 +545,7 @@ export function PackagePreviewSection({
 					{isV54Template ? (
 						<>
 							<div>
-								<p className="text-xs text-gray-500">
+								<p className="text-xs text-neutral-500">
 									SEI category (col {seiCategoryColumn})
 								</p>
 								<select
@@ -556,7 +558,7 @@ export function PackagePreviewSection({
 											raw ? Number(raw) : null,
 										);
 									}}
-									className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+									className="mt-1 w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary-500"
 								>
 									<option value="">Select SEI category...</option>
 									{pkg.seiCategoryOptions.map((option) => (
@@ -565,12 +567,12 @@ export function PackagePreviewSection({
 										</option>
 									))}
 								</select>
-								<p className="mt-1 text-[11px] text-gray-500">
+								<p className="mt-1 text-[11px] text-neutral-500">
 									From table: sei_categories
 								</p>
 							</div>
 							<div>
-								<p className="text-xs text-gray-500">
+								<p className="text-xs text-neutral-500">
 									SEI protection (col {seiProtectionColumn})
 								</p>
 								<select
@@ -583,7 +585,7 @@ export function PackagePreviewSection({
 											raw ? Number(raw) : null,
 										);
 									}}
-									className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+									className="mt-1 w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary-500"
 								>
 									<option value="">Select SEI protection...</option>
 									{pkg.seiProtectionOptions.map((option) => (
@@ -592,11 +594,11 @@ export function PackagePreviewSection({
 										</option>
 									))}
 								</select>
-								<p className="mt-1 text-[11px] text-gray-500">
+								<p className="mt-1 text-[11px] text-neutral-500">
 									From table: sei_protection
 								</p>
 								{!pkg.packingTypeResolved && (
-									<p className="mt-1 text-xs text-amber-600">
+									<p className="mt-1 text-xs text-warning-600">
 										Select both SEI category and SEI protection.
 									</p>
 								)}
@@ -606,7 +608,7 @@ export function PackagePreviewSection({
 										onClick={() =>
 											onPackingTypeOptionsToggle(pkg.packageNumber)
 										}
-										className="mt-1 text-[11px] text-blue-600 hover:text-blue-700"
+										className="mt-1 text-[11px] text-primary-600 hover:text-primary-700"
 									>
 										{pkg.showAllPackingOptions
 											? "Show matched options"
@@ -618,7 +620,7 @@ export function PackagePreviewSection({
 					) : (
 						<>
 							<div>
-								<p className="text-xs text-gray-500">
+								<p className="text-xs text-neutral-500">
 									Packing type (col {packingTypeColumn})
 								</p>
 								<select
@@ -627,7 +629,7 @@ export function PackagePreviewSection({
 									onChange={(event) =>
 										onPackingTypeChange(pkg.packageNumber, event.target.value)
 									}
-									className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+									className="mt-1 w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary-500"
 								>
 									<option value="">Select packing type...</option>
 									{pkg.packingTypeOptions?.map((option) => (
@@ -637,7 +639,7 @@ export function PackagePreviewSection({
 									))}
 								</select>
 								{!pkg.packingTypeResolved && (
-									<p className="mt-1 text-xs text-amber-600">
+									<p className="mt-1 text-xs text-warning-600">
 										Not matched. Select a packing type.
 									</p>
 								)}
@@ -647,7 +649,7 @@ export function PackagePreviewSection({
 										onClick={() =>
 											onPackingTypeOptionsToggle(pkg.packageNumber)
 										}
-										className="mt-1 text-[11px] text-blue-600 hover:text-blue-700"
+										className="mt-1 text-[11px] text-primary-600 hover:text-primary-700"
 									>
 										{pkg.showAllPackingOptions
 											? "Show matched options"
@@ -656,7 +658,7 @@ export function PackagePreviewSection({
 								)}
 							</div>
 							<div>
-								<p className="text-xs text-gray-500">Packing type raw</p>
+								<p className="text-xs text-neutral-500">Packing type raw</p>
 								<input
 									type="text"
 									value={pkg.packingTypeRaw || ""}
@@ -667,7 +669,7 @@ export function PackagePreviewSection({
 											event.target.value,
 										)
 									}
-									className="mt-1 w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+									className="mt-1 w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary-500"
 								/>
 							</div>
 						</>
@@ -676,7 +678,7 @@ export function PackagePreviewSection({
 
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 					<div>
-						<p className="text-xs text-gray-500">Item designation (col B)</p>
+						<p className="text-xs text-neutral-500">Item designation (col B)</p>
 						<input
 							id={getPackageInputId(pkg.packageNumber, "designation")}
 							type="text"
@@ -690,48 +692,48 @@ export function PackagePreviewSection({
 							}
 							className={`mt-1 w-full px-2 py-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 ${
 								isUnmatchedItem
-									? "border-red-300 bg-red-50 focus:ring-red-500"
+									? "border-danger-300 bg-danger-50 focus:ring-danger-500"
 									: isMatchedItem
-										? "border-green-300 bg-green-50 focus:ring-green-500"
-										: "border-gray-300 focus:ring-blue-500"
+										? "border-success-300 bg-success-50 focus:ring-success-500"
+										: "border-neutral-300 focus:ring-primary-500"
 							}`}
 						/>
 						{isMatchedItem && (
-							<p className="mt-1 text-xs text-green-700">
+							<p className="mt-1 text-xs text-success-700">
 								Linked to client item: {itemMatchState?.matchedItemNumber}
 							</p>
 						)}
 						{isUnmatchedItem && (
-							<p className="mt-1 text-xs text-red-700">
+							<p className="mt-1 text-xs text-danger-700">
 								Not found in client items DB. Keep as normal package item, edit
 								and fetch again, or clear this field.
 							</p>
 						)}
 					</div>
 					<div>
-						<p className="text-xs text-gray-500">Static ID (Reference)</p>
+						<p className="text-xs text-neutral-500">Static ID (Reference)</p>
 						<input
 							type="text"
 							readOnly
 							value={pkg.ipacReference || ""}
-							className="mt-1 w-full px-2 py-1.5 border border-gray-200 bg-gray-50 rounded-lg text-xs text-gray-600 focus:outline-none"
+							className="mt-1 w-full px-2 py-1.5 border border-neutral-200 bg-neutral-50 rounded-lg text-xs text-neutral-600 focus:outline-none"
 						/>
-						<p className="mt-1 text-[10px] text-gray-400">
+						<p className="mt-1 text-[10px] text-neutral-400">
 							Generated based on destination, tag, and box number/item number.
 						</p>
 					</div>
 				</div>
 
 				{numericQuantity > 1 && isQuantityValid && (
-					<div className="pt-3 border-t border-gray-100">
+					<div className="pt-3 border-t border-neutral-100">
 						<div className="flex items-center justify-between mb-2">
-							<p className="text-xs font-semibold text-gray-700">
+							<p className="text-xs font-semibold text-neutral-700">
 								Per-Box Destination Overrides ({numericQuantity} boxes)
 							</p>
 							<button
 								type="button"
 								onClick={() => setShowInstanceOverrides(!showInstanceOverrides)}
-								className="text-[11px] text-blue-600 hover:text-blue-700 font-medium"
+								className="text-[11px] text-primary-600 hover:text-primary-700 font-medium"
 							>
 								{showInstanceOverrides
 									? "Hide details"
@@ -740,8 +742,8 @@ export function PackagePreviewSection({
 						</div>
 
 						{showInstanceOverrides && (
-							<div className="bg-gray-50 rounded-lg p-3 space-y-2 border border-gray-200">
-								<p className="text-[11px] text-gray-500 mb-2 italic">
+							<div className="bg-neutral-50 rounded-lg p-3 space-y-2 border border-neutral-200">
+								<p className="text-[11px] text-neutral-500 mb-2 italic">
 									Use these fields if some boxes in this set go to a different
 									destination than "{pkg.destination || "the default"}".
 								</p>
@@ -756,7 +758,7 @@ export function PackagePreviewSection({
 											>
 												<label
 													htmlFor={`instance-dest-${pkg.packageNumber}-${instanceNum}`}
-													className="text-[10px] font-medium text-gray-600"
+													className="text-[10px] font-medium text-neutral-600"
 												>
 													Box #{instanceNum} Destination
 												</label>
@@ -772,7 +774,7 @@ export function PackagePreviewSection({
 														)
 													}
 													placeholder={pkg.destination || "Destination"}
-													className="w-full px-2 py-1.5 border border-gray-300 rounded text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+													className="w-full px-2 py-1.5 border border-neutral-300 rounded text-[11px] focus:outline-none focus:ring-1 focus:ring-primary-500"
 												/>
 											</div>
 										);
@@ -785,19 +787,19 @@ export function PackagePreviewSection({
 
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 					<div>
-						<p className="text-xs text-gray-500">
+						<p className="text-xs text-neutral-500">
 							Item dimensions ({itemDimColumns})
 						</p>
 						{renderDimensionInputs(pkg, "item", onPackageFieldChange)}
 					</div>
 					<div>
-						<p className="text-xs text-gray-500">
+						<p className="text-xs text-neutral-500">
 							Internal dimensions ({internalDimColumns})
 						</p>
 						{renderDimensionInputs(pkg, "internal", onPackageFieldChange)}
 					</div>
 					<div>
-						<p className="text-xs text-gray-500">
+						<p className="text-xs text-neutral-500">
 							External dimensions ({externalDimColumns})
 						</p>
 						{renderDimensionInputs(pkg, "external", onPackageFieldChange)}
@@ -806,7 +808,7 @@ export function PackagePreviewSection({
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 					<div>
-						<p className="text-xs text-gray-500">
+						<p className="text-xs text-neutral-500">
 							Net weight ({netWeightColumn})
 						</p>
 						<NumberInput
@@ -817,7 +819,7 @@ export function PackagePreviewSection({
 						/>
 					</div>
 					<div>
-						<p className="text-xs text-gray-500">Tare ({tareColumn})</p>
+						<p className="text-xs text-neutral-500">Tare ({tareColumn})</p>
 						<NumberInput
 							value={pkg.tare}
 							onChange={(value) =>
@@ -826,8 +828,8 @@ export function PackagePreviewSection({
 						/>
 					</div>
 					<div>
-						<p className="text-xs text-gray-500">Gross (net + tare)</p>
-						<p className="font-medium text-gray-900 mt-2">
+						<p className="text-xs text-neutral-500">Gross (net + tare)</p>
+						<p className="font-medium text-neutral-900 mt-2">
 							{formatNumber(pkg.grossWeight)}
 						</p>
 					</div>
@@ -835,9 +837,9 @@ export function PackagePreviewSection({
 
 				<div
 					id={getPackageInputId(pkg.packageNumber, "manufacturing")}
-					className="pt-3 border-t border-gray-100"
+					className="pt-3 border-t border-neutral-100"
 				>
-					<p className="text-xs font-semibold text-gray-700 mb-2">
+					<p className="text-xs font-semibold text-neutral-700 mb-2">
 						Manufacturing (securing)
 					</p>
 					<ManufacturingSectionsPanel
@@ -852,8 +854,8 @@ export function PackagePreviewSection({
 					/>
 				</div>
 
-				<div className="pt-3 border-t border-gray-100">
-					<p className="text-xs font-semibold text-gray-700 mb-2">
+				<div className="pt-3 border-t border-neutral-100">
+					<p className="text-xs font-semibold text-neutral-700 mb-2">
 						Securing materials
 					</p>
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -878,15 +880,15 @@ export function PackagePreviewSection({
 								</div>
 							))
 						) : (
-							<p className="text-xs text-gray-500">
+							<p className="text-xs text-neutral-500">
 								No securing materials detected.
 							</p>
 						)}
 					</div>
 				</div>
 
-				<div className="pt-3 border-t border-gray-100">
-					<p className="text-xs font-semibold text-gray-700 mb-2">
+				<div className="pt-3 border-t border-neutral-100">
+					<p className="text-xs font-semibold text-neutral-700 mb-2">
 						Accessories
 					</p>
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -909,7 +911,9 @@ export function PackagePreviewSection({
 								</div>
 							))
 						) : (
-							<p className="text-xs text-gray-500">No accessories detected.</p>
+							<p className="text-xs text-neutral-500">
+								No accessories detected.
+							</p>
 						)}
 					</div>
 				</div>

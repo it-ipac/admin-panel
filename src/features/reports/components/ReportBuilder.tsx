@@ -52,6 +52,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 		destinations: [],
 		hasItemsOnly: false,
 		packedOnly: true,
+		statusFilter: null,
+		photosFirst: false,
 		splitBy: "none",
 		orderSort: "name",
 		boxId: null,
@@ -299,28 +301,28 @@ thead tr, thead th {
 		}));
 
 	return (
-		<div className="flex h-screen bg-gray-100 overflow-hidden">
+		<div className="flex h-screen bg-neutral-100 overflow-hidden">
 			{/* ─── Left Control Panel ─── */}
 			{panelOpen && (
 				<div className="w-[340px] flex flex-col bg-white border-r shadow-sm shrink-0">
 					{/* Panel header */}
-					<div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
+					<div className="flex items-center justify-between px-4 py-3 border-b bg-neutral-50">
 						<div className="flex items-center gap-2">
 							<button
 								type="button"
 								onClick={onBack}
-								className="text-gray-400 hover:text-gray-700 transition-colors p-1 rounded"
+								className="text-neutral-400 hover:text-neutral-700 transition-colors p-1 rounded"
 							>
 								<ChevronLeft className="w-4 h-4" />
 							</button>
-							<span className="text-sm font-semibold text-gray-800">
+							<span className="text-sm font-semibold text-neutral-800">
 								Report Builder
 							</span>
 						</div>
 						<button
 							type="button"
 							onClick={() => setPanelOpen(false)}
-							className="text-gray-400 hover:text-gray-700 p-1 rounded"
+							className="text-neutral-400 hover:text-neutral-700 p-1 rounded"
 						>
 							<PanelLeftClose className="w-4 h-4" />
 						</button>
@@ -335,8 +337,8 @@ thead tr, thead th {
 								onClick={() => setActiveTab(id)}
 								className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors border-b-2 ${
 									activeTab === id
-										? "border-blue-600 text-blue-600"
-										: "border-transparent text-gray-500 hover:text-gray-800"
+										? "border-primary-600 text-primary-600"
+										: "border-transparent text-neutral-500 hover:text-neutral-800"
 								}`}
 							>
 								<Icon className="w-3.5 h-3.5" />
@@ -382,14 +384,14 @@ thead tr, thead th {
 					<div className="px-4 py-3 border-t flex flex-col gap-2 shrink-0">
 						<button
 							type="button"
-							className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm font-medium transition-colors"
+							className="w-full py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded text-sm font-medium transition-colors"
 						>
 							Save as Template
 						</button>
 						<button
 							type="button"
 							onClick={handlePrint}
-							className="w-full py-2 bg-blue-700 hover:bg-blue-800 text-white rounded text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+							className="w-full py-2 bg-primary-700 hover:bg-primary-800 text-white rounded text-sm font-semibold transition-colors flex items-center justify-center gap-2"
 						>
 							<Printer className="w-4 h-4" />
 							Print / Save PDF
@@ -406,12 +408,12 @@ thead tr, thead th {
 						<button
 							type="button"
 							onClick={() => setPanelOpen(true)}
-							className="text-gray-500 hover:text-gray-800 p-1.5 rounded hover:bg-gray-100 transition-colors"
+							className="text-neutral-500 hover:text-neutral-800 p-1.5 rounded hover:bg-neutral-100 transition-colors"
 						>
 							<PanelLeftOpen className="w-4 h-4" />
 						</button>
 					)}
-					<span className="text-sm font-medium text-gray-500 mr-auto">
+					<span className="text-sm font-medium text-neutral-500 mr-auto">
 						Live Preview
 					</span>
 
@@ -419,7 +421,7 @@ thead tr, thead th {
 					<button
 						type="button"
 						onClick={toggleOrientation}
-						className="text-xs px-3 py-1.5 rounded border border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-700 transition-colors"
+						className="text-xs px-3 py-1.5 rounded border border-neutral-300 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 transition-colors"
 					>
 						{displaySettings.orientation === "portrait"
 							? "↔ Landscape"
@@ -429,7 +431,7 @@ thead tr, thead th {
 					<button
 						type="button"
 						onClick={handlePrint}
-						className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+						className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-primary-600 hover:bg-primary-700 text-white transition-colors"
 					>
 						<Printer className="w-3.5 h-3.5" />
 						Print

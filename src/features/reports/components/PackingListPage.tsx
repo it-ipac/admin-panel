@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Camera, Info, Trash2 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { supabase } from "../../../lib/supabase";
 import { getSignatureUrl, type SignatureRow } from "../hooks/useSignatures";
 import type {
@@ -189,6 +190,61 @@ const CameraIndicator: React.FC<{
 	);
 };
 
+/**
+ * Preview-only status chip for boxes that are NOT marked packed. Helps the
+ * admin spot boxes that have photos/items but were never marked packed by
+ * the packer. Excluded from the printed PDF via no-print.
+ */
+const STATUS_CHIP: Record<string, { label: string; bg: string; fg: string }> = {
+	design: { label: "design", bg: "#f3f4f6", fg: "#4b5563" },
+	approved: { label: "approved", bg: "#e0e7ff", fg: "#4338ca" },
+	in_production: { label: "in prod", bg: "#ffedd5", fg: "#9a3412" },
+};
+
+const StatusIndicator: React.FC<{
+	inst: ReportInstanceData;
+	style?: React.CSSProperties;
+}> = ({ inst, style }) => {
+	const chip = STATUS_CHIP[inst.status];
+	if (!chip) return null; // packed (or unknown) → no chip
+
+	const hasPics =
+		(inst.box_photo_urls?.length ?? 0) > 0 ||
+		inst.pkd_items?.some((i) => (i.photo_urls?.length ?? 0) > 0);
+	const hasItems = (inst.pkd_items?.length ?? 0) > 0;
+	const suspicious = hasPics || hasItems;
+
+	return (
+		<span
+			className="no-print"
+			title={
+				suspicious
+					? `Status: ${inst.status.replace("_", " ")} — this box already has ${[hasItems ? "items" : "", hasPics ? "photos" : ""].filter(Boolean).join(" and ")}; the packer may have forgotten to mark it as packed.`
+					: `Status: ${inst.status.replace("_", " ")}`
+			}
+			style={{
+				display: "inline-flex",
+				alignItems: "center",
+				gap: "3px",
+				backgroundColor: chip.bg,
+				color: chip.fg,
+				fontSize: "9px",
+				fontWeight: 700,
+				lineHeight: 1,
+				padding: "3px 6px",
+				borderRadius: "9999px",
+				textTransform: "uppercase",
+				letterSpacing: "0.04em",
+				whiteSpace: "nowrap",
+				...style,
+			}}
+		>
+			{suspicious ? "⚠ " : ""}
+			{chip.label}
+		</span>
+	);
+};
+
 export const PackingListPage = React.forwardRef<
 	HTMLDivElement,
 	PackingListPageProps
@@ -300,12 +356,16 @@ export const PackingListPage = React.forwardRef<
 			queryClient.invalidateQueries({ queryKey: ["report_instances"] });
 		};
 
-		const handleDeleteBox = async (inst: ReportInstanceData) => {
-			const confirmed = window.confirm(
-				`Are you sure you want to completely remove Box ${inst.package_number} and all its packed items? This action cannot be undone.`,
-			);
-			if (!confirmed) return;
+		const [deleteBoxTarget, setDeleteBoxTarget] =
+			useState<ReportInstanceData | null>(null);
+		const [isDeletingBox, setIsDeletingBox] = useState(false);
 
+		const handleDeleteBox = (inst: ReportInstanceData) => {
+			setDeleteBoxTarget(inst);
+		};
+
+		const performDeleteBox = async (inst: ReportInstanceData) => {
+			setIsDeletingBox(true);
 			try {
 				// 1. Fetch pkd_items to update items_db packed_qty counters
 				const { data: pkdItems, error: fetchPkdError } = await supabase
@@ -382,6 +442,9 @@ export const PackingListPage = React.forwardRef<
 			} catch (err: any) {
 				console.error("Failed to delete box instance:", err);
 				alert(err.message || "Failed to delete box instance");
+			} finally {
+				setIsDeletingBox(false);
+				setDeleteBoxTarget(null);
 			}
 		};
 		const baseFontSize = display.font_size_px
@@ -1902,6 +1965,7 @@ export const PackingListPage = React.forwardRef<
 															alignItems: "center",
 														}}
 													>
+														<StatusIndicator inst={inst} />
 														{/* biome-ignore lint/a11y/noStaticElementInteractions: navigation button */}
 														<div
 															className="glass-circle glass-info"
@@ -1975,6 +2039,17 @@ export const PackingListPage = React.forwardRef<
 												pointerEvents: "none",
 											}}
 										>
+											{/* Status chip (left of action circles) */}
+											<StatusIndicator
+												inst={inst}
+												style={{
+													position: "absolute",
+													top: "-14px",
+													right: hasPics ? "96px" : "56px",
+													zIndex: 50,
+													pointerEvents: "auto",
+												}}
+											/>
 											{/* Info Circle (Blue) */}
 											{/* biome-ignore lint/a11y/noStaticElementInteractions: navigation button */}
 											<div
@@ -3300,6 +3375,20 @@ export const PackingListPage = React.forwardRef<
 						)}
 					</div>
 				</div>
+
+				<ConfirmDialog
+					open={deleteBoxTarget !== null}
+					onOpenChange={(open) => {
+						if (!open) setDeleteBoxTarget(null);
+					}}
+					title={`Remove Box ${deleteBoxTarget?.package_number ?? ""}?`}
+					description="This will completely remove the box and all its packed items. This action cannot be undone."
+					confirmText="Delete box"
+					pending={isDeletingBox}
+					onConfirm={() => {
+						if (deleteBoxTarget) performDeleteBox(deleteBoxTarget);
+					}}
+				/>
 			</div>
 		);
 	},

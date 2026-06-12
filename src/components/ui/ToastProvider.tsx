@@ -41,17 +41,17 @@ export function useToastContext(): ToastContextValue {
 // ─── Variant styles ───────────────────────────────────────────────────────────
 
 const variantClasses: Record<ToastVariant, string> = {
-	success: "border-l-4 border-green-500 bg-white",
-	error: "border-l-4 border-red-500 bg-white",
-	warning: "border-l-4 border-yellow-500 bg-white",
-	info: "border-l-4 border-blue-500 bg-white",
+	success: "border-l-4 border-success-500 bg-white",
+	error: "border-l-4 border-danger-500 bg-white",
+	warning: "border-l-4 border-warning-500 bg-white",
+	info: "border-l-4 border-primary-500 bg-white",
 };
 
 const variantTitleClasses: Record<ToastVariant, string> = {
-	success: "text-green-700",
-	error: "text-red-700",
-	warning: "text-yellow-700",
-	info: "text-blue-700",
+	success: "text-success-700",
+	error: "text-danger-700",
+	warning: "text-warning-700",
+	info: "text-primary-700",
 };
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -106,14 +106,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 								{t.title}
 							</RadixToast.Title>
 							{t.description && (
-								<RadixToast.Description className="mt-0.5 text-xs text-gray-600">
+								<RadixToast.Description className="mt-0.5 text-xs text-neutral-600">
 									{t.description}
 								</RadixToast.Description>
 							)}
 						</div>
 						<RadixToast.Close
 							onClick={() => dismiss(t.id)}
-							className="text-gray-400 hover:text-gray-600 shrink-0 mt-0.5"
+							className="text-neutral-400 hover:text-neutral-600 shrink-0 mt-0.5"
 						>
 							<X className="w-4 h-4" />
 						</RadixToast.Close>

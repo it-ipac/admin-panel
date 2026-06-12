@@ -46,15 +46,15 @@ class InventoryDuplicatesErrorBoundary extends Component<
 	render() {
 		if (this.state.hasError) {
 			return (
-				<div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-					<div className="bg-white border border-red-100 rounded-xl shadow-sm p-6 max-w-lg w-full">
-						<h1 className="text-lg font-semibold text-red-600">
+				<div className="min-h-screen flex items-center justify-center bg-neutral-50 p-6">
+					<div className="bg-white border border-danger-100 rounded-xl shadow-sm p-6 max-w-lg w-full">
+						<h1 className="text-lg font-semibold text-danger-600">
 							Page failed to load
 						</h1>
-						<p className="text-sm text-gray-600 mt-2">
+						<p className="text-sm text-neutral-600 mt-2">
 							{this.state.errorMessage}
 						</p>
-						<p className="text-xs text-gray-400 mt-3">
+						<p className="text-xs text-neutral-400 mt-3">
 							Check the browser console for details.
 						</p>
 					</div>
@@ -419,8 +419,8 @@ function InventoryDuplicatesPage() {
 	if (authLoading) {
 		return (
 			<InventoryDuplicatesErrorBoundary>
-				<div className="min-h-screen flex items-center justify-center bg-gray-50">
-					<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+				<div className="min-h-screen flex items-center justify-center bg-neutral-50">
+					<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
 				</div>
 			</InventoryDuplicatesErrorBoundary>
 		);
@@ -428,16 +428,16 @@ function InventoryDuplicatesPage() {
 
 	return (
 		<InventoryDuplicatesErrorBoundary>
-			<div className="flex h-screen bg-gray-50">
+			<div className="flex h-screen bg-neutral-50">
 				<Sidebar />
 				<main className="flex-1 overflow-y-auto">
 					<div className="p-8">
 						<div className="flex items-center justify-between mb-8">
 							<div>
-								<h1 className="text-2xl font-bold text-gray-900">
+								<h1 className="text-2xl font-bold text-neutral-900">
 									Material Variant Duplicates
 								</h1>
-								<p className="text-gray-500 mt-1">
+								<p className="text-neutral-500 mt-1">
 									Merge duplicates by redirecting references to a single
 									variant.
 								</p>
@@ -445,7 +445,7 @@ function InventoryDuplicatesPage() {
 							<div className="flex items-center gap-3">
 								<button
 									onClick={() => refetch()}
-									className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+									className="flex items-center gap-2 px-4 py-2.5 bg-white border border-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors"
 								>
 									<RefreshCw
 										className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`}
@@ -454,7 +454,7 @@ function InventoryDuplicatesPage() {
 								</button>
 								<Link
 									to="/inventory"
-									className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+									className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
 								>
 									<Copy className="w-4 h-4" />
 									Back to Inventory
@@ -462,13 +462,13 @@ function InventoryDuplicatesPage() {
 							</div>
 						</div>
 
-						<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+						<div className="bg-white rounded-xl shadow-sm border border-neutral-100 p-4 mb-6">
 							<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 								<div>
-									<p className="text-sm font-medium text-gray-700">
+									<p className="text-sm font-medium text-neutral-700">
 										Duplicate groups
 									</p>
-									<p className="text-xs text-gray-500">
+									<p className="text-xs text-neutral-500">
 										Grouped by variant name only.
 									</p>
 								</div>
@@ -478,7 +478,7 @@ function InventoryDuplicatesPage() {
 										placeholder="Search duplicates..."
 										value={search}
 										onChange={(event) => setSearch(event.target.value)}
-										className="w-full pl-4 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+										className="w-full pl-4 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
 									/>
 								</div>
 							</div>
@@ -486,25 +486,25 @@ function InventoryDuplicatesPage() {
 
 						{isLoading ? (
 							<div className="flex items-center justify-center py-12">
-								<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+								<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
 							</div>
 						) : error ? (
-							<div className="bg-white rounded-xl shadow-sm border border-red-100 p-6 text-red-600 flex items-start gap-3">
+							<div className="bg-white rounded-xl shadow-sm border border-danger-100 p-6 text-danger-600 flex items-start gap-3">
 								<AlertTriangle className="w-5 h-5 mt-0.5" />
 								<div>
 									<p className="font-semibold">Failed to load duplicates</p>
-									<p className="text-sm text-red-500">
+									<p className="text-sm text-danger-500">
 										{(error as Error).message}
 									</p>
 								</div>
 							</div>
 						) : duplicateGroups.length === 0 ? (
-							<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-10 text-center">
-								<CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
-								<p className="text-gray-700 font-medium">
+							<div className="bg-white rounded-xl shadow-sm border border-neutral-100 p-10 text-center">
+								<CheckCircle2 className="w-10 h-10 text-success-500 mx-auto mb-3" />
+								<p className="text-neutral-700 font-medium">
 									No duplicates found.
 								</p>
-								<p className="text-sm text-gray-500">You are all set!</p>
+								<p className="text-sm text-neutral-500">You are all set!</p>
 							</div>
 						) : (
 							<div className="space-y-6">
@@ -518,22 +518,22 @@ function InventoryDuplicatesPage() {
 									return (
 										<div
 											key={group.key}
-											className="bg-white rounded-xl shadow-sm border border-gray-100"
+											className="bg-white rounded-xl shadow-sm border border-neutral-100"
 										>
-											<div className="flex flex-col gap-2 px-6 py-4 border-b border-gray-100 md:flex-row md:items-center md:justify-between">
+											<div className="flex flex-col gap-2 px-6 py-4 border-b border-neutral-100 md:flex-row md:items-center md:justify-between">
 												<div>
-													<h2 className="text-lg font-semibold text-gray-900">
+													<h2 className="text-lg font-semibold text-neutral-900">
 														{group.variantName || "—"}
 													</h2>
-													<p className="text-sm text-gray-500">
+													<p className="text-sm text-neutral-500">
 														Material: {group.materialName}
 													</p>
-													<p className="text-xs text-gray-400">
+													<p className="text-xs text-neutral-400">
 														{group.dimensions} · Unit: {group.unitName}
 													</p>
 												</div>
 												<div className="flex items-center gap-3">
-													<div className="text-xs text-gray-500">
+													<div className="text-xs text-neutral-500">
 														{group.variants.length} variants · {totalToMove}{" "}
 														references to move
 													</div>
@@ -542,7 +542,7 @@ function InventoryDuplicatesPage() {
 															setMergeTarget(group);
 															setMergeError(null);
 														}}
-														className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+														className="flex items-center gap-2 px-4 py-2 bg-danger-50 text-danger-700 rounded-lg hover:bg-danger-100 transition-colors"
 														disabled={deleteIds.length === 0}
 													>
 														<Trash2 className="w-4 h-4" />
@@ -589,39 +589,39 @@ function InventoryDuplicatesPage() {
 																		/>
 																	</label>
 																</td>
-																<td className="font-mono text-xs text-gray-600">
+																<td className="font-mono text-xs text-neutral-600">
 																	{shortId(variant.id)}
 																</td>
-																<td className="text-gray-600 max-w-xs truncate">
+																<td className="text-neutral-600 max-w-xs truncate">
 																	{variant.description || "—"}
 																</td>
-																<td className="text-gray-600">
+																<td className="text-neutral-600">
 																	{formatDimensions(variant)}
 																</td>
 																<td>
-																	<span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+																	<span className="px-2 py-1 bg-neutral-100 text-neutral-700 rounded text-xs">
 																		{variant.unit?.name || "—"}
 																	</span>
 																</td>
-																<td className="text-sm text-gray-500">
+																<td className="text-sm text-neutral-500">
 																	{formatDate(variant.created_at)}
 																</td>
-																<td className="text-sm text-gray-600 text-center">
+																<td className="text-sm text-neutral-600 text-center">
 																	{variant.refCounts.orderMaterials}
 																</td>
-																<td className="text-sm text-gray-600 text-center">
+																<td className="text-sm text-neutral-600 text-center">
 																	{variant.refCounts.beams}
 																</td>
-																<td className="text-sm text-gray-600 text-center">
+																<td className="text-sm text-neutral-600 text-center">
 																	{variant.refCounts.pricing}
 																</td>
-																<td className="text-sm text-gray-600 text-center">
+																<td className="text-sm text-neutral-600 text-center">
 																	{variant.refCounts.templates}
 																</td>
-																<td className="text-sm text-gray-600 text-center">
+																<td className="text-sm text-neutral-600 text-center">
 																	{variant.refCounts.tags}
 																</td>
-																<td className="text-sm font-semibold text-gray-700 text-center">
+																<td className="text-sm font-semibold text-neutral-700 text-center">
 																	{variant.refCounts.total}
 																</td>
 															</tr>
@@ -630,9 +630,9 @@ function InventoryDuplicatesPage() {
 												</table>
 											</div>
 											{keepVariant && (
-												<div className="px-6 py-4 border-t border-gray-100 text-sm text-gray-600">
+												<div className="px-6 py-4 border-t border-neutral-100 text-sm text-neutral-600">
 													Keeping:{" "}
-													<span className="font-medium text-gray-900">
+													<span className="font-medium text-neutral-900">
 														{keepVariant.variant_name || "—"}
 													</span>{" "}
 													({shortId(keepVariant.id)})
@@ -649,17 +649,17 @@ function InventoryDuplicatesPage() {
 				{mergeTarget && (
 					<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
 						<div className="bg-white rounded-xl shadow-xl w-full max-w-xl p-6">
-							<h3 className="text-lg font-semibold text-gray-900">
+							<h3 className="text-lg font-semibold text-neutral-900">
 								Merge duplicate variants
 							</h3>
-							<p className="text-sm text-gray-600 mt-2">
+							<p className="text-sm text-neutral-600 mt-2">
 								This will update all references to the selected variant and
 								delete the other duplicates.
 							</p>
-							<div className="mt-4 space-y-2 text-sm text-gray-600">
+							<div className="mt-4 space-y-2 text-sm text-neutral-600">
 								<p>
 									Group:{" "}
-									<span className="font-medium text-gray-900">
+									<span className="font-medium text-neutral-900">
 										{mergeTarget.variantName || "—"}
 									</span>
 								</p>
@@ -668,24 +668,24 @@ function InventoryDuplicatesPage() {
 								<p>Unit: {mergeTarget.unitName}</p>
 								<p>
 									Keep variant:{" "}
-									<span className="font-medium text-gray-900">
+									<span className="font-medium text-neutral-900">
 										{getKeepVariant(mergeTarget)?.variant_name || "—"}
 									</span>
 								</p>
 								<p>
 									Duplicates to delete:{" "}
-									<span className="font-medium text-gray-900">
+									<span className="font-medium text-neutral-900">
 										{getDeleteIds(mergeTarget).length}
 									</span>
 								</p>
 							</div>
 							{mergeError && (
-								<div className="mt-4 text-sm text-red-600">{mergeError}</div>
+								<div className="mt-4 text-sm text-danger-600">{mergeError}</div>
 							)}
 							<div className="flex items-center justify-end gap-3 mt-6">
 								<button
 									onClick={() => setMergeTarget(null)}
-									className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50"
+									className="px-4 py-2 border border-neutral-200 rounded-lg text-neutral-700 hover:bg-neutral-50"
 									disabled={mergeMutation.isPending}
 								>
 									Cancel
@@ -702,7 +702,7 @@ function InventoryDuplicatesPage() {
 										}
 										mergeMutation.mutate({ keepId, deleteIds });
 									}}
-									className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-60"
+									className="px-4 py-2 bg-danger-600 text-white rounded-lg hover:bg-danger-700 disabled:opacity-60"
 									disabled={mergeMutation.isPending}
 								>
 									{mergeMutation.isPending ? "Merging..." : "Confirm merge"}

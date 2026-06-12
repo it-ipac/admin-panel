@@ -11,7 +11,7 @@ export function StatusBadge({ isBlocked, parentLabel }: StatusBadgeProps) {
 			<span
 				className={cn(
 					"inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
-					"bg-gray-100 text-gray-600 border border-gray-200",
+					"bg-neutral-100 text-neutral-600 border border-neutral-200",
 				)}
 				title={
 					parentLabel
@@ -19,7 +19,7 @@ export function StatusBadge({ isBlocked, parentLabel }: StatusBadgeProps) {
 						: "Waiting for parent request approval"
 				}
 			>
-				<span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+				<span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
 				Blocked
 			</span>
 		);
@@ -29,10 +29,10 @@ export function StatusBadge({ isBlocked, parentLabel }: StatusBadgeProps) {
 		<span
 			className={cn(
 				"inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
-				"bg-green-50 text-green-700 border border-green-200",
+				"bg-success-50 text-success-700 border border-success-200",
 			)}
 		>
-			<span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+			<span className="w-1.5 h-1.5 rounded-full bg-success-500" />
 			Ready to review
 		</span>
 	);
@@ -49,9 +49,9 @@ const TYPE_LABELS: Record<RequestTypeBadgeProps["type"], string> = {
 };
 
 const TYPE_CLASSES: Record<RequestTypeBadgeProps["type"], string> = {
-	material: "bg-blue-50 text-blue-700 border-blue-200",
-	material_variant: "bg-purple-50 text-purple-700 border-purple-200",
-	supplier_pricing: "bg-orange-50 text-orange-700 border-orange-200",
+	material: "bg-primary-50 text-primary-700 border-primary-200",
+	material_variant: "bg-accent-50 text-accent-700 border-accent-200",
+	supplier_pricing: "bg-ember-50 text-ember-700 border-ember-200",
 };
 
 export function RequestTypeBadge({ type }: RequestTypeBadgeProps) {
@@ -78,8 +78,8 @@ export function ActionBadge({ action }: ActionBadgeProps) {
 			className={cn(
 				"inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border",
 				isApproved
-					? "bg-green-50 text-green-700 border-green-200"
-					: "bg-red-50 text-red-700 border-red-200",
+					? "bg-success-50 text-success-700 border-success-200"
+					: "bg-danger-50 text-danger-700 border-danger-200",
 			)}
 		>
 			{isApproved ? "Approved" : "Rejected"}

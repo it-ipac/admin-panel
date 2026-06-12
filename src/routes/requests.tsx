@@ -21,7 +21,7 @@ function RequestsRoute() {
 	if (authLoading) return null;
 
 	return (
-		<div className="flex h-screen bg-gray-50">
+		<div className="flex h-screen bg-neutral-50">
 			<Sidebar />
 			<RequestsPage />
 		</div>

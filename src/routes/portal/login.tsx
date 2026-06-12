@@ -84,21 +84,21 @@ function PortalLogin() {
 
 	if (loading) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50">
-				<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+			<div className="min-h-screen flex items-center justify-center bg-neutral-50">
+				<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
 			</div>
 		);
 	}
 
 	return (
-		<div className="auth-bg min-h-screen flex items-center justify-center bg-slate-50 relative overflow-hidden">
+		<div className="auth-bg min-h-screen flex items-center justify-center bg-steel-50 relative overflow-hidden">
 			{/* Brand Decoration */}
-			<div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob" />
-			<div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-slate-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000" />
+			<div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-primary-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob" />
+			<div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-steel-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000" />
 
-			<div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 p-8 relative z-10">
+			<div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-neutral-100 p-8 relative z-10">
 				<div className="text-center mb-10">
-					<div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 text-white shadow-lg mb-6 shadow-blue-600/20">
+					<div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-600 text-white shadow-lg mb-6 shadow-primary-600/20">
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							className="w-8 h-8"
@@ -117,10 +117,10 @@ function PortalLogin() {
 							/>
 						</svg>
 					</div>
-					<h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+					<h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
 						IPAC Client Portal
 					</h1>
-					<p className="text-gray-500 text-sm mt-2 font-medium">
+					<p className="text-neutral-500 text-sm mt-2 font-medium">
 						Log in to track your items and packages.
 					</p>
 				</div>
@@ -129,7 +129,7 @@ function PortalLogin() {
 					<div>
 						<label
 							htmlFor="login-identifier"
-							className="block text-sm font-semibold text-gray-700 mb-2"
+							className="block text-sm font-semibold text-neutral-700 mb-2"
 						>
 							Email Address or Username
 						</label>
@@ -139,14 +139,14 @@ function PortalLogin() {
 							required
 							value={identifier}
 							onChange={(e) => setIdentifier(e.target.value)}
-							className="w-full px-4 py-3 placeholder-gray-400 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow transition-colors bg-gray-50"
+							className="w-full px-4 py-3 placeholder-neutral-400 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow transition-colors bg-neutral-50"
 							placeholder="you@company.com or username"
 						/>
 					</div>
 					<div>
 						<label
 							htmlFor="login-password"
-							className="block text-sm font-semibold text-gray-700 mb-2"
+							className="block text-sm font-semibold text-neutral-700 mb-2"
 						>
 							Password
 						</label>
@@ -156,7 +156,7 @@ function PortalLogin() {
 							required
 							value={password}
 							onChange={(e) => setPassword(e.target.value)}
-							className="w-full px-4 py-3 placeholder-gray-400 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow transition-colors bg-gray-50"
+							className="w-full px-4 py-3 placeholder-neutral-400 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow transition-colors bg-neutral-50"
 							placeholder="••••••••"
 						/>
 					</div>
@@ -164,7 +164,7 @@ function PortalLogin() {
 					<button
 						type="submit"
 						disabled={isSubmitting}
-						className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-md shadow-blue-600/20"
+						className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-xl text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-md shadow-primary-600/20"
 					>
 						{isSubmitting ? (
 							<Loader2 className="w-5 h-5 animate-spin" />
@@ -174,8 +174,8 @@ function PortalLogin() {
 					</button>
 				</form>
 
-				<div className="mt-8 text-center border-t border-gray-100 pt-6">
-					<p className="text-xs text-gray-400 font-medium">
+				<div className="mt-8 text-center border-t border-neutral-100 pt-6">
+					<p className="text-xs text-neutral-400 font-medium">
 						Powered by IPAC Global Packaging
 					</p>
 				</div>

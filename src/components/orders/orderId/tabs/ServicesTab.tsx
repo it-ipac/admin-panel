@@ -31,7 +31,7 @@ export function ServicesTab({
 					{/* Vacuum Packing */}
 					{selectedPackageMaterials.vacuumPacking.length > 0 && (
 						<div className="border rounded-lg overflow-hidden">
-							<div className="bg-purple-50 px-4 py-2 font-semibold text-sm text-purple-700">
+							<div className="bg-accent-50 px-4 py-2 font-semibold text-sm text-accent-700">
 								Vacuum Packing
 							</div>
 							<div className="p-4">
@@ -43,7 +43,7 @@ export function ServicesTab({
 										<span className="font-medium">
 											{material.variant_name || material.material_name}
 										</span>
-										<span className="text-gray-600">
+										<span className="text-neutral-600">
 											{material.quantity} {material.unit_name}
 										</span>
 									</div>
@@ -55,7 +55,7 @@ export function ServicesTab({
 					{/* Gas Packing */}
 					{selectedPackageMaterials.gasPacking.length > 0 && (
 						<div className="border rounded-lg overflow-hidden">
-							<div className="bg-cyan-50 px-4 py-2 font-semibold text-sm text-cyan-700">
+							<div className="bg-aqua-50 px-4 py-2 font-semibold text-sm text-aqua-700">
 								Gas Packing
 							</div>
 							<div className="p-4">
@@ -67,7 +67,7 @@ export function ServicesTab({
 										<span className="font-medium">
 											{material.variant_name || material.material_name}
 										</span>
-										<span className="text-gray-600">
+										<span className="text-neutral-600">
 											{material.quantity} {material.unit_name}
 										</span>
 									</div>
@@ -79,10 +79,10 @@ export function ServicesTab({
 					{/* Other Services */}
 					{selectedPackageServices.length > 0 && (
 						<div className="border rounded-lg overflow-hidden">
-							<div className="bg-gray-50 px-4 py-2 font-semibold text-sm text-gray-700">
+							<div className="bg-neutral-50 px-4 py-2 font-semibold text-sm text-neutral-700">
 								Services
 							</div>
-							<div className="divide-y divide-gray-100">
+							<div className="divide-y divide-neutral-100">
 								{selectedPackageServices.map((service) => (
 									<div key={service.id} className="p-4">
 										<div className="flex items-center justify-between">
@@ -92,8 +92,8 @@ export function ServicesTab({
 											<span
 												className={`px-2 py-0.5 rounded-full text-xs font-medium ${
 													service.is_final
-														? "bg-green-100 text-green-700"
-														: "bg-yellow-100 text-yellow-700"
+														? "bg-success-100 text-success-700"
+														: "bg-warning-100 text-warning-700"
 												}`}
 											>
 												{service.is_final ? "Completed" : "Pending"}
@@ -101,7 +101,7 @@ export function ServicesTab({
 										</div>
 										{service.result &&
 											Object.keys(service.result).length > 0 && (
-												<div className="mt-2 text-sm text-gray-600 bg-gray-50 rounded p-2">
+												<div className="mt-2 text-sm text-neutral-600 bg-neutral-50 rounded p-2">
 													<pre className="whitespace-pre-wrap">
 														{JSON.stringify(service.result, null, 2)}
 													</pre>
@@ -114,8 +114,8 @@ export function ServicesTab({
 					)}
 				</div>
 			) : (
-				<div className="text-center text-gray-500 py-8">
-					<ClipboardList className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+				<div className="text-center text-neutral-500 py-8">
+					<ClipboardList className="w-12 h-12 mx-auto mb-2 text-neutral-300" />
 					<p>No services for this package</p>
 				</div>
 			)}

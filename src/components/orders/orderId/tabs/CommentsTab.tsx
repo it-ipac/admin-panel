@@ -20,10 +20,10 @@ export function CommentsTab({ selectedPackage }: CommentsTabProps) {
 					{selectedPackage.comments.map((comment, index) => (
 						<div key={comment.id || index} className="border rounded-lg p-4">
 							<div className="flex items-center justify-between mb-2">
-								<span className="font-medium text-gray-900">
+								<span className="font-medium text-neutral-900">
 									{comment.author || "Unknown"}
 								</span>
-								<span className="text-xs text-gray-500">
+								<span className="text-xs text-neutral-500">
 									{comment.created_at
 										? new Date(comment.created_at).toLocaleDateString("en-US", {
 												month: "short",
@@ -35,13 +35,13 @@ export function CommentsTab({ selectedPackage }: CommentsTabProps) {
 										: ""}
 								</span>
 							</div>
-							<p className="text-gray-700">{comment.text}</p>
+							<p className="text-neutral-700">{comment.text}</p>
 						</div>
 					))}
 				</div>
 			) : (
-				<div className="text-center text-gray-500 py-8">
-					<FileText className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+				<div className="text-center text-neutral-500 py-8">
+					<FileText className="w-12 h-12 mx-auto mb-2 text-neutral-300" />
 					<p>No comments for this package</p>
 				</div>
 			)}

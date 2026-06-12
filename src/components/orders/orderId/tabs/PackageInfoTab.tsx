@@ -16,8 +16,17 @@ import type {
 	PackageInstance,
 	PackageItem,
 } from "../../../../routes/orders/$orderId";
+import { ConfirmDialog } from "../../../ui/ConfirmDialog";
 import { DimensionsCard } from "../../../ui/DimensionsCard";
 import { TwoTierCard } from "../../../ui/TwoTierCard";
+
+type PendingConfirm =
+	| { kind: "bulkDelete" }
+	| { kind: "duplicate" }
+	| { kind: "removePackage" }
+	| { kind: "removePackageFinal" }
+	| { kind: "regenerateAll" }
+	| { kind: "removeInstance"; instanceId: string };
 
 interface PackageInfoTabProps {
 	selectedPackage: OrderPackage;
@@ -88,6 +97,9 @@ export function PackageInfoTab({
 		new Set(),
 	);
 	const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+	const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(
+		null,
+	);
 
 	const sortedCategories = useMemo(() => {
 		const orderSet = new Set(orderCategories);
@@ -209,50 +221,110 @@ export function PackageInfoTab({
 	};
 
 	const handleBulkDelete = async () => {
-		if (
-			window.confirm(
-				`Are you sure you want to PERMANENTLY REMOVE the ${selectedInstanceIds.size} selected box instances? All packed items and media associated with these instances will be deleted. This action cannot be undone.`,
-			)
-		) {
-			setIsBulkDeleting(true);
-			try {
-				for (const instanceId of selectedInstanceIds) {
-					await removeInstanceMutation.mutateAsync(instanceId);
-				}
-				setSelectedInstanceIds(new Set());
-			} catch (err) {
-				console.error("Bulk delete failed:", err);
-			} finally {
-				setIsBulkDeleting(false);
+		setIsBulkDeleting(true);
+		try {
+			for (const instanceId of selectedInstanceIds) {
+				await removeInstanceMutation.mutateAsync(instanceId);
 			}
+			setSelectedInstanceIds(new Set());
+		} catch (err) {
+			console.error("Bulk delete failed:", err);
+		} finally {
+			setIsBulkDeleting(false);
 		}
 	};
+
+	const confirmDialogProps = (() => {
+		switch (pendingConfirm?.kind) {
+			case "bulkDelete":
+				return {
+					title: `Delete ${selectedInstanceIds.size} selected box instances?`,
+					description:
+						"All packed items and media associated with these instances will be permanently deleted. This action cannot be undone.",
+					confirmText: "Delete instances",
+					onConfirm: () => {
+						setPendingConfirm(null);
+						handleBulkDelete();
+					},
+				};
+			case "duplicate":
+				return {
+					title: "Duplicate this box?",
+					description:
+						"This will create a new empty box with the same original dimensions.",
+					confirmText: "Duplicate",
+					variant: "primary" as const,
+					onConfirm: () => {
+						setPendingConfirm(null);
+						duplicatePackageMutation.mutate(selectedPackage.id);
+					},
+				};
+			case "removePackage":
+				return {
+					title: "Permanently remove this box?",
+					description:
+						"This will delete all items, materials, and references associated with it. This action cannot be undone.",
+					confirmText: "Continue",
+					onConfirm: () => setPendingConfirm({ kind: "removePackageFinal" }),
+				};
+			case "removePackageFinal":
+				return {
+					title: "Final confirmation",
+					description:
+						"Are you absolutely sure? All data for this box will be lost.",
+					confirmText: "Delete box",
+					onConfirm: () => {
+						setPendingConfirm(null);
+						removePackageMutation.mutate(selectedPackage.id);
+					},
+				};
+			case "regenerateAll":
+				return {
+					title: "Regenerate IPAC IDs for all custom instances?",
+					description:
+						"Destination is read from each instance; tag and item number are inferred from packed items.",
+					confirmText: "Regenerate",
+					variant: "primary" as const,
+					onConfirm: () => {
+						setPendingConfirm(null);
+						onRegenerateAll?.();
+					},
+				};
+			case "removeInstance": {
+				const instanceId = pendingConfirm.instanceId;
+				return {
+					title: "Permanently remove this box instance?",
+					description:
+						"All packed items and media associated with this instance will be deleted. This action cannot be undone.",
+					confirmText: "Delete instance",
+					onConfirm: () => {
+						setPendingConfirm(null);
+						removeInstanceMutation.mutate(instanceId);
+					},
+				};
+			}
+			default:
+				return null;
+		}
+	})();
 
 	return (
 		<div className="space-y-4">
 			{/* Header Section */}
-			<div className="flex items-center justify-between bg-white p-4 rounded-lg border border-gray-200">
+			<div className="flex items-center justify-between bg-white p-4 rounded-lg border border-neutral-200">
 				<div>
-					<h3 className="text-lg font-semibold text-gray-800">
+					<h3 className="text-lg font-semibold text-neutral-800">
 						Box #{selectedPackage.package_number}
 					</h3>
-					<p className="text-gray-500 text-sm">
+					<p className="text-neutral-500 text-sm">
 						{selectedPackage.description || "No description provided."}
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
 					<button
-						onClick={() => {
-							if (
-								window.confirm(
-									"Are you sure you want to duplicate this box? This will create a new empty box with the same original dimensions.",
-								)
-							) {
-								duplicatePackageMutation.mutate(selectedPackage.id);
-							}
-						}}
+						onClick={() => setPendingConfirm({ kind: "duplicate" })}
 						disabled={duplicatePackageMutation.isPending}
-						className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors disabled:opacity-50"
+						className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-primary-50 text-primary-600 rounded-md hover:bg-primary-100 transition-colors disabled:opacity-50"
 					>
 						{duplicatePackageMutation.isPending ? (
 							<Loader2 className="w-4 h-4 animate-spin" />
@@ -262,23 +334,9 @@ export function PackageInfoTab({
 						Duplicate Box
 					</button>
 					<button
-						onClick={() => {
-							if (
-								window.confirm(
-									"Are you sure you want to PERMANENTLY REMOVE this box? This will delete all items, materials, and references associated with it. This action cannot be undone.",
-								)
-							) {
-								if (
-									window.confirm(
-										"FINAL CONFIRMATION: Are you absolutely sure? All data for this box will be lost.",
-									)
-								) {
-									removePackageMutation.mutate(selectedPackage.id);
-								}
-							}
-						}}
+						onClick={() => setPendingConfirm({ kind: "removePackage" })}
 						disabled={removePackageMutation.isPending}
-						className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors disabled:opacity-50"
+						className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-danger-50 text-danger-600 rounded-md hover:bg-danger-100 transition-colors disabled:opacity-50"
 					>
 						{removePackageMutation.isPending ? (
 							<Loader2 className="w-4 h-4 animate-spin" />
@@ -291,21 +349,23 @@ export function PackageInfoTab({
 			</div>
 
 			{/* Instances & References */}
-			<div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-				<div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-					<h4 className="text-sm font-semibold text-gray-900">Box Instances</h4>
+			<div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
+				<div className="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
+					<h4 className="text-sm font-semibold text-neutral-900">
+						Box Instances
+					</h4>
 					<div className="flex items-center gap-3">
 						<button
 							onClick={handlePrepareSync}
-							className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors flex items-center gap-1 font-medium"
+							className="text-xs px-2 py-1 bg-primary-50 text-primary-600 rounded hover:bg-primary-100 transition-colors flex items-center gap-1 font-medium"
 						>
 							<RefreshCw className="w-3 h-3" /> Sync Destination
 						</button>
 						{selectedInstanceIds.size > 0 && (
 							<button
-								onClick={handleBulkDelete}
+								onClick={() => setPendingConfirm({ kind: "bulkDelete" })}
 								disabled={isBulkDeleting}
-								className="text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors flex items-center gap-1 font-medium disabled:opacity-50"
+								className="text-xs px-2 py-1 bg-danger-50 text-danger-600 rounded hover:bg-danger-100 transition-colors flex items-center gap-1 font-medium disabled:opacity-50"
 							>
 								{isBulkDeleting ? (
 									<Loader2 className="w-3 h-3 animate-spin" />
@@ -319,16 +379,9 @@ export function PackageInfoTab({
 						)}
 						{onRegenerateAll && (
 							<button
-								onClick={() => {
-									if (
-										window.confirm(
-											"Regenerate IPAC IDs for ALL custom instances in this order? Destination is read from each instance; tag and item number are inferred from packed items.",
-										)
-									)
-										onRegenerateAll();
-								}}
+								onClick={() => setPendingConfirm({ kind: "regenerateAll" })}
 								disabled={isRegeneratingAll}
-								className="text-xs px-2 py-1 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 transition-colors flex items-center gap-1 font-medium disabled:opacity-50"
+								className="text-xs px-2 py-1 bg-success-50 text-success-700 rounded hover:bg-success-100 transition-colors flex items-center gap-1 font-medium disabled:opacity-50"
 							>
 								{isRegeneratingAll ? (
 									<Loader2 className="w-3 h-3 animate-spin" />
@@ -338,7 +391,7 @@ export function PackageInfoTab({
 								{isRegeneratingAll ? "Regenerating…" : "Regenerate All IDs"}
 							</button>
 						)}
-						<span className="text-xs text-gray-500">
+						<span className="text-xs text-neutral-500">
 							{selectedPackageInstances.length} instance
 							{selectedPackageInstances.length === 1 ? "" : "s"}
 						</span>
@@ -349,26 +402,26 @@ export function PackageInfoTab({
 				{showSyncModal && (
 					<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 						<div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden">
-							<div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-								<h3 className="font-semibold text-gray-800">
+							<div className="px-4 py-3 border-b border-neutral-100 flex justify-between items-center bg-neutral-50">
+								<h3 className="font-semibold text-neutral-800">
 									Confirm Destination Sync
 								</h3>
 								<button
 									onClick={() => setShowSyncModal(false)}
-									className="text-gray-400 hover:text-gray-600"
+									className="text-neutral-400 hover:text-neutral-600"
 								>
 									<X className="w-5 h-5" />
 								</button>
 							</div>
 							<div className="p-4">
 								{syncInstances.length === 0 ? (
-									<p className="text-gray-600 text-sm">
+									<p className="text-neutral-600 text-sm">
 										No instances found with a different warehouse location to
 										sync.
 									</p>
 								) : (
 									<>
-										<p className="text-gray-600 text-sm mb-4">
+										<p className="text-neutral-600 text-sm mb-4">
 											You are about to update the destination for the following
 											instances based on their item's warehouse location:
 										</p>
@@ -376,17 +429,17 @@ export function PackageInfoTab({
 											{syncInstances.map((sync, i) => (
 												<div
 													key={i}
-													className="flex justify-between items-center text-sm p-2 bg-gray-50 rounded border border-gray-100"
+													className="flex justify-between items-center text-sm p-2 bg-neutral-50 rounded border border-neutral-100"
 												>
 													<span className="font-medium">
 														#{sync.instance.instance_number ?? "All"}
 													</span>
-													<div className="flex items-center gap-2 text-gray-500">
+													<div className="flex items-center gap-2 text-neutral-500">
 														<span className="line-through">
 															{sync.instance.destination || "None"}
 														</span>
 														<span>→</span>
-														<span className="text-blue-600 font-semibold">
+														<span className="text-primary-600 font-semibold">
 															{sync.newDestination}
 														</span>
 													</div>
@@ -396,17 +449,17 @@ export function PackageInfoTab({
 									</>
 								)}
 							</div>
-							<div className="px-4 py-3 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
+							<div className="px-4 py-3 border-t border-neutral-100 flex justify-end gap-2 bg-neutral-50">
 								<button
 									onClick={() => setShowSyncModal(false)}
-									className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded"
+									className="px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-200 rounded"
 								>
 									Cancel
 								</button>
 								<button
 									onClick={handleConfirmSync}
 									disabled={isSyncing || syncInstances.length === 0}
-									className="px-3 py-1.5 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded flex items-center gap-2 disabled:opacity-50"
+									className="px-3 py-1.5 text-sm bg-primary-600 text-white hover:bg-primary-700 rounded flex items-center gap-2 disabled:opacity-50"
 								>
 									{isSyncing && <Loader2 className="w-4 h-4 animate-spin" />}
 									Confirm Sync
@@ -419,12 +472,12 @@ export function PackageInfoTab({
 				{selectedPackageInstances.length > 0 ? (
 					<div className="overflow-x-auto">
 						<table className="min-w-full text-sm">
-							<thead className="bg-gray-50 text-gray-600">
+							<thead className="bg-neutral-50 text-neutral-600">
 								<tr>
 									<th className="px-4 py-2.5 font-medium text-left w-10">
 										<input
 											type="checkbox"
-											className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+											className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
 											checked={
 												selectedPackageInstances.length > 0 &&
 												selectedInstanceIds.size ===
@@ -464,16 +517,16 @@ export function PackageInfoTab({
 								{selectedPackageInstances.map((instance) => (
 									<tr
 										key={instance.id}
-										className={`border-t border-gray-100 transition-colors duration-500 ${
+										className={`border-t border-neutral-100 transition-colors duration-500 ${
 											updatedInstanceIds.has(instance.id)
-												? "bg-emerald-50 border-l-2 border-l-emerald-400"
+												? "bg-success-50 border-l-2 border-l-success-400"
 												: ""
 										}`}
 									>
 										<td className="px-4 py-2.5 text-left w-10">
 											<input
 												type="checkbox"
-												className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+												className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
 												checked={selectedInstanceIds.has(instance.id)}
 												onChange={(e) => {
 													const next = new Set(selectedInstanceIds);
@@ -486,13 +539,13 @@ export function PackageInfoTab({
 												}}
 											/>
 										</td>
-										<td className="px-4 py-2.5 text-gray-900 font-medium">
+										<td className="px-4 py-2.5 text-neutral-900 font-medium">
 											{instance.instance_number ?? "-"}
 										</td>
-										<td className="px-4 py-2.5 text-gray-800">
+										<td className="px-4 py-2.5 text-neutral-800">
 											{editingInstanceId === instance.id ? (
 												<input
-													className="border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-blue-500"
+													className="border border-neutral-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-primary-500"
 													value={referenceDraft}
 													onChange={(e) => setReferenceDraft(e.target.value)}
 												/>
@@ -500,13 +553,13 @@ export function PackageInfoTab({
 												instance.ipac_reference || "-"
 											)}
 										</td>
-										<td className="px-4 py-2.5 text-gray-600">
+										<td className="px-4 py-2.5 text-neutral-600">
 											{instance.status || "design"}
 										</td>
-										<td className="px-4 py-2.5 text-gray-800">
+										<td className="px-4 py-2.5 text-neutral-800">
 											{editingInstanceId === instance.id ? (
 												<input
-													className="border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-blue-500"
+													className="border border-neutral-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-primary-500"
 													value={destinationDraft}
 													onChange={(e) => setDestinationDraft(e.target.value)}
 													placeholder="Destination"
@@ -515,10 +568,10 @@ export function PackageInfoTab({
 												instance.destination || "-"
 											)}
 										</td>
-										<td className="px-4 py-2.5 text-gray-800">
+										<td className="px-4 py-2.5 text-neutral-800">
 											{editingInstanceId === instance.id ? (
 												<input
-													className="border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-blue-500"
+													className="border border-neutral-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-primary-500"
 													value={tagDraft}
 													onChange={(e) => setTagDraft(e.target.value)}
 													placeholder="Tag"
@@ -527,10 +580,10 @@ export function PackageInfoTab({
 												instance.tag || "-"
 											)}
 										</td>
-										<td className="px-4 py-2.5 text-gray-800">
+										<td className="px-4 py-2.5 text-neutral-800">
 											{editingInstanceId === instance.id ? (
 												<select
-													className="border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-blue-500"
+													className="border border-neutral-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-primary-500"
 													value={categoryDraft}
 													onChange={(e) => setCategoryDraft(e.target.value)}
 												>
@@ -540,7 +593,9 @@ export function PackageInfoTab({
 															key={cat.id}
 															value={cat.id}
 															className={
-																cat.isMapped ? "bg-green-100" : "bg-yellow-100"
+																cat.isMapped
+																	? "bg-success-100"
+																	: "bg-warning-100"
 															}
 														>
 															{cat.label}
@@ -570,14 +625,14 @@ export function PackageInfoTab({
 																});
 																setEditingInstanceId(null);
 															}}
-															className="p-1 text-green-600 hover:bg-green-50 rounded"
+															className="p-1 text-success-600 hover:bg-success-50 rounded"
 															title="Save"
 														>
 															<Check className="w-4 h-4" />
 														</button>
 														<button
 															onClick={() => setEditingInstanceId(null)}
-															className="p-1 text-red-600 hover:bg-red-50 rounded"
+															className="p-1 text-danger-600 hover:bg-danger-50 rounded"
 															title="Cancel"
 														>
 															<X className="w-4 h-4" />
@@ -595,7 +650,7 @@ export function PackageInfoTab({
 																setTagDraft(instance.tag || "");
 																setCategoryDraft(instance.category_id || "");
 															}}
-															className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+															className="p-1 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded"
 															title="Edit Reference"
 														>
 															<Edit2 className="w-4 h-4" />
@@ -607,7 +662,7 @@ export function PackageInfoTab({
 																})
 															}
 															disabled={regenerateReferenceMutation.isPending}
-															className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded disabled:opacity-50"
+															className="p-1 text-neutral-400 hover:text-success-600 hover:bg-success-50 rounded disabled:opacity-50"
 															title="Regenerate IPAC Reference (auto-infers destination, tag & item)"
 														>
 															{regenerateReferenceMutation.isPending ? (
@@ -617,17 +672,14 @@ export function PackageInfoTab({
 															)}
 														</button>
 														<button
-															onClick={() => {
-																if (
-																	window.confirm(
-																		"Are you sure you want to PERMANENTLY REMOVE this box instance? All packed items and media associated with this instance will be deleted. This action cannot be undone.",
-																	)
-																) {
-																	removeInstanceMutation.mutate(instance.id);
-																}
-															}}
+															onClick={() =>
+																setPendingConfirm({
+																	kind: "removeInstance",
+																	instanceId: instance.id,
+																})
+															}
 															disabled={removeInstanceMutation.isPending}
-															className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+															className="p-1 text-neutral-400 hover:text-danger-600 hover:bg-danger-50 rounded disabled:opacity-50"
 															title="Remove Instance"
 														>
 															{removeInstanceMutation.isPending ? (
@@ -646,7 +698,7 @@ export function PackageInfoTab({
 						</table>
 					</div>
 				) : (
-					<div className="px-4 py-4 text-sm text-gray-500">
+					<div className="px-4 py-4 text-sm text-neutral-500">
 						No instance rows found for this box.
 					</div>
 				)}
@@ -839,6 +891,16 @@ export function PackageInfoTab({
 					}}
 				/>
 			</div>
+
+			{confirmDialogProps && (
+				<ConfirmDialog
+					open
+					onOpenChange={(open) => {
+						if (!open) setPendingConfirm(null);
+					}}
+					{...confirmDialogProps}
+				/>
+			)}
 		</div>
 	);
 }

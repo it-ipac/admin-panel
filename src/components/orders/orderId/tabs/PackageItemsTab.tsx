@@ -1,6 +1,7 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import { Camera, Check, Edit, Loader2, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export interface PackageItem {
 	id: string;
@@ -86,14 +87,20 @@ export function PackageItemsTab({
 		resetItemForm();
 	};
 
-	const handleDeleteItem = async (item: PackageItem) => {
-		if (confirm("Are you sure you want to delete this item?")) {
-			if (item.source === "inventory") {
-				await deletePkdItemMutation?.mutateAsync(item.id);
-			} else {
-				await deletePackageItemMutation.mutateAsync(item.id);
-			}
+	const [deleteTarget, setDeleteTarget] = useState<PackageItem | null>(null);
+
+	const handleDeleteItem = (item: PackageItem) => {
+		setDeleteTarget(item);
+	};
+
+	const confirmDeleteItem = async () => {
+		if (!deleteTarget) return;
+		if (deleteTarget.source === "inventory") {
+			await deletePkdItemMutation?.mutateAsync(deleteTarget.id);
+		} else {
+			await deletePackageItemMutation.mutateAsync(deleteTarget.id);
 		}
+		setDeleteTarget(null);
 	};
 
 	const startEditItem = (item: PackageItem) => {
@@ -108,15 +115,15 @@ export function PackageItemsTab({
 	};
 
 	return (
-		<div className="m-1 bg-white rounded-xl border border-gray-500 overflow-hidden">
-			<div className="px-4 py-2 border-b border-gray-200 bg-white flex justify-between items-center">
-				<h3 className="text-blue-800 font-semibold">Packing Items</h3>
+		<div className="m-1 bg-white rounded-xl border border-neutral-500 overflow-hidden">
+			<div className="px-4 py-2 border-b border-neutral-200 bg-white flex justify-between items-center">
+				<h3 className="text-primary-800 font-semibold">Packing Items</h3>
 				<button
 					onClick={() => {
 						resetItemForm();
 						setShowAddItemModal(true);
 					}}
-					className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+					className="flex items-center gap-1 px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700"
 				>
 					<Plus className="w-3 h-3" />
 					Add
@@ -128,8 +135,8 @@ export function PackageItemsTab({
 					{selectedPackageItems.map((item, idx) => (
 						<div
 							key={`${item.source}-${item.id}`}
-							className={`flex flex-col md:flex-row md:items-center justify-between p-3 rounded-lg border border-gray-400 ${
-								idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+							className={`flex flex-col md:flex-row md:items-center justify-between p-3 rounded-lg border border-neutral-400 ${
+								idx % 2 === 0 ? "bg-white" : "bg-neutral-50"
 							}`}
 						>
 							{editingItem?.id === item.id ? (
@@ -170,7 +177,7 @@ export function PackageItemsTab({
 											}
 											className="w-16 px-2 py-1 border rounded text-sm"
 										/>
-										<span className="text-gray-400">×</span>
+										<span className="text-neutral-400">×</span>
 										<input
 											type="number"
 											placeholder="W"
@@ -180,7 +187,7 @@ export function PackageItemsTab({
 											}
 											className="w-16 px-2 py-1 border rounded text-sm"
 										/>
-										<span className="text-gray-400">×</span>
+										<span className="text-neutral-400">×</span>
 										<input
 											type="number"
 											placeholder="H"
@@ -195,7 +202,7 @@ export function PackageItemsTab({
 											<button
 												onClick={handleUpdateItem}
 												disabled={updatePackageItemMutation.isPending}
-												className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200"
+												className="p-1.5 bg-success-100 text-success-700 rounded hover:bg-success-200"
 											>
 												{updatePackageItemMutation.isPending ? (
 													<Loader2 className="w-4 h-4 animate-spin" />
@@ -205,7 +212,7 @@ export function PackageItemsTab({
 											</button>
 											<button
 												onClick={() => setEditingItem(null)}
-												className="p-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+												className="p-1.5 bg-neutral-100 text-neutral-700 rounded hover:bg-neutral-200"
 											>
 												<X className="w-4 h-4" />
 											</button>
@@ -216,34 +223,36 @@ export function PackageItemsTab({
 								<>
 									<div className="flex flex-col gap-1 flex-1">
 										<div className="flex items-baseline gap-2">
-											<span className="text-gray-700 font-semibold">Item;</span>
-											<span className="text-gray-800 font-medium">
+											<span className="text-neutral-700 font-semibold">
+												Item;
+											</span>
+											<span className="text-neutral-800 font-medium">
 												{item.quantity ?? "—"}
 											</span>
-											<span className="text-gray-700">
+											<span className="text-neutral-700">
 												{item.designation || "—"}
 											</span>
 											{item.source === "inventory" && (
-												<span className="px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-700 rounded uppercase font-bold">
+												<span className="px-1.5 py-0.5 text-[10px] bg-primary-100 text-primary-700 rounded uppercase font-bold">
 													Inventory
 												</span>
 											)}
 											{(item.length || item.width || item.height) && (
-												<span className="text-xs text-gray-500">
+												<span className="text-xs text-neutral-500">
 													({item.length ?? "-"}×{item.width ?? "-"}×
 													{item.height ?? "-"})
 												</span>
 											)}
 										</div>
-										<div className="flex items-center gap-3 text-xs text-gray-500">
+										<div className="flex items-center gap-3 text-xs text-neutral-500">
 											<div className="flex items-center gap-1">
-												<span className="font-semibold text-gray-400">
+												<span className="font-semibold text-neutral-400">
 													Box:
 												</span>
 												<span
 													className={
 														item.source === "inventory"
-															? "text-blue-600 font-bold"
+															? "text-primary-600 font-bold"
 															: ""
 													}
 												>
@@ -254,7 +263,7 @@ export function PackageItemsTab({
 											</div>
 											{item.item_num && (
 												<div className="flex items-center gap-1">
-													<span className="font-semibold text-gray-400">
+													<span className="font-semibold text-neutral-400">
 														Ref:
 													</span>
 													<span>{item.item_num}</span>
@@ -262,10 +271,10 @@ export function PackageItemsTab({
 											)}
 											{item.warehouse_location && (
 												<div className="flex items-center gap-1">
-													<span className="font-semibold text-gray-400">
+													<span className="font-semibold text-neutral-400">
 														Loc:
 													</span>
-													<span className="bg-gray-100 px-1 rounded">
+													<span className="bg-neutral-100 px-1 rounded">
 														{item.warehouse_location}
 													</span>
 												</div>
@@ -274,14 +283,14 @@ export function PackageItemsTab({
 									</div>
 
 									<div className="flex items-center gap-2 self-end md:self-auto mt-2 md:mt-0">
-										<button className="p-2 rounded bg-blue-600 text-white hover:bg-blue-700 shadow-sm">
+										<button className="p-2 rounded bg-primary-600 text-white hover:bg-primary-700 shadow-sm">
 											<Camera size={18} />
 										</button>
-										<div className="h-6 w-px bg-gray-300 mx-1"></div>
+										<div className="h-6 w-px bg-neutral-300 mx-1"></div>
 										{item.source === "custom" && (
 											<button
 												onClick={() => startEditItem(item)}
-												className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+												className="p-1.5 text-primary-600 hover:bg-primary-50 rounded"
 											>
 												<Edit size={16} />
 											</button>
@@ -292,7 +301,7 @@ export function PackageItemsTab({
 												deletePackageItemMutation.isPending ||
 												deletePkdItemMutation?.isPending
 											}
-											className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+											className="p-1.5 text-danger-600 hover:bg-danger-50 rounded"
 										>
 											<Trash2 size={16} />
 										</button>
@@ -303,10 +312,28 @@ export function PackageItemsTab({
 					))}
 				</div>
 			) : (
-				<div className="p-8 text-center text-gray-500">
+				<div className="p-8 text-center text-neutral-500">
 					<p>No items found for this box.</p>
 				</div>
 			)}
+
+			<ConfirmDialog
+				open={deleteTarget !== null}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+				title="Delete item?"
+				description={
+					deleteTarget
+						? `This will remove "${deleteTarget.designation}" from this box. This action cannot be undone.`
+						: undefined
+				}
+				pending={
+					deletePackageItemMutation.isPending ||
+					(deletePkdItemMutation?.isPending ?? false)
+				}
+				onConfirm={confirmDeleteItem}
+			/>
 		</div>
 	);
 }

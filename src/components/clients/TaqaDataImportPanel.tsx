@@ -648,11 +648,11 @@ export function TaqaDataImportPanel({
 
 	return (
 		<div className="space-y-5">
-			<div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-				<p className="text-sm font-semibold text-blue-900">
+			<div className="rounded-xl border border-primary-200 bg-primary-50 p-4">
+				<p className="text-sm font-semibold text-primary-900">
 					Client: {clientName}
 				</p>
-				<p className="mt-1 text-xs text-blue-700">
+				<p className="mt-1 text-xs text-primary-700">
 					TAQA parser mode is enabled only when workbook contains TAQA/TAKA
 					marker text.
 				</p>
@@ -663,10 +663,10 @@ export function TaqaDataImportPanel({
 				tabIndex={0}
 				className={`rounded-xl border-2 border-dashed p-8 text-center transition-all ${
 					isDragging
-						? "scale-[1.01] border-blue-500 bg-blue-100"
+						? "scale-[1.01] border-primary-500 bg-primary-100"
 						: file
-							? "border-blue-400 bg-blue-50"
-							: "cursor-pointer border-gray-300 bg-gray-50 hover:border-blue-500"
+							? "border-primary-400 bg-primary-50"
+							: "cursor-pointer border-neutral-300 bg-neutral-50 hover:border-primary-500"
 				}`}
 				onDragOver={handleDragOver}
 				onDragLeave={handleDragLeave}
@@ -680,16 +680,18 @@ export function TaqaDataImportPanel({
 			>
 				<FileUp
 					className={`mx-auto mb-3 h-8 w-8 transition-colors ${
-						isDragging ? "text-blue-600" : "text-gray-400"
+						isDragging ? "text-primary-600" : "text-neutral-400"
 					}`}
 				/>
 				{file ? (
-					<div className="font-medium text-blue-700">{file.name}</div>
+					<div className="font-medium text-primary-700">{file.name}</div>
 				) : (
 					<div>
-						<span className="font-medium text-blue-600">Click to upload</span>{" "}
+						<span className="font-medium text-primary-600">
+							Click to upload
+						</span>{" "}
 						or drag and drop
-						<p className="mt-1 text-xs text-gray-500">
+						<p className="mt-1 text-xs text-neutral-500">
 							Upload .xlsx/.xlsm/.xls TAQA sheet for this client.
 						</p>
 					</div>
@@ -704,15 +706,15 @@ export function TaqaDataImportPanel({
 			</div>
 
 			{detectedSheetNames.length > 0 && (
-				<div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-					<p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+				<div className="rounded-xl border border-steel-200 bg-steel-50 p-4">
+					<p className="text-xs font-semibold uppercase tracking-wide text-steel-600">
 						Detected worksheets
 					</p>
 					<div className="mt-2 flex flex-wrap gap-2">
 						{detectedSheetNames.map((sheetName) => (
 							<span
 								key={sheetName}
-								className="rounded-full border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
+								className="rounded-full border border-steel-300 bg-white px-2 py-1 text-xs text-steel-700"
 							>
 								{sheetName}
 							</span>
@@ -722,16 +724,18 @@ export function TaqaDataImportPanel({
 			)}
 
 			{matchedSheets.length > 0 && (
-				<div className="rounded-xl border border-gray-200 bg-white p-4">
-					<p className="text-sm font-semibold text-gray-800">Sheet mapping</p>
+				<div className="rounded-xl border border-neutral-200 bg-white p-4">
+					<p className="text-sm font-semibold text-neutral-800">
+						Sheet mapping
+					</p>
 					<div className="mt-3 grid gap-2 md:grid-cols-2">
 						{matchedSheets.map((sheet) => (
 							<div
 								key={sheet.expected}
-								className="rounded-lg border border-gray-100 bg-gray-50 p-2 text-sm"
+								className="rounded-lg border border-neutral-100 bg-neutral-50 p-2 text-sm"
 							>
-								<p className="text-gray-500">Expected: {sheet.expected}</p>
-								<p className="font-medium text-gray-800">
+								<p className="text-neutral-500">Expected: {sheet.expected}</p>
+								<p className="font-medium text-neutral-800">
 									Actual: {sheet.actual || "Not found"}
 								</p>
 							</div>
@@ -741,7 +745,7 @@ export function TaqaDataImportPanel({
 			)}
 
 			{parseWarnings.length > 0 && (
-				<div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+				<div className="rounded-xl border border-warning-200 bg-warning-50 p-4 text-warning-900">
 					<p className="text-sm font-semibold">Parse warnings</p>
 					<ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
 						{parseWarnings.map((warning) => (
@@ -752,16 +756,16 @@ export function TaqaDataImportPanel({
 			)}
 
 			{parsingError && (
-				<div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+				<div className="flex items-start gap-3 rounded-xl border border-danger-200 bg-danger-50 p-4 text-danger-700">
 					<AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
 					<p className="text-sm font-medium">{parsingError}</p>
 				</div>
 			)}
 
 			{parsedRows.length > 0 && !parsingError && (
-				<div className="rounded-xl border border-gray-200 bg-white p-4">
+				<div className="rounded-xl border border-neutral-200 bg-white p-4">
 					<div className="mb-3 flex items-center justify-between">
-						<div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 font-bold text-green-700">
+						<div className="flex items-center gap-2 rounded-lg border border-success-200 bg-success-50 px-4 py-2 font-bold text-success-700">
 							<CheckCircle2 className="h-5 w-5" />
 							Validated {parsedRows.length} rows
 						</div>
@@ -769,14 +773,14 @@ export function TaqaDataImportPanel({
 							{invalidExpectedQtyRows.length > 0 && (
 								<button
 									onClick={handleRemoveInvalidQtyRows}
-									className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+									className="rounded-xl border border-warning-300 bg-warning-50 px-4 py-2.5 text-sm font-semibold text-warning-800 transition-colors hover:bg-warning-100"
 								>
 									Remove negative qty rows ({invalidExpectedQtyRows.length})
 								</button>
 							)}
 							<button
 								onClick={() => setParsedRows([])}
-								className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100"
+								className="rounded-xl border border-danger-200 bg-danger-50 px-4 py-2.5 text-sm font-semibold text-danger-700 transition-colors hover:bg-danger-100"
 							>
 								Remove all rows
 							</button>
@@ -785,7 +789,7 @@ export function TaqaDataImportPanel({
 								disabled={
 									uploadMutation.isPending || invalidExpectedQtyRows.length > 0
 								}
-								className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+								className="flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 font-bold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
 							>
 								{uploadMutation.isPending ? (
 									<Loader2 className="h-5 w-5 animate-spin" />
@@ -797,7 +801,7 @@ export function TaqaDataImportPanel({
 					</div>
 
 					{invalidExpectedQtyRows.length > 0 && (
-						<div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+						<div className="mb-3 rounded-lg border border-warning-200 bg-warning-50 px-3 py-2 text-sm text-warning-900">
 							{invalidExpectedQtyRows.length} row(s) have expected quantity less
 							than 0. Database constraint requires expected_qty &gt;= 0, so
 							remove negative rows before confirming import.
@@ -814,12 +818,12 @@ export function TaqaDataImportPanel({
 										onClick={() => setActiveSheetName(group.sheetName)}
 										className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
 											isActive
-												? "border-blue-300 bg-blue-50 text-blue-800"
-												: "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+												? "border-primary-300 bg-primary-50 text-primary-800"
+												: "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
 										}`}
 									>
 										{group.sheetName}
-										<span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+										<span className="ml-2 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600">
 											{group.rows.length}
 										</span>
 									</button>
@@ -829,80 +833,84 @@ export function TaqaDataImportPanel({
 					</div>
 
 					{activeGroup && (
-						<div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50 text-sm">
-							<div className="flex items-center justify-between border-b border-gray-200 bg-gray-100 px-3 py-2">
-								<div className="font-semibold text-gray-800">
+						<div className="overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 text-sm">
+							<div className="flex items-center justify-between border-b border-neutral-200 bg-neutral-100 px-3 py-2">
+								<div className="font-semibold text-neutral-800">
 									{activeGroup.sheetName} ({activeGroup.rows.length} rows)
 								</div>
 								<button
 									onClick={() => handleRemoveSheetRows(activeGroup.sheetName)}
-									className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
+									className="rounded-md border border-danger-200 bg-danger-50 px-2 py-1 text-xs font-semibold text-danger-700 transition-colors hover:bg-danger-100"
 								>
 									Remove sheet rows
 								</button>
 							</div>
 							<div className="max-h-[60vh] overflow-auto">
 								<table className="w-full text-left">
-									<thead className="sticky top-0 bg-gray-100">
+									<thead className="sticky top-0 bg-neutral-100">
 										<tr>
-											<th className="p-3 font-semibold text-gray-700">
+											<th className="p-3 font-semibold text-neutral-700">
 												Item Num
 											</th>
-											<th className="p-3 font-semibold text-gray-700">
+											<th className="p-3 font-semibold text-neutral-700">
 												Reference
 											</th>
-											<th className="p-3 font-semibold text-gray-700">
+											<th className="p-3 font-semibold text-neutral-700">
 												Description
 											</th>
-											<th className="p-3 font-semibold text-gray-700">
+											<th className="p-3 font-semibold text-neutral-700">
 												Expected
 											</th>
-											<th className="p-3 font-semibold text-gray-700">
+											<th className="p-3 font-semibold text-neutral-700">
 												Location
 											</th>
-											<th className="p-3 font-semibold text-gray-700">
+											<th className="p-3 font-semibold text-neutral-700">
 												Sheet Row
 											</th>
-											<th className="p-3 font-semibold text-gray-700">
+											<th className="p-3 font-semibold text-neutral-700">
 												Action
 											</th>
 										</tr>
 									</thead>
-									<tbody className="divide-y divide-gray-200">
+									<tbody className="divide-y divide-neutral-200">
 										{activeGroup.rows.map((row) => (
 											<tr
 												key={row._row_id}
 												className={
 													row.expected_qty >= 0
-														? "hover:bg-gray-100"
-														: "bg-amber-50 hover:bg-amber-100"
+														? "hover:bg-neutral-100"
+														: "bg-warning-50 hover:bg-warning-100"
 												}
 											>
-												<td className="p-3 font-medium text-gray-900">
+												<td className="p-3 font-medium text-neutral-900">
 													{row.item_num}
 												</td>
-												<td className="p-3 text-gray-600">{row.reference}</td>
-												<td className="p-3 text-gray-600">{row.description}</td>
-												<td className="p-3 text-gray-600">
+												<td className="p-3 text-neutral-600">
+													{row.reference}
+												</td>
+												<td className="p-3 text-neutral-600">
+													{row.description}
+												</td>
+												<td className="p-3 text-neutral-600">
 													<div className="flex items-center gap-2">
 														<span>{row.expected_qty}</span>
 														{row.expected_qty < 0 && (
-															<span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+															<span className="rounded bg-warning-100 px-2 py-0.5 text-xs font-semibold text-warning-800">
 																Invalid
 															</span>
 														)}
 													</div>
 												</td>
-												<td className="p-3 text-gray-600">
+												<td className="p-3 text-neutral-600">
 													{row.warehouse_location}
 												</td>
-												<td className="p-3 text-gray-500">
+												<td className="p-3 text-neutral-500">
 													{row._source_row_number}
 												</td>
 												<td className="p-3">
 													<button
 														onClick={() => handleRemoveRow(row._row_id)}
-														className="rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50"
+														className="rounded-md border border-danger-200 bg-white px-2 py-1 text-xs font-semibold text-danger-700 transition-colors hover:bg-danger-50"
 													>
 														Remove
 													</button>
@@ -914,7 +922,7 @@ export function TaqaDataImportPanel({
 							</div>
 						</div>
 					)}
-					<p className="mt-2 text-right text-xs text-gray-500">
+					<p className="mt-2 text-right text-xs text-neutral-500">
 						Select a sheet tab to view its rows. The table is scrollable and
 						supports row/sheet removal.
 					</p>

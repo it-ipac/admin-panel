@@ -25,7 +25,7 @@ export function NumberInput({
 			onChange={(event) => onChange(parseInputNumber(event.target.value))}
 			className={
 				className ||
-				"w-full mt-1 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+				"w-full mt-1 px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary-500"
 			}
 		/>
 	);

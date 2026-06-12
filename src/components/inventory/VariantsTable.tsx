@@ -42,24 +42,24 @@ export function VariantsTable({
 
 					return (
 						<tr key={variant.id}>
-							<td className="font-medium text-gray-900">
+							<td className="font-medium text-neutral-900">
 								{variant.variant_name}
 							</td>
 							<td>
-								<span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">
+								<span className="px-2 py-1 bg-primary-50 text-primary-700 rounded text-xs">
 									{variant.material?.name || "—"}
 								</span>
 							</td>
-							<td className="text-gray-500 max-w-xs truncate">
+							<td className="text-neutral-500 max-w-xs truncate">
 								{variant.description || "—"}
 							</td>
-							<td className="text-gray-500 text-sm font-mono">
+							<td className="text-neutral-500 text-sm font-mono">
 								{variant.length || variant.width || variant.thickness
 									? `${variant.length || "—"} × ${variant.width || "—"} × ${variant.thickness || "—"}`
 									: "—"}
 							</td>
 							<td>
-								<span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+								<span className="px-2 py-1 bg-neutral-100 text-neutral-700 rounded text-xs">
 									{variant.unit?.name || variant.material?.unit?.name || "—"}
 								</span>
 							</td>
@@ -70,49 +70,49 @@ export function VariantsTable({
 										variant.material_variant_tags.map((vt, idx) => (
 											<span
 												key={vt.tag_id || idx}
-												className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 rounded text-xs"
+												className="inline-flex items-center gap-1 px-2 py-0.5 bg-warning-50 text-warning-700 rounded text-xs"
 											>
 												<Tag className="w-3 h-3" />
 												{vt.tags?.name || "Unknown"}
 											</span>
 										))
 									) : (
-										<span className="text-gray-400 text-sm">—</span>
+										<span className="text-neutral-400 text-sm">—</span>
 									)}
 								</div>
 							</td>
 							<td>
 								{firstPricing ? (
-									<span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 rounded text-xs">
+									<span className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent-50 text-accent-700 rounded text-xs">
 										<Truck className="w-3 h-3" />
 										{firstPricing.suppliers?.name || "Unknown"}
 									</span>
 								) : (
-									<span className="text-gray-400 text-sm">—</span>
+									<span className="text-neutral-400 text-sm">—</span>
 								)}
 							</td>
 							<td className="text-right">
-								<span className="font-medium text-gray-700">
+								<span className="font-medium text-neutral-700">
 									{firstPricing?.supplier_quantity != null
 										? firstPricing.supplier_quantity
 										: "—"}
 								</span>
 							</td>
 							<td className="text-right">
-								<span className="font-medium text-green-600">
+								<span className="font-medium text-success-600">
 									{firstPricing?.price != null
 										? `AED ${firstPricing.price.toFixed(2)}`
 										: "—"}
 								</span>
 							</td>
 							<td className="text-right">
-								<span className="text-gray-600">
+								<span className="text-neutral-600">
 									{firstPricing?.price_per_unit != null
 										? `AED ${firstPricing.price_per_unit.toFixed(2)}`
 										: "—"}
 								</span>
 							</td>
-							<td className="text-sm text-gray-500">
+							<td className="text-sm text-neutral-500">
 								{formatDate(variant.created_at)}
 							</td>
 							<td>
@@ -120,18 +120,18 @@ export function VariantsTable({
 									<button
 										type="button"
 										onClick={() => onEditVariant(variant)}
-										className="p-1.5 hover:bg-gray-100 rounded"
+										className="p-1.5 hover:bg-neutral-100 rounded"
 										title="Edit"
 									>
-										<Edit className="w-4 h-4 text-gray-500" />
+										<Edit className="w-4 h-4 text-neutral-500" />
 									</button>
 									<button
 										type="button"
 										onClick={() => onDeleteVariant(variant)}
-										className="p-1.5 hover:bg-red-50 rounded"
+										className="p-1.5 hover:bg-danger-50 rounded"
 										title="Delete"
 									>
-										<Trash2 className="w-4 h-4 text-red-500" />
+										<Trash2 className="w-4 h-4 text-danger-500" />
 									</button>
 								</div>
 							</td>

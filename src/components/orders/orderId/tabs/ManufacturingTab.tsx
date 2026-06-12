@@ -49,8 +49,8 @@ const Section = ({
 	title: string;
 	children: React.ReactNode;
 }) => (
-	<div className="mb-6 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-		<div className="bg-gray-50 px-4 py-2 border-b border-gray-200 font-semibold text-gray-700 text-sm uppercase tracking-wide">
+	<div className="mb-6 border border-neutral-200 rounded-lg overflow-hidden shadow-sm">
+		<div className="bg-neutral-50 px-4 py-2 border-b border-neutral-200 font-semibold text-neutral-700 text-sm uppercase tracking-wide">
 			{title}
 		</div>
 		<div className="p-4 bg-white flex flex-wrap gap-2">{children}</div>
@@ -91,13 +91,15 @@ export function ManufacturingTab({
 	if (!currentData || !currentData.original) {
 		return (
 			<div className="space-y-4">
-				<div className="flex items-center justify-between bg-white p-4 rounded-lg border border-gray-200">
-					<h3 className="text-lg font-semibold text-gray-800">Manufacturing</h3>
+				<div className="flex items-center justify-between bg-white p-4 rounded-lg border border-neutral-200">
+					<h3 className="text-lg font-semibold text-neutral-800">
+						Manufacturing
+					</h3>
 				</div>
-				<div className="flex items-center justify-center p-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+				<div className="flex items-center justify-center p-12 bg-neutral-50 rounded-lg border-2 border-dashed border-neutral-300">
 					<div className="text-center">
 						<div className="text-4xl mb-3">✨</div>
-						<p className="text-gray-500 font-medium">
+						<p className="text-neutral-500 font-medium">
 							No manufacturing data for this package
 						</p>
 					</div>
@@ -112,17 +114,19 @@ export function ManufacturingTab({
 	return (
 		<div className="space-y-4">
 			{/* Header Section */}
-			<div className="flex items-center justify-between bg-white p-4 rounded-lg border border-gray-200">
-				<h3 className="text-lg font-semibold text-gray-800">Manufacturing</h3>
-				<button className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 shadow-sm transition-colors">
+			<div className="flex items-center justify-between bg-white p-4 rounded-lg border border-neutral-200">
+				<h3 className="text-lg font-semibold text-neutral-800">
+					Manufacturing
+				</h3>
+				<button className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 shadow-sm transition-colors">
 					<Camera className="w-4 h-4" />
 					View Images
 				</button>
 			</div>
 
 			{/* Tabs */}
-			<div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-				<div className="flex border-b border-gray-200 overflow-x-auto">
+			<div className="bg-white rounded-lg border border-neutral-200 shadow-sm overflow-hidden">
+				<div className="flex border-b border-neutral-200 overflow-x-auto">
 					{(["big_sides", "small_sides", "lid", "base"] as const).map(
 						(side) => (
 							<button
@@ -130,8 +134,8 @@ export function ManufacturingTab({
 								onClick={() => setActiveTab(side)}
 								className={`flex-1 py-3 px-4 text-sm font-medium whitespace-nowrap transition-colors ${
 									activeTab === side
-										? "bg-blue-50 text-blue-700 border-b-2 border-blue-600"
-										: "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+										? "bg-primary-50 text-primary-700 border-b-2 border-primary-600"
+										: "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
 								}`}
 							>
 								{SIDE_LABELS[side]}
@@ -140,7 +144,7 @@ export function ManufacturingTab({
 					)}
 				</div>
 
-				<div className="p-6 bg-gray-50/50">
+				<div className="p-6 bg-neutral-50/50">
 					{/* Template Section */}
 					<Section title="Template">
 						<TwoTierCard

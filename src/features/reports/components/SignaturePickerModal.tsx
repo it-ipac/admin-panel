@@ -1,5 +1,6 @@
 import type React from "react";
 import { useRef, useState } from "react";
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { useAuth } from "../../../hooks/useAuth";
 import {
 	getSignatureUrl,
@@ -28,6 +29,7 @@ export const SignaturePickerModal: React.FC<Props> = ({
 	const [uploadPublic, setUploadPublic] = useState(false);
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editLabel, setEditLabel] = useState("");
+	const [deleteTarget, setDeleteTarget] = useState<SignatureRow | null>(null);
 	const fileRef = useRef<HTMLInputElement>(null);
 
 	const isAdmin =
@@ -402,17 +404,7 @@ export const SignaturePickerModal: React.FC<Props> = ({
 														type="button"
 														onClick={(e) => {
 															e.stopPropagation();
-															if (
-																confirm(
-																	"Delete this signature? This cannot be undone.",
-																)
-															) {
-																remove.mutate({
-																	id: sig.id,
-																	imagePath: sig.image_path,
-																});
-																if (isSelected) onSelect(null);
-															}
+															setDeleteTarget(sig);
 														}}
 														style={{ ...actionBtnStyle, color: "#ef4444" }}
 													>
@@ -473,6 +465,26 @@ export const SignaturePickerModal: React.FC<Props> = ({
 					</button>
 				</div>
 			</div>
+
+			<ConfirmDialog
+				open={deleteTarget !== null}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+				title="Delete this signature?"
+				description="This cannot be undone."
+				confirmText="Delete signature"
+				pending={remove.isPending}
+				onConfirm={() => {
+					if (!deleteTarget) return;
+					remove.mutate({
+						id: deleteTarget.id,
+						imagePath: deleteTarget.image_path,
+					});
+					if (deleteTarget.id === selectedId) onSelect(null);
+					setDeleteTarget(null);
+				}}
+			/>
 		</div>
 	);
 };

@@ -1,24 +1,176 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
-/* IPAC Color Palette - Custom Theme */
-@theme {
-	--color-primary-50: #eff6ff;
-	--color-primary-100: #dbeafe;
-	--color-primary-200: #bfdbfe;
-	--color-primary-300: #93c5fd;
-	--color-primary-400: #60a5fa;
-	--color-primary-500: #3b82f6;
-	--color-primary-600: #2563eb;
-	--color-primary-700: #1d4ed8;
-	--color-primary-800: #1e40af;
-	--color-primary-900: #1e3a8a;
+/* ════════════════════════════════════════════════════════════════════════════
+   IPAC Unified Color System — single source of truth for every color in the app.
 
+   Components must ONLY use the semantic scales below (bg-primary-600,
+   text-neutral-500, border-danger-200, …). The raw Tailwind palettes (blue,
+   gray, red, …) are disabled — classes like bg-blue-500 produce NO css.
+
+   To re-skin the app, edit the scales here and nothing else.
+   ════════════════════════════════════════════════════════════════════════════ */
+@theme {
+	/* Raw Tailwind palettes disabled on purpose — use the semantic scales */
+	--color-red-*: initial;
+	--color-orange-*: initial;
+	--color-amber-*: initial;
+	--color-yellow-*: initial;
+	--color-lime-*: initial;
+	--color-green-*: initial;
+	--color-emerald-*: initial;
+	--color-teal-*: initial;
+	--color-cyan-*: initial;
+	--color-sky-*: initial;
+	--color-blue-*: initial;
+	--color-indigo-*: initial;
+	--color-violet-*: initial;
+	--color-purple-*: initial;
+	--color-fuchsia-*: initial;
+	--color-pink-*: initial;
+	--color-rose-*: initial;
+	--color-slate-*: initial;
+	--color-gray-*: initial;
+	--color-zinc-*: initial;
+	--color-stone-*: initial;
+
+	/* primary — brand / interactive (was tailwind blue) */
+	--color-primary-50: oklch(97% 0.014 254.604);
+	--color-primary-100: oklch(93.2% 0.032 255.585);
+	--color-primary-200: oklch(88.2% 0.059 254.128);
+	--color-primary-300: oklch(80.9% 0.105 251.813);
+	--color-primary-400: oklch(70.7% 0.165 254.624);
+	--color-primary-500: oklch(62.3% 0.214 259.815);
+	--color-primary-600: oklch(54.6% 0.245 262.881);
+	--color-primary-700: oklch(48.8% 0.243 264.376);
+	--color-primary-800: oklch(42.4% 0.199 265.638);
+	--color-primary-900: oklch(37.9% 0.146 265.522);
+	--color-primary-950: oklch(28.2% 0.091 267.935);
+
+	/* neutral — text, borders, light surfaces (was tailwind gray) */
+	--color-neutral-50: oklch(98.5% 0.002 247.839);
+	--color-neutral-100: oklch(96.7% 0.003 264.542);
+	--color-neutral-200: oklch(92.8% 0.006 264.531);
+	--color-neutral-300: oklch(87.2% 0.01 258.338);
+	--color-neutral-400: oklch(70.7% 0.022 261.325);
+	--color-neutral-500: oklch(55.1% 0.027 264.364);
+	--color-neutral-600: oklch(44.6% 0.03 256.802);
+	--color-neutral-700: oklch(37.3% 0.034 259.733);
+	--color-neutral-800: oklch(27.8% 0.033 256.848);
+	--color-neutral-900: oklch(21% 0.034 264.665);
+	--color-neutral-950: oklch(13% 0.028 261.692);
+
+	/* steel — dark-mode surfaces & text (was tailwind slate) */
+	--color-steel-50: oklch(98.4% 0.003 247.858);
+	--color-steel-100: oklch(96.8% 0.007 247.896);
+	--color-steel-200: oklch(92.9% 0.013 255.508);
+	--color-steel-300: oklch(86.9% 0.022 252.894);
+	--color-steel-400: oklch(70.4% 0.04 256.788);
+	--color-steel-500: oklch(55.4% 0.046 257.417);
+	--color-steel-600: oklch(44.6% 0.043 257.281);
+	--color-steel-700: oklch(37.2% 0.044 257.287);
+	--color-steel-800: oklch(27.9% 0.041 260.031);
+	--color-steel-900: oklch(20.8% 0.042 265.755);
+	--color-steel-950: oklch(12.9% 0.042 264.695);
+
+	/* danger — errors, destructive actions (was tailwind red) */
+	--color-danger-50: oklch(97.1% 0.013 17.38);
+	--color-danger-100: oklch(93.6% 0.032 17.717);
+	--color-danger-200: oklch(88.5% 0.062 18.334);
+	--color-danger-300: oklch(80.8% 0.114 19.571);
+	--color-danger-400: oklch(70.4% 0.191 22.216);
+	--color-danger-500: oklch(63.7% 0.237 25.331);
+	--color-danger-600: oklch(57.7% 0.245 27.325);
+	--color-danger-700: oklch(50.5% 0.213 27.518);
+	--color-danger-800: oklch(44.4% 0.177 26.899);
+	--color-danger-900: oklch(39.6% 0.141 25.723);
+	--color-danger-950: oklch(25.8% 0.092 26.042);
+
+	/* success — confirmations, packed states (was tailwind green/emerald) */
+	--color-success-50: oklch(98.2% 0.018 155.826);
+	--color-success-100: oklch(96.2% 0.044 156.743);
+	--color-success-200: oklch(92.5% 0.084 155.995);
+	--color-success-300: oklch(87.1% 0.15 154.449);
+	--color-success-400: oklch(79.2% 0.209 151.711);
+	--color-success-500: oklch(72.3% 0.219 149.579);
+	--color-success-600: oklch(62.7% 0.194 149.214);
+	--color-success-700: oklch(52.7% 0.154 150.069);
+	--color-success-800: oklch(44.8% 0.119 151.328);
+	--color-success-900: oklch(39.3% 0.095 152.535);
+	--color-success-950: oklch(26.6% 0.065 152.934);
+
+	/* warning — pending / caution states (was tailwind amber/yellow) */
+	--color-warning-50: oklch(98.7% 0.022 95.277);
+	--color-warning-100: oklch(96.2% 0.059 95.617);
+	--color-warning-200: oklch(92.4% 0.12 95.746);
+	--color-warning-300: oklch(87.9% 0.169 91.605);
+	--color-warning-400: oklch(82.8% 0.189 84.429);
+	--color-warning-500: oklch(76.9% 0.188 70.08);
+	--color-warning-600: oklch(66.6% 0.179 58.318);
+	--color-warning-700: oklch(55.5% 0.163 48.998);
+	--color-warning-800: oklch(47.3% 0.137 46.201);
+	--color-warning-900: oklch(41.4% 0.112 45.904);
+	--color-warning-950: oklch(27.9% 0.077 45.635);
+
+	/* accent — tags, secondary highlights (was tailwind purple/violet) */
+	--color-accent-50: oklch(97.7% 0.014 308.299);
+	--color-accent-100: oklch(94.6% 0.033 307.174);
+	--color-accent-200: oklch(90.2% 0.063 306.703);
+	--color-accent-300: oklch(82.7% 0.119 306.383);
+	--color-accent-400: oklch(71.4% 0.203 305.504);
+	--color-accent-500: oklch(62.7% 0.265 303.9);
+	--color-accent-600: oklch(55.8% 0.288 302.321);
+	--color-accent-700: oklch(49.6% 0.265 301.924);
+	--color-accent-800: oklch(43.8% 0.218 303.724);
+	--color-accent-900: oklch(38.1% 0.176 304.987);
+	--color-accent-950: oklch(29.1% 0.149 302.717);
+
+	/* ember — in-production / activity states (was tailwind orange) */
+	--color-ember-50: oklch(98% 0.016 73.684);
+	--color-ember-100: oklch(95.4% 0.038 75.164);
+	--color-ember-200: oklch(90.1% 0.076 70.697);
+	--color-ember-300: oklch(83.7% 0.128 66.29);
+	--color-ember-400: oklch(75% 0.183 55.934);
+	--color-ember-500: oklch(70.5% 0.213 47.604);
+	--color-ember-600: oklch(64.6% 0.222 41.116);
+	--color-ember-700: oklch(55.3% 0.195 38.402);
+	--color-ember-800: oklch(47% 0.157 37.304);
+	--color-ember-900: oklch(40.8% 0.123 38.172);
+	--color-ember-950: oklch(26.6% 0.079 36.259);
+
+	/* iris — informational badges (was tailwind indigo) */
+	--color-iris-50: oklch(96.2% 0.018 272.314);
+	--color-iris-100: oklch(93% 0.034 272.788);
+	--color-iris-200: oklch(87% 0.065 274.039);
+	--color-iris-300: oklch(78.5% 0.115 274.713);
+	--color-iris-400: oklch(67.3% 0.182 276.935);
+	--color-iris-500: oklch(58.5% 0.233 277.117);
+	--color-iris-600: oklch(51.1% 0.262 276.966);
+	--color-iris-700: oklch(45.7% 0.24 277.023);
+	--color-iris-800: oklch(39.8% 0.195 277.366);
+	--color-iris-900: oklch(35.9% 0.144 278.697);
+	--color-iris-950: oklch(25.7% 0.09 281.288);
+
+	/* aqua — misc accents (was tailwind cyan) */
+	--color-aqua-50: oklch(98.4% 0.019 200.873);
+	--color-aqua-100: oklch(95.6% 0.045 203.388);
+	--color-aqua-200: oklch(91.7% 0.08 205.041);
+	--color-aqua-300: oklch(86.5% 0.127 207.078);
+	--color-aqua-400: oklch(78.9% 0.154 211.53);
+	--color-aqua-500: oklch(71.5% 0.143 215.221);
+	--color-aqua-600: oklch(60.9% 0.126 221.723);
+	--color-aqua-700: oklch(52% 0.105 223.128);
+	--color-aqua-800: oklch(45% 0.085 224.283);
+	--color-aqua-900: oklch(39.8% 0.07 227.392);
+	--color-aqua-950: oklch(30.2% 0.056 229.695);
+
+	/* Single-value status tokens (legacy) */
 	--color-success: #10b981;
 	--color-error: #ef4444;
 	--color-warning: #f59e0b;
 	--color-info: #3b82f6;
 
+	/* App-level semantic surfaces (light/dark via :root vars below) */
 	--color-app-bg: var(--app-bg);
 	--color-app-surface: var(--app-surface);
 	--color-app-surface-muted: var(--app-surface-muted);
@@ -44,35 +196,32 @@
 	--app-scrollbar-thumb: light-dark(#cbd5e1, #334155);
 	--app-scrollbar-thumb-hover: light-dark(#94a3b8, #475569);
 
-	--bg-blue-50: light-dark(#eff6ff, rgba(59, 130, 246, 0.12));
-	--bg-blue-100: light-dark(#dbeafe, rgba(59, 130, 246, 0.25));
-	--border-blue-100: light-dark(#dbeafe, rgba(59, 130, 246, 0.2));
-	--border-blue-200: light-dark(#bfdbfe, rgba(59, 130, 246, 0.3));
-	--border-blue-300: light-dark(#93c5fd, rgba(59, 130, 246, 0.4));
-	--text-blue-700: light-dark(#1d4ed8, #60a5fa);
-	--text-blue-800: light-dark(#1e40af, #93c5fd);
-	--text-blue-900: light-dark(#1e3a8a, #93c5fd);
-	--hover-bg-blue-100: light-dark(#dbeafe, rgba(59, 130, 246, 0.2));
+	--bg-primary-50: light-dark(#eff6ff, rgba(59, 130, 246, 0.12));
+	--bg-primary-100: light-dark(#dbeafe, rgba(59, 130, 246, 0.25));
+	--border-primary-100: light-dark(#dbeafe, rgba(59, 130, 246, 0.2));
+	--border-primary-200: light-dark(#bfdbfe, rgba(59, 130, 246, 0.3));
+	--border-primary-300: light-dark(#93c5fd, rgba(59, 130, 246, 0.4));
+	--text-primary-700: light-dark(#1d4ed8, #60a5fa);
+	--text-primary-800: light-dark(#1e40af, #93c5fd);
+	--text-primary-900: light-dark(#1e3a8a, #93c5fd);
+	--hover-bg-primary-100: light-dark(#dbeafe, rgba(59, 130, 246, 0.2));
 
-	--bg-green-50: light-dark(#f0fdf4, rgba(16, 185, 129, 0.12));
-	--bg-green-100: light-dark(#dcfce7, rgba(16, 185, 129, 0.25));
-	--border-green-100: light-dark(#dcfce7, rgba(16, 185, 129, 0.2));
-	--border-green-200: light-dark(#bbf7d0, rgba(16, 185, 129, 0.3));
-	--text-green-700: light-dark(#15803d, #34d399);
-	--text-green-800: light-dark(#166534, #34d399);
-	--text-green-900: light-dark(#064e3b, #34d399);
-	--hover-bg-green-100: light-dark(#dcfce7, rgba(16, 185, 129, 0.2));
+	--bg-success-50: light-dark(#f0fdf4, rgba(16, 185, 129, 0.12));
+	--bg-success-100: light-dark(#dcfce7, rgba(16, 185, 129, 0.25));
+	--border-success-100: light-dark(#dcfce7, rgba(16, 185, 129, 0.2));
+	--border-success-200: light-dark(#bbf7d0, rgba(16, 185, 129, 0.3));
+	--text-success-700: light-dark(#15803d, #34d399);
+	--text-success-800: light-dark(#166534, #34d399);
+	--text-success-900: light-dark(#064e3b, #34d399);
+	--hover-bg-success-100: light-dark(#dcfce7, rgba(16, 185, 129, 0.2));
 
-	--bg-amber-50: light-dark(#fffbeb, rgba(245, 158, 11, 0.12));
-	--bg-amber-100: light-dark(#fef3c7, rgba(245, 158, 11, 0.25));
-	--bg-yellow-100: light-dark(#fef9c3, rgba(245, 158, 11, 0.25));
-	--border-amber-200: light-dark(#fde68a, rgba(245, 158, 11, 0.3));
-	--border-yellow-200: light-dark(#fef08a, rgba(245, 158, 11, 0.3));
-	--text-amber-700: light-dark(#b45309, #fbbf24);
-	--text-amber-900: light-dark(#78350f, #fbbf24);
-	--text-yellow-700: light-dark(#a16207, #fbbf24);
-	--text-yellow-800: light-dark(#854d0e, #fbbf24);
-	--hover-bg-amber-100: light-dark(#fef3c7, rgba(245, 158, 11, 0.2));
+	--bg-warning-50: light-dark(#fffbeb, rgba(245, 158, 11, 0.12));
+	--bg-warning-100: light-dark(#fef3c7, rgba(245, 158, 11, 0.25));
+	--border-warning-200: light-dark(#fde68a, rgba(245, 158, 11, 0.3));
+	--text-warning-700: light-dark(#b45309, #fbbf24);
+	--text-warning-800: light-dark(#854d0e, #fbbf24);
+	--text-warning-900: light-dark(#78350f, #fbbf24);
+	--hover-bg-warning-100: light-dark(#fef3c7, rgba(245, 158, 11, 0.2));
 }
 
 /* Fallback overrides ONLY when a user explicitly chooses a manual theme */
@@ -118,19 +267,19 @@ label {
 }
 
 /* Gray text variations */
-.text-gray-500 {
+.text-neutral-500 {
 	color: var(--app-text-muted) !important;
 }
 
-.text-gray-600 {
+.text-neutral-600 {
 	color: var(--app-text-subtle) !important;
 }
 
-.text-gray-700 {
+.text-neutral-700 {
 	color: var(--app-text) !important;
 }
 
-.text-gray-900 {
+.text-neutral-900 {
 	color: var(--app-text-strong) !important;
 }
 
@@ -291,15 +440,15 @@ select:disabled {
 	border-color: var(--app-border) !important;
 }
 
-.border-gray-300 {
+.border-neutral-300 {
 	border-color: var(--app-border) !important;
 }
 
-.border-gray-200 {
+.border-neutral-200 {
 	border-color: var(--app-border-muted) !important;
 }
 
-.border-gray-100 {
+.border-neutral-100 {
 	border-color: var(--app-border-muted) !important;
 }
 
@@ -320,10 +469,10 @@ select:disabled {
 	color: var(--app-text) !important;
 }
 
-.excel-table td.text-gray-600,
-.excel-table td.text-gray-700,
-.excel-table span.text-gray-600,
-.excel-table span.text-gray-700 {
+.excel-table td.text-neutral-600,
+.excel-table td.text-neutral-700,
+.excel-table span.text-neutral-600,
+.excel-table span.text-neutral-700 {
 	color: var(--app-text) !important;
 }
 
@@ -350,7 +499,7 @@ button.text-white {
 /* Override any light text in cards */
 .card,
 .bg-white,
-.bg-gray-50 {
+.bg-neutral-50 {
 	color: var(--app-text) !important;
 }
 
@@ -368,238 +517,218 @@ button.text-white {
 	background-color: var(--app-surface);
 }
 
-.bg-gray-50 {
+.bg-neutral-50 {
 	background-color: var(--app-bg);
 }
 
-.bg-gray-100 {
+.bg-neutral-100 {
 	background-color: var(--app-surface-muted);
 }
 
-.bg-gray-200 {
+.bg-neutral-200 {
 	background-color: light-dark(#e5e7eb, #1f2937);
 }
 
 /* Premium Dark Mode Highlights: solve low contrast selection text and backgrounds */
-.bg-blue-50 {
-	background-color: var(--bg-blue-50) !important;
+.bg-primary-50 {
+	background-color: var(--bg-primary-50) !important;
 }
 
-.bg-blue-100 {
-	background-color: var(--bg-blue-100) !important;
+.bg-primary-100 {
+	background-color: var(--bg-primary-100) !important;
 }
 
-.border-blue-100 {
-	border-color: var(--border-blue-100) !important;
+.border-primary-100 {
+	border-color: var(--border-primary-100) !important;
 }
 
-.border-blue-200 {
-	border-color: var(--border-blue-200) !important;
+.border-primary-200 {
+	border-color: var(--border-primary-200) !important;
 }
 
-.border-blue-300 {
-	border-color: var(--border-blue-300) !important;
+.border-primary-300 {
+	border-color: var(--border-primary-300) !important;
 }
 
-.text-blue-700 {
-	color: var(--text-blue-700) !important;
+.text-primary-700 {
+	color: var(--text-primary-700) !important;
 }
 
-.text-blue-800 {
-	color: var(--text-blue-800) !important;
+.text-primary-800 {
+	color: var(--text-primary-800) !important;
 }
 
-.text-blue-900 {
-	color: var(--text-blue-900) !important;
+.text-primary-900 {
+	color: var(--text-primary-900) !important;
 }
 
-.hover\:bg-blue-100:hover {
-	background-color: var(--hover-bg-blue-100) !important;
+.hover\:bg-primary-100:hover {
+	background-color: var(--hover-bg-primary-100) !important;
 }
 
 /* Green Status & Badges */
-.bg-green-50 {
-	background-color: var(--bg-green-50) !important;
+.bg-success-50 {
+	background-color: var(--bg-success-50) !important;
 }
 
-.bg-green-100 {
-	background-color: var(--bg-green-100) !important;
+.bg-success-100 {
+	background-color: var(--bg-success-100) !important;
 }
 
-.border-green-100 {
-	border-color: var(--border-green-100) !important;
+.border-success-100 {
+	border-color: var(--border-success-100) !important;
 }
 
-.border-green-200 {
-	border-color: var(--border-green-200) !important;
+.border-success-200 {
+	border-color: var(--border-success-200) !important;
 }
 
-.text-green-700 {
-	color: var(--text-green-700) !important;
+.text-success-700 {
+	color: var(--text-success-700) !important;
 }
 
-.text-green-800 {
-	color: var(--text-green-800) !important;
+.text-success-800 {
+	color: var(--text-success-800) !important;
 }
 
-.text-green-900 {
-	color: var(--text-green-900) !important;
+.text-success-900 {
+	color: var(--text-success-900) !important;
 }
 
-.hover\:bg-green-100:hover {
-	background-color: var(--hover-bg-green-100) !important;
+.hover\:bg-success-100:hover {
+	background-color: var(--hover-bg-success-100) !important;
 }
 
-/* Yellow / Amber Status & Badges */
-.bg-amber-50 {
-	background-color: var(--bg-amber-50) !important;
+/* Warning Status & Badges */
+.bg-warning-50 {
+	background-color: var(--bg-warning-50) !important;
 }
 
-.bg-amber-100 {
-	background-color: var(--bg-amber-100) !important;
+.bg-warning-100 {
+	background-color: var(--bg-warning-100) !important;
 }
 
-.bg-yellow-100 {
-	background-color: var(--bg-yellow-100) !important;
+.border-warning-200 {
+	border-color: var(--border-warning-200) !important;
 }
 
-.border-amber-200 {
-	border-color: var(--border-amber-200) !important;
+.text-warning-700 {
+	color: var(--text-warning-700) !important;
 }
 
-.border-yellow-200 {
-	border-color: var(--border-yellow-200) !important;
+.text-warning-800 {
+	color: var(--text-warning-800) !important;
 }
 
-.text-amber-700 {
-	color: var(--text-amber-700) !important;
+.text-warning-900 {
+	color: var(--text-warning-900) !important;
 }
 
-.text-amber-900 {
-	color: var(--text-amber-900) !important;
-}
-
-.text-yellow-700 {
-	color: var(--text-yellow-700) !important;
-}
-
-.text-yellow-800 {
-	color: var(--text-yellow-800) !important;
-}
-
-.hover\:bg-amber-100:hover {
-	background-color: var(--hover-bg-amber-100) !important;
+.hover\:bg-warning-100:hover {
+	background-color: var(--hover-bg-warning-100) !important;
 }
 
 /* Orange Status & Badges */
-.bg-orange-100 {
+.bg-ember-100 {
 	background-color: light-dark(#ffedd5, rgba(249, 115, 22, 0.15)) !important;
 }
 
-.border-orange-200 {
+.border-ember-200 {
 	border-color: light-dark(#fed7aa, rgba(249, 115, 22, 0.25)) !important;
 }
 
-.text-orange-800 {
+.text-ember-800 {
 	color: light-dark(#9a3412, #fb923c) !important;
 }
 
-.text-orange-900 {
+.text-ember-900 {
 	color: light-dark(#7c2d12, #fb923c) !important;
 }
 
-/* Purple & Violet Status & Badges */
-.bg-purple-100 {
+/* Accent Status & Badges */
+.bg-accent-50 {
+	background-color: light-dark(#faf5ff, rgba(168, 85, 247, 0.12)) !important;
+}
+
+.bg-accent-100 {
 	background-color: light-dark(#f3e8ff, rgba(168, 85, 247, 0.15)) !important;
 }
 
-.border-purple-200 {
+.border-accent-100 {
+	border-color: light-dark(#f3e8ff, rgba(168, 85, 247, 0.2)) !important;
+}
+
+.border-accent-200 {
 	border-color: light-dark(#e9d5ff, rgba(168, 85, 247, 0.25)) !important;
 }
 
-.text-purple-700 {
+.text-accent-600 {
+	color: light-dark(#9333ea, #c084fc) !important;
+}
+
+.text-accent-700 {
 	color: light-dark(#7e22ce, #c084fc) !important;
 }
 
-.text-purple-800 {
+.text-accent-800 {
 	color: light-dark(#6b21a8, #c084fc) !important;
 }
 
-.bg-violet-50 {
-	background-color: light-dark(#f5f3ff, rgba(139, 92, 246, 0.12)) !important;
-}
-
-.border-violet-100 {
-	border-color: light-dark(#ede9fe, rgba(139, 92, 246, 0.2)) !important;
-}
-
-.border-violet-200 {
-	border-color: light-dark(#ddd6fe, rgba(139, 92, 246, 0.3)) !important;
-}
-
-.text-violet-700 {
-	color: light-dark(#6d28d9, #a78bfa) !important;
-}
-
-.text-violet-600 {
-	color: light-dark(#7c3aed, #a78bfa) !important;
-}
-
-.hover\:bg-violet-100:hover {
-	background-color: light-dark(#ede9fe, rgba(139, 92, 246, 0.2)) !important;
+.hover\:bg-accent-100:hover {
+	background-color: light-dark(#f3e8ff, rgba(168, 85, 247, 0.2)) !important;
 }
 
 /* Indigo Status & Badges */
-.bg-indigo-100 {
+.bg-iris-100 {
 	background-color: light-dark(#e0e7ff, rgba(99, 102, 241, 0.2)) !important;
 }
 
-.bg-indigo-200 {
+.bg-iris-200 {
 	background-color: light-dark(#c7d2fe, rgba(99, 102, 241, 0.3)) !important;
 }
 
-.border-indigo-200 {
+.border-iris-200 {
 	border-color: light-dark(#c7d2fe, rgba(99, 102, 241, 0.35)) !important;
 }
 
-.text-indigo-700 {
+.text-iris-700 {
 	color: light-dark(#4338ca, #818cf8) !important;
 }
 
-.text-indigo-800 {
+.text-iris-800 {
 	color: light-dark(#3730a3, #a5b4fc) !important;
 }
 
 /* Red Status & Badges */
-.bg-red-50 {
+.bg-danger-50 {
 	background-color: light-dark(#fef2f2, rgba(239, 68, 68, 0.12)) !important;
 }
 
-.border-red-100 {
+.border-danger-100 {
 	border-color: light-dark(#fee2e2, rgba(239, 68, 68, 0.2)) !important;
 }
 
-.border-red-200 {
+.border-danger-200 {
 	border-color: light-dark(#fecaca, rgba(239, 68, 68, 0.3)) !important;
 }
 
-.text-red-700 {
+.text-danger-700 {
 	color: light-dark(#b91c1c, #f87171) !important;
 }
 
-.text-red-600 {
+.text-danger-600 {
 	color: light-dark(#dc2626, #f87171) !important;
 }
 
 /* Gray & Slate helpers */
-.bg-gray-200\/80 {
+.bg-neutral-200\/80 {
 	background-color: light-dark(
 		rgba(229, 231, 235, 0.8),
 		rgba(31, 41, 55, 0.8)
 	) !important;
 }
 
-.text-gray-800 {
+.text-neutral-800 {
 	color: var(--app-text-strong) !important;
 }
 
@@ -607,25 +736,25 @@ button.text-white {
 	background: var(--app-bg);
 }
 
-.auth-bg .bg-blue-100,
-.auth-bg .bg-slate-200 {
+.auth-bg .bg-primary-100,
+.auth-bg .bg-steel-200 {
 	opacity: light-dark(1, 0.05);
 }
 
 /* Map common Tailwind hover states to our semantic variables for seamless dark mode */
-.hover\:bg-gray-50:hover {
+.hover\:bg-neutral-50:hover {
 	background-color: var(--app-bg) !important;
 }
 
-.hover\:bg-gray-100:hover {
+.hover\:bg-neutral-100:hover {
 	background-color: var(--app-surface-muted) !important;
 }
 
-.hover\:bg-gray-200:hover {
+.hover\:bg-neutral-200:hover {
 	background-color: light-dark(#e5e7eb, #1f2937) !important;
 }
 
-.hover\:bg-blue-50:hover {
+.hover\:bg-primary-50:hover {
 	background-color: light-dark(#eff6ff, rgba(59, 130, 246, 0.2)) !important;
 }
 
@@ -683,7 +812,7 @@ button.text-white {
 }
 
 /* Fix option cards background color in dark mode to have correct contrast */
-.bg-gray-50\/50 {
+.bg-neutral-50\/50 {
 	background-color: light-dark(
 		rgba(249, 250, 251, 0.5),
 		rgba(31, 41, 55, 0.55)

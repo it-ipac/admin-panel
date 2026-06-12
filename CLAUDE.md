@@ -19,6 +19,8 @@ Env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (optional `VITE_ENABLE_TANSTA
 
 Vite + React 19 + TanStack Start/Router/Query, Tailwind CSS 4 + DaisyUI + Radix primitives, Zod validation, Biome for lint/format.
 
+- **Colors**: only the semantic scales defined in `src/styles.css` `@theme` are allowed — `primary`, `neutral`, `steel` (dark surfaces), `danger`, `success`, `warning`, `accent`, `ember`, `iris`, `aqua` (e.g. `bg-primary-600`, `text-neutral-500`). Raw Tailwind palettes (`bg-blue-500`, `text-gray-700`, …) are disabled via `--color-*: initial` and produce **no CSS**. To change the app's colors, edit `src/styles.css` only.
+
 - **Container-Presenter pattern**: route containers (e.g. `src/routes/orders/$orderId.tsx`) own all `useQuery`/`useMutation` hooks; tab components under `src/components/orders/orderId/tabs/` are pure presenters receiving data + mutation callbacks as props.
 - **Server state lives in TanStack Query only** — no manual fetch in components, no duplicating server state into local state. Mutations invalidate queries on success.
 - Supabase client: `src/lib/supabase.ts` (PKCE flow, custom auth storage key `ipac-admin-auth`, corrupted sessions auto-cleared on module load). Auth via `useAuth()`; usernames map to emails through an RPC.

@@ -9,6 +9,7 @@ import {
 	X,
 } from "lucide-react";
 import { useState } from "react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { PackageMaterial } from "@/routes/orders/$orderId";
 
 interface AccessoriesTabProps {
@@ -73,10 +74,16 @@ export function AccessoriesTab({
 		});
 	};
 
-	const handleDeleteMaterial = async (id: string) => {
-		if (confirm("Are you sure you want to delete this material?")) {
-			await deletePackageMaterialMutation.mutateAsync(id);
-		}
+	const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
+	const handleDeleteMaterial = (id: string) => {
+		setDeleteTargetId(id);
+	};
+
+	const confirmDeleteMaterial = async () => {
+		if (!deleteTargetId) return;
+		await deletePackageMaterialMutation.mutateAsync(deleteTargetId);
+		setDeleteTargetId(null);
 	};
 
 	const startEditMaterial = (material: PackageMaterial) => {
@@ -106,10 +113,10 @@ export function AccessoriesTab({
 	return (
 		<div className="space-y-4">
 			{/* Header Section */}
-			<div className="flex items-center justify-between bg-white p-4 rounded-lg border border-gray-200">
-				<h3 className="text-lg font-semibold text-gray-800">Accessories</h3>
+			<div className="flex items-center justify-between bg-white p-4 rounded-lg border border-neutral-200">
+				<h3 className="text-lg font-semibold text-neutral-800">Accessories</h3>
 				<div className="flex gap-2">
-					<button className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 shadow-sm">
+					<button className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 shadow-sm">
 						<Camera className="w-4 h-4" />
 						View Images
 					</button>
@@ -119,7 +126,7 @@ export function AccessoriesTab({
 							setMaterialType("Accessories");
 							setShowAddMaterialModal(true);
 						}}
-						className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 shadow-sm"
+						className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-success-600 rounded-md hover:bg-success-700 shadow-sm"
 					>
 						<Plus className="w-4 h-4" />
 						Add Accessory
@@ -128,46 +135,46 @@ export function AccessoriesTab({
 			</div>
 
 			{selectedPackageMaterials.accessories.length > 0 ? (
-				<div className="bg-white rounded-lg border-2 border-gray-300 overflow-hidden shadow-sm">
+				<div className="bg-white rounded-lg border-2 border-neutral-300 overflow-hidden shadow-sm">
 					<div className="overflow-x-auto">
 						<table className="w-full text-sm text-left border-collapse">
-							<thead className="bg-gray-100 text-gray-700 uppercase text-xs font-bold border-b-2 border-gray-300">
+							<thead className="bg-neutral-100 text-neutral-700 uppercase text-xs font-bold border-b-2 border-neutral-300">
 								<tr>
-									<th className="py-3 px-4 border-r-2 border-gray-300">
+									<th className="py-3 px-4 border-r-2 border-neutral-300">
 										Accessory
 									</th>
-									<th className="py-3 px-4 text-center border-r-2 border-gray-300">
+									<th className="py-3 px-4 text-center border-r-2 border-neutral-300">
 										Qty
 									</th>
-									<th className="py-3 px-4 text-center border-r-2 border-gray-300">
+									<th className="py-3 px-4 text-center border-r-2 border-neutral-300">
 										Dimensions
 									</th>
-									<th className="py-3 px-4 text-center border-r-2 border-gray-300">
+									<th className="py-3 px-4 text-center border-r-2 border-neutral-300">
 										Status
 									</th>
-									<th className="py-3 px-4 text-center border-r-2 border-gray-300">
+									<th className="py-3 px-4 text-center border-r-2 border-neutral-300">
 										Used
 									</th>
-									<th className="py-3 px-4 border-r-2 border-gray-300">
+									<th className="py-3 px-4 border-r-2 border-neutral-300">
 										Comment
 									</th>
 									<th className="py-3 px-4 text-center">Actions</th>
 								</tr>
 							</thead>
-							<tbody className="divide-y-2 divide-gray-300">
+							<tbody className="divide-y-2 divide-neutral-300">
 								{selectedPackageMaterials.accessories.map((material, idx) => (
 									<tr
 										key={material.id}
-										className={`${idx % 2 === 0 ? "bg-white" : "bg-blue-50"} hover:bg-blue-100 transition-colors`}
+										className={`${idx % 2 === 0 ? "bg-white" : "bg-primary-50"} hover:bg-primary-100 transition-colors`}
 									>
 										{editingMaterial?.id === material.id ? (
 											<>
-												<td className="py-2 px-4 border-r-2 border-gray-300">
-													<span className="font-medium text-gray-900">
+												<td className="py-2 px-4 border-r-2 border-neutral-300">
+													<span className="font-medium text-neutral-900">
 														{material.variant_name}
 													</span>
 												</td>
-												<td className="py-2 px-4 border-r-2 border-gray-300">
+												<td className="py-2 px-4 border-r-2 border-neutral-300">
 													<input
 														type="number"
 														value={materialForm.quantity}
@@ -177,11 +184,11 @@ export function AccessoriesTab({
 																quantity: Number(e.target.value),
 															}))
 														}
-														className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+														className="w-16 px-2 py-1 border border-neutral-300 rounded text-sm text-center focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
 														min={1}
 													/>
 												</td>
-												<td className="py-2 px-4 border-r-2 border-gray-300">
+												<td className="py-2 px-4 border-r-2 border-neutral-300">
 													<div className="flex gap-1 justify-center items-center">
 														<input
 															type="number"
@@ -193,9 +200,9 @@ export function AccessoriesTab({
 																	length: e.target.value,
 																}))
 															}
-															className="w-12 px-1 py-1 border border-gray-300 rounded text-sm text-center"
+															className="w-12 px-1 py-1 border border-neutral-300 rounded text-sm text-center"
 														/>
-														<span className="text-gray-400">×</span>
+														<span className="text-neutral-400">×</span>
 														<input
 															type="number"
 															placeholder="W"
@@ -206,9 +213,9 @@ export function AccessoriesTab({
 																	width: e.target.value,
 																}))
 															}
-															className="w-12 px-1 py-1 border border-gray-300 rounded text-sm text-center"
+															className="w-12 px-1 py-1 border border-neutral-300 rounded text-sm text-center"
 														/>
-														<span className="text-gray-400">×</span>
+														<span className="text-neutral-400">×</span>
 														<input
 															type="number"
 															placeholder="H"
@@ -219,11 +226,11 @@ export function AccessoriesTab({
 																	height: e.target.value,
 																}))
 															}
-															className="w-12 px-1 py-1 border border-gray-300 rounded text-sm text-center"
+															className="w-12 px-1 py-1 border border-neutral-300 rounded text-sm text-center"
 														/>
 													</div>
 												</td>
-												<td className="py-2 px-4 text-center border-r-2 border-gray-300">
+												<td className="py-2 px-4 text-center border-r-2 border-neutral-300">
 													<label className="flex items-center justify-center gap-1.5 text-xs font-medium cursor-pointer select-none">
 														<input
 															type="checkbox"
@@ -234,12 +241,12 @@ export function AccessoriesTab({
 																	is_final: e.target.checked,
 																}))
 															}
-															className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+															className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
 														/>
 														Final
 													</label>
 												</td>
-												<td className="py-2 px-4 text-center border-r-2 border-gray-300">
+												<td className="py-2 px-4 text-center border-r-2 border-neutral-300">
 													<label className="flex items-center justify-center gap-1.5 text-xs font-medium cursor-pointer select-none">
 														<input
 															type="checkbox"
@@ -250,12 +257,12 @@ export function AccessoriesTab({
 																	item_used: e.target.checked,
 																}))
 															}
-															className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+															className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
 														/>
 														Used
 													</label>
 												</td>
-												<td className="py-2 px-4 border-r-2 border-gray-300">
+												<td className="py-2 px-4 border-r-2 border-neutral-300">
 													<input
 														type="text"
 														value={materialForm.comment}
@@ -265,7 +272,7 @@ export function AccessoriesTab({
 																comment: e.target.value,
 															}))
 														}
-														className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+														className="w-full px-2 py-1 border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
 														placeholder="Comment"
 													/>
 												</td>
@@ -274,7 +281,7 @@ export function AccessoriesTab({
 														<button
 															onClick={handleUpdateMaterial}
 															disabled={updatePackageMaterialMutation.isPending}
-															className="p-1.5 text-white bg-green-600 hover:bg-green-700 rounded shadow-sm transition-colors"
+															className="p-1.5 text-white bg-success-600 hover:bg-success-700 rounded shadow-sm transition-colors"
 														>
 															{updatePackageMaterialMutation.isPending ? (
 																<Loader2 className="w-4 h-4 animate-spin" />
@@ -284,7 +291,7 @@ export function AccessoriesTab({
 														</button>
 														<button
 															onClick={() => setEditingMaterial(null)}
-															className="p-1.5 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded shadow-sm transition-colors"
+															className="p-1.5 text-neutral-700 bg-neutral-200 hover:bg-neutral-300 rounded shadow-sm transition-colors"
 														>
 															<X className="w-4 h-4" />
 														</button>
@@ -293,54 +300,54 @@ export function AccessoriesTab({
 											</>
 										) : (
 											<>
-												<td className="py-3 px-4 border-r-2 border-gray-300">
+												<td className="py-3 px-4 border-r-2 border-neutral-300">
 													<div className="flex flex-col">
-														<span className="font-semibold text-gray-900">
+														<span className="font-semibold text-neutral-900">
 															{material.variant_name}
 														</span>
 														{material.material_name && (
-															<span className="text-gray-500 text-xs">
+															<span className="text-neutral-500 text-xs">
 																({material.material_name})
 															</span>
 														)}
 													</div>
 												</td>
-												<td className="py-3 px-4 text-center border-r-2 border-gray-300 font-medium text-gray-700">
+												<td className="py-3 px-4 text-center border-r-2 border-neutral-300 font-medium text-neutral-700">
 													{material.quantity}
 													{material.unit_name ? ` ${material.unit_name}` : ""}
 												</td>
-												<td className="py-3 px-4 text-center text-gray-600 border-r-2 border-gray-300 font-mono text-xs">
+												<td className="py-3 px-4 text-center text-neutral-600 border-r-2 border-neutral-300 font-mono text-xs">
 													{material.length || material.width ? (
 														`${material.length ?? "-"} × ${material.width ?? "-"}${material.height ? ` × ${material.height}` : ""}`
 													) : (
-														<span className="text-gray-400">—</span>
+														<span className="text-neutral-400">—</span>
 													)}
 												</td>
-												<td className="py-3 px-4 text-center border-r-2 border-gray-300">
+												<td className="py-3 px-4 text-center border-r-2 border-neutral-300">
 													<span
 														className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
 															material.is_final
-																? "bg-green-50 text-green-700 border-green-200"
-																: "bg-yellow-50 text-yellow-700 border-yellow-200"
+																? "bg-success-50 text-success-700 border-success-200"
+																: "bg-warning-50 text-warning-700 border-warning-200"
 														}`}
 													>
 														{material.is_final ? "Final" : "Original"}
 													</span>
 												</td>
-												<td className="py-3 px-4 text-center border-r-2 border-gray-300">
+												<td className="py-3 px-4 text-center border-r-2 border-neutral-300">
 													<span
 														className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
 															material.item_used
-																? "bg-green-50 text-green-700 border-green-200"
-																: "bg-gray-50 text-gray-700 border-gray-200"
+																? "bg-success-50 text-success-700 border-success-200"
+																: "bg-neutral-50 text-neutral-700 border-neutral-200"
 														}`}
 													>
 														{material.item_used ? "Yes" : "No"}
 													</span>
 												</td>
-												<td className="py-3 px-4 text-gray-600 border-r-2 border-gray-300 max-w-xs truncate">
+												<td className="py-3 px-4 text-neutral-600 border-r-2 border-neutral-300 max-w-xs truncate">
 													{material.comment || (
-														<span className="text-gray-400 italic">
+														<span className="text-neutral-400 italic">
 															No comment
 														</span>
 													)}
@@ -349,14 +356,14 @@ export function AccessoriesTab({
 													<div className="flex gap-2 justify-center">
 														<button
 															onClick={() => startEditMaterial(material)}
-															className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+															className="p-1.5 text-primary-600 hover:bg-primary-50 rounded transition-colors"
 														>
 															<Edit className="w-4 h-4" />
 														</button>
 														<button
 															onClick={() => handleDeleteMaterial(material.id)}
 															disabled={deletePackageMaterialMutation.isPending}
-															className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+															className="p-1.5 text-danger-600 hover:bg-danger-50 rounded transition-colors"
 														>
 															<Trash2 className="w-4 h-4" />
 														</button>
@@ -371,14 +378,27 @@ export function AccessoriesTab({
 					</div>
 				</div>
 			) : (
-				<div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-					<Sparkles className="w-12 h-12 text-gray-300 mb-3" />
-					<p className="text-gray-500 font-medium">No accessories added yet</p>
-					<p className="text-sm text-gray-400 mt-1">
+				<div className="flex flex-col items-center justify-center p-12 bg-neutral-50 rounded-lg border-2 border-dashed border-neutral-300">
+					<Sparkles className="w-12 h-12 text-neutral-300 mb-3" />
+					<p className="text-neutral-500 font-medium">
+						No accessories added yet
+					</p>
+					<p className="text-sm text-neutral-400 mt-1">
 						Click "Add Accessory" to get started
 					</p>
 				</div>
 			)}
+
+			<ConfirmDialog
+				open={deleteTargetId !== null}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTargetId(null);
+				}}
+				title="Delete material?"
+				description="This will remove the material from this package. This action cannot be undone."
+				pending={deletePackageMaterialMutation.isPending}
+				onConfirm={confirmDeleteMaterial}
+			/>
 		</div>
 	);
 }

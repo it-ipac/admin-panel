@@ -72,7 +72,7 @@ function LoginPage() {
 			<div className="min-h-screen flex items-center justify-center bg-linear-to-br from-primary-50 to-primary-100">
 				<div className="flex flex-col items-center gap-4">
 					<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
-					<p className="text-gray-600">Loading...</p>
+					<p className="text-neutral-600">Loading...</p>
 				</div>
 			</div>
 		);
@@ -81,22 +81,22 @@ function LoginPage() {
 	return (
 		<div className="auth-bg min-h-screen flex items-center justify-center bg-linear-to-br from-primary-50 to-primary-100 p-6">
 			<div className="w-2xl">
-				<div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+				<div className="bg-white rounded-xl shadow-lg border border-neutral-100 overflow-hidden">
 					<div className="px-8 pt-8 text-center">
 						<div className="flex flex-row items-center justify-center gap-2">
 							<img src="/IPAC_logo.svg" alt="IPAC Logo" className="h-14" />
-							<p className="text-4xl font-bold text-gray-700">
+							<p className="text-4xl font-bold text-neutral-700">
 								IPAC Admin Panel
 							</p>
 						</div>
-						<h1 className="mt-4 text-2xl font-semibold text-gray-900">
+						<h1 className="mt-4 text-2xl font-semibold text-neutral-900">
 							Sign in to your account
 						</h1>
 					</div>
 
 					<form onSubmit={handleSubmit} className="px-8 pb-8 pt-6 space-y-4">
 						{error && (
-							<div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">
+							<div className="bg-danger-50 border border-danger-200 text-danger-700 px-3 py-2 rounded-md text-sm">
 								{error}
 							</div>
 						)}
@@ -124,13 +124,13 @@ function LoginPage() {
 									}}
 									className={`login-input w-full px-3 py-3 border rounded-md focus:outline-none focus:ring-2 transition-colors ${
 										validationErrors.identifier
-											? "border-red-400 focus:ring-red-500 focus:border-red-500"
+											? "border-danger-400 focus:ring-danger-500 focus:border-danger-500"
 											: "border-black focus:ring-primary-500 focus:border-black"
 									}`}
 									placeholder="Username"
 								/>
 								{validationErrors.identifier && (
-									<p className="mt-1 text-xs text-red-600">
+									<p className="mt-1 text-xs text-danger-600">
 										{validationErrors.identifier}
 									</p>
 								)}
@@ -159,7 +159,7 @@ function LoginPage() {
 										}}
 										className={`login-input w-full px-3 py-3 pr-10 border rounded-md focus:outline-none focus:ring-2 transition-colors ${
 											validationErrors.password
-												? "border-red-400 focus:ring-red-500 focus:border-red-500"
+												? "border-danger-400 focus:ring-danger-500 focus:border-danger-500"
 												: "border-black focus:ring-primary-500 focus:border-black"
 										}`}
 										placeholder="Password"
@@ -167,7 +167,7 @@ function LoginPage() {
 									<button
 										type="button"
 										onClick={() => setShowPassword(!showPassword)}
-										className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+										className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
 										aria-label={
 											showPassword ? "Hide password" : "Show password"
 										}
@@ -180,7 +180,7 @@ function LoginPage() {
 									</button>
 								</div>
 								{validationErrors.password && (
-									<p className="mt-1 text-xs text-red-600">
+									<p className="mt-1 text-xs text-danger-600">
 										{validationErrors.password}
 									</p>
 								)}
@@ -188,10 +188,10 @@ function LoginPage() {
 						</div>
 
 						<div className="flex items-center justify-between text-md">
-							<label className="flex items-center gap-2 text-gray-600">
+							<label className="flex items-center gap-2 text-neutral-600">
 								<input
 									type="checkbox"
-									className="h-4 w-4 rounded border-gray-300"
+									className="h-4 w-4 rounded border-neutral-300"
 								/>
 								Remember me
 							</label>

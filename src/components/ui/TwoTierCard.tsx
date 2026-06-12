@@ -109,12 +109,12 @@ export const TwoTierCard: React.FC<TwoTierCardProps> = ({
 	const showChangeHighlight = highlightChanges && hasChanged;
 
 	const borderColor = showChangeHighlight
-		? "border-orange-400"
-		: "border-indigo-200";
-	const headerBgColor = showChangeHighlight ? "bg-orange-50" : "bg-blue-50";
+		? "border-ember-400"
+		: "border-iris-200";
+	const headerBgColor = showChangeHighlight ? "bg-ember-50" : "bg-primary-50";
 	const headerTextColor = showChangeHighlight
-		? "text-orange-900"
-		: "text-blue-800";
+		? "text-ember-900"
+		: "text-primary-800";
 
 	const renderTier = (
 		tierLabel: string,
@@ -126,10 +126,10 @@ export const TwoTierCard: React.FC<TwoTierCardProps> = ({
 		isOriginal = false,
 	) => {
 		const labelColor = isOriginal
-			? "text-amber-900 bg-amber-100"
+			? "text-warning-900 bg-warning-100"
 			: showChangeHighlight
-				? "text-orange-900 bg-orange-100"
-				: "text-green-900 bg-green-100";
+				? "text-ember-900 bg-ember-100"
+				: "text-success-900 bg-success-100";
 
 		const getDisplayValue = (v: any) => {
 			if (type === "select" && selectItems) {
@@ -146,10 +146,10 @@ export const TwoTierCard: React.FC<TwoTierCardProps> = ({
 				className={cn(
 					"border rounded-lg px-1 py-1 flex flex-col items-center justify-center min-h-[50px]",
 					isOriginal
-						? "border-indigo-200 bg-gray-50 mb-1"
+						? "border-iris-200 bg-neutral-50 mb-1"
 						: showChangeHighlight
-							? "border-orange-400 bg-orange-50"
-							: "border-indigo-200 bg-white",
+							? "border-ember-400 bg-ember-50"
+							: "border-iris-200 bg-white",
 				)}
 			>
 				<span
@@ -165,7 +165,7 @@ export const TwoTierCard: React.FC<TwoTierCardProps> = ({
 				{editable && onChange ? (
 					type === "select" ? (
 						<select
-							className="w-full text-center text-sm border border-gray-200 rounded px-1 py-0.5 bg-white focus:outline-none focus:border-blue-500"
+							className="w-full text-center text-sm border border-neutral-200 rounded px-1 py-0.5 bg-white focus:outline-none focus:border-primary-500"
 							value={
 								draftValue === null || draftValue === undefined
 									? ""
@@ -185,7 +185,7 @@ export const TwoTierCard: React.FC<TwoTierCardProps> = ({
 						</select>
 					) : type === "switch" ? (
 						<button
-							className="w-full text-center text-sm py-0.5 rounded hover:bg-gray-100"
+							className="w-full text-center text-sm py-0.5 rounded hover:bg-neutral-100"
 							onClick={() => {
 								const newVal = !draftValue;
 								setDraftValue(newVal);
@@ -197,7 +197,7 @@ export const TwoTierCard: React.FC<TwoTierCardProps> = ({
 					) : (
 						<input
 							type={type === "number" ? "number" : "text"}
-							className="w-full text-center text-sm border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:border-blue-500"
+							className="w-full text-center text-sm border border-neutral-200 rounded px-1 py-0.5 focus:outline-none focus:border-primary-500"
 							value={
 								draftValue === null || draftValue === undefined
 									? ""
@@ -212,7 +212,7 @@ export const TwoTierCard: React.FC<TwoTierCardProps> = ({
 						/>
 					)
 				) : (
-					<span className="text-gray-900 text-sm font-semibold text-center w-full truncate px-1">
+					<span className="text-neutral-900 text-sm font-semibold text-center w-full truncate px-1">
 						{getDisplayValue(value)}
 					</span>
 				)}

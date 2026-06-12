@@ -218,6 +218,9 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		if (filters.packedOnly) {
 			result = result.filter((inst) => inst.status === "packed");
 		}
+		if (filters.statusFilter) {
+			result = result.filter((inst) => inst.status === filters.statusFilter);
+		}
 		if (filters.boxId) {
 			result = result.filter((inst) => inst.id === filters.boxId);
 		}
@@ -353,10 +356,24 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 			return a.instance_number - b.instance_number;
 		});
 
+		// 3. Photos-first: stable partition so boxes with photos lead the report
+		// while keeping the sort order above within each group
+		if (filters.photosFirst) {
+			const hasPhotos = (inst: (typeof result)[number]) =>
+				(inst.box_photo_urls?.length ?? 0) > 0 ||
+				inst.pkd_items?.some((i: any) => (i.photo_urls?.length ?? 0) > 0);
+			result = [
+				...result.filter((inst) => hasPhotos(inst)),
+				...result.filter((inst) => !hasPhotos(inst)),
+			];
+		}
+
 		return result;
 	}, [
 		instances,
 		filters.packedOnly,
+		filters.statusFilter,
+		filters.photosFirst,
 		filters.boxId,
 		filters.tags,
 		pkgSettings.boxes_sort,
@@ -411,6 +428,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		destinationsHash,
 		filters.hasItemsOnly,
 		filters.packedOnly,
+		filters.statusFilter,
 		filters.splitBy,
 		filters.boxId,
 		instanceIdsHash,
@@ -632,7 +650,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 
 	if (!filters.clientId && filters.orderIds.length === 0) {
 		return (
-			<div className="flex items-center justify-center h-full text-gray-400 text-sm italic">
+			<div className="flex items-center justify-center h-full text-neutral-400 text-sm italic">
 				Select a client to preview the report.
 			</div>
 		);
@@ -640,8 +658,8 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 
 	if (isLoading) {
 		return (
-			<div className="flex items-center justify-center h-full flex-col gap-3 text-gray-500">
-				<div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+			<div className="flex items-center justify-center h-full flex-col gap-3 text-neutral-500">
+				<div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
 				<span className="text-sm">Loading packages...</span>
 			</div>
 		);
@@ -649,7 +667,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 
 	if (error) {
 		return (
-			<div className="flex items-center justify-center h-full text-red-500 text-sm">
+			<div className="flex items-center justify-center h-full text-danger-500 text-sm">
 				Error loading data. Check console.
 			</div>
 		);
@@ -661,8 +679,8 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 		<div className="flex flex-col h-full">
 			{/* ─── Report Switcher (report_per_order mode) ─── */}
 			{isReportPerOrder && totalReports > 1 && (
-				<div className="flex items-center gap-2 px-4 py-1.5 bg-purple-50 border-b border-purple-200 shrink-0">
-					<span className="text-xs font-semibold text-purple-700 mr-1">
+				<div className="flex items-center gap-2 px-4 py-1.5 bg-accent-50 border-b border-accent-200 shrink-0">
+					<span className="text-xs font-semibold text-accent-700 mr-1">
 						Report:
 					</span>
 					<button
@@ -672,11 +690,11 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 							setCurrentPage(0);
 						}}
 						disabled={currentReportIndex === 0}
-						className="p-1 rounded hover:bg-purple-100 disabled:opacity-30 transition-colors"
+						className="p-1 rounded hover:bg-accent-100 disabled:opacity-30 transition-colors"
 					>
-						<ChevronLeft className="w-3.5 h-3.5 text-purple-700" />
+						<ChevronLeft className="w-3.5 h-3.5 text-accent-700" />
 					</button>
-					<span className="text-xs font-medium text-purple-800 min-w-[100px] text-center">
+					<span className="text-xs font-medium text-accent-800 min-w-[100px] text-center">
 						{currentReportGroup?.orderName ??
 							`Report ${currentReportIndex + 1}`}
 					</span>
@@ -687,9 +705,9 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 							setCurrentPage(0);
 						}}
 						disabled={currentReportIndex >= totalReports - 1}
-						className="p-1 rounded hover:bg-purple-100 disabled:opacity-30 transition-colors"
+						className="p-1 rounded hover:bg-accent-100 disabled:opacity-30 transition-colors"
 					>
-						<ChevronRight className="w-3.5 h-3.5 text-purple-700" />
+						<ChevronRight className="w-3.5 h-3.5 text-accent-700" />
 					</button>
 					<div className="flex gap-1 ml-1">
 						{reportGroups?.map((rg, i) => (
@@ -702,33 +720,33 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 								}}
 								className={`w-2 h-2 rounded-full transition-colors ${
 									i === currentReportIndex
-										? "bg-purple-600"
-										: "bg-purple-200 hover:bg-purple-400"
+										? "bg-accent-600"
+										: "bg-accent-200 hover:bg-accent-400"
 								}`}
 								title={rg.orderName}
 							/>
 						))}
 					</div>
-					<span className="text-xs text-purple-500 ml-auto">
+					<span className="text-xs text-accent-500 ml-auto">
 						{currentReportIndex + 1} / {totalReports}
 					</span>
 				</div>
 			)}
 
 			{/* ─── Page Nav Toolbar ─── */}
-			<div className="flex flex-wrap items-center justify-between px-4 py-2 bg-gray-100 border-b shrink-0 gap-3">
+			<div className="flex flex-wrap items-center justify-between px-4 py-2 bg-neutral-100 border-b shrink-0 gap-3">
 				{/* Left: Navigation & Info */}
 				<div className="flex items-center gap-3">
-					<div className="flex items-center gap-1 bg-white border border-gray-300 rounded p-0.5 shadow-sm">
+					<div className="flex items-center gap-1 bg-white border border-neutral-300 rounded p-0.5 shadow-sm">
 						<button
 							type="button"
 							onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
 							disabled={currentPage === 0}
-							className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
+							className="p-1 rounded hover:bg-neutral-100 disabled:opacity-30 transition-colors"
 						>
-							<ChevronLeft className="w-4 h-4 text-gray-600" />
+							<ChevronLeft className="w-4 h-4 text-neutral-600" />
 						</button>
-						<span className="text-xs font-semibold text-gray-700 min-w-[75px] text-center select-none">
+						<span className="text-xs font-semibold text-neutral-700 min-w-[75px] text-center select-none">
 							{totalPages === 0
 								? "0 / 0"
 								: `Page ${currentPage + 1} of ${totalPages}`}
@@ -739,9 +757,9 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 								setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
 							}
 							disabled={currentPage >= totalPages - 1}
-							className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
+							className="p-1 rounded hover:bg-neutral-100 disabled:opacity-30 transition-colors"
 						>
-							<ChevronRight className="w-4 h-4 text-gray-600" />
+							<ChevronRight className="w-4 h-4 text-neutral-600" />
 						</button>
 					</div>
 
@@ -754,18 +772,18 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 										key={pageKey}
 										type="button"
 										onClick={() => setCurrentPage(i)}
-										className={`w-1.5 h-1.5 rounded-full transition-colors ${i === currentPage ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"}`}
+										className={`w-1.5 h-1.5 rounded-full transition-colors ${i === currentPage ? "bg-primary-600" : "bg-neutral-300 hover:bg-neutral-400"}`}
 									/>
 								);
 							})}
 						</div>
 					)}
 
-					<div className="text-xs text-gray-500 font-medium hidden sm:inline-block">
+					<div className="text-xs text-neutral-500 font-medium hidden sm:inline-block">
 						{activeInstances.length} boxes ·{" "}
 						{isLandscape ? "Landscape" : "Portrait"}
 						{page?.label && (
-							<span className="ml-2 px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-medium">
+							<span className="ml-2 px-1.5 py-0.5 bg-primary-50 text-primary-600 rounded font-medium">
 								{page.label}
 							</span>
 						)}
@@ -775,19 +793,19 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 				{/* Middle/Center: Zoom & View Options */}
 				<div className="flex items-center gap-2 flex-wrap">
 					{/* Zoom widget */}
-					<div className="flex items-center gap-1 bg-white border border-gray-300 rounded px-1.5 py-0.5 shadow-sm">
+					<div className="flex items-center gap-1 bg-white border border-neutral-300 rounded px-1.5 py-0.5 shadow-sm">
 						<button
 							type="button"
 							onClick={() => {
 								setScaleMode("manual");
 								setScale((prev) => Math.max(prev - 0.1, 0.2));
 							}}
-							className="p-1 rounded hover:bg-gray-100 font-bold text-gray-500 text-xs w-6 h-6 flex items-center justify-center transition-colors cursor-pointer"
+							className="p-1 rounded hover:bg-neutral-100 font-bold text-neutral-500 text-xs w-6 h-6 flex items-center justify-center transition-colors cursor-pointer"
 							title="Zoom Out"
 						>
 							-
 						</button>
-						<span className="text-xs font-bold text-gray-700 min-w-[36px] text-center select-none">
+						<span className="text-xs font-bold text-neutral-700 min-w-[36px] text-center select-none">
 							{Math.round(scale * 100)}%
 						</span>
 						<button
@@ -796,19 +814,19 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 								setScaleMode("manual");
 								setScale((prev) => Math.min(prev + 0.1, 3));
 							}}
-							className="p-1 rounded hover:bg-gray-100 font-bold text-gray-500 text-xs w-6 h-6 flex items-center justify-center transition-colors cursor-pointer"
+							className="p-1 rounded hover:bg-neutral-100 font-bold text-neutral-500 text-xs w-6 h-6 flex items-center justify-center transition-colors cursor-pointer"
 							title="Zoom In"
 						>
 							+
 						</button>
-						<div className="w-[1px] h-4 bg-gray-200 mx-1" />
+						<div className="w-[1px] h-4 bg-neutral-200 mx-1" />
 						<button
 							type="button"
 							onClick={() => setScaleMode("fit")}
 							className={`text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
 								scaleMode === "fit"
-									? "bg-blue-100 text-blue-700"
-									: "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+									? "bg-primary-100 text-primary-700"
+									: "text-neutral-600 hover:text-primary-600 hover:bg-primary-50"
 							}`}
 							title="Fit whole page in screen"
 						>
@@ -819,8 +837,8 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 							onClick={() => setScaleMode("fill")}
 							className={`text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
 								scaleMode === "fill"
-									? "bg-blue-100 text-blue-700"
-									: "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+									? "bg-primary-100 text-primary-700"
+									: "text-neutral-600 hover:text-primary-600 hover:bg-primary-50"
 							}`}
 							title="Fill container space"
 						>
@@ -829,12 +847,12 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 					</div>
 
 					{/* Ruler & Grid toggle */}
-					<label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer font-semibold select-none bg-white border border-gray-300 rounded px-2.5 py-1.5 shadow-sm hover:bg-gray-50 transition-colors">
+					<label className="flex items-center gap-1.5 text-xs text-neutral-600 cursor-pointer font-semibold select-none bg-white border border-neutral-300 rounded px-2.5 py-1.5 shadow-sm hover:bg-neutral-50 transition-colors">
 						<input
 							type="checkbox"
 							checked={showRuler}
 							onChange={(e) => setShowRuler(e.target.checked)}
-							className="rounded text-blue-600 accent-blue-600 cursor-pointer w-3.5 h-3.5"
+							className="rounded text-primary-600 accent-primary-600 cursor-pointer w-3.5 h-3.5"
 						/>
 						Ruler & Grid
 					</label>
@@ -843,9 +861,9 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 					<button
 						type="button"
 						onClick={() => setMediaManagerOpen(true)}
-						className="flex items-center gap-1.5 text-xs text-gray-700 font-bold bg-white border border-gray-300 rounded px-2.5 py-1.5 shadow-sm hover:bg-gray-50 transition-colors cursor-pointer"
+						className="flex items-center gap-1.5 text-xs text-neutral-700 font-bold bg-white border border-neutral-300 rounded px-2.5 py-1.5 shadow-sm hover:bg-neutral-50 transition-colors cursor-pointer"
 					>
-						<Image className="w-3.5 h-3.5 text-blue-600" />
+						<Image className="w-3.5 h-3.5 text-primary-600" />
 						Manage Photos
 					</button>
 				</div>
@@ -854,28 +872,28 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 				<div className="flex items-center gap-2">
 					{/* Flip scroll direction */}
 					<label
-						className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer font-semibold select-none bg-white border border-gray-300 rounded px-2.5 py-1.5 shadow-sm hover:bg-gray-50 transition-colors"
+						className="flex items-center gap-1.5 text-xs text-neutral-600 cursor-pointer font-semibold select-none bg-white border border-neutral-300 rounded px-2.5 py-1.5 shadow-sm hover:bg-neutral-50 transition-colors"
 						title="Invert direction when scrolling wheel to switch pages"
 					>
 						<input
 							type="checkbox"
 							checked={invertPageScroll}
 							onChange={(e) => setInvertPageScroll(e.target.checked)}
-							className="rounded text-blue-600 accent-blue-600 cursor-pointer w-3.5 h-3.5"
+							className="rounded text-primary-600 accent-primary-600 cursor-pointer w-3.5 h-3.5"
 						/>
 						Invert Page Scroll
 					</label>
 
 					{/* Shortcut config */}
 					<label
-						className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer font-semibold select-none bg-white border border-gray-300 rounded px-2.5 py-1.5 shadow-sm hover:bg-gray-50 transition-colors"
+						className="flex items-center gap-1.5 text-xs text-neutral-600 cursor-pointer font-semibold select-none bg-white border border-neutral-300 rounded px-2.5 py-1.5 shadow-sm hover:bg-neutral-50 transition-colors"
 						title="Enable Ctrl+Scroll to zoom page instead of browser"
 					>
 						<input
 							type="checkbox"
 							checked={ctrlScrollZoomReport}
 							onChange={(e) => setCtrlScrollZoomReport(e.target.checked)}
-							className="rounded text-blue-600 accent-blue-600 cursor-pointer w-3.5 h-3.5"
+							className="rounded text-primary-600 accent-primary-600 cursor-pointer w-3.5 h-3.5"
 						/>
 						Ctrl+Scroll Zoom
 					</label>
@@ -885,12 +903,12 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 			{/* ─── Page Viewer ─── */}
 			<div
 				ref={containerRef}
-				className="flex-1 bg-gray-300 overflow-auto flex p-8 relative"
+				className="flex-1 bg-neutral-300 overflow-auto flex p-8 relative"
 				tabIndex={-1}
 				style={{ scrollBehavior: "smooth" }}
 			>
 				{totalPages === 0 ? (
-					<div className="text-gray-500 text-sm italic margin-auto">
+					<div className="text-neutral-500 text-sm italic margin-auto">
 						No packages match.
 					</div>
 				) : (
@@ -1045,22 +1063,22 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 
 	if (mediaInstances.length === 0) {
 		return (
-			<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[99999] p-4">
+			<div className="fixed inset-0 bg-steel-900/60 backdrop-blur-md flex items-center justify-center z-[99999] p-4">
 				<div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden transform transition-all duration-300 scale-100 flex flex-col p-6 text-center">
-					<div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
-						<Image className="w-8 h-8 text-indigo-600 animate-pulse" />
+					<div className="w-16 h-16 bg-iris-50 rounded-full flex items-center justify-center mx-auto mb-4">
+						<Image className="w-8 h-8 text-iris-600 animate-pulse" />
 					</div>
-					<h3 className="text-lg font-bold text-slate-800 mb-2">
+					<h3 className="text-lg font-bold text-steel-800 mb-2">
 						No Media Available
 					</h3>
-					<p className="text-sm text-slate-500 mb-6 font-medium">
+					<p className="text-sm text-steel-500 mb-6 font-medium">
 						None of the selected packages or items have associated photos in the
 						database.
 					</p>
 					<button
 						type="button"
 						onClick={onClose}
-						className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-md cursor-pointer"
+						className="w-full py-2 bg-iris-600 hover:bg-iris-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-md cursor-pointer"
 					>
 						Close
 					</button>
@@ -1077,20 +1095,20 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 		) || [];
 
 	return (
-		<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[99999] p-4">
+		<div className="fixed inset-0 bg-steel-900/60 backdrop-blur-md flex items-center justify-center z-[99999] p-4">
 			<div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full h-[80vh] overflow-hidden flex flex-col transform transition-all duration-300">
 				{/* Modal Header */}
-				<div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50 shrink-0">
+				<div className="flex items-center justify-between px-6 py-4 border-b bg-neutral-50 shrink-0">
 					<div className="flex items-center gap-2">
-						<Image className="w-5 h-5 text-indigo-600" />
-						<h3 className="text-base font-bold text-gray-800">
+						<Image className="w-5 h-5 text-iris-600" />
+						<h3 className="text-base font-bold text-neutral-800">
 							Manage Photos for Report
 						</h3>
 					</div>
 					<button
 						type="button"
 						onClick={handleCloseAndSave}
-						className="text-gray-400 hover:text-gray-700 transition-colors p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer"
+						className="text-neutral-400 hover:text-neutral-700 transition-colors p-1.5 rounded-lg hover:bg-neutral-100 cursor-pointer"
 					>
 						✕
 					</button>
@@ -1099,8 +1117,8 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 				{/* Modal Body */}
 				<div className="flex-1 flex overflow-hidden">
 					{/* Left Sidebar Tabs */}
-					<div className="w-1/3 border-r bg-gray-50 overflow-y-auto p-3 flex flex-col gap-1 shrink-0">
-						<div className="text-[10px] font-bold text-gray-400 px-3 py-1.5 uppercase tracking-wider">
+					<div className="w-1/3 border-r bg-neutral-50 overflow-y-auto p-3 flex flex-col gap-1 shrink-0">
+						<div className="text-[10px] font-bold text-neutral-400 px-3 py-1.5 uppercase tracking-wider">
 							Packages
 						</div>
 						{mediaInstances.map((inst, idx) => {
@@ -1130,8 +1148,8 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 									onClick={() => setActiveTabIdx(idx)}
 									className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center justify-between transition-all cursor-pointer ${
 										isSelected
-											? "bg-indigo-50 text-indigo-700 font-semibold shadow-sm border border-indigo-100"
-											: "text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-transparent"
+											? "bg-iris-50 text-iris-700 font-semibold shadow-sm border border-iris-100"
+											: "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 border border-transparent"
 									}`}
 								>
 									<span className="text-xs truncate">
@@ -1144,11 +1162,11 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 										className={`text-[10px] px-2 py-0.5 rounded-full font-semibold transition-all ${
 											isSelected
 												? visibleCount === 0
-													? "bg-gray-200 text-gray-700"
-													: "bg-indigo-600 text-white"
+													? "bg-neutral-200 text-neutral-700"
+													: "bg-iris-600 text-white"
 												: visibleCount === 0
-													? "bg-gray-200 text-gray-500"
-													: "bg-gray-200 text-gray-700"
+													? "bg-neutral-200 text-neutral-500"
+													: "bg-neutral-200 text-neutral-700"
 										}`}
 									>
 										{visibleCount}/{totalPhotosCount}
@@ -1163,10 +1181,10 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 						{activeInst && (
 							<>
 								<div className="border-b pb-3">
-									<h4 className="text-sm font-bold text-gray-800">
+									<h4 className="text-sm font-bold text-neutral-800">
 										Box {activeInst.package_number} Details
 									</h4>
-									<p className="text-xs text-gray-500 mt-1">
+									<p className="text-xs text-neutral-500 mt-1">
 										Select or deselect pictures to show or hide them in the
 										final report.
 									</p>
@@ -1174,11 +1192,11 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 
 								{/* Box Photos Section */}
 								<div>
-									<h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+									<h5 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">
 										📷 Box Photos ({boxPhotos.length})
 									</h5>
 									{boxPhotos.length === 0 ? (
-										<p className="text-xs text-gray-400 italic">
+										<p className="text-xs text-neutral-400 italic">
 											No box-level photos.
 										</p>
 									) : (
@@ -1192,8 +1210,8 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 														onClick={() => handleToggleLocal(url)}
 														className={`relative group rounded-lg overflow-hidden border-2 text-left cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
 															isHidden
-																? "border-gray-200 opacity-60 bg-gray-50"
-																: "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/5"
+																? "border-neutral-200 opacity-60 bg-neutral-50"
+																: "border-success-500 ring-2 ring-success-500/20 bg-success-50/5"
 														}`}
 													>
 														<img
@@ -1204,8 +1222,8 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 														<div
 															className={`absolute bottom-0 inset-x-0 py-1.5 px-2 text-[10px] font-semibold text-center select-none transition-colors ${
 																isHidden
-																	? "bg-gray-500 text-white"
-																	: "bg-emerald-600 text-white"
+																	? "bg-neutral-500 text-white"
+																	: "bg-success-600 text-white"
 															}`}
 														>
 															{isHidden ? "🚫 Hidden" : "✅ Shown"}
@@ -1220,7 +1238,7 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 								{/* Items with Photos Sections */}
 								{itemsWithPhotos.length > 0 && (
 									<div className="flex flex-col gap-6">
-										<h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider border-t pt-4">
+										<h5 className="text-xs font-bold text-neutral-500 uppercase tracking-wider border-t pt-4">
 											🏷️ Item Photos
 										</h5>
 										{itemsWithPhotos.map((item: any, idx: number) => {
@@ -1228,16 +1246,16 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 											return (
 												<div
 													key={`item-photos-section-${item.id}-${idx}`}
-													className="bg-gray-50/50 p-4 rounded-lg border border-gray-100"
+													className="bg-neutral-50/50 p-4 rounded-lg border border-neutral-100"
 												>
 													<div className="mb-3">
-														<span className="text-xs font-bold text-gray-700 block">
+														<span className="text-xs font-bold text-neutral-700 block">
 															Item {idx + 1}: {item.item_num || "No #"}
 														</span>
-														<span className="text-xs text-gray-600 block mt-0.5 italic">
+														<span className="text-xs text-neutral-600 block mt-0.5 italic">
 															{item.item_name || "No Description"}
 														</span>
-														<span className="inline-block mt-1 text-[10px] bg-gray-200/60 text-gray-700 px-2 py-0.5 rounded-full font-medium">
+														<span className="inline-block mt-1 text-[10px] bg-neutral-200/60 text-neutral-700 px-2 py-0.5 rounded-full font-medium">
 															Quantity: {item.quantity}
 														</span>
 													</div>
@@ -1251,8 +1269,8 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 																	onClick={() => handleToggleLocal(url)}
 																	className={`relative group rounded-lg overflow-hidden border-2 text-left cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
 																		isHidden
-																			? "border-gray-200 opacity-60 bg-gray-50"
-																			: "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/5"
+																			? "border-neutral-200 opacity-60 bg-neutral-50"
+																			: "border-success-500 ring-2 ring-success-500/20 bg-success-50/5"
 																	}`}
 																>
 																	<img
@@ -1263,8 +1281,8 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 																	<div
 																		className={`absolute bottom-0 inset-x-0 py-1.5 px-2 text-[10px] font-semibold text-center select-none transition-colors ${
 																			isHidden
-																				? "bg-gray-500 text-white"
-																				: "bg-emerald-600 text-white"
+																				? "bg-neutral-500 text-white"
+																				: "bg-success-600 text-white"
 																		}`}
 																	>
 																		{isHidden ? "🚫 Hidden" : "✅ Shown"}
@@ -1284,11 +1302,11 @@ const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 				</div>
 
 				{/* Modal Footer */}
-				<div className="px-6 py-4 border-t bg-gray-50 flex justify-end gap-2 shrink-0">
+				<div className="px-6 py-4 border-t bg-neutral-50 flex justify-end gap-2 shrink-0">
 					<button
 						type="button"
 						onClick={handleCloseAndSave}
-						className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-md cursor-pointer"
+						className="px-5 py-2 bg-iris-600 hover:bg-iris-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-md cursor-pointer"
 					>
 						Done
 					</button>

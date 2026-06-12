@@ -47,8 +47,8 @@ function PhotoGallery({
 	const next = () => setActive((a) => (a + 1) % photos.length);
 
 	return (
-		<section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-			<div className="relative aspect-video bg-gray-900">
+		<section className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+			<div className="relative aspect-video bg-neutral-900">
 				<img
 					src={getPublicUrl(photos[active].image_url)}
 					alt={photos[active].notes || `Photo ${active + 1}`}
@@ -92,7 +92,7 @@ function PhotoGallery({
 						<button
 							key={photo.id}
 							onClick={() => setActive(i)}
-							className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === active ? "border-blue-500" : "border-gray-200"}`}
+							className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === active ? "border-primary-500" : "border-neutral-200"}`}
 						>
 							<img
 								src={getPublicUrl(photo.image_url)}
@@ -105,7 +105,7 @@ function PhotoGallery({
 			)}
 
 			{photos[active].notes && (
-				<p className="text-xs text-gray-500 px-4 pb-3">
+				<p className="text-xs text-neutral-500 px-4 pb-3">
 					{photos[active].notes}
 				</p>
 			)}
@@ -256,26 +256,28 @@ function ItemView() {
 
 	if (isLoading) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50">
-				<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+			<div className="min-h-screen flex items-center justify-center bg-neutral-50">
+				<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
 			</div>
 		);
 	}
 
 	if (queryError) {
 		return (
-			<div className="p-8 text-center bg-gray-50 min-h-screen flex flex-col items-center justify-center">
-				<div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-					<PackageX className="w-8 h-8 text-red-600" />
+			<div className="p-8 text-center bg-neutral-50 min-h-screen flex flex-col items-center justify-center">
+				<div className="w-16 h-16 bg-danger-100 rounded-full flex items-center justify-center mb-4">
+					<PackageX className="w-8 h-8 text-danger-600" />
 				</div>
-				<h2 className="text-xl font-bold text-gray-900 mb-2">Query Failed</h2>
-				<p className="text-gray-500 max-w-md mb-6">
+				<h2 className="text-xl font-bold text-neutral-900 mb-2">
+					Query Failed
+				</h2>
+				<p className="text-neutral-500 max-w-md mb-6">
 					{(queryError as any)?.message ||
 						"An error occurred while fetching the item details."}
 				</p>
 				<button
 					onClick={() => window.location.reload()}
-					className="px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-xl transition-colors"
+					className="px-5 py-2.5 bg-primary-600 text-white font-semibold rounded-xl transition-colors"
 				>
 					Try Again
 				</button>
@@ -285,7 +287,7 @@ function ItemView() {
 
 	if (!record) {
 		return (
-			<div className="p-8 text-center bg-gray-50 min-h-screen">
+			<div className="p-8 text-center bg-neutral-50 min-h-screen">
 				Item not found
 			</div>
 		);
@@ -358,9 +360,9 @@ function ItemView() {
 		record.source === "pkd_item" ? (record.data as any).quantity : null;
 
 	return (
-		<div className="min-h-screen bg-gray-50 pb-24">
+		<div className="min-h-screen bg-neutral-50 pb-24">
 			{/* Header */}
-			<header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+			<header className="bg-white border-b border-neutral-200 sticky top-0 z-30">
 				<div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="flex justify-between items-center h-16">
 						<div className="flex items-center gap-3">
@@ -375,14 +377,16 @@ function ItemView() {
 									}
 									navigate({ to: "/portal/projects" });
 								}}
-								className="p-2 -ml-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+								className="p-2 -ml-2 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors"
 							>
 								<ArrowLeft className="w-5 h-5" />
 							</button>
-							<div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+							<div className="w-8 h-8 bg-success-600 rounded-lg flex items-center justify-center">
 								<Info className="w-5 h-5 text-white" />
 							</div>
-							<h1 className="text-lg font-bold text-gray-900">Item Details</h1>
+							<h1 className="text-lg font-bold text-neutral-900">
+								Item Details
+							</h1>
 						</div>
 					</div>
 				</div>
@@ -393,28 +397,28 @@ function ItemView() {
 				{photos.length > 0 && <PhotoGallery photos={photos} />}
 
 				{/* Item Hero Card */}
-				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+				<section className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 sm:p-8">
 					<div className="mb-6">
 						<div className="flex flex-wrap items-center gap-2 mb-3">
-							<span className="bg-gray-100 text-gray-700 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
+							<span className="bg-neutral-100 text-neutral-700 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
 								{item?.pkg_category?.label || "General"}
 							</span>
 							{item?.item_num && (
-								<span className="text-sm font-mono font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full">
+								<span className="text-sm font-mono font-semibold text-primary-700 bg-primary-50 px-2.5 py-0.5 rounded-full">
 									#{item.item_num}
 								</span>
 							)}
 						</div>
-						<h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-tight">
+						<h2 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight leading-tight">
 							{item?.description || item?.reference || "Unnamed Item"}
 						</h2>
 						<div className="mt-4 flex flex-wrap gap-3 text-sm font-medium">
-							<div className="bg-gray-100 px-3 py-1.5 rounded-lg text-gray-700">
+							<div className="bg-neutral-100 px-3 py-1.5 rounded-lg text-neutral-700">
 								Expected:{" "}
 								<span className="font-bold">{item?.expected_qty ?? "--"}</span>
 							</div>
 							{packedQty != null && (
-								<div className="bg-blue-100 px-3 py-1.5 rounded-lg text-blue-700">
+								<div className="bg-primary-100 px-3 py-1.5 rounded-lg text-primary-700">
 									Packed in this box:{" "}
 									<span className="font-bold">{packedQty}</span>
 								</div>
@@ -423,7 +427,7 @@ function ItemView() {
 					</div>
 
 					{/* Dimensions */}
-					<div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-5 border-y border-gray-100">
+					<div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-5 border-y border-neutral-100">
 						{[
 							{
 								label: "Length",
@@ -453,10 +457,10 @@ function ItemView() {
 						].map(({ label, value, unit, icon, accent }) => (
 							<div
 								key={label}
-								className={`rounded-xl p-4 border ${accent ? "bg-emerald-50 border-emerald-100" : "bg-gray-50 border-gray-200/60"}`}
+								className={`rounded-xl p-4 border ${accent ? "bg-success-50 border-success-100" : "bg-neutral-50 border-neutral-200/60"}`}
 							>
 								<div
-									className={`flex items-center gap-2 mb-1 ${accent ? "text-emerald-600" : "text-gray-500"}`}
+									className={`flex items-center gap-2 mb-1 ${accent ? "text-success-600" : "text-neutral-500"}`}
 								>
 									{icon}
 									<span className="text-xs font-semibold uppercase">
@@ -464,11 +468,11 @@ function ItemView() {
 									</span>
 								</div>
 								<div
-									className={`text-xl font-bold ${accent ? "text-emerald-900" : "text-gray-900"}`}
+									className={`text-xl font-bold ${accent ? "text-success-900" : "text-neutral-900"}`}
 								>
 									{value ?? "--"}{" "}
 									<span
-										className={`text-sm font-medium ${accent ? "text-emerald-600" : "text-gray-500"}`}
+										className={`text-sm font-medium ${accent ? "text-success-600" : "text-neutral-500"}`}
 									>
 										{unit}
 									</span>
@@ -480,10 +484,10 @@ function ItemView() {
 					{/* IPAC Notes */}
 					{item?.ipac_comments && (
 						<div className="mt-6">
-							<h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-3">
+							<h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wide mb-3">
 								IPAC Notes
 							</h3>
-							<div className="bg-amber-50 rounded-xl p-4 border border-amber-100 text-amber-900 text-sm leading-relaxed">
+							<div className="bg-warning-50 rounded-xl p-4 border border-warning-100 text-warning-900 text-sm leading-relaxed">
 								{item.ipac_comments}
 							</div>
 						</div>
@@ -492,19 +496,19 @@ function ItemView() {
 
 				{/* Package Location */}
 				{packageInfo ? (
-					<section className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+					<section className="bg-primary-50/70 border border-primary-100/80 rounded-2xl p-6 sm:p-8 relative overflow-hidden">
 						<div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
 							<div>
 								<div className="flex items-center gap-2 mb-2">
-									<MapPin className="w-4 h-4 text-blue-600" />
-									<span className="text-xs font-bold text-blue-600 uppercase tracking-wide">
+									<MapPin className="w-4 h-4 text-primary-600" />
+									<span className="text-xs font-bold text-primary-600 uppercase tracking-wide">
 										Currently Packed In
 									</span>
 								</div>
-								<h3 className="text-2xl font-black text-gray-900">
+								<h3 className="text-2xl font-black text-neutral-900">
 									{packageInfo.reference}
 								</h3>
-								<p className="text-gray-600 mt-1 text-sm font-medium">
+								<p className="text-neutral-600 mt-1 text-sm font-medium">
 									{packageInfo.instanceNumber
 										? `Instance #${packageInfo.instanceNumber}`
 										: ""}
@@ -515,7 +519,7 @@ function ItemView() {
 								<Link
 									to="/portal/package/$id"
 									params={{ id: packageInfo.id }}
-									className="inline-flex items-center justify-center gap-2 py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-all whitespace-nowrap flex-shrink-0"
+									className="inline-flex items-center justify-center gap-2 py-2.5 px-5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold shadow-md transition-all whitespace-nowrap flex-shrink-0"
 								>
 									<Box className="w-4 h-4" />
 									View Box Contents
@@ -524,8 +528,8 @@ function ItemView() {
 						</div>
 					</section>
 				) : (
-					<div className="bg-amber-50 border border-amber-200 text-amber-800 px-6 py-4 rounded-xl flex items-center gap-3">
-						<AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
+					<div className="bg-warning-50 border border-warning-200 text-warning-800 px-6 py-4 rounded-xl flex items-center gap-3">
+						<AlertCircle className="w-5 h-5 shrink-0 text-warning-600" />
 						<div>
 							<p className="font-semibold">Not Packed</p>
 							<p className="text-sm">

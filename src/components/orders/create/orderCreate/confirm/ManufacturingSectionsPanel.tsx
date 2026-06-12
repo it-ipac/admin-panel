@@ -94,10 +94,10 @@ export function ManufacturingSectionsPanel({
 
 		return (
 			<div className="space-y-3">
-				<p className="text-xs font-semibold text-gray-800">{title}</p>
+				<p className="text-xs font-semibold text-neutral-800">{title}</p>
 				{visibleParts.length === 0 ? (
-					<div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
-						<p className="text-[11px] text-gray-500 mb-2">
+					<div className="rounded-lg border border-dashed border-neutral-200 bg-neutral-50 p-3">
+						<p className="text-[11px] text-neutral-500 mb-2">
 							No data detected for this section.
 						</p>
 						<div className="flex flex-wrap gap-2">
@@ -106,7 +106,7 @@ export function ManufacturingSectionsPanel({
 									key={`add-${entry.part.key}`}
 									type="button"
 									onClick={() => addPart(entry.part.key)}
-									className="px-2 py-1 text-[11px] rounded border border-gray-300 text-gray-600 hover:text-blue-700 hover:border-blue-300"
+									className="px-2 py-1 text-[11px] rounded border border-neutral-300 text-neutral-600 hover:text-primary-700 hover:border-primary-300"
 								>
 									Add {entry.label.toLowerCase()}
 								</button>
@@ -136,7 +136,7 @@ export function ManufacturingSectionsPanel({
 										key={`add-inline-${entry.part.key}`}
 										type="button"
 										onClick={() => addPart(entry.part.key)}
-										className="px-2 py-1 text-[11px] rounded border border-gray-300 text-gray-600 hover:text-blue-700 hover:border-blue-300"
+										className="px-2 py-1 text-[11px] rounded border border-neutral-300 text-neutral-600 hover:text-primary-700 hover:border-primary-300"
 									>
 										Add {entry.label.toLowerCase()}
 									</button>

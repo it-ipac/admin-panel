@@ -66,43 +66,45 @@ function OrdersPage() {
 	);
 
 	const statusColors: Record<string, string> = {
-		pending: "bg-amber-100 text-amber-700",
-		in_progress: "bg-blue-100 text-blue-700",
-		completed: "bg-emerald-100 text-emerald-700",
+		pending: "bg-warning-100 text-warning-700",
+		in_progress: "bg-primary-100 text-primary-700",
+		completed: "bg-success-100 text-success-700",
 	};
 
 	if (authLoading) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50">
-				<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+			<div className="min-h-screen flex items-center justify-center bg-neutral-50">
+				<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
 			</div>
 		);
 	}
 
 	return (
-		<div className="flex h-screen bg-gray-50">
+		<div className="flex h-screen bg-neutral-50">
 			<Sidebar />
 			<main className="flex-1 overflow-y-auto">
 				<div className="p-8">
 					<div className="flex items-center justify-between mb-8">
 						<div>
-							<h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-							<p className="text-gray-500 mt-1">Manage and track all orders</p>
+							<h1 className="text-2xl font-bold text-neutral-900">Orders</h1>
+							<p className="text-neutral-500 mt-1">
+								Manage and track all orders
+							</p>
 						</div>
 						<button
 							onClick={() => setShowCreateDialog(true)}
-							className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+							className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
 						>
 							<Plus className="w-5 h-5" />
 							New Order
 						</button>
 					</div>
 
-					<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+					<div className="bg-white rounded-xl shadow-sm border border-neutral-100 p-4 mb-6">
 						<div className="flex flex-wrap gap-4">
 							<div className="flex-1 min-w-50">
 								<div className="relative">
-									<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+									<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
 									<input
 										type="text"
 										placeholder="Search orders..."
@@ -111,7 +113,7 @@ function OrdersPage() {
 											setSearch(e.target.value);
 											setPage(1);
 										}}
-										className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+										className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
 									/>
 								</div>
 							</div>
@@ -121,7 +123,7 @@ function OrdersPage() {
 									setStatusFilter(e.target.value);
 									setPage(1);
 								}}
-								className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+								className="px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
 							>
 								<option value="all">All Status</option>
 								<option value="pending">Pending</option>
@@ -131,37 +133,37 @@ function OrdersPage() {
 						</div>
 					</div>
 
-					<div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+					<div className="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden">
 						{isLoading ? (
 							<div className="flex items-center justify-center py-12">
-								<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+								<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
 							</div>
 						) : filteredOrders.length === 0 ? (
 							<div className="flex flex-col items-center justify-center py-12">
-								<Package className="w-12 h-12 text-gray-300 mb-4" />
-								<p className="text-gray-500">No orders found</p>
+								<Package className="w-12 h-12 text-neutral-300 mb-4" />
+								<p className="text-neutral-500">No orders found</p>
 							</div>
 						) : (
 							<>
 								<table className="w-full">
-									<thead className="bg-gray-50">
+									<thead className="bg-neutral-50">
 										<tr>
-											<th className="text-left py-3 px-6 text-sm font-medium text-gray-500">
+											<th className="text-left py-3 px-6 text-sm font-medium text-neutral-500">
 												Order
 											</th>
-											<th className="text-left py-3 px-6 text-sm font-medium text-gray-500">
+											<th className="text-left py-3 px-6 text-sm font-medium text-neutral-500">
 												Client
 											</th>
-											<th className="text-left py-3 px-6 text-sm font-medium text-gray-500">
+											<th className="text-left py-3 px-6 text-sm font-medium text-neutral-500">
 												Packages
 											</th>
-											<th className="text-left py-3 px-6 text-sm font-medium text-gray-500">
+											<th className="text-left py-3 px-6 text-sm font-medium text-neutral-500">
 												Status
 											</th>
-											<th className="text-left py-3 px-6 text-sm font-medium text-gray-500">
+											<th className="text-left py-3 px-6 text-sm font-medium text-neutral-500">
 												Date
 											</th>
-											<th className="text-left py-3 px-6 text-sm font-medium text-gray-500">
+											<th className="text-left py-3 px-6 text-sm font-medium text-neutral-500">
 												Actions
 											</th>
 										</tr>
@@ -170,7 +172,7 @@ function OrdersPage() {
 										{paginatedOrders.map((order: any) => (
 											<tr
 												key={order.id}
-												className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer"
+												className="border-b border-neutral-50 hover:bg-neutral-50 cursor-pointer"
 												onClick={() =>
 													navigate({
 														to: "/orders/$orderId",
@@ -182,28 +184,28 @@ function OrdersPage() {
 													<Link
 														to="/orders/$orderId"
 														params={{ orderId: order.id }}
-														className="font-medium text-gray-900 hover:text-blue-600"
+														className="font-medium text-neutral-900 hover:text-primary-600"
 													>
 														{order.order_name}
 													</Link>
-													<div className="text-sm text-gray-500">
+													<div className="text-sm text-neutral-500">
 														{order.order_number}
 													</div>
 												</td>
-												<td className="py-4 px-6 text-sm text-gray-600">
+												<td className="py-4 px-6 text-sm text-neutral-600">
 													{order.client_name}
 												</td>
-												<td className="py-4 px-6 text-sm text-gray-600">
+												<td className="py-4 px-6 text-sm text-neutral-600">
 													{order.package_count || 0}
 												</td>
 												<td className="py-4 px-6">
 													<span
-														className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${statusColors[order.production_status] || "bg-gray-100 text-gray-700"}`}
+														className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${statusColors[order.production_status] || "bg-neutral-100 text-neutral-700"}`}
 													>
 														{order.production_status?.replace("_", " ")}
 													</span>
 												</td>
-												<td className="py-4 px-6 text-sm text-gray-500">
+												<td className="py-4 px-6 text-sm text-neutral-500">
 													{new Date(order.created_at).toLocaleDateString()}
 												</td>
 												<td
@@ -214,16 +216,16 @@ function OrdersPage() {
 														<Link
 															to="/orders/$orderId"
 															params={{ orderId: order.id }}
-															className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+															className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
 															title="View"
 														>
-															<Eye className="w-4 h-4 text-gray-500" />
+															<Eye className="w-4 h-4 text-neutral-500" />
 														</Link>
 														<button
-															className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+															className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
 															title="Edit"
 														>
-															<Edit className="w-4 h-4 text-gray-500" />
+															<Edit className="w-4 h-4 text-neutral-500" />
 														</button>
 													</div>
 												</td>
@@ -231,8 +233,8 @@ function OrdersPage() {
 										))}
 									</tbody>
 								</table>
-								<div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
-									<p className="text-sm text-gray-500">
+								<div className="flex items-center justify-between px-6 py-4 border-t border-neutral-100">
+									<p className="text-sm text-neutral-500">
 										Showing {(page - 1) * perPage + 1} to{" "}
 										{Math.min(page * perPage, filteredOrders.length)} of{" "}
 										{filteredOrders.length}
@@ -241,11 +243,11 @@ function OrdersPage() {
 										<button
 											onClick={() => setPage((p) => Math.max(1, p - 1))}
 											disabled={page === 1}
-											className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50"
+											className="p-2 hover:bg-neutral-100 rounded-lg disabled:opacity-50"
 										>
 											<ChevronLeft className="w-5 h-5" />
 										</button>
-										<span className="text-sm text-gray-600">
+										<span className="text-sm text-neutral-600">
 											Page {page} of {totalPages || 1}
 										</span>
 										<button
@@ -253,7 +255,7 @@ function OrdersPage() {
 												setPage((p) => Math.min(totalPages, p + 1))
 											}
 											disabled={page >= totalPages}
-											className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50"
+											className="p-2 hover:bg-neutral-100 rounded-lg disabled:opacity-50"
 										>
 											<ChevronRight className="w-5 h-5" />
 										</button>

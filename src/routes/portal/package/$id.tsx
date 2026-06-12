@@ -35,8 +35,8 @@ function BoxPhotoGallery({
 	const prev = () => setActive((a) => (a - 1 + photos.length) % photos.length);
 	const next = () => setActive((a) => (a + 1) % photos.length);
 	return (
-		<section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-			<div className="relative aspect-video bg-gray-900">
+		<section className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+			<div className="relative aspect-video bg-neutral-900">
 				<img
 					src={getPublicUrl(photos[active].image_url)}
 					alt={photos[active].notes || `Box photo ${active + 1}`}
@@ -78,7 +78,7 @@ function BoxPhotoGallery({
 						<button
 							key={photo.id}
 							onClick={() => setActive(i)}
-							className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === active ? "border-blue-500" : "border-gray-200"}`}
+							className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === active ? "border-primary-500" : "border-neutral-200"}`}
 						>
 							<img
 								src={getPublicUrl(photo.image_url)}
@@ -437,15 +437,15 @@ function PackageView() {
 
 	if (isLoading) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50">
-				<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+			<div className="min-h-screen flex items-center justify-center bg-neutral-50">
+				<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
 			</div>
 		);
 	}
 
 	if (!pkg) {
 		return (
-			<div className="p-8 text-center bg-gray-50 min-h-screen">
+			<div className="p-8 text-center bg-neutral-50 min-h-screen">
 				Package not found
 			</div>
 		);
@@ -454,22 +454,22 @@ function PackageView() {
 	const items = pkg?.items || [];
 
 	return (
-		<div className="min-h-screen bg-gray-50 pb-24">
+		<div className="min-h-screen bg-neutral-50 pb-24">
 			{/* Brand Header */}
-			<header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+			<header className="bg-white border-b border-neutral-200 sticky top-0 z-30">
 				<div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="flex justify-between items-center h-16">
 						<div className="flex items-center gap-3">
 							<button
 								onClick={() => navigate({ to: "/portal/projects" })}
-								className="p-2 -ml-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+								className="p-2 -ml-2 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors"
 							>
 								<ArrowLeft className="w-5 h-5" />
 							</button>
-							<div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+							<div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
 								<Package className="w-5 h-5 text-white" />
 							</div>
-							<h1 className="text-lg font-bold text-gray-900">
+							<h1 className="text-lg font-bold text-neutral-900">
 								Package Details
 							</h1>
 						</div>
@@ -483,7 +483,7 @@ function PackageView() {
 					<BoxPhotoGallery photos={boxPhotos} />
 				)}
 
-				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-5">
+				<section className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-4 sm:p-5">
 					<div className="flex flex-wrap items-center gap-3">
 						<button
 							onClick={() => {
@@ -496,13 +496,13 @@ function PackageView() {
 								}
 								navigate({ to: "/portal/projects" });
 							}}
-							className="inline-flex items-center justify-center py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-sm font-semibold transition-colors"
+							className="inline-flex items-center justify-center py-2 px-4 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 rounded-xl text-sm font-semibold transition-colors"
 						>
 							Go Back
 						</button>
 						<Link
 							to="/portal/projects"
-							className="inline-flex items-center justify-center py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors"
+							className="inline-flex items-center justify-center py-2 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-colors"
 						>
 							View All Items
 						</Link>
@@ -510,25 +510,27 @@ function PackageView() {
 				</section>
 
 				{/* Package Hero Card */}
-				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+				<section className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 sm:p-8">
 					<div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
 						<div>
 							<div className="flex items-center gap-2 mb-2">
-								<span className="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
+								<span className="bg-primary-100 text-primary-800 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
 									{pkg.status || "Packed"}
 								</span>
-								<span className="text-sm font-medium text-gray-500">
+								<span className="text-sm font-medium text-neutral-500">
 									Box #{pkg.package_number}
 								</span>
 							</div>
-							<h2 className="text-3xl font-black text-gray-900 tracking-tight">
+							<h2 className="text-3xl font-black text-neutral-900 tracking-tight">
 								{pkg.reference_number || `Package ${pkg.package_number}`}
 							</h2>
 						</div>
 
 						<div className="text-left sm:text-right">
-							<div className="text-sm text-gray-500 font-medium">Box Type</div>
-							<div className="text-lg font-bold text-gray-900">
+							<div className="text-sm text-neutral-500 font-medium">
+								Box Type
+							</div>
+							<div className="text-lg font-bold text-neutral-900">
 								{(Array.isArray(pkg.box_type)
 									? pkg.box_type[0]?.name
 									: (pkg.box_type as any)?.name) || "Standard Wooden Crate"}
@@ -537,67 +539,67 @@ function PackageView() {
 					</div>
 
 					{/* Dimensions Grid */}
-					<div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6 border-t border-gray-100">
-						<div className="bg-gray-50 rounded-xl p-4 border border-gray-200/60">
-							<div className="flex items-center gap-2 text-gray-500 mb-1">
+					<div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6 border-t border-neutral-100">
+						<div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200/60">
+							<div className="flex items-center gap-2 text-neutral-500 mb-1">
 								<Ruler className="w-4 h-4" />
 								<span className="text-xs font-semibold uppercase">Length</span>
 							</div>
-							<div className="text-xl font-bold text-gray-900">
+							<div className="text-xl font-bold text-neutral-900">
 								{pkg.actual_length || "--"}{" "}
-								<span className="text-sm font-medium text-gray-500">cm</span>
+								<span className="text-sm font-medium text-neutral-500">cm</span>
 							</div>
 						</div>
-						<div className="bg-gray-50 rounded-xl p-4 border border-gray-200/60">
-							<div className="flex items-center gap-2 text-gray-500 mb-1">
+						<div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200/60">
+							<div className="flex items-center gap-2 text-neutral-500 mb-1">
 								<Ruler className="w-4 h-4" />
 								<span className="text-xs font-semibold uppercase">Width</span>
 							</div>
-							<div className="text-xl font-bold text-gray-900">
+							<div className="text-xl font-bold text-neutral-900">
 								{pkg.actual_width || "--"}{" "}
-								<span className="text-sm font-medium text-gray-500">cm</span>
+								<span className="text-sm font-medium text-neutral-500">cm</span>
 							</div>
 						</div>
-						<div className="bg-gray-50 rounded-xl p-4 border border-gray-200/60">
-							<div className="flex items-center gap-2 text-gray-500 mb-1">
+						<div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200/60">
+							<div className="flex items-center gap-2 text-neutral-500 mb-1">
 								<Ruler className="w-4 h-4 text-rotate-90" />
 								<span className="text-xs font-semibold uppercase">Height</span>
 							</div>
-							<div className="text-xl font-bold text-gray-900">
+							<div className="text-xl font-bold text-neutral-900">
 								{pkg.actual_height || "--"}{" "}
-								<span className="text-sm font-medium text-gray-500">cm</span>
+								<span className="text-sm font-medium text-neutral-500">cm</span>
 							</div>
 						</div>
-						<div className="bg-blue-50 rounded-xl p-4 border border-blue-100/60">
-							<div className="flex items-center gap-2 text-blue-600 mb-1">
+						<div className="bg-primary-50 rounded-xl p-4 border border-primary-100/60">
+							<div className="flex items-center gap-2 text-primary-600 mb-1">
 								<Maximize className="w-4 h-4" />
 								<span className="text-xs font-semibold uppercase">Volume</span>
 							</div>
-							<div className="text-xl font-bold text-blue-900">
+							<div className="text-xl font-bold text-primary-900">
 								{pkg.actual_volume || "--"}{" "}
-								<span className="text-sm font-medium text-blue-600">m³</span>
+								<span className="text-sm font-medium text-primary-600">m³</span>
 							</div>
 						</div>
 					</div>
 				</section>
 
-				<section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
-					<h3 className="text-lg font-bold text-gray-900">Other Boxes</h3>
-					<p className="text-sm text-gray-500 mt-1 mb-4">
+				<section className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 sm:p-8">
+					<h3 className="text-lg font-bold text-neutral-900">Other Boxes</h3>
+					<p className="text-sm text-neutral-500 mt-1 mb-4">
 						Browse other box instances from the same package group.
 					</p>
 
 					{siblingBoxesLoading ? (
-						<div className="text-sm text-gray-500 flex items-center gap-2">
+						<div className="text-sm text-neutral-500 flex items-center gap-2">
 							<Loader2 className="w-4 h-4 animate-spin" />
 							Loading other boxes...
 						</div>
 					) : !siblingBoxes || siblingBoxes.length === 0 ? (
-						<div className="text-sm text-gray-500">
+						<div className="text-sm text-neutral-500">
 							No other boxes found in this group.
 						</div>
 					) : (
-						<ul className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+						<ul className="divide-y divide-neutral-100 border border-neutral-100 rounded-xl overflow-hidden">
 							{siblingBoxes.map((entry: any) => {
 								const orderPackage = Array.isArray(entry.order_package)
 									? entry.order_package[0]
@@ -611,20 +613,20 @@ function PackageView() {
 										<Link
 											to="/portal/package/$id"
 											params={{ id: entry.id }}
-											className="block p-4 hover:bg-gray-50 transition-colors"
+											className="block p-4 hover:bg-neutral-50 transition-colors"
 										>
 											<div className="flex items-center justify-between gap-3">
 												<div>
-													<div className="text-sm font-semibold text-gray-900">
+													<div className="text-sm font-semibold text-neutral-900">
 														{orderPackage?.reference ||
 															`Package ${overview?.pkg_number || orderPackage?.package_number || "-"}`}
 													</div>
-													<div className="text-xs text-gray-500 mt-1">
+													<div className="text-xs text-neutral-500 mt-1">
 														Instance #{entry.instance_number || "-"}
 														{entry.status ? ` • ${entry.status}` : ""}
 													</div>
 												</div>
-												<div className="text-xs font-semibold text-blue-700">
+												<div className="text-xs font-semibold text-primary-700">
 													Open
 												</div>
 											</div>
@@ -639,18 +641,18 @@ function PackageView() {
 				{/* Items manifest */}
 				<section>
 					<div className="flex items-center justify-between mb-4 mt-8 px-1">
-						<h3 className="text-lg font-bold text-gray-900">
+						<h3 className="text-lg font-bold text-neutral-900">
 							Contents Manifest ({items.length})
 						</h3>
 					</div>
 
-					<div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+					<div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
 						{items.length === 0 ? (
-							<div className="p-8 text-center text-gray-500">
+							<div className="p-8 text-center text-neutral-500">
 								No items packed in this box yet.
 							</div>
 						) : (
-							<ul className="divide-y divide-gray-100">
+							<ul className="divide-y divide-neutral-100">
 								{items.map((entry: any) => {
 									const item = entry.items_db;
 									if (!item) return null;
@@ -659,29 +661,29 @@ function PackageView() {
 										<div className="flex justify-between items-start gap-4">
 											<div>
 												<div className="flex items-center gap-2 mb-1">
-													<span className="text-xs font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+													<span className="text-xs font-bold px-2 py-0.5 rounded bg-neutral-100 text-neutral-600">
 														{item?.item_num || "NO-REF"}
 													</span>
-													<span className="text-xs font-medium text-gray-500">
+													<span className="text-xs font-medium text-neutral-500">
 														{item?.pkg_category?.label}
 													</span>
 												</div>
-												<h4 className="text-base font-semibold text-gray-900">
+												<h4 className="text-base font-semibold text-neutral-900">
 													{item?.description ||
 														item.reference ||
 														"Unnamed Item"}
 												</h4>
-												<div className="text-sm font-medium text-blue-700 mt-0.5">
+												<div className="text-sm font-medium text-primary-700 mt-0.5">
 													Packed Qty: {entry.quantity}
 												</div>
 												{item?.ipac_comments && (
-													<p className="text-sm text-gray-500 mt-1 line-clamp-2">
+													<p className="text-sm text-neutral-500 mt-1 line-clamp-2">
 														{item.ipac_comments}
 													</p>
 												)}
 											</div>
 											<div className="text-right whitespace-nowrap">
-												<div className="text-sm font-bold text-gray-900">
+												<div className="text-sm font-bold text-neutral-900">
 													{item?.net_weight ? `${item.net_weight} kg` : "--"}
 												</div>
 											</div>
@@ -695,7 +697,7 @@ function PackageView() {
 												<Link
 													to="/portal/item/$id"
 													params={{ id: entry.id }}
-													className="block p-4 sm:p-6 hover:bg-gray-50 transition-colors"
+													className="block p-4 sm:p-6 hover:bg-neutral-50 transition-colors"
 												>
 													{rowContent}
 												</Link>

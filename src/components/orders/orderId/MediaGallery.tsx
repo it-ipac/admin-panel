@@ -159,9 +159,11 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 		<>
 			<div className="bg-white rounded-lg border shadow-sm overflow-hidden">
 				<div className="px-6 py-4 border-b flex items-center gap-2">
-					<Camera className="w-5 h-5 text-gray-600" />
-					<h2 className="text-lg font-semibold text-gray-900">Packer Photos</h2>
-					<span className="ml-auto text-sm text-gray-600">
+					<Camera className="w-5 h-5 text-neutral-600" />
+					<h2 className="text-lg font-semibold text-neutral-900">
+						Packer Photos
+					</h2>
+					<span className="ml-auto text-sm text-neutral-600">
 						{mediaItems?.length || 0} images
 					</span>
 				</div>
@@ -169,7 +171,7 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 				{mediaItems && mediaItems.length > 0 && mediaByPackage.length > 0 ? (
 					<>
 						{/* Package Tabs - Box Selection */}
-						<div className="border-b bg-gray-50 overflow-x-auto">
+						<div className="border-b bg-neutral-50 overflow-x-auto">
 							<div className="flex p-2 gap-1 min-w-max">
 								{mediaByPackage.map((pkg) => (
 									<button
@@ -184,8 +186,8 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 										}}
 										className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
 											selectedMediaPackage === pkg.packageId
-												? "bg-indigo-100 text-indigo-700 border border-indigo-200"
-												: "text-gray-600 hover:bg-gray-100 border border-transparent"
+												? "bg-iris-100 text-iris-700 border border-iris-200"
+												: "text-neutral-600 hover:bg-neutral-100 border border-transparent"
 										}`}
 									>
 										<Package className="w-4 h-4 inline-block mr-1.5" />
@@ -193,8 +195,8 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 										<span
 											className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
 												selectedMediaPackage === pkg.packageId
-													? "bg-indigo-200 text-indigo-800"
-													: "bg-gray-200 text-gray-600"
+													? "bg-iris-200 text-iris-800"
+													: "bg-neutral-200 text-neutral-600"
 											}`}
 										>
 											{pkg.totalCount}
@@ -214,16 +216,16 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 											onClick={() => setSelectedMediaCategory(category.key)}
 											className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
 												selectedMediaCategory === category.key
-													? "bg-blue-100 text-blue-700"
-													: "text-gray-600 hover:bg-gray-100"
+													? "bg-primary-100 text-primary-700"
+													: "text-neutral-600 hover:bg-neutral-100"
 											}`}
 										>
 											{category.label}
 											<span
 												className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
 													selectedMediaCategory === category.key
-														? "bg-blue-200 text-blue-800"
-														: "bg-gray-200 text-gray-600"
+														? "bg-primary-200 text-primary-800"
+														: "bg-neutral-200 text-neutral-600"
 												}`}
 											>
 												{category.count}
@@ -243,7 +245,7 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 										return (
 											<div
 												key={media.id}
-												className="group relative aspect-square rounded-lg overflow-hidden border bg-gray-100 cursor-pointer"
+												className="group relative aspect-square rounded-lg overflow-hidden border bg-neutral-100 cursor-pointer"
 												role="button"
 												tabIndex={0}
 												onClick={() => setPreviewImage(media)}
@@ -275,7 +277,7 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 															className="w-full h-full items-center justify-center absolute inset-0"
 															style={{ display: "none" }}
 														>
-															<Image className="w-8 h-8 text-gray-300" />
+															<Image className="w-8 h-8 text-neutral-300" />
 														</div>
 														<div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
 															<div className="absolute bottom-0 left-0 right-0 p-2">
@@ -304,7 +306,7 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 															title="Open in new tab"
 															onClick={(e) => e.stopPropagation()}
 														>
-															<ExternalLink className="w-4 h-4 text-gray-700" />
+															<ExternalLink className="w-4 h-4 text-neutral-700" />
 														</a>
 														<button
 															onClick={(e) => {
@@ -319,12 +321,12 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 															className="absolute top-2 right-10 p-1.5 bg-white/90 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
 															title="Download"
 														>
-															<Download className="w-4 h-4 text-gray-700" />
+															<Download className="w-4 h-4 text-neutral-700" />
 														</button>
 													</>
 												) : (
 													<div className="w-full h-full flex items-center justify-center">
-														<Image className="w-8 h-8 text-gray-300" />
+														<Image className="w-8 h-8 text-neutral-300" />
 													</div>
 												)}
 											</div>
@@ -332,16 +334,16 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 									})}
 								</div>
 							) : (
-								<div className="text-center text-gray-500 py-8">
-									<Image className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+								<div className="text-center text-neutral-500 py-8">
+									<Image className="w-12 h-12 mx-auto mb-2 text-neutral-300" />
 									<p>No images in this category</p>
 								</div>
 							)}
 						</div>
 					</>
 				) : (
-					<div className="p-6 text-center text-gray-500">
-						<Camera className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+					<div className="p-6 text-center text-neutral-500">
+						<Camera className="w-12 h-12 mx-auto mb-2 text-neutral-300" />
 						<p>No photos captured yet</p>
 					</div>
 				)}
@@ -363,7 +365,7 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 						{previewImage && (
 							<div className="flex flex-col">
 								{/* Image */}
-								<div className="relative bg-gray-900 flex items-center justify-center min-h-75 max-h-[70vh]">
+								<div className="relative bg-neutral-900 flex items-center justify-center min-h-75 max-h-[70vh]">
 									<img
 										src={previewImage.signed_url || ""}
 										alt={previewImage.notes || "Preview"}
@@ -377,14 +379,14 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 								</div>
 
 								{/* Info Footer */}
-								<div className="p-4 border-t bg-gray-50 flex items-center justify-between">
+								<div className="p-4 border-t bg-neutral-50 flex items-center justify-between">
 									<div>
 										{previewImage.notes && (
-											<p className="text-sm text-gray-700 font-medium">
+											<p className="text-sm text-neutral-700 font-medium">
 												{previewImage.notes}
 											</p>
 										)}
-										<p className="text-xs text-gray-500">
+										<p className="text-xs text-neutral-500">
 											{new Date(previewImage.created_at).toLocaleDateString(
 												"en-US",
 												{
@@ -403,7 +405,7 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 											href={previewImage.signed_url || ""}
 											target="_blank"
 											rel="noopener noreferrer"
-											className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+											className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-neutral-200 hover:bg-neutral-300 rounded-lg transition-colors"
 										>
 											<ExternalLink className="w-4 h-4" />
 											Open
@@ -420,7 +422,7 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 													link.click();
 												}
 											}}
-											className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+											className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
 										>
 											<Download className="w-4 h-4" />
 											Download

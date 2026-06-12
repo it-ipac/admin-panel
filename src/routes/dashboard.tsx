@@ -33,11 +33,11 @@ interface StatCardProps {
 }
 
 const colorClasses = {
-	blue: "bg-blue-500",
-	green: "bg-emerald-500",
-	amber: "bg-amber-500",
-	purple: "bg-purple-500",
-	red: "bg-red-500",
+	blue: "bg-primary-500",
+	green: "bg-success-500",
+	amber: "bg-warning-500",
+	purple: "bg-accent-500",
+	red: "bg-danger-500",
 };
 
 function StatCard({
@@ -49,18 +49,20 @@ function StatCard({
 	loading,
 }: StatCardProps) {
 	return (
-		<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card-hover">
+		<div className="bg-white rounded-xl shadow-sm border border-neutral-100 p-6 card-hover">
 			<div className="flex items-start justify-between">
 				<div>
-					<p className="text-sm font-medium text-gray-500">{title}</p>
-					<p className="text-3xl font-bold text-gray-900 mt-2">
+					<p className="text-sm font-medium text-neutral-500">{title}</p>
+					<p className="text-3xl font-bold text-neutral-900 mt-2">
 						{loading ? (
-							<Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+							<Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
 						) : (
 							value
 						)}
 					</p>
-					{subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+					{subtitle && (
+						<p className="text-sm text-neutral-500 mt-1">{subtitle}</p>
+					)}
 				</div>
 				<div className={`p-3 rounded-xl ${colorClasses[color]}`}>
 					<Icon className="w-6 h-6 text-white" />
@@ -142,21 +144,21 @@ function DashboardPage() {
 		return (
 			<div
 				suppressHydrationWarning
-				className="min-h-screen flex items-center justify-center bg-gray-50"
+				className="min-h-screen flex items-center justify-center bg-neutral-50"
 			>
-				<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+				<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
 			</div>
 		);
 	}
 
 	return (
-		<div suppressHydrationWarning className="flex h-screen bg-gray-50">
+		<div suppressHydrationWarning className="flex h-screen bg-neutral-50">
 			<Sidebar />
 			<main className="flex-1 overflow-y-auto">
 				<div className="p-8 animate-fade-in">
 					<div className="mb-8">
-						<h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-						<p className="text-gray-500 mt-1">
+						<h1 className="text-2xl font-bold text-neutral-900">Dashboard</h1>
+						<p className="text-neutral-500 mt-1">
 							Welcome back, {profile?.full_name || "Admin"}!
 						</p>
 					</div>
@@ -194,8 +196,8 @@ function DashboardPage() {
 					</div>
 
 					<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-						<div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-							<h2 className="text-lg font-semibold text-gray-900 mb-4">
+						<div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-neutral-100 p-6">
+							<h2 className="text-lg font-semibold text-neutral-900 mb-4">
 								Weekly Orders
 							</h2>
 							<div className="h-80">
@@ -227,15 +229,15 @@ function DashboardPage() {
 										</BarChart>
 									</ResponsiveContainer>
 								) : (
-									<div className="flex items-center justify-center h-full text-gray-400">
+									<div className="flex items-center justify-center h-full text-neutral-400">
 										<p>Weekly orders chart coming soon</p>
 									</div>
 								)}
 							</div>
 						</div>
 
-						<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-							<h2 className="text-lg font-semibold text-gray-900 mb-4">
+						<div className="bg-white rounded-xl shadow-sm border border-neutral-100 p-6">
+							<h2 className="text-lg font-semibold text-neutral-900 mb-4">
 								Order Status
 							</h2>
 							<div className="h-80">
@@ -265,7 +267,7 @@ function DashboardPage() {
 										</PieChart>
 									</ResponsiveContainer>
 								) : (
-									<div className="flex items-center justify-center h-full text-gray-400">
+									<div className="flex items-center justify-center h-full text-neutral-400">
 										<p>Loading chart...</p>
 									</div>
 								)}
@@ -273,30 +275,30 @@ function DashboardPage() {
 						</div>
 					</div>
 
-					<div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-						<div className="px-6 py-4 border-b border-gray-100">
-							<h2 className="text-lg font-semibold text-gray-900">
+					<div className="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden">
+						<div className="px-6 py-4 border-b border-neutral-100">
+							<h2 className="text-lg font-semibold text-neutral-900">
 								Recent Orders
 							</h2>
 						</div>
 						{ordersLoading ? (
 							<div className="flex items-center justify-center py-12">
-								<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+								<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
 							</div>
 						) : (
 							<table className="w-full">
-								<thead className="bg-gray-50">
+								<thead className="bg-neutral-50">
 									<tr>
-										<th className="text-left py-3 px-6 text-sm font-medium text-gray-500">
+										<th className="text-left py-3 px-6 text-sm font-medium text-neutral-500">
 											Order
 										</th>
-										<th className="text-left py-3 px-6 text-sm font-medium text-gray-500">
+										<th className="text-left py-3 px-6 text-sm font-medium text-neutral-500">
 											Client
 										</th>
-										<th className="text-left py-3 px-6 text-sm font-medium text-gray-500">
+										<th className="text-left py-3 px-6 text-sm font-medium text-neutral-500">
 											Status
 										</th>
-										<th className="text-left py-3 px-6 text-sm font-medium text-gray-500">
+										<th className="text-left py-3 px-6 text-sm font-medium text-neutral-500">
 											Date
 										</th>
 									</tr>
@@ -305,7 +307,7 @@ function DashboardPage() {
 									{orders?.slice(0, 5).map((order: any) => (
 										<tr
 											key={order.id}
-											className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer"
+											className="border-b border-neutral-50 hover:bg-neutral-50 cursor-pointer"
 											onClick={() =>
 												navigate({
 													to: "/orders/$orderId",
@@ -313,26 +315,26 @@ function DashboardPage() {
 												})
 											}
 										>
-											<td className="py-4 px-6 text-sm font-medium text-gray-900">
+											<td className="py-4 px-6 text-sm font-medium text-neutral-900">
 												{order.order_name}
 											</td>
-											<td className="py-4 px-6 text-sm text-gray-600">
+											<td className="py-4 px-6 text-sm text-neutral-600">
 												{order.client_name}
 											</td>
 											<td className="py-4 px-6">
 												<span
 													className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${
 														order.production_status === "completed"
-															? "bg-emerald-100 text-emerald-700"
+															? "bg-success-100 text-success-700"
 															: order.production_status === "in_progress"
-																? "bg-blue-100 text-blue-700"
-																: "bg-amber-100 text-amber-700"
+																? "bg-primary-100 text-primary-700"
+																: "bg-warning-100 text-warning-700"
 													}`}
 												>
 													{order.production_status?.replace("_", " ")}
 												</span>
 											</td>
-											<td className="py-4 px-6 text-sm text-gray-500">
+											<td className="py-4 px-6 text-sm text-neutral-500">
 												{new Date(order.created_at).toLocaleDateString()}
 											</td>
 										</tr>

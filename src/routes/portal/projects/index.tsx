@@ -96,8 +96,8 @@ function PortalProjects() {
 
 	if (loading || profileLoading) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50">
-				<Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+			<div className="min-h-screen flex items-center justify-center bg-neutral-50">
+				<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
 			</div>
 		);
 	}
@@ -105,12 +105,12 @@ function PortalProjects() {
 	// Staff/admin accidentally landed on the client portal
 	if (isStaffUser && !clientId) {
 		return (
-			<div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
-				<ShieldAlert className="w-16 h-16 text-amber-400 mb-4" />
-				<h2 className="text-xl font-bold text-gray-900 mb-2">
+			<div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 p-6 text-center">
+				<ShieldAlert className="w-16 h-16 text-warning-400 mb-4" />
+				<h2 className="text-xl font-bold text-neutral-900 mb-2">
 					Staff Account Detected
 				</h2>
-				<p className="text-gray-500 max-w-md mb-6">
+				<p className="text-neutral-500 max-w-md mb-6">
 					You're logged in as a staff member (
 					<span className="font-semibold">
 						{profile?.full_name || profile?.username}
@@ -120,7 +120,7 @@ function PortalProjects() {
 				<div className="flex gap-3">
 					<Link
 						to="/dashboard"
-						className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
+						className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-colors"
 					>
 						Go to Admin Panel
 					</Link>
@@ -129,7 +129,7 @@ function PortalProjects() {
 							await auth.signOut();
 							navigate({ to: "/portal/login" });
 						}}
-						className="px-5 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold rounded-xl transition-colors"
+						className="px-5 py-2.5 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-700 font-semibold rounded-xl transition-colors"
 					>
 						Sign out
 					</button>
@@ -140,12 +140,12 @@ function PortalProjects() {
 
 	if (!clientId) {
 		return (
-			<div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
-				<PackageX className="w-16 h-16 text-gray-300 mb-4" />
-				<h2 className="text-xl font-bold text-gray-900 mb-2">
+			<div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 p-6 text-center">
+				<PackageX className="w-16 h-16 text-neutral-300 mb-4" />
+				<h2 className="text-xl font-bold text-neutral-900 mb-2">
 					No Client Assigned
 				</h2>
-				<p className="text-gray-500 max-w-md mb-6">
+				<p className="text-neutral-500 max-w-md mb-6">
 					Your user profile is not linked to any client company. Please contact
 					support.
 				</p>
@@ -154,7 +154,7 @@ function PortalProjects() {
 						await auth.signOut();
 						navigate({ to: "/portal/login" });
 					}}
-					className="px-5 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold rounded-xl transition-colors"
+					className="px-5 py-2.5 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-700 font-semibold rounded-xl transition-colors"
 				>
 					Sign out & try again
 				</button>
@@ -163,13 +163,13 @@ function PortalProjects() {
 	}
 
 	return (
-		<div className="min-h-screen bg-gray-50">
+		<div className="min-h-screen bg-neutral-50">
 			{/* Portal Header */}
-			<header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+			<header className="bg-white border-b border-neutral-200 sticky top-0 z-30">
 				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="flex justify-between items-center h-16">
 						<div className="flex items-center gap-3">
-							<div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+							<div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									className="w-5 h-5 text-white"
@@ -188,11 +188,13 @@ function PortalProjects() {
 									/>
 								</svg>
 							</div>
-							<h1 className="text-lg font-bold text-gray-900">IPAC Portal</h1>
+							<h1 className="text-lg font-bold text-neutral-900">
+								IPAC Portal
+							</h1>
 						</div>
 						<div className="flex items-center gap-4">
 							<button
-								className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+								className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
 								onClick={async () => {
 									await auth.signOut();
 									navigate({ to: "/portal/login" });
@@ -207,43 +209,43 @@ function PortalProjects() {
 
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<div className="mb-8">
-					<h2 className="text-2xl font-bold text-gray-900">
+					<h2 className="text-2xl font-bold text-neutral-900">
 						Your Inventory Projects
 					</h2>
-					<p className="text-gray-500 mt-1">
+					<p className="text-neutral-500 mt-1">
 						Browse all items and open detailed records for each item.
 					</p>
 				</div>
 
-				<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+				<div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 sm:p-6">
 					<div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
 						<input
 							type="search"
 							value={itemSearch}
 							onChange={(event) => setItemSearch(event.target.value)}
 							placeholder="Search item number, reference, or description"
-							className="w-full sm:max-w-xl px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+							className="w-full sm:max-w-xl px-4 py-2.5 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
 						/>
-						<div className="text-sm text-gray-500">
+						<div className="text-sm text-neutral-500">
 							{filteredItems.length} item{filteredItems.length === 1 ? "" : "s"}
 						</div>
 					</div>
 
 					{itemsLoading ? (
-						<div className="py-14 flex items-center justify-center text-gray-500">
+						<div className="py-14 flex items-center justify-center text-neutral-500">
 							<Loader2 className="w-5 h-5 mr-2 animate-spin" />
 							Loading items...
 						</div>
 					) : itemsError ? (
-						<div className="py-10 px-4 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
+						<div className="py-10 px-4 rounded-xl border border-danger-200 bg-danger-50 text-danger-700 text-sm">
 							Failed to load items. Please refresh and try again.
 						</div>
 					) : filteredItems.length === 0 ? (
-						<div className="py-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 text-center">
+						<div className="py-10 px-4 rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-600 text-center">
 							No items found for this client.
 						</div>
 					) : (
-						<ul className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+						<ul className="divide-y divide-neutral-100 border border-neutral-100 rounded-xl overflow-hidden">
 							{filteredItems.map((item: any) => {
 								const packedQty = Number(item?.packed_qty ?? 0);
 								const expectedQty = Number(item?.expected_qty ?? 0);
@@ -254,33 +256,33 @@ function PortalProjects() {
 										<Link
 											to="/portal/item/$id"
 											params={{ id: item.id }}
-											className="block p-4 sm:p-5 hover:bg-gray-50 transition-colors"
+											className="block p-4 sm:p-5 hover:bg-neutral-50 transition-colors"
 										>
 											<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
 												<div>
 													<div className="flex items-center gap-2 mb-1.5">
-														<span className="text-xs font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+														<span className="text-xs font-bold px-2 py-0.5 rounded bg-neutral-100 text-neutral-700">
 															{item.item_num || item.reference || "NO-REF"}
 														</span>
-														<span className="text-xs text-gray-500">
+														<span className="text-xs text-neutral-500">
 															{item.pkg_category?.label || "General"}
 														</span>
 													</div>
-													<h3 className="text-base font-semibold text-gray-900">
+													<h3 className="text-base font-semibold text-neutral-900">
 														{item.description ||
 															item.reference ||
 															"Unnamed Item"}
 													</h3>
 												</div>
 												<div className="sm:text-right text-sm">
-													<div className="text-gray-700">
+													<div className="text-neutral-700">
 														Packed {packedQty} / {expectedQty || "-"}
 													</div>
 													<div
 														className={`inline-flex mt-1 px-2 py-0.5 rounded text-xs font-semibold ${
 															fullyPacked
-																? "bg-emerald-100 text-emerald-700"
-																: "bg-amber-100 text-amber-700"
+																? "bg-success-100 text-success-700"
+																: "bg-warning-100 text-warning-700"
 														}`}
 													>
 														{fullyPacked ? "Packed" : "Pending"}
