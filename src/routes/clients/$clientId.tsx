@@ -17,6 +17,7 @@ import { TaqaDataImportPanel } from "../../components/clients/TaqaDataImportPane
 import { Sidebar } from "../../components/Sidebar";
 import { useToastContext } from "../../components/ui/ToastProvider";
 import { useAuth } from "../../hooks/useAuth";
+import { useRequirePageAccess } from "../../hooks/usePageAccess";
 import { db, supabase } from "../../lib/supabase";
 
 export const Route = createFileRoute("/clients/$clientId")({
@@ -263,6 +264,7 @@ function ClientWorkspacePage() {
 	const queryClient = useQueryClient();
 	const { toast } = useToastContext();
 	const { user, loading: authLoading } = useAuth();
+	useRequirePageAccess();
 
 	const [mounted, setMounted] = useState(false);
 	const [formError, setFormError] = useState<string | null>(null);

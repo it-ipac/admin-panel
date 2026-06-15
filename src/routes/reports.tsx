@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
 	ChevronRight,
 	Filter,
@@ -11,7 +11,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { Sidebar } from "../components/Sidebar";
 import { ReportBuilder } from "../features/reports/components/ReportBuilder";
-import { useAuth } from "../hooks/useAuth";
+import { useRequirePageAccess } from "../hooks/usePageAccess";
 import { db, supabase } from "../lib/supabase";
 
 export const Route = createFileRoute("/reports")({
@@ -33,8 +33,9 @@ interface AggregatedAnalytics {
 }
 
 function ReportsPage() {
-	const navigate = useNavigate();
-	const { user, loading: authLoading } = useAuth();
+	const { user, profile, loading: authLoading } = useRequirePageAccess();
+	const isClient = profile?.roles?.name === "client";
+	const clientId = profile?.client_id ?? null;
 
 	const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 	const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
@@ -45,11 +46,17 @@ function ReportsPage() {
 		"builder",
 	);
 
+	// Clients only ever see built analytics for their own data — never the builder.
 	useEffect(() => {
-		if (!authLoading && !user) {
-			navigate({ to: "/login" });
+		if (isClient) setActiveTab("analytics");
+	}, [isClient]);
+
+	// Lock a client to their own client_id (no cross-client selection).
+	useEffect(() => {
+		if (isClient && clientId) {
+			setSelectedClientId((prev) => (prev === clientId ? prev : clientId));
 		}
-	}, [user, authLoading, navigate]);
+	}, [isClient, clientId]);
 
 	// Fetch Clients
 	const { data: clients, isLoading: clientsLoading } = useQuery({
@@ -59,7 +66,8 @@ function ReportsPage() {
 			if (error) throw error;
 			return data || [];
 		},
-		enabled: !!user,
+		// Clients never browse the full client list — they're locked to their own.
+		enabled: !!user && !isClient,
 	});
 
 	// Fetch Orders for selected client
@@ -206,8 +214,8 @@ function ReportsPage() {
 		);
 	}
 
-	// When in builder mode, render full-screen (no sidebar)
-	if (activeTab === "builder") {
+	// When in builder mode, render full-screen (no sidebar). Never for clients.
+	if (activeTab === "builder" && !isClient) {
 		return (
 			<div className="fixed inset-0 z-50 bg-neutral-100">
 				<ReportBuilder onBack={() => setActiveTab("analytics")} />
@@ -230,20 +238,22 @@ function ReportsPage() {
 								generate reports.
 							</p>
 						</div>
-						<div className="flex items-center space-x-3 bg-neutral-200 p-1 rounded-lg">
-							<button
-								onClick={() => setActiveTab("analytics")}
-								className="px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white shadow text-primary-600"
-							>
-								Analytics
-							</button>
-							<button
-								onClick={() => setActiveTab("builder")}
-								className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-neutral-600 hover:text-neutral-900"
-							>
-								Report Builder
-							</button>
-						</div>
+						{!isClient && (
+							<div className="flex items-center space-x-3 bg-neutral-200 p-1 rounded-lg">
+								<button
+									onClick={() => setActiveTab("analytics")}
+									className="px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white shadow text-primary-600"
+								>
+									Analytics
+								</button>
+								<button
+									onClick={() => setActiveTab("builder")}
+									className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-neutral-600 hover:text-neutral-900"
+								>
+									Report Builder
+								</button>
+							</div>
+						)}
 					</div>
 
 					<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -255,36 +265,38 @@ function ReportsPage() {
 									Filters
 								</h2>
 
-								{/* Client Select */}
-								<div className="mb-6">
-									<label
-										htmlFor="client-select"
-										className="block text-sm font-medium text-neutral-700 mb-2"
-									>
-										Client
-									</label>
-									{clientsLoading ? (
-										<div className="h-10 bg-neutral-50 animate-pulse rounded-lg" />
-									) : (
-										<select
-											id="client-select"
-											className="select select-bordered w-full bg-white"
-											value={selectedClientId || ""}
-											onChange={(e) => {
-												setSelectedClientId(e.target.value);
-												setSelectedOrderIds([]);
-												setAnalytics(null);
-											}}
+								{/* Client Select — hidden for clients (locked to their own). */}
+								{!isClient && (
+									<div className="mb-6">
+										<label
+											htmlFor="client-select"
+											className="block text-sm font-medium text-neutral-700 mb-2"
 										>
-											<option value="">Select a client</option>
-											{clients?.map((c) => (
-												<option key={c.id} value={c.id}>
-													{c.name}
-												</option>
-											))}
-										</select>
-									)}
-								</div>
+											Client
+										</label>
+										{clientsLoading ? (
+											<div className="h-10 bg-neutral-50 animate-pulse rounded-lg" />
+										) : (
+											<select
+												id="client-select"
+												className="select select-bordered w-full bg-white"
+												value={selectedClientId || ""}
+												onChange={(e) => {
+													setSelectedClientId(e.target.value);
+													setSelectedOrderIds([]);
+													setAnalytics(null);
+												}}
+											>
+												<option value="">Select a client</option>
+												{clients?.map((c) => (
+													<option key={c.id} value={c.id}>
+														{c.name}
+													</option>
+												))}
+											</select>
+										)}
+									</div>
+								)}
 
 								{/* Projects Select */}
 								{selectedClientId && (

@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { Sidebar } from "../../components/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { useRequirePageAccess } from "../../hooks/usePageAccess";
 import { db, supabase } from "../../lib/supabase";
 
 export const Route = createFileRoute("/clients/")({
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/clients/")({
 function ClientsIndexPage() {
 	const navigate = useNavigate();
 	const { user, loading: authLoading } = useAuth();
+	useRequirePageAccess();
 	const queryClient = useQueryClient();
 
 	const [search, setSearch] = useState("");

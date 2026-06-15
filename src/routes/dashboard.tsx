@@ -16,7 +16,7 @@ import {
 	YAxis,
 } from "recharts";
 import { Sidebar } from "../components/Sidebar";
-import { useAuth } from "../hooks/useAuth";
+import { useRequirePageAccess } from "../hooks/usePageAccess";
 import { db } from "../lib/supabase";
 
 export const Route = createFileRoute("/dashboard")({
@@ -79,19 +79,14 @@ const CHART_COLORS = {
 };
 
 function DashboardPage() {
+	const { user, profile, loading: authLoading } = useRequirePageAccess();
 	const navigate = useNavigate();
-	const { user, profile, loading: authLoading } = useAuth();
+	const isClient = profile?.roles?.name === "client";
 	const [isMounted, setIsMounted] = useState(false);
 
 	useEffect(() => {
 		setIsMounted(true);
 	}, []);
-
-	useEffect(() => {
-		if (!authLoading && !user) {
-			navigate({ to: "/login" });
-		}
-	}, [user, authLoading, navigate]);
 
 	const { data: orders, isLoading: ordersLoading } = useQuery({
 		queryKey: ["orders"],
@@ -111,7 +106,8 @@ function DashboardPage() {
 			if (error) throw error;
 			return data || [];
 		},
-		enabled: !!user,
+		// Clients must not see staff/user counts.
+		enabled: !!user && !isClient,
 		staleTime: 30000,
 	});
 
@@ -186,13 +182,15 @@ function DashboardPage() {
 							color="green"
 							loading={ordersLoading}
 						/>
-						<StatCard
-							title="Active Users"
-							value={users?.length || 0}
-							icon={Users}
-							color="purple"
-							loading={usersLoading}
-						/>
+						{!isClient && (
+							<StatCard
+								title="Active Users"
+								value={users?.length || 0}
+								icon={Users}
+								color="purple"
+								loading={usersLoading}
+							/>
+						)}
 					</div>
 
 					<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

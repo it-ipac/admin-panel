@@ -1,5 +1,10 @@
 import { supabase } from "../../lib/supabase";
-import type { FilterParams, ReportInstanceData } from "./types";
+import type {
+	FilterParams,
+	ReportInstanceData,
+	ReportMediaRef,
+	UnfiledMedia,
+} from "./types";
 
 const getMediaPublicUrl = (path: string) => {
 	if (!path) return "";
@@ -366,11 +371,11 @@ export const fetchReportInstances = async (
 	}
 
 	// Fetch box photos (media.order_pkg_instance_id) in chunks
-	const boxPhotoMap = new Map<string, string[]>(); // instance_id → urls
+	const boxPhotoMap = new Map<string, ReportMediaRef[]>(); // instance_id → refs
 	const boxMediaData = await fetchInChunks(instanceIds, 100, async (chunk) => {
 		const { data: chunkData, error: mediaError } = await supabase
 			.from("media")
-			.select("order_pkg_instance_id, image_url")
+			.select("id, order_pkg_instance_id, image_url")
 			.in("order_pkg_instance_id", chunk)
 			.not("image_url", "is", null);
 		if (mediaError) throw mediaError;
@@ -382,7 +387,9 @@ export const fetchReportInstances = async (
 		}
 		const publicUrl = getMediaPublicUrl(m.image_url);
 		if (publicUrl) {
-			boxPhotoMap.get(m.order_pkg_instance_id)!.push(publicUrl);
+			boxPhotoMap
+				.get(m.order_pkg_instance_id)!
+				.push({ id: m.id, url: publicUrl, path: m.image_url });
 		}
 	}
 
@@ -414,7 +421,7 @@ export const fetchReportInstances = async (
 	}
 
 	// Fetch item photos (pkd_item_id) in chunks
-	const itemPhotoMap = new Map<string, string[]>(); // pkd_item_id → urls
+	const itemPhotoMap = new Map<string, ReportMediaRef[]>(); // pkd_item_id → refs
 	if (allPkdItemIds.length > 0) {
 		const itemMediaData = await fetchInChunks(
 			allPkdItemIds,
@@ -422,7 +429,7 @@ export const fetchReportInstances = async (
 			async (chunk) => {
 				const { data: chunkData, error: mediaError } = await supabase
 					.from("media")
-					.select("pkd_item_id, image_url")
+					.select("id, pkd_item_id, image_url")
 					.in("pkd_item_id", chunk)
 					.not("image_url", "is", null);
 				if (mediaError) throw mediaError;
@@ -435,7 +442,9 @@ export const fetchReportInstances = async (
 			}
 			const publicUrl = getMediaPublicUrl(m.image_url);
 			if (publicUrl) {
-				itemPhotoMap.get(m.pkd_item_id)!.push(publicUrl);
+				itemPhotoMap
+					.get(m.pkd_item_id)!
+					.push({ id: m.id, url: publicUrl, path: m.image_url });
 			}
 		}
 	}
@@ -504,7 +513,8 @@ export const fetchReportInstances = async (
 				quantity: Number(i.quantity),
 				item_name: i.description,
 				item_num: i.item_num,
-				photo_urls: itemPhotoMap.get(i.pkd_item_id) || [],
+				photo_urls: (itemPhotoMap.get(i.pkd_item_id) || []).map((r) => r.url),
+				photos: itemPhotoMap.get(i.pkd_item_id) || [],
 				length:
 					i.length !== null && i.length !== undefined ? Number(i.length) : null,
 				width:
@@ -556,7 +566,8 @@ export const fetchReportInstances = async (
 			qr_token: qrMap.get(inst.id) || null,
 			package_qty: pkgOverview ? Number((pkgOverview as any).quantity) : null,
 			order_pkg_overview_id: pkgOverview ? (pkgOverview as any).id : null,
-			box_photo_urls: boxPhotoMap.get(inst.id) || [],
+			box_photo_urls: (boxPhotoMap.get(inst.id) || []).map((r) => r.url),
+			box_photos: boxPhotoMap.get(inst.id) || [],
 			original_pkg_info_id: originalInfo?.id || null,
 			final_pkg_info_id: finalInfo?.id || null,
 			order_package_id: orderPkgObj?.id || null,
@@ -650,4 +661,99 @@ export const saveReport = async (
 	}
 
 	return report;
+};
+
+/**
+ * Fetches "unfiled" photos for a set of order_packages: media rows that belong
+ * to the package (order_package_id) but are NOT linked to a specific box
+ * instance or item. These are mostly Task photos the packer captured under the
+ * Tasks section, which therefore never appear under a box/item on the report.
+ * Surfacing them lets an admin move/copy them onto the correct box or item.
+ */
+export const fetchUnfiledPackageMedia = async (
+	orderPackageIds: string[],
+): Promise<UnfiledMedia[]> => {
+	const ids = [...new Set(orderPackageIds.filter(Boolean))];
+	if (ids.length === 0) return [];
+	const rows = await fetchInChunks(ids, 100, async (chunk) => {
+		const { data, error } = await supabase
+			.from("media")
+			.select("id, image_url, designation, notes, order_package_id, created_at")
+			.in("order_package_id", chunk)
+			.is("order_pkg_instance_id", null)
+			.is("pkd_item_id", null)
+			.not("image_url", "is", null)
+			.order("created_at", { ascending: true });
+		if (error) throw error;
+		return data || [];
+	});
+	return (rows || [])
+		.map((m: any): UnfiledMedia | null => {
+			const url = getMediaPublicUrl(m.image_url);
+			if (!url) return null;
+			return {
+				id: m.id,
+				url,
+				path: m.image_url,
+				designation: m.designation,
+				notes: m.notes,
+				order_package_id: m.order_package_id,
+				created_at: m.created_at,
+			};
+		})
+		.filter((m): m is UnfiledMedia => m !== null);
+};
+
+export type ReassignTarget = {
+	/** order_package_id the photo belongs to (kept on the row; required on copy). */
+	orderPackageId: string;
+	/** Destination box instance — set for both box photos and item photos. */
+	orderPkgInstanceId: string | null;
+	/** Destination item — set only when filing as an item photo. */
+	pkdItemId: string | null;
+	/** New designation: "package" for a box photo, "item" for an item photo. */
+	designation: string;
+};
+
+/**
+ * Re-points a media row at a box/item, either in place ("move", an UPDATE) or by
+ * duplicating the row at the same storage object ("copy", an INSERT — the
+ * original stays where it is, e.g. still attached to its Task). The underlying
+ * storage file is shared, so copy does not duplicate the image in the bucket.
+ */
+export const reassignMedia = async (
+	mediaId: string,
+	mode: "move" | "copy",
+	target: ReassignTarget,
+): Promise<void> => {
+	if (mode === "move") {
+		const { error } = await supabase
+			.from("media")
+			.update({
+				order_pkg_instance_id: target.orderPkgInstanceId,
+				pkd_item_id: target.pkdItemId,
+				designation: target.designation,
+			})
+			.eq("id", mediaId);
+		if (error) throw error;
+		return;
+	}
+
+	// copy: read the source row, then insert a duplicate pointing at the target
+	const { data: src, error: readErr } = await supabase
+		.from("media")
+		.select("image_url, notes, order_package_id")
+		.eq("id", mediaId)
+		.single();
+	if (readErr) throw readErr;
+
+	const { error: insErr } = await supabase.from("media").insert({
+		image_url: src.image_url,
+		notes: src.notes,
+		order_package_id: target.orderPackageId || src.order_package_id,
+		order_pkg_instance_id: target.orderPkgInstanceId,
+		pkd_item_id: target.pkdItemId,
+		designation: target.designation,
+	});
+	if (insErr) throw insErr;
 };

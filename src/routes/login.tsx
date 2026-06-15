@@ -3,6 +3,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { loginSchema, validateInput } from "@/lib/validation";
 import { useAuth } from "../hooks/useAuth";
+import { landingPageForRole } from "../lib/access";
 
 export const Route = createFileRoute("/login")({
 	component: LoginPage,
@@ -18,18 +19,19 @@ function LoginPage() {
 	>({});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const navigate = useNavigate();
-	const { signIn, user, profile, loading, isAdmin } = useAuth();
+	const { signIn, user, profile, loading } = useAuth();
 
 	// Redirect if already logged in
 	useEffect(() => {
 		if (!loading && user && profile) {
-			if (isAdmin) {
-				navigate({ to: "/dashboard" });
+			const landing = landingPageForRole(profile.roles?.name);
+			if (landing) {
+				navigate({ to: landing });
 			} else {
-				setError("Access denied. Admin privileges required.");
+				setError("Access denied. You don't have access to the admin panel.");
 			}
 		}
-	}, [user, profile, loading, isAdmin, navigate]);
+	}, [user, profile, loading, navigate]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();

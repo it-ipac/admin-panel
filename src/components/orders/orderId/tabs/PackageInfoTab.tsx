@@ -9,13 +9,13 @@ import {
 	X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { supabase } from "../../../../lib/supabase";
 import type {
 	OrderPackage,
 	PackageInfo,
 	PackageInstance,
 	PackageItem,
-} from "../../../../routes/orders/$orderId";
+} from "@/features/orders/types";
+import { supabase } from "../../../../lib/supabase";
 import { ConfirmDialog } from "../../../ui/ConfirmDialog";
 import { DimensionsCard } from "../../../ui/DimensionsCard";
 import { TwoTierCard } from "../../../ui/TwoTierCard";

@@ -23,6 +23,7 @@ import { useEffect, useState } from "react";
 import { Sidebar } from "../components/Sidebar";
 import { useAuth } from "../hooks/useAuth";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import { useRequirePageAccess } from "../hooks/usePageAccess";
 import { useToast } from "../hooks/useToast";
 import { db } from "../lib/supabase";
 
@@ -46,6 +47,7 @@ interface PackerAssignmentRow {
 function UsersPage() {
 	const navigate = useNavigate();
 	const { user, loading: authLoading } = useAuth();
+	useRequirePageAccess();
 	const queryClient = useQueryClient();
 	const [search, setSearch] = useState("");
 	const debouncedSearch = useDebouncedValue(search, 200);

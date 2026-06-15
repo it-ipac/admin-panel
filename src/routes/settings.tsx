@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { Sidebar } from "../components/Sidebar";
 import { ReleaseInfoPanel } from "../features/settings/components/ReleaseInfoPanel";
 import { useAuth } from "../hooks/useAuth";
+import { useRequirePageAccess } from "../hooks/usePageAccess";
 import {
 	getThemePreference,
 	setThemePreference,
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/settings")({
 function SettingsPage() {
 	const navigate = useNavigate();
 	const { user, profile, loading: authLoading } = useAuth();
+	useRequirePageAccess();
 	const [activeTab, setActiveTab] = useState("profile");
 	const [saved, setSaved] = useState(false);
 	const [themePreference, setThemePreferenceState] = useState<ThemePreference>(

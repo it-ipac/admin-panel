@@ -33,6 +33,7 @@ import { InventoryCommunicationsTab } from "../features/inventory-communications
 import type { VariantCommunicationItem } from "../features/inventory-communications/types";
 import { useAuth } from "../hooks/useAuth";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import { useRequirePageAccess } from "../hooks/usePageAccess";
 import { supabase } from "../lib/supabase";
 
 export const Route = createFileRoute("/inventory")({
@@ -42,6 +43,7 @@ export const Route = createFileRoute("/inventory")({
 function InventoryPage() {
 	const navigate = useNavigate();
 	const { user, loading: authLoading } = useAuth();
+	useRequirePageAccess();
 	const queryClient = useQueryClient();
 	const [activeTab, setActiveTab] = useState<TabType>("materials");
 	const [search, setSearch] = useState("");

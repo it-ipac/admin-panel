@@ -10,11 +10,11 @@ import {
 	Plus,
 	Search,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { OrderCreateDialog } from "../../components/orders/create/OrderCreateDialog";
 import { Sidebar } from "../../components/Sidebar";
-import { useAuth } from "../../hooks/useAuth";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { useRequirePageAccess } from "../../hooks/usePageAccess";
 import { db } from "../../lib/supabase";
 
 export const Route = createFileRoute("/orders/")({
@@ -23,19 +23,14 @@ export const Route = createFileRoute("/orders/")({
 
 function OrdersPage() {
 	const navigate = useNavigate();
-	const { user, loading: authLoading } = useAuth();
+	const { user, profile, loading: authLoading } = useRequirePageAccess();
+	const isClient = profile?.roles?.name === "client";
 	const [search, setSearch] = useState("");
 	const debouncedSearch = useDebouncedValue(search, 200);
 	const [statusFilter, setStatusFilter] = useState("all");
 	const [page, setPage] = useState(1);
 	const perPage = 10;
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
-
-	useEffect(() => {
-		if (!authLoading && !user) {
-			navigate({ to: "/login" });
-		}
-	}, [user, authLoading, navigate]);
 
 	const { data: orders, isLoading } = useQuery({
 		queryKey: ["orders"],
@@ -91,13 +86,15 @@ function OrdersPage() {
 								Manage and track all orders
 							</p>
 						</div>
-						<button
-							onClick={() => setShowCreateDialog(true)}
-							className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-						>
-							<Plus className="w-5 h-5" />
-							New Order
-						</button>
+						{!isClient && (
+							<button
+								onClick={() => setShowCreateDialog(true)}
+								className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+							>
+								<Plus className="w-5 h-5" />
+								New Order
+							</button>
+						)}
 					</div>
 
 					<div className="bg-white rounded-xl shadow-sm border border-neutral-100 p-4 mb-6">
@@ -221,12 +218,14 @@ function OrdersPage() {
 														>
 															<Eye className="w-4 h-4 text-neutral-500" />
 														</Link>
-														<button
-															className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
-															title="Edit"
-														>
-															<Edit className="w-4 h-4 text-neutral-500" />
-														</button>
+														{!isClient && (
+															<button
+																className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
+																title="Edit"
+															>
+																<Edit className="w-4 h-4 text-neutral-500" />
+															</button>
+														)}
 													</div>
 												</td>
 											</tr>

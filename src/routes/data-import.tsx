@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, FileUp, Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { Sidebar } from "../components/Sidebar";
 import { useToastContext } from "../components/ui/ToastProvider";
+import { useRequirePageAccess } from "../hooks/usePageAccess";
 import { supabase } from "../lib/supabase";
 
 export const Route = createFileRoute("/data-import")({
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/data-import")({
 });
 
 function DataImportPage() {
+	useRequirePageAccess();
 	const [selectedClient, setSelectedClient] = useState("");
 	const [file, setFile] = useState<File | null>(null);
 	const [parsedData, setParsedData] = useState<any[]>([]);

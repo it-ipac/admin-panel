@@ -1,5 +1,5 @@
 import { FileText } from "lucide-react";
-import type { OrderPackage } from "@/routes/orders/$orderId";
+import type { OrderPackage } from "@/features/orders/types";
 
 export interface PackageComment {
 	id: string;

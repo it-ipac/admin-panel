@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import type { PackageMaterial } from "@/routes/orders/$orderId";
+import type { PackageMaterial } from "@/features/orders/types";
 
 interface AccessoriesTabProps {
 	selectedPackageMaterials: {

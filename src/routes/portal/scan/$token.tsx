@@ -204,10 +204,18 @@ function TokenResolver() {
 					// User IS logged in. We must verify they belong to THIS exact client
 					const { data: profile } = await db.getProfile(user.id);
 
-					// Admins and Directors can view anything, but Clients must match IDs
-					const isRestrictedRole =
-						profile.roles?.name === "client" || profile.roles?.name === "sales";
-					if (isRestrictedRole && profile.client_id !== clientId) {
+					// Staff roles may scan/view any client's item. Everyone else
+					// (client, sales, unknown) is scoped to their own client_id.
+					const STAFF_VIEW_ALL_ROLES = [
+						"admin",
+						"director",
+						"executive",
+						"project_lead",
+						"packer",
+					];
+					const role = profile.roles?.name ?? null;
+					const isStaff = role ? STAFF_VIEW_ALL_ROLES.includes(role) : false;
+					if (!isStaff && profile.client_id !== clientId) {
 						throw new Error(
 							"You do not have permission to view items belonging to this client.",
 						);

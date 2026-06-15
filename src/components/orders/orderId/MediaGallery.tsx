@@ -8,7 +8,7 @@ import {
 	X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { OrderPackage } from "@/routes/orders/$orderId";
+import type { OrderPackage } from "@/features/orders/types";
 
 export interface Media {
 	id: string;

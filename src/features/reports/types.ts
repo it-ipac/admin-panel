@@ -33,6 +33,24 @@ export type FilterParams = {
 	sortMode?: "destination_first" | "tag_first" | "tag_combination";
 };
 
+/** A media row carried to the UI so it can be traced back to its DB row for reassignment. */
+export type ReportMediaRef = {
+	id: string; // media.id
+	url: string; // public URL for display
+	path: string; // raw media.image_url (storage path) — needed to duplicate on copy
+};
+
+/** A photo that belongs to an order_package but has no box-instance/item link (e.g. Task photos). */
+export type UnfiledMedia = {
+	id: string;
+	url: string;
+	path: string;
+	designation: string | null;
+	notes: string | null;
+	order_package_id: string;
+	created_at: string;
+};
+
 export type ReportInstanceData = {
 	id: string;
 	instance_number: number;
@@ -55,6 +73,8 @@ export type ReportInstanceData = {
 		item_name: string | null;
 		item_num: string | null;
 		photo_urls?: string[];
+		/** Same photos as photo_urls but carrying media.id, for reassignment. */
+		photos?: ReportMediaRef[];
 		length?: number | null;
 		width?: number | null;
 		height?: number | null;
@@ -82,6 +102,8 @@ export type ReportInstanceData = {
 	package_qty?: number | null;
 	order_pkg_overview_id?: string | null;
 	box_photo_urls?: string[];
+	/** Same photos as box_photo_urls but carrying media.id, for reassignment. */
+	box_photos?: ReportMediaRef[];
 	original_pkg_info_id?: string | null;
 	final_pkg_info_id?: string | null;
 	order_package_id?: string | null;

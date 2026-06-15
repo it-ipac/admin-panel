@@ -12,10 +12,12 @@ import {
 	Users,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { canAccessPage } from "../lib/access";
 import { cn } from "../lib/cn";
 
 const navItems = [
 	{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+	{ to: "/my-orders", label: "My Orders", icon: ShoppingCart },
 	{ to: "/orders", label: "Orders", icon: ShoppingCart },
 	{ to: "/clients", label: "Clients", icon: Building2 },
 	{ to: "/users", label: "Users", icon: Users },
@@ -29,6 +31,11 @@ const navItems = [
 export function Sidebar() {
 	const location = useLocation();
 	const { profile, signOut } = useAuth();
+
+	const role = profile?.roles?.name ?? null;
+	const visibleNavItems = navItems.filter((item) =>
+		canAccessPage(role, item.to),
+	);
 
 	return (
 		<aside className="w-64 bg-white border-r border-neutral-200 h-screen flex flex-col">
@@ -58,7 +65,7 @@ export function Sidebar() {
 
 			{/* Navigation */}
 			<nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-				{navItems.map((item) => {
+				{visibleNavItems.map((item) => {
 					const isActive =
 						location.pathname === item.to ||
 						location.pathname.startsWith(`${item.to}/`);

@@ -166,6 +166,7 @@ export function useAuthState() {
 	const isAdmin =
 		profile?.roles?.name === "admin" ||
 		profile?.roles?.name === "director" ||
+		profile?.roles?.name === "executive" ||
 		profile?.roles?.name === "sales";
 
 	return {

@@ -17,6 +17,7 @@ import type {
 import { Sidebar } from "../components/Sidebar";
 import { useAuth } from "../hooks/useAuth";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import { useRequirePageAccess } from "../hooks/usePageAccess";
 import { supabase } from "../lib/supabase";
 
 export const Route = createFileRoute("/inventory-duplicates")({
@@ -97,6 +98,7 @@ function InventoryDuplicatesPage() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const { user, loading: authLoading } = useAuth();
+	useRequirePageAccess();
 	const [search, setSearch] = useState("");
 	const debouncedSearch = useDebouncedValue(search, 200);
 	const [selectionByGroup, setSelectionByGroup] = useState<

@@ -1,5 +1,5 @@
 import { ClipboardList } from "lucide-react";
-import type { PackageMaterial } from "@/routes/orders/$orderId";
+import type { PackageMaterial } from "@/features/orders/types";
 
 export interface PackageService {
 	id: string;
