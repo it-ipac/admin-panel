@@ -37,6 +37,31 @@ const fetchInChunks = async <T, R>(
 	return results.flat();
 };
 
+// PostgREST caps each response at `db-max-rows` (1000 on Supabase by default).
+// A single `.in(...)` over many ids can resolve to far more than that and be
+// silently truncated — dropping photos for whichever boxes land past row 1000.
+// Page through with `.range()` until a short page signals the end. The caller's
+// query MUST carry a stable, unique `.order()` (e.g. by `id`) so consecutive
+// pages don't skip or duplicate rows.
+const PAGE_SIZE = 1000;
+
+const fetchAllPages = async <R>(
+	buildPagedQuery: (
+		from: number,
+		to: number,
+	) => PromiseLike<{ data: R[] | null; error: unknown }>,
+): Promise<R[]> => {
+	const out: R[] = [];
+	for (let from = 0; ; from += PAGE_SIZE) {
+		const { data, error } = await buildPagedQuery(from, from + PAGE_SIZE - 1);
+		if (error) throw error;
+		const rows = data ?? [];
+		out.push(...rows);
+		if (rows.length < PAGE_SIZE) break;
+	}
+	return out;
+};
+
 export const fetchClients = async () => {
 	const { data, error } = await supabase
 		.from("clients")
@@ -92,10 +117,13 @@ export const fetchOrderDetails = async (orderId: string) => {
  * Volume is computed from package_info external dimensions (L × W × H → m³).
  */
 export const fetchOrderTotals = async (orderId: string) => {
-	// Get all instances for this order with their package_info via final_pkg_info and original_pkg_info
-	const { data, error } = await supabase
-		.from("order_pkg_instance")
-		.select(`
+	// Get all instances for this order with their package_info via final_pkg_info
+	// and original_pkg_info. Page through so an order with >1000 boxes still
+	// totals every box (a truncated response would understate NW/GW/volume).
+	const data = await fetchAllPages((from, to) =>
+		supabase
+			.from("order_pkg_instance")
+			.select(`
 			id,
 			order_pkg_overview!inner(
 				order_id,
@@ -117,10 +145,12 @@ export const fetchOrderTotals = async (orderId: string) => {
 				)
 			)
 		`)
-		.eq("order_pkg_overview.order_id", orderId);
+			.eq("order_pkg_overview.order_id", orderId)
+			.order("id", { ascending: true })
+			.range(from, to),
+	);
 
-	if (error) throw error;
-	if (!data || data.length === 0)
+	if (data.length === 0)
 		return {
 			totalNW: 0,
 			totalGW: 0,
@@ -198,7 +228,10 @@ export const fetchDestinations = async (
 ) => {
 	if (!clientId && orderIds.length === 0) return [];
 
-	let query = supabase.from("order_pkg_instance").select(`
+	// Rebuilt per page: a builder can't be reused after it's awaited. Paging past
+	// the 1000-row cap guarantees every distinct destination is seen.
+	const buildBase = () => {
+		const base = supabase.from("order_pkg_instance").select(`
       destination,
       order_pkg_overview!inner (
         order_id,
@@ -207,19 +240,22 @@ export const fetchDestinations = async (
         )
       )
     `);
+		const filtered =
+			orderIds.length > 0
+				? base.in("order_pkg_overview.order_id", orderIds)
+				: clientId
+					? base.eq("order_pkg_overview.orders.client_id", clientId)
+					: base;
+		// Only show destinations from instances that have packed items
+		return filtered.not("destination", "is", null);
+	};
 
-	if (orderIds.length > 0) {
-		query = query.in("order_pkg_overview.order_id", orderIds);
-	} else if (clientId) {
-		query = query.eq("order_pkg_overview.orders.client_id", clientId);
-	}
-
-	// Only show destinations from instances that have packed items
-	const { data, error } = await query.not("destination", "is", null);
-	if (error) throw error;
+	const data = await fetchAllPages((from, to) =>
+		buildBase().order("id", { ascending: true }).range(from, to),
+	);
 
 	const uniqueDestinations = new Set<string>();
-	data?.forEach((d) => {
+	data.forEach((d) => {
 		if (d.destination) {
 			uniqueDestinations.add(d.destination);
 		}
@@ -239,31 +275,53 @@ export const fetchReportInstances = async (
 		? `${filters.dateFrom}T00:00:00+00:00`
 		: null;
 
-	const { data, error } = await supabase.rpc("fetch_report_instances", {
-		p_client_id: filters.clientId || null,
-		p_order_ids: filters.orderIds.length > 0 ? filters.orderIds : null,
-		p_date_from: dateFrom,
-		p_date_to: dateTo,
-		p_date_mode: filters.dateFilterMode,
-		p_destinations:
-			filters.destinations.length > 0 ? filters.destinations : null,
-		p_has_items_only: filters.hasItemsOnly,
-		p_tag_ids: null, // tag filtering done client-side by instance.tag name match
-	});
+	// Set-returning RPC: PostgREST still caps its response at 1000 rows, so a
+	// report spanning >1000 boxes would silently lose whole boxes. Page through
+	// with a stable `.order("id")`. Client sorts for display (LivePreviewPanel),
+	// so the paging order does not affect the rendered box order.
+	const data = await fetchAllPages((from, to) =>
+		supabase
+			.rpc("fetch_report_instances", {
+				p_client_id: filters.clientId || null,
+				p_order_ids: filters.orderIds.length > 0 ? filters.orderIds : null,
+				p_date_from: dateFrom,
+				p_date_to: dateTo,
+				p_date_mode: filters.dateFilterMode,
+				p_destinations:
+					filters.destinations.length > 0 ? filters.destinations : null,
+				p_has_items_only: filters.hasItemsOnly,
+				p_tag_ids: null, // tag filtering done client-side by instance.tag name match
+			})
+			.order("id", { ascending: true })
+			.range(from, to),
+	);
 
-	if (error) throw error;
-	if (!data || data.length === 0) return [];
+	if (data.length === 0) return [];
 
-	// Fetch items for all instances in chunks to avoid PostgREST 1000 row limit
+	// Fetch items for all instances. Chunk by instance id, AND page each chunk:
+	// a chunk of 100 boxes with many line items each can itself exceed 1000 rows.
 	const instanceIds = data.map((d: any) => d.id);
-	const itemData = await fetchInChunks(instanceIds, 100, async (chunk) => {
-		const { data: chunkData, error: itemError } = await supabase.rpc(
-			"fetch_instance_items",
-			{ p_instance_ids: chunk },
-		);
-		if (itemError) throw itemError;
-		return (chunkData || []) as any[];
-	});
+	const itemData = await fetchInChunks(instanceIds, 100, (chunk) =>
+		fetchAllPages<{
+			pkg_instance_id: string;
+			pkd_item_id: string;
+			quantity: number;
+			item_num: string | null;
+			description: string | null;
+			packed_at: string | null;
+			length: number | null;
+			width: number | null;
+			height: number | null;
+			net_weight: number | null;
+			maintenance_db_id: string | null;
+		}>((from, to) =>
+			supabase
+				.rpc("fetch_instance_items", { p_instance_ids: chunk })
+				.order("pkg_instance_id", { ascending: true })
+				.order("pkd_item_id", { ascending: true })
+				.range(from, to),
+		),
+	);
 
 	// Group items by instance
 	const itemsByInstance = new Map<string, any[]>();
@@ -370,17 +428,23 @@ export const fetchReportInstances = async (
 		}
 	}
 
-	// Fetch box photos (media.order_pkg_instance_id) in chunks
+	// Fetch box photos: media tied to the box instance only. An item photo also
+	// carries its box's order_pkg_instance_id, so filter to pkd_item_id IS NULL —
+	// otherwise item photos leak into the box section regardless of the report's
+	// "Include Packed Item Pictures" toggle.
 	const boxPhotoMap = new Map<string, ReportMediaRef[]>(); // instance_id → refs
-	const boxMediaData = await fetchInChunks(instanceIds, 100, async (chunk) => {
-		const { data: chunkData, error: mediaError } = await supabase
-			.from("media")
-			.select("id, order_pkg_instance_id, image_url")
-			.in("order_pkg_instance_id", chunk)
-			.not("image_url", "is", null);
-		if (mediaError) throw mediaError;
-		return chunkData || [];
-	});
+	const boxMediaData = await fetchInChunks(instanceIds, 100, (chunk) =>
+		fetchAllPages((from, to) =>
+			supabase
+				.from("media")
+				.select("id, order_pkg_instance_id, image_url")
+				.in("order_pkg_instance_id", chunk)
+				.is("pkd_item_id", null)
+				.not("image_url", "is", null)
+				.order("id", { ascending: true })
+				.range(from, to),
+		),
+	);
 	for (const m of boxMediaData || []) {
 		if (!boxPhotoMap.has(m.order_pkg_instance_id)) {
 			boxPhotoMap.set(m.order_pkg_instance_id, []);
@@ -423,18 +487,16 @@ export const fetchReportInstances = async (
 	// Fetch item photos (pkd_item_id) in chunks
 	const itemPhotoMap = new Map<string, ReportMediaRef[]>(); // pkd_item_id → refs
 	if (allPkdItemIds.length > 0) {
-		const itemMediaData = await fetchInChunks(
-			allPkdItemIds,
-			100,
-			async (chunk) => {
-				const { data: chunkData, error: mediaError } = await supabase
+		const itemMediaData = await fetchInChunks(allPkdItemIds, 100, (chunk) =>
+			fetchAllPages((from, to) =>
+				supabase
 					.from("media")
 					.select("id, pkd_item_id, image_url")
 					.in("pkd_item_id", chunk)
-					.not("image_url", "is", null);
-				if (mediaError) throw mediaError;
-				return chunkData || [];
-			},
+					.not("image_url", "is", null)
+					.order("id", { ascending: true })
+					.range(from, to),
+			),
 		);
 		for (const m of itemMediaData || []) {
 			if (!itemPhotoMap.has(m.pkd_item_id)) {
@@ -675,18 +737,22 @@ export const fetchUnfiledPackageMedia = async (
 ): Promise<UnfiledMedia[]> => {
 	const ids = [...new Set(orderPackageIds.filter(Boolean))];
 	if (ids.length === 0) return [];
-	const rows = await fetchInChunks(ids, 100, async (chunk) => {
-		const { data, error } = await supabase
-			.from("media")
-			.select("id, image_url, designation, notes, order_package_id, created_at")
-			.in("order_package_id", chunk)
-			.is("order_pkg_instance_id", null)
-			.is("pkd_item_id", null)
-			.not("image_url", "is", null)
-			.order("created_at", { ascending: true });
-		if (error) throw error;
-		return data || [];
-	});
+	const rows = await fetchInChunks(ids, 100, (chunk) =>
+		fetchAllPages((from, to) =>
+			supabase
+				.from("media")
+				.select(
+					"id, image_url, designation, notes, order_package_id, created_at",
+				)
+				.in("order_package_id", chunk)
+				.is("order_pkg_instance_id", null)
+				.is("pkd_item_id", null)
+				.not("image_url", "is", null)
+				.order("created_at", { ascending: true })
+				.order("id", { ascending: true })
+				.range(from, to),
+		),
+	);
 	return (rows || [])
 		.map((m: any): UnfiledMedia | null => {
 			const url = getMediaPublicUrl(m.image_url);

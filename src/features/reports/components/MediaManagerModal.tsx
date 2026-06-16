@@ -162,7 +162,7 @@ export const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 										{unfCount > 0 && (
 											<span
 												className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-warning-100 text-warning-700"
-												title={`${unfCount} unfiled / task photo(s)`}
+												title={`${unfCount} unfiled photo(s)`}
 											>
 												+{unfCount}
 											</span>
@@ -265,12 +265,14 @@ export const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 								{/* Unfiled / Task photos */}
 								<section>
 									<h5 className="text-xs font-bold text-warning-700 uppercase tracking-wider border-t pt-4 mb-1">
-										⚠️ Unfiled / Task Photos ({activeUnfiled.length})
+										⚠️ Unfiled Photos ({activeUnfiled.length})
 									</h5>
 									<p className="text-[11px] text-neutral-500 mb-3">
-										Photos captured for this package's tasks (or otherwise not
-										attached to a box/item). They do <strong>not</strong> appear
-										on the report until you file them onto a box or item.
+										Photos attached to this package but not to a specific box or
+										item — tasks, manufacturing, maintenance, or stray box/item
+										shots (the chip on each shows which). They do{" "}
+										<strong>not</strong> appear on the report until you file them
+										onto a box or item.
 									</p>
 									{activeUnfiled.length === 0 ? (
 										<p className="text-xs text-neutral-400 italic">
