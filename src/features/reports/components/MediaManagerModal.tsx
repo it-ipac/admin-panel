@@ -271,8 +271,8 @@ export const MediaManagerModal: React.FC<MediaManagerModalProps> = ({
 										Photos attached to this package but not to a specific box or
 										item — tasks, manufacturing, maintenance, or stray box/item
 										shots (the chip on each shows which). They do{" "}
-										<strong>not</strong> appear on the report until you file them
-										onto a box or item.
+										<strong>not</strong> appear on the report until you file
+										them onto a box or item.
 									</p>
 									{activeUnfiled.length === 0 ? (
 										<p className="text-xs text-neutral-400 italic">
