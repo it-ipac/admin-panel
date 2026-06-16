@@ -72,6 +72,9 @@ export function usePackageMutations(
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+			queryClient.invalidateQueries({
+				queryKey: ["packageInstances", orderId],
+			});
 		},
 	});
 
@@ -92,6 +95,9 @@ export function usePackageMutations(
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+			queryClient.invalidateQueries({
+				queryKey: ["packageInstances", orderId],
+			});
 		},
 	});
 

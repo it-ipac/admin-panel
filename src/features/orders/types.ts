@@ -47,6 +47,31 @@ export interface PackageInstance {
 	category_id: string | null;
 }
 
+/** A single project tag option for the leveled tag picker. */
+export interface TagOption {
+	id: string;
+	name: string;
+}
+
+/** Project tags grouped by their level (= category_tag_map.tag_order). */
+export interface TagLevel {
+	level: number;
+	tags: TagOption[];
+}
+
+/** A package category resolved to its set of tag ids, used to keep the
+ *  instance category in sync with the tags picked in the dropdown. */
+export interface TagCategory {
+	id: string;
+	label: string;
+	tagIds: string[];
+}
+
+export interface TagTaxonomy {
+	levels: TagLevel[];
+	categories: TagCategory[];
+}
+
 export interface Client {
 	id: string;
 	name: string;

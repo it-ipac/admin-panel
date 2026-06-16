@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { generateIpacReference } from "@/components/orders/create/orderCreate/utils";
 import { supabase } from "@/lib/supabase";
-import { buildTagAbbreviation } from "../utils/references";
+import { buildTagAbbreviation, buildTagTokens } from "../utils/references";
 
 /**
  * Bulk "Regenerate Custom Box References": loops through all custom
@@ -85,6 +85,7 @@ export function useRegenerateReferences(orderId: string) {
 						// Use instance category override; fall back to items_db category
 						const categoryId = inst.category_id || itemsDb?.category_id || null;
 						const tag = await buildTagAbbreviation(categoryId);
+						const tagTokens = await buildTagTokens(categoryId);
 
 						const itemNum = String(itemsDb?.item_num || "ITEM");
 						const seq = inst.instance_number || 1;
@@ -102,6 +103,7 @@ export function useRegenerateReferences(orderId: string) {
 							id: inst.id,
 							destination,
 							ipac_reference: newReference,
+							tagTokens,
 						};
 					}),
 				);
@@ -114,6 +116,8 @@ export function useRegenerateReferences(orderId: string) {
 							.update({
 								destination: u.destination,
 								ipac_reference: u.ipac_reference,
+								// keep sort tokens in lockstep with the new reference
+								...(u.tagTokens ? { tag: u.tagTokens } : {}),
 							})
 							.eq("id", u.id),
 					),

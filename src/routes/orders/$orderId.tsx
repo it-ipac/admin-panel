@@ -53,12 +53,14 @@ export const Route = createFileRoute("/orders/$orderId")({
 	component: OrderDetailPage,
 });
 
+import { useMovePackage } from "@/features/orders/hooks/useMovePackage";
 import { useOrderDetailPage } from "@/features/orders/hooks/useOrderDetailPage";
 
 function OrderDetailPage() {
 	useRequirePageAccess();
 	const { orderId } = Route.useParams();
 	const page = useOrderDetailPage(orderId);
+	const movePackageMutation = useMovePackage();
 	const {
 		authLoading,
 		queries,
@@ -192,7 +194,9 @@ function OrderDetailPage() {
 									selectedPackageMaterials={derived.selectedPackageMaterials}
 									selectedPackageServices={derived.selectedPackageServices}
 									clientCategories={queries.clientCategories || []}
-									orderCategories={queries.orderCategories || []}
+									tagTaxonomy={queries.tagTaxonomy}
+									currentOrderId={orderId}
+									movePackageMutation={movePackageMutation}
 									updatePackageInfoMutation={
 										packageMutations.updatePackageInfoMutation
 									}
@@ -241,6 +245,8 @@ function OrderDetailPage() {
 								<MediaGallery
 									mediaItems={queries.mediaItems}
 									orderPackages={order.order_packages}
+									selectedPackageId={page.selectedPackageId}
+									onSelectPackage={page.setSelectedPackageId}
 								/>
 
 								<AddItemModal

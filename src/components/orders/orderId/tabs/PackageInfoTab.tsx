@@ -1,7 +1,6 @@
 import { type UseMutationResult, useQuery } from "@tanstack/react-query";
 import {
-	Check,
-	Edit2,
+	ArrowRightLeft,
 	Loader2,
 	Package,
 	RefreshCw,
@@ -9,16 +8,21 @@ import {
 	X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useInstanceQr } from "@/features/orders/hooks/useInstanceQr";
 import type {
 	OrderPackage,
 	PackageInfo,
 	PackageInstance,
 	PackageItem,
+	TagTaxonomy,
 } from "@/features/orders/types";
 import { supabase } from "../../../../lib/supabase";
 import { ConfirmDialog } from "../../../ui/ConfirmDialog";
 import { DimensionsCard } from "../../../ui/DimensionsCard";
 import { TwoTierCard } from "../../../ui/TwoTierCard";
+import { MovePackageModal } from "../modals/MovePackageModal";
+import { SyncQrModal } from "../modals/SyncQrModal";
+import { InstanceRow } from "./InstanceRow";
 
 type PendingConfirm =
 	| { kind: "bulkDelete" }
@@ -26,6 +30,7 @@ type PendingConfirm =
 	| { kind: "removePackage" }
 	| { kind: "removePackageFinal" }
 	| { kind: "regenerateAll" }
+	| { kind: "regenerateInstance"; instanceId: string }
 	| { kind: "removeInstance"; instanceId: string };
 
 interface PackageInfoTabProps {
@@ -55,7 +60,13 @@ interface PackageInfoTabProps {
 	>;
 	packageItems?: PackageItem[];
 	clientCategories?: { id: string; label: string }[];
-	orderCategories?: string[];
+	tagTaxonomy?: TagTaxonomy;
+	currentOrderId: string;
+	movePackageMutation: UseMutationResult<
+		{ newNumber: number },
+		Error,
+		{ packageId: string; sourceOrderId: string; targetOrderId: string }
+	>;
 	/** Bulk regenerate all instances in the order */
 	onRegenerateAll?: () => void;
 	isRegeneratingAll?: boolean;
@@ -74,20 +85,26 @@ export function PackageInfoTab({
 	regenerateReferenceMutation,
 	packageItems = [],
 	clientCategories = [],
-	orderCategories = [],
+	tagTaxonomy,
+	currentOrderId,
+	movePackageMutation,
 	onRegenerateAll,
 	isRegeneratingAll = false,
 	updatedInstanceIds = new Set(),
 }: PackageInfoTabProps) {
-	const [editingInstanceId, setEditingInstanceId] = useState<string | null>(
-		null,
-	);
-	const [referenceDraft, setReferenceDraft] = useState("");
-	const [destinationDraft, setDestinationDraft] = useState("");
-	const [tagDraft, setTagDraft] = useState("");
-	const [categoryDraft, setCategoryDraft] = useState("");
-
 	const [showSyncModal, setShowSyncModal] = useState(false);
+	const [showMoveModal, setShowMoveModal] = useState(false);
+	const [qrInstanceId, setQrInstanceId] = useState<string | null>(null);
+
+	const instanceIds = useMemo(
+		() => selectedPackageInstances.map((i) => i.id),
+		[selectedPackageInstances],
+	);
+	const { tokenByInstance, linkQrMutation, generateQrMutation } =
+		useInstanceQr(instanceIds);
+	const qrInstance =
+		selectedPackageInstances.find((i) => i.id === qrInstanceId) || null;
+	const qrSaving = linkQrMutation.isPending || generateQrMutation.isPending;
 	const [syncInstances, setSyncInstances] = useState<
 		{ instance: PackageInstance; newDestination: string }[]
 	>([]);
@@ -100,16 +117,6 @@ export function PackageInfoTab({
 	const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(
 		null,
 	);
-
-	const sortedCategories = useMemo(() => {
-		const orderSet = new Set(orderCategories);
-		const mapped = clientCategories.filter((c) => orderSet.has(c.id));
-		const unmapped = clientCategories.filter((c) => !orderSet.has(c.id));
-		return [
-			...mapped.map((c) => ({ ...c, isMapped: true })),
-			...unmapped.map((c) => ({ ...c, isMapped: false })),
-		];
-	}, [clientCategories, orderCategories]);
 
 	const { data: packingTypes } = useQuery({
 		queryKey: ["packingTypes"],
@@ -290,6 +297,20 @@ export function PackageInfoTab({
 						onRegenerateAll?.();
 					},
 				};
+			case "regenerateInstance": {
+				const instanceId = pendingConfirm.instanceId;
+				return {
+					title: "Regenerate this box's IPAC id with the new tag?",
+					description:
+						"The reference is rebuilt from the box's destination and the tag you just selected. The QR code stays the same.",
+					confirmText: "Regenerate",
+					variant: "primary" as const,
+					onConfirm: () => {
+						setPendingConfirm(null);
+						regenerateReferenceMutation.mutate({ instanceId });
+					},
+				};
+			}
 			case "removeInstance": {
 				const instanceId = pendingConfirm.instanceId;
 				return {
@@ -321,6 +342,18 @@ export function PackageInfoTab({
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
+					<button
+						onClick={() => setShowMoveModal(true)}
+						disabled={movePackageMutation.isPending}
+						className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-neutral-100 text-neutral-700 rounded-md hover:bg-neutral-200 transition-colors disabled:opacity-50"
+					>
+						{movePackageMutation.isPending ? (
+							<Loader2 className="w-4 h-4 animate-spin" />
+						) : (
+							<ArrowRightLeft className="w-4 h-4" />
+						)}
+						Move to Order
+					</button>
 					<button
 						onClick={() => setPendingConfirm({ kind: "duplicate" })}
 						disabled={duplicatePackageMutation.isPending}
@@ -515,184 +548,42 @@ export function PackageInfoTab({
 							</thead>
 							<tbody>
 								{selectedPackageInstances.map((instance) => (
-									<tr
+									<InstanceRow
 										key={instance.id}
-										className={`border-t border-neutral-100 transition-colors duration-500 ${
-											updatedInstanceIds.has(instance.id)
-												? "bg-success-50 border-l-2 border-l-success-400"
-												: ""
-										}`}
-									>
-										<td className="px-4 py-2.5 text-left w-10">
-											<input
-												type="checkbox"
-												className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-												checked={selectedInstanceIds.has(instance.id)}
-												onChange={(e) => {
-													const next = new Set(selectedInstanceIds);
-													if (e.target.checked) {
-														next.add(instance.id);
-													} else {
-														next.delete(instance.id);
-													}
-													setSelectedInstanceIds(next);
-												}}
-											/>
-										</td>
-										<td className="px-4 py-2.5 text-neutral-900 font-medium">
-											{instance.instance_number ?? "-"}
-										</td>
-										<td className="px-4 py-2.5 text-neutral-800">
-											{editingInstanceId === instance.id ? (
-												<input
-													className="border border-neutral-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-primary-500"
-													value={referenceDraft}
-													onChange={(e) => setReferenceDraft(e.target.value)}
-												/>
-											) : (
-												instance.ipac_reference || "-"
-											)}
-										</td>
-										<td className="px-4 py-2.5 text-neutral-600">
-											{instance.status || "design"}
-										</td>
-										<td className="px-4 py-2.5 text-neutral-800">
-											{editingInstanceId === instance.id ? (
-												<input
-													className="border border-neutral-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-primary-500"
-													value={destinationDraft}
-													onChange={(e) => setDestinationDraft(e.target.value)}
-													placeholder="Destination"
-												/>
-											) : (
-												instance.destination || "-"
-											)}
-										</td>
-										<td className="px-4 py-2.5 text-neutral-800">
-											{editingInstanceId === instance.id ? (
-												<input
-													className="border border-neutral-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-primary-500"
-													value={tagDraft}
-													onChange={(e) => setTagDraft(e.target.value)}
-													placeholder="Tag"
-												/>
-											) : (
-												instance.tag || "-"
-											)}
-										</td>
-										<td className="px-4 py-2.5 text-neutral-800">
-											{editingInstanceId === instance.id ? (
-												<select
-													className="border border-neutral-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-primary-500"
-													value={categoryDraft}
-													onChange={(e) => setCategoryDraft(e.target.value)}
-												>
-													<option value="">Default (Order Level)</option>
-													{sortedCategories.map((cat) => (
-														<option
-															key={cat.id}
-															value={cat.id}
-															className={
-																cat.isMapped
-																	? "bg-success-100"
-																	: "bg-warning-100"
-															}
-														>
-															{cat.label}
-														</option>
-													))}
-												</select>
-											) : (
-												clientCategories.find(
-													(c) => c.id === instance.category_id,
-												)?.label || "Default"
-											)}
-										</td>
-										<td className="px-4 py-2.5 text-right">
-											<div className="flex items-center justify-end gap-2">
-												{editingInstanceId === instance.id ? (
-													<>
-														<button
-															onClick={() => {
-																updateInstanceMutation.mutate({
-																	instanceId: instance.id,
-																	updates: {
-																		ipac_reference: referenceDraft,
-																		destination: destinationDraft || null,
-																		tag: tagDraft || null,
-																		category_id: categoryDraft || null,
-																	},
-																});
-																setEditingInstanceId(null);
-															}}
-															className="p-1 text-success-600 hover:bg-success-50 rounded"
-															title="Save"
-														>
-															<Check className="w-4 h-4" />
-														</button>
-														<button
-															onClick={() => setEditingInstanceId(null)}
-															className="p-1 text-danger-600 hover:bg-danger-50 rounded"
-															title="Cancel"
-														>
-															<X className="w-4 h-4" />
-														</button>
-													</>
-												) : (
-													<>
-														<button
-															onClick={() => {
-																setEditingInstanceId(instance.id);
-																setReferenceDraft(
-																	instance.ipac_reference || "",
-																);
-																setDestinationDraft(instance.destination || "");
-																setTagDraft(instance.tag || "");
-																setCategoryDraft(instance.category_id || "");
-															}}
-															className="p-1 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded"
-															title="Edit Reference"
-														>
-															<Edit2 className="w-4 h-4" />
-														</button>
-														<button
-															onClick={() =>
-																regenerateReferenceMutation.mutate({
-																	instanceId: instance.id,
-																})
-															}
-															disabled={regenerateReferenceMutation.isPending}
-															className="p-1 text-neutral-400 hover:text-success-600 hover:bg-success-50 rounded disabled:opacity-50"
-															title="Regenerate IPAC Reference (auto-infers destination, tag & item)"
-														>
-															{regenerateReferenceMutation.isPending ? (
-																<Loader2 className="w-4 h-4 animate-spin" />
-															) : (
-																<RefreshCw className="w-4 h-4" />
-															)}
-														</button>
-														<button
-															onClick={() =>
-																setPendingConfirm({
-																	kind: "removeInstance",
-																	instanceId: instance.id,
-																})
-															}
-															disabled={removeInstanceMutation.isPending}
-															className="p-1 text-neutral-400 hover:text-danger-600 hover:bg-danger-50 rounded disabled:opacity-50"
-															title="Remove Instance"
-														>
-															{removeInstanceMutation.isPending ? (
-																<Loader2 className="w-4 h-4 animate-spin" />
-															) : (
-																<Trash2 className="w-4 h-4" />
-															)}
-														</button>
-													</>
-												)}
-											</div>
-										</td>
-									</tr>
+										instance={instance}
+										isSelected={selectedInstanceIds.has(instance.id)}
+										onToggleSelect={(checked) => {
+											const next = new Set(selectedInstanceIds);
+											if (checked) {
+												next.add(instance.id);
+											} else {
+												next.delete(instance.id);
+											}
+											setSelectedInstanceIds(next);
+										}}
+										isUpdated={updatedInstanceIds.has(instance.id)}
+										clientCategories={clientCategories}
+										tagTaxonomy={tagTaxonomy}
+										onSave={(instanceId, updates) =>
+											updateInstanceMutation.mutate({ instanceId, updates })
+										}
+										onRequestRegenerate={(instanceId) =>
+											setPendingConfirm({
+												kind: "regenerateInstance",
+												instanceId,
+											})
+										}
+										onRegenerate={(instanceId) =>
+											regenerateReferenceMutation.mutate({ instanceId })
+										}
+										onRemove={(instanceId) =>
+											setPendingConfirm({ kind: "removeInstance", instanceId })
+										}
+										qrLinked={!!tokenByInstance?.get(instance.id)}
+										onOpenQr={(instanceId) => setQrInstanceId(instanceId)}
+										regeneratePending={regenerateReferenceMutation.isPending}
+										removePending={removeInstanceMutation.isPending}
+									/>
 								))}
 							</tbody>
 						</table>
@@ -901,6 +792,49 @@ export function PackageInfoTab({
 					{...confirmDialogProps}
 				/>
 			)}
+
+			<MovePackageModal
+				open={showMoveModal}
+				onOpenChange={setShowMoveModal}
+				selectedPackage={selectedPackage}
+				instances={selectedPackageInstances}
+				sourceOrderId={currentOrderId}
+				isMoving={movePackageMutation.isPending}
+				onConfirm={(targetOrderId) =>
+					movePackageMutation.mutate(
+						{
+							packageId: selectedPackage.id,
+							sourceOrderId: currentOrderId,
+							targetOrderId,
+						},
+						{ onSuccess: () => setShowMoveModal(false) },
+					)
+				}
+			/>
+
+			<SyncQrModal
+				open={!!qrInstanceId}
+				onOpenChange={(open) => {
+					if (!open) setQrInstanceId(null);
+				}}
+				instance={qrInstance}
+				currentToken={
+					qrInstanceId ? tokenByInstance?.get(qrInstanceId)?.token : null
+				}
+				isSaving={qrSaving}
+				onLink={(instanceId, raw) =>
+					linkQrMutation.mutate(
+						{ instanceId, raw },
+						{ onSuccess: () => setQrInstanceId(null) },
+					)
+				}
+				onGenerate={(instanceId) =>
+					generateQrMutation.mutate(
+						{ instanceId },
+						{ onSuccess: () => setQrInstanceId(null) },
+					)
+				}
+			/>
 		</div>
 	);
 }

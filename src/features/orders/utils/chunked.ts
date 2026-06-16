@@ -41,3 +41,33 @@ export const mutateInChunks = async (
 		if (error) throw error;
 	}
 };
+
+// PostgREST caps each response at `db-max-rows` (1000 on Supabase by default).
+// A single `.in(...)` over a chunk of parent ids can still resolve to far more
+// than 1000 child rows (high fan-out) and be silently truncated. This combines
+// id-chunking (avoids URL-length limits) with `.range()` paging (defeats the
+// row cap). The runner's query MUST carry a stable, unique `.order()` (e.g. by
+// `id`) so consecutive pages neither skip nor duplicate rows.
+const PAGE_SIZE = 1000;
+
+export const queryRowsInChunksPaged = async <T>(
+	ids: string[],
+	runner: (
+		chunk: string[],
+		from: number,
+		to: number,
+	) => PromiseLike<{ data: T[] | null; error: any }>,
+): Promise<T[]> => {
+	if (!ids.length) return [];
+	const rows: T[] = [];
+	for (const chunk of chunkArray(ids)) {
+		for (let from = 0; ; from += PAGE_SIZE) {
+			const { data, error } = await runner(chunk, from, from + PAGE_SIZE - 1);
+			if (error) throw error;
+			const page = data ?? [];
+			rows.push(...page);
+			if (page.length < PAGE_SIZE) break;
+		}
+	}
+	return rows;
+};

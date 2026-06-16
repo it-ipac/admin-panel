@@ -8,6 +8,7 @@ import type {
 	PackageInstance,
 	PackageMaterial,
 	PackageService,
+	TagTaxonomy,
 } from "@/features/orders/types";
 import { AccessoriesTab } from "../tabs/AccessoriesTab";
 import { CommentsTab } from "../tabs/CommentsTab";
@@ -46,7 +47,13 @@ interface PackageDetailsSectionProps {
 	selectedPackageMaterials: GroupedPackageMaterials;
 	selectedPackageServices: PackageService[];
 	clientCategories: any[];
-	orderCategories: string[];
+	tagTaxonomy?: TagTaxonomy;
+	currentOrderId: string;
+	movePackageMutation: UseMutationResult<
+		{ newNumber: number },
+		Error,
+		{ packageId: string; sourceOrderId: string; targetOrderId: string }
+	>;
 	updatePackageInfoMutation: UseMutationResult<
 		any,
 		Error,
@@ -108,7 +115,9 @@ export function PackageDetailsSection({
 	selectedPackageMaterials,
 	selectedPackageServices,
 	clientCategories,
-	orderCategories,
+	tagTaxonomy,
+	currentOrderId,
+	movePackageMutation,
 	updatePackageInfoMutation,
 	duplicatePackageMutation,
 	removePackageMutation,
@@ -253,7 +262,9 @@ export function PackageDetailsSection({
 										regenerateReferenceMutation={regenerateReferenceMutation}
 										packageItems={combinedPackageItems}
 										clientCategories={clientCategories || []}
-										orderCategories={orderCategories || []}
+										tagTaxonomy={tagTaxonomy}
+										currentOrderId={currentOrderId}
+										movePackageMutation={movePackageMutation}
 										onRegenerateAll={onRegenerateAll}
 										isRegeneratingAll={isRegeneratingAll}
 										updatedInstanceIds={updatedInstanceIds}

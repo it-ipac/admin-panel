@@ -2156,7 +2156,7 @@ export const PackingListPage = React.forwardRef<
 															onClick={(e) => {
 																e.stopPropagation();
 																window.open(
-																	`${origin}/orders/${inst.order_id}`,
+																	`${origin}/orders/${inst.order_id}?packageId=${inst.order_package_id}`,
 																	"_blank",
 																);
 															}}
@@ -2248,7 +2248,7 @@ export const PackingListPage = React.forwardRef<
 												onClick={(e) => {
 													e.stopPropagation();
 													window.open(
-														`${origin}/orders/${inst.order_id}`,
+														`${origin}/orders/${inst.order_id}?packageId=${inst.order_package_id}`,
 														"_blank",
 													);
 												}}

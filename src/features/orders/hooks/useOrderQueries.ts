@@ -8,6 +8,7 @@ import {
 import {
 	fetchClientCategories,
 	fetchClientInventory,
+	fetchClientTagTaxonomy,
 	fetchOrderCategories,
 	fetchPackageInstances,
 	fetchPackageItems,
@@ -73,6 +74,7 @@ export function useOrderQueries(orderId: string, isAuthenticated: boolean) {
 		queryKey: ["packageItems", orderId],
 		queryFn: () => fetchPackageItems(orderId),
 		enabled: hasOrder,
+		staleTime: 30_000,
 	});
 
 	const { data: clientInventory } = useQuery({
@@ -93,10 +95,18 @@ export function useOrderQueries(orderId: string, isAuthenticated: boolean) {
 		enabled: hasOrder,
 	});
 
+	const { data: tagTaxonomy } = useQuery({
+		queryKey: ["tagTaxonomy", clientId],
+		queryFn: () => fetchClientTagTaxonomy(clientId),
+		enabled: isAuthenticated && !!clientId,
+		staleTime: 5 * 60_000,
+	});
+
 	const { data: pkdItems } = useQuery({
 		queryKey: ["pkdItems", orderId],
 		queryFn: () => fetchPkdItems(orderId),
 		enabled: hasOrder,
+		staleTime: 30_000,
 	});
 
 	const { data: packageMaterials } = useQuery({
@@ -121,6 +131,7 @@ export function useOrderQueries(orderId: string, isAuthenticated: boolean) {
 		queryKey: ["packageInstances", orderId],
 		queryFn: () => fetchPackageInstances(orderId),
 		enabled: hasOrder,
+		staleTime: 30_000,
 	});
 
 	const { data: availableMaterials } = useQuery({
@@ -147,6 +158,7 @@ export function useOrderQueries(orderId: string, isAuthenticated: boolean) {
 		clientInventory,
 		clientCategories,
 		orderCategories,
+		tagTaxonomy,
 		pkdItems,
 		packageMaterials,
 		packageManufacturing,

@@ -23,6 +23,10 @@ export interface Media {
 interface MediaGalleryProps {
 	mediaItems: Media[] | undefined;
 	orderPackages: OrderPackage[];
+	/** The box currently selected on the order page — the gallery follows it. */
+	selectedPackageId?: string | null;
+	/** Selecting a box tab here updates the shared page selection. */
+	onSelectPackage?: (packageId: string) => void;
 }
 
 interface MediaByPackage {
@@ -58,10 +62,12 @@ const sectionOrder = [
 	"other",
 ];
 
-export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
-	const [selectedMediaPackage, setSelectedMediaPackage] = useState<
-		string | null
-	>(null);
+export function MediaGallery({
+	mediaItems,
+	orderPackages,
+	selectedPackageId,
+	onSelectPackage,
+}: MediaGalleryProps) {
 	const [selectedMediaCategory, setSelectedMediaCategory] =
 		useState<string>("empty_crate");
 	const [previewImage, setPreviewImage] = useState<Media | null>(null);
@@ -122,21 +128,23 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 		return result;
 	}, [mediaItems, orderPackages]);
 
-	// Set default media package when media loads
-	useEffect(() => {
-		if (mediaByPackage.length > 0 && !selectedMediaPackage) {
-			setSelectedMediaPackage(mediaByPackage[0].packageId);
-		}
-	}, [mediaByPackage, selectedMediaPackage]);
+	// The gallery follows the box selected on the order page. Falls back to the
+	// first box that has media only when nothing is selected yet.
+	const activePackageId =
+		selectedPackageId ?? mediaByPackage[0]?.packageId ?? null;
 
-	// Get designations for selected package
+	// Get designations for the active package (empty if it has no media)
 	const selectedPackageDesignations = useMemo(() => {
-		if (!selectedMediaPackage || mediaByPackage.length === 0) return [];
-		const pkg = mediaByPackage.find(
-			(p) => p.packageId === selectedMediaPackage,
-		);
+		if (!activePackageId || mediaByPackage.length === 0) return [];
+		const pkg = mediaByPackage.find((p) => p.packageId === activePackageId);
 		return pkg?.designations || [];
-	}, [mediaByPackage, selectedMediaPackage]);
+	}, [mediaByPackage, activePackageId]);
+
+	// Label for the active box (used for the per-box empty state)
+	const activePackageLabel = useMemo(() => {
+		const pkg = orderPackages?.find((p) => p.id === activePackageId);
+		return pkg ? `Box ${pkg.package_number}` : "this box";
+	}, [orderPackages, activePackageId]);
 
 	// Set default media category when package changes
 	useEffect(() => {
@@ -177,7 +185,7 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 									<button
 										key={pkg.packageId}
 										onClick={() => {
-											setSelectedMediaPackage(pkg.packageId);
+											onSelectPackage?.(pkg.packageId);
 											// Reset category when changing package
 											const firstDesignation = pkg.designations[0]?.key;
 											if (firstDesignation) {
@@ -185,7 +193,7 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 											}
 										}}
 										className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
-											selectedMediaPackage === pkg.packageId
+											activePackageId === pkg.packageId
 												? "bg-iris-100 text-iris-700 border border-iris-200"
 												: "text-neutral-600 hover:bg-neutral-100 border border-transparent"
 										}`}
@@ -194,7 +202,7 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 										{pkg.label}
 										<span
 											className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
-												selectedMediaPackage === pkg.packageId
+												activePackageId === pkg.packageId
 													? "bg-iris-200 text-iris-800"
 													: "bg-neutral-200 text-neutral-600"
 											}`}
@@ -336,7 +344,11 @@ export function MediaGallery({ mediaItems, orderPackages }: MediaGalleryProps) {
 							) : (
 								<div className="text-center text-neutral-500 py-8">
 									<Image className="w-12 h-12 mx-auto mb-2 text-neutral-300" />
-									<p>No images in this category</p>
+									<p>
+										{selectedPackageDesignations.length === 0
+											? `No photos for ${activePackageLabel} yet`
+											: "No images in this category"}
+									</p>
 								</div>
 							)}
 						</div>

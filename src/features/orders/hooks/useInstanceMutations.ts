@@ -1,8 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { generateIpacReference } from "@/components/orders/create/orderCreate/utils";
 import { supabase } from "@/lib/supabase";
 import type { PackageInstance } from "../types";
-import { buildTagAbbreviation } from "../utils/references";
+import { regenerateReferenceForInstance } from "../utils/regenerateReference";
 
 /** Mutations for order_pkg_instance rows (update, remove, regenerate reference). */
 export function useInstanceMutations(orderId: string) {
@@ -100,69 +99,8 @@ export function useInstanceMutations(orderId: string) {
 	// Auto-infers: destination from instance.destination, tag from pkd_item→items_db→category tags,
 	// item_num from pkd_item→items_db. Standard vs custom detected by presence of pkd_item rows.
 	const regenerateReferenceMutation = useMutation({
-		mutationFn: async ({ instanceId }: { instanceId: string }) => {
-			// 1. Fetch the instance row for destination, instance_number, category_id
-			const { data: instance, error: instError } = await supabase
-				.from("order_pkg_instance")
-				.select("id, destination, instance_number, category_id")
-				.eq("id", instanceId)
-				.single();
-			if (instError) throw instError;
-
-			// 2. Fetch pkd_item for this instance → items_db for item_num and category
-			const { data: pkdItems, error: pkdError } = await supabase
-				.from("pkd_item")
-				.select("quantity, items_db:maintenance_db_id(item_num, category_id)")
-				.eq("pkg_instance_id", instanceId)
-				.limit(1);
-			if (pkdError) throw pkdError;
-
-			const pkdItem = pkdItems?.[0];
-			const itemsDb: any = Array.isArray(pkdItem?.items_db)
-				? pkdItem.items_db[0]
-				: pkdItem?.items_db;
-			const isCustom = !!pkdItem;
-
-			// 3. Determine category: instance-level override > items_db category
-			const categoryId =
-				(instance as any).category_id || itemsDb?.category_id || null;
-			const tag = await buildTagAbbreviation(categoryId);
-
-			// 4. Generate the reference
-			const destination = String(
-				(instance as any).destination || "XXX",
-			).toUpperCase();
-			const seq = (instance as any).instance_number || 1;
-
-			let reference: string;
-			if (isCustom) {
-				const itemNum = String(itemsDb?.item_num || "ITEM");
-				reference = generateIpacReference({
-					destination,
-					tag,
-					isCustom: true,
-					boxNumber: seq,
-					itemNumber: itemNum,
-					quantity: seq,
-				});
-			} else {
-				reference = generateIpacReference({
-					destination,
-					tag,
-					isCustom: false,
-					boxNumber: seq,
-				});
-			}
-
-			// 5. Persist
-			const { error: updateError } = await supabase
-				.from("order_pkg_instance")
-				.update({ ipac_reference: reference })
-				.eq("id", instanceId);
-			if (updateError) throw updateError;
-
-			return reference;
-		},
+		mutationFn: ({ instanceId }: { instanceId: string }) =>
+			regenerateReferenceForInstance(instanceId),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["order", orderId] });
 			queryClient.invalidateQueries({
