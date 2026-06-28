@@ -64,7 +64,9 @@ export function useOrderAllocations(
 			return (data || []).map((row: Record<string, unknown>) => ({
 				...(row as unknown as AllocationRow),
 				items_db: flattenOne(
-					row.items_db as AllocationRow["items_db"] | AllocationRow["items_db"][],
+					row.items_db as
+						| AllocationRow["items_db"]
+						| AllocationRow["items_db"][],
 				),
 				destinations: flattenOne(
 					row.destinations as
@@ -151,5 +153,12 @@ export function useOrderAllocations(
 		},
 	});
 
-	return { allocations, destinations, categories, catalog, setExpected, addAllocation };
+	return {
+		allocations,
+		destinations,
+		categories,
+		catalog,
+		setExpected,
+		addAllocation,
+	};
 }

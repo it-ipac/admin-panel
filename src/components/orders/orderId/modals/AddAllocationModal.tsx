@@ -65,7 +65,9 @@ export function AddAllocationModal({
 			if (categoryFilter && item.category_id !== categoryFilter) return false;
 			if (!q) return true;
 			return [item.item_num, item.description, item.reference].some((f) =>
-				String(f || "").toLowerCase().includes(q),
+				String(f || "")
+					.toLowerCase()
+					.includes(q),
 			);
 		});
 		return { rows: matched.slice(0, MAX_ITEM_RESULTS), total: matched.length };
@@ -113,7 +115,8 @@ export function AddAllocationModal({
 		}
 	};
 
-	const inputClass = "w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm";
+	const inputClass =
+		"w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm";
 
 	return (
 		<Dialog.Root open={open} onOpenChange={onOpenChange}>

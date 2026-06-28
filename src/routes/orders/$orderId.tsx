@@ -28,6 +28,7 @@ import { AttendanceCleanerModal } from "../../components/orders/orderId/modals/A
 import { EndTaskModal } from "../../components/orders/orderId/modals/EndTaskModal";
 import { GlobalSyncModal } from "../../components/orders/orderId/modals/GlobalSyncModal";
 import { SyncInventoryModal } from "../../components/orders/orderId/modals/SyncInventoryModal";
+import { AllocationsSection } from "../../components/orders/orderId/sections/AllocationsSection";
 import { AttendanceSection } from "../../components/orders/orderId/sections/AttendanceSection";
 import { DangerZone } from "../../components/orders/orderId/sections/DangerZone";
 import {
@@ -46,12 +47,16 @@ import { PackageDetailsSection } from "../../components/orders/orderId/sections/
 import { PackagesTable } from "../../components/orders/orderId/sections/PackagesTable";
 import { TasksSection } from "../../components/orders/orderId/sections/TasksSection";
 import { TeamMembersCard } from "../../components/orders/orderId/sections/TeamMembersCard";
-import { AllocationsSection } from "../../components/orders/orderId/sections/AllocationsSection";
 import { Sidebar } from "../../components/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
 import { useRequirePageAccess } from "../../hooks/usePageAccess";
 
-const ALLOCATION_EDIT_ROLES = ["admin", "executive", "project_lead", "director"];
+const ALLOCATION_EDIT_ROLES = [
+	"admin",
+	"executive",
+	"project_lead",
+	"director",
+];
 
 export const Route = createFileRoute("/orders/$orderId")({
 	component: OrderDetailPage,

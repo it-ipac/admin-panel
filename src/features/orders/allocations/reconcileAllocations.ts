@@ -47,7 +47,9 @@ export interface ReconcileDiff {
 }
 
 const normKey = (v: string | null | undefined): string =>
-	String(v ?? "").trim().toUpperCase();
+	String(v ?? "")
+		.trim()
+		.toUpperCase();
 const normDest = (v: string | null | undefined): string =>
 	normKey(v) || "UNASSIGNED";
 
@@ -85,7 +87,8 @@ export function buildReconcileDiff(
 		if (existing) {
 			existing.qty += qty;
 			existing.isStandardBox = existing.isStandardBox || !!r.is_standard_box;
-			if (!existing.description && r.description) existing.description = r.description;
+			if (!existing.description && r.description)
+				existing.description = r.description;
 			if (!existing.reference && r.reference) existing.reference = r.reference;
 			if (!existing.categoryRaw && r.category_raw)
 				existing.categoryRaw = r.category_raw;
@@ -111,7 +114,10 @@ export function buildReconcileDiff(
 	for (const a of currentAllocations) {
 		const itemNum = a.items_db?.item_num;
 		if (!itemNum) continue;
-		currentByKey.set(`${normKey(itemNum)}|${normDest(a.destinations?.code)}`, a);
+		currentByKey.set(
+			`${normKey(itemNum)}|${normDest(a.destinations?.code)}`,
+			a,
+		);
 	}
 
 	const toAdd: ReconcileAddRow[] = [];
@@ -124,7 +130,11 @@ export function buildReconcileDiff(
 		const current = currentByKey.get(key);
 		if (current) {
 			if (Number(current.expected_qty) === e.qty) {
-				unchanged.push({ itemNum: e.itemNum, destCode: e.destCode, qty: e.qty });
+				unchanged.push({
+					itemNum: e.itemNum,
+					destCode: e.destCode,
+					qty: e.qty,
+				});
 			} else {
 				toChange.push({
 					itemNum: e.itemNum,

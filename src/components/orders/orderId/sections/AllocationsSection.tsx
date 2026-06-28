@@ -1,11 +1,11 @@
 import { Loader2, Plus, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
-import { AddAllocationModal } from "../modals/AddAllocationModal";
-import { ReconcileAllocationsModal } from "../modals/ReconcileAllocationsModal";
 import {
 	type AllocationRow,
 	useOrderAllocations,
 } from "@/features/orders/hooks/useOrderAllocations";
+import { AddAllocationModal } from "../modals/AddAllocationModal";
+import { ReconcileAllocationsModal } from "../modals/ReconcileAllocationsModal";
 
 interface AllocationsSectionProps {
 	orderId: string;
@@ -21,8 +21,14 @@ export function AllocationsSection({
 	clientId,
 	canEdit,
 }: AllocationsSectionProps) {
-	const { allocations, destinations, categories, catalog, setExpected, addAllocation } =
-		useOrderAllocations(orderId, clientId);
+	const {
+		allocations,
+		destinations,
+		categories,
+		catalog,
+		setExpected,
+		addAllocation,
+	} = useOrderAllocations(orderId, clientId);
 	const [search, setSearch] = useState("");
 	const [edits, setEdits] = useState<Record<string, string>>({});
 	const [savingId, setSavingId] = useState<string | null>(null);
@@ -39,7 +45,11 @@ export function AllocationsSection({
 						r.items_db?.item_num,
 						r.items_db?.description,
 						r.destinations?.code,
-					].some((f) => String(f || "").toLowerCase().includes(q)),
+					].some((f) =>
+						String(f || "")
+							.toLowerCase()
+							.includes(q),
+					),
 				)
 			: rows;
 		return { rows: matched.slice(0, MAX_ROWS), total: matched.length };
@@ -50,7 +60,11 @@ export function AllocationsSection({
 		if (raw === undefined) return;
 		// Whole numbers only (items_db rollup is integer; you can't pack a fraction of a box).
 		const next = Math.round(Number(raw));
-		if (!Number.isFinite(next) || next < 0 || next === Number(row.expected_qty)) {
+		if (
+			!Number.isFinite(next) ||
+			next < 0 ||
+			next === Number(row.expected_qty)
+		) {
 			setEdits((p) => {
 				const { [row.id]: _, ...rest } = p;
 				return rest;
@@ -77,8 +91,8 @@ export function AllocationsSection({
 						Item allocations
 					</p>
 					<p className="text-xs text-neutral-500">
-						Expected vs packed per item &amp; destination. Editing expected keeps
-						the item master total in sync.
+						Expected vs packed per item &amp; destination. Editing expected
+						keeps the item master total in sync.
 					</p>
 				</div>
 				{canEdit && (
@@ -157,7 +171,10 @@ export function AllocationsSection({
 													min={0}
 													value={edits[row.id] ?? String(row.expected_qty)}
 													onChange={(e) =>
-														setEdits((p) => ({ ...p, [row.id]: e.target.value }))
+														setEdits((p) => ({
+															...p,
+															[row.id]: e.target.value,
+														}))
 													}
 													onBlur={() => commitExpected(row)}
 													onKeyDown={(e) => {

@@ -1,5 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	deleteDetailRowsById,
+	deleteOrderCascade,
+} from "../../../features/orders/utils/deleteOrderCascade";
 import { useAuth } from "../../../hooks/useAuth";
 import { db } from "../../../lib/supabase";
 import { ManifestDumpPanel } from "../../clients/ManifestDumpPanel";
@@ -24,10 +28,6 @@ import { OrderCreateFormDialog } from "./orderCreate/OrderCreateFormDialog.tsx";
 import { parseExcelFile } from "./orderCreate/parseExcelFile";
 import { resolvePackages } from "./orderCreate/resolvePackages";
 import { submitOrderCreate } from "./orderCreate/submitOrderCreate";
-import {
-	deleteDetailRowsById,
-	deleteOrderCascade,
-} from "../../../features/orders/utils/deleteOrderCascade";
 import {
 	type AppliedExcelTemplateMode,
 	type BoxTypeOption,
@@ -1171,7 +1171,9 @@ export function OrderCreateDialog({
 			// items_db yet (that upsert happens on Create), so matching the live DB would
 			// wrongly report every m2m item as "Not found". matchedItemId is left empty for
 			// dump matches — the real items_db id is resolved on Create after the upsert.
-			const usingDump = !!(itemsDumpPayload && itemsDumpPayload.rows.length > 0);
+			const usingDump = !!(
+				itemsDumpPayload && itemsDumpPayload.rows.length > 0
+			);
 			let lookup: ReturnType<typeof buildClientItemLookup>;
 			if (usingDump) {
 				lookup = buildClientItemLookup(

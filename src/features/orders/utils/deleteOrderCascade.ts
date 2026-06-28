@@ -157,9 +157,7 @@ export async function deleteOrderCascade(orderId: string): Promise<void> {
 
 		const taskLogIds = Array.from(
 			new Set(
-				(taskPackages || [])
-					.map((row: any) => row.task_log_id)
-					.filter(Boolean),
+				(taskPackages || []).map((row: any) => row.task_log_id).filter(Boolean),
 			),
 		);
 
@@ -191,7 +189,10 @@ export async function deleteOrderCascade(orderId: string): Promise<void> {
 		);
 
 		const packageInstances = await queryRowsInChunks<any>(packageIds, (chunk) =>
-			supabase.from("order_pkg_instance").select("id").in("order_package_id", chunk),
+			supabase
+				.from("order_pkg_instance")
+				.select("id")
+				.in("order_package_id", chunk),
 		);
 		const packageInstanceIds = (packageInstances || [])
 			.map((row: any) => row.id)
@@ -202,16 +203,21 @@ export async function deleteOrderCascade(orderId: string): Promise<void> {
 		);
 
 		await mutateInChunks(packageIds, (chunk) =>
-			supabase.from("order_pkg_instance").delete().in("order_package_id", chunk),
+			supabase
+				.from("order_pkg_instance")
+				.delete()
+				.in("order_package_id", chunk),
 		);
 	}
 
 	if (overviewIds.length > 0) {
-		const overviewInstances = await queryRowsInChunks<any>(overviewIds, (chunk) =>
-			supabase
-				.from("order_pkg_instance")
-				.select("id")
-				.in("order_pkg_overview_id", chunk),
+		const overviewInstances = await queryRowsInChunks<any>(
+			overviewIds,
+			(chunk) =>
+				supabase
+					.from("order_pkg_instance")
+					.select("id")
+					.in("order_pkg_overview_id", chunk),
 		);
 		const overviewInstanceIds = (overviewInstances || [])
 			.map((row: any) => row.id)

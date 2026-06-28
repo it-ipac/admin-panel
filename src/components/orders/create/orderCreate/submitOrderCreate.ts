@@ -917,9 +917,9 @@ export const submitOrderCreate = async ({
 		detailRowIds?.templateIds,
 	);
 	const templateIdByKey = new Map<string, string>();
-	templateSpecs.forEach((spec, i) =>
-		templateIdByKey.set(spec.key, templateIds[i]),
-	);
+	templateSpecs.forEach((spec, i) => {
+		templateIdByKey.set(spec.key, templateIds[i]);
+	});
 
 	// Phase D — order_package_securing rows (original + final per side).
 	const securingRows: Array<{

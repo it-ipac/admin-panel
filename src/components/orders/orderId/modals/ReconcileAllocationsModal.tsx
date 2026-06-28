@@ -13,8 +13,8 @@ import {
 } from "@/features/orders/allocations/reconcileAllocations";
 import type {
 	AllocationRow,
-	CategoryOption,
 	CatalogItemOption,
+	CategoryOption,
 	DestinationOption,
 } from "@/features/orders/hooks/useOrderAllocations";
 import { db } from "@/lib/supabase";
@@ -79,9 +79,13 @@ export function ReconcileAllocationsModal({
 				setError("No item rows found. Is this the items file?");
 				return;
 			}
-			setDiff(buildReconcileDiff(parsed.rows, allocations, catalog, destinations));
+			setDiff(
+				buildReconcileDiff(parsed.rows, allocations, catalog, destinations),
+			);
 		} catch (e) {
-			setError(`Failed to parse: ${(e as { message?: string })?.message || "error"}`);
+			setError(
+				`Failed to parse: ${(e as { message?: string })?.message || "error"}`,
+			);
 		} finally {
 			setParsing(false);
 		}
@@ -108,9 +112,7 @@ export function ReconcileAllocationsModal({
 		for (let i = 0; i < items.length; i += APPLY_CONCURRENCY) {
 			const chunk = items.slice(i, i + APPLY_CONCURRENCY);
 			const results = await Promise.all(
-				chunk.map((item) =>
-					task(item).catch(() => "fail" as const),
-				),
+				chunk.map((item) => task(item).catch(() => "fail" as const)),
 			);
 			for (const r of results) {
 				if (r === "ok") ok += 1;
@@ -188,7 +190,9 @@ export function ReconcileAllocationsModal({
 			const parts = [
 				`${changes.ok} updated`,
 				`${adds.ok} added`,
-				adds.skipped > 0 ? `${adds.skipped} skipped (unknown destination)` : null,
+				adds.skipped > 0
+					? `${adds.skipped} skipped (unknown destination)`
+					: null,
 				failedTotal > 0 ? `${failedTotal} failed` : null,
 			].filter(Boolean);
 			setResultMsg(
@@ -209,7 +213,13 @@ export function ReconcileAllocationsModal({
 		: 0;
 
 	return (
-		<Dialog.Root open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
+		<Dialog.Root
+			open={open}
+			onOpenChange={(o) => {
+				if (!o) reset();
+				onOpenChange(o);
+			}}
+		>
 			<Dialog.Portal>
 				<Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
 				<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-2xl bg-white rounded-xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
@@ -217,13 +227,16 @@ export function ReconcileAllocationsModal({
 						Reconcile items from Excel
 					</Dialog.Title>
 					<Dialog.Description className="text-xs text-neutral-500 mb-4">
-						Drop the corrected items file — quantity is read from column A. Matching
-						items have their expected updated; new items are added; nothing is deleted.
+						Drop the corrected items file — quantity is read from column A.
+						Matching items have their expected updated; new items are added;
+						nothing is deleted.
 					</Dialog.Description>
 
 					<label className="flex items-center justify-center gap-2 border-2 border-dashed border-neutral-300 rounded-lg py-6 cursor-pointer hover:border-primary-400 text-sm text-neutral-600">
 						<Upload className="w-4 h-4" />
-						{fileName ? `Re-pick file (${fileName})` : "Choose items Excel (.xlsx / .csv)"}
+						{fileName
+							? `Re-pick file (${fileName})`
+							: "Choose items Excel (.xlsx / .csv)"}
 						<input
 							type="file"
 							accept=".xlsx,.xlsm,.xls,.xlsb,.csv"
