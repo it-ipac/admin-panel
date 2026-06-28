@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { requestQueryKeys } from "../services/queryKeys";
 import {
+	fetchAllocationIncreaseRequests,
 	fetchAuditLog,
 	fetchMaterialRejectionImpact,
 	fetchMaterialRequests,
@@ -65,6 +66,16 @@ export function usePricingRequests() {
 	}, [query.data]);
 
 	return { ...query, data: dataWithBlockedState };
+}
+
+// ─── Allocation increase requests ─────────────────────────────────────────────
+
+export function useAllocationIncreaseRequests() {
+	return useQuery({
+		queryKey: requestQueryKeys.allocationIncreaseRequests(),
+		queryFn: fetchAllocationIncreaseRequests,
+		staleTime: STALE_30S,
+	});
 }
 
 // ─── Audit log ────────────────────────────────────────────────────────────────

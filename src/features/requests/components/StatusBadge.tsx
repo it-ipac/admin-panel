@@ -39,19 +39,25 @@ export function StatusBadge({ isBlocked, parentLabel }: StatusBadgeProps) {
 }
 
 interface RequestTypeBadgeProps {
-	type: "material" | "material_variant" | "supplier_pricing";
+	type:
+		| "material"
+		| "material_variant"
+		| "supplier_pricing"
+		| "allocation_increase";
 }
 
 const TYPE_LABELS: Record<RequestTypeBadgeProps["type"], string> = {
 	material: "Material",
 	material_variant: "Variant",
 	supplier_pricing: "Pricing",
+	allocation_increase: "Allocation",
 };
 
 const TYPE_CLASSES: Record<RequestTypeBadgeProps["type"], string> = {
 	material: "bg-primary-50 text-primary-700 border-primary-200",
 	material_variant: "bg-accent-50 text-accent-700 border-accent-200",
 	supplier_pricing: "bg-ember-50 text-ember-700 border-ember-200",
+	allocation_increase: "bg-iris-50 text-iris-700 border-iris-200",
 };
 
 export function RequestTypeBadge({ type }: RequestTypeBadgeProps) {

@@ -1,6 +1,10 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-export type RequestType = "material" | "material_variant" | "supplier_pricing";
+export type RequestType =
+	| "material"
+	| "material_variant"
+	| "supplier_pricing"
+	| "allocation_increase";
 export type RequestAction = "approved" | "rejected";
 
 // ─── Shared sub-shapes ────────────────────────────────────────────────────────
@@ -112,6 +116,34 @@ export interface RequestAuditLog {
 	requested_by_profile: Profile | null;
 	reviewed_by_profile: Profile | null;
 	order_package: OrderPackageContext | null;
+}
+
+// ─── Allocation Increase Request ──────────────────────────────────────────────
+
+export interface AllocationIncreaseRequest {
+	id: string;
+	order_id: string;
+	items_db_id: string;
+	destination_id: string;
+	/** Additional quantity requested on top of the current allocation (> 0) */
+	requested_delta: number;
+	reason: string | null;
+	requested_by: string;
+	requested_at: string;
+	admin_notes: string | null;
+	order_package_context: string | null;
+	/** Joined */
+	item: { item_num: string | null; description: string | null } | null;
+	destination: { code: string | null; name: string | null } | null;
+	order: { order_name: string | null } | null;
+	requested_by_profile: Profile | null;
+	/**
+	 * Current per-order allocation for this item+destination. May be null when no
+	 * allocation row exists yet (approval creates it via INSERT … ON CONFLICT).
+	 */
+	allocation: { expected_qty: number; packed_qty: number } | null;
+	/** items_db master rollup total (expected_qty across all allocations). */
+	items_db: { expected_qty: number | null } | null;
 }
 
 // ─── RPC params ───────────────────────────────────────────────────────────────

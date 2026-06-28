@@ -1,5 +1,6 @@
 import { supabase } from "../../../lib/supabase";
 import type {
+	AllocationIncreaseRequest,
 	MaterialRejectionImpact,
 	MaterialRequest,
 	MaterialVariantRequest,
@@ -91,6 +92,95 @@ export async function fetchPricingRequests(): Promise<
 
 	if (error) throw new Error(error.message);
 	return (data ?? []) as unknown as SupplierPricingRequest[];
+}
+
+// ─── Allocation increase requests ─────────────────────────────────────────────
+
+/** Row shape returned by the allocation-increase select before merge. */
+interface AllocationRequestBaseRow {
+	id: string;
+	order_id: string;
+	items_db_id: string;
+	destination_id: string;
+	requested_delta: number;
+	reason: string | null;
+	requested_by: string;
+	requested_at: string;
+	admin_notes: string | null;
+	order_package_context: string | null;
+	item: { item_num: string | null; description: string | null } | null;
+	destination: { code: string | null; name: string | null } | null;
+	order: { order_name: string | null } | null;
+	requested_by_profile: { full_name: string | null } | null;
+	items_db: { expected_qty: number | null } | null;
+}
+
+/**
+ * Fetches pending allocation-increase requests with the joins needed to show
+ * "current expected → resulting expected" and the items_db master total.
+ *
+ * The current per-order allocation lives in `order_item_allocation`, keyed by
+ * the composite (order_id, items_db_id, destination_id) — there is no single FK
+ * to embed, and the row may not exist yet (approval creates it). So allocations
+ * are fetched in a second batched query and merged in, mirroring the project's
+ * 2-step join pattern to avoid N+1.
+ */
+export async function fetchAllocationIncreaseRequests(): Promise<
+	AllocationIncreaseRequest[]
+> {
+	const { data, error } = await supabase
+		.from("allocation_increase_requests")
+		.select(
+			`
+      *,
+      item:items_db!items_db_id(item_num, description),
+      items_db:items_db!items_db_id(expected_qty),
+      destination:destinations!destination_id(code, name),
+      order:orders!order_id(order_name),
+      requested_by_profile:profiles!requested_by(full_name)
+    `,
+		)
+		.order("requested_at", { ascending: true });
+
+	if (error) throw new Error(error.message);
+
+	const rows = (data ?? []) as unknown as AllocationRequestBaseRow[];
+	if (rows.length === 0) return [];
+
+	// Batch-fetch the current allocations for every (order, item, destination)
+	// touched by these requests, then index them for an in-memory merge.
+	const orderIds = [...new Set(rows.map((r) => r.order_id))];
+	const itemIds = [...new Set(rows.map((r) => r.items_db_id))];
+	const destinationIds = [...new Set(rows.map((r) => r.destination_id))];
+
+	const { data: allocationRows, error: allocationErr } = await supabase
+		.from("order_item_allocation")
+		.select("order_id, items_db_id, destination_id, expected_qty, packed_qty")
+		.in("order_id", orderIds)
+		.in("items_db_id", itemIds)
+		.in("destination_id", destinationIds);
+
+	if (allocationErr) throw new Error(allocationErr.message);
+
+	const allocationByKey = new Map<
+		string,
+		{ expected_qty: number; packed_qty: number }
+	>();
+	for (const alloc of allocationRows ?? []) {
+		const key = `${alloc.order_id}|${alloc.items_db_id}|${alloc.destination_id}`;
+		allocationByKey.set(key, {
+			expected_qty: alloc.expected_qty,
+			packed_qty: alloc.packed_qty,
+		});
+	}
+
+	return rows.map((row) => ({
+		...row,
+		allocation:
+			allocationByKey.get(
+				`${row.order_id}|${row.items_db_id}|${row.destination_id}`,
+			) ?? null,
+	}));
 }
 
 export async function fetchAuditLog(): Promise<RequestAuditLog[]> {
@@ -214,6 +304,32 @@ export async function rejectPricingRequest(
 	params: ReviewRequestParams,
 ): Promise<void> {
 	const { error } = await supabase.rpc("reject_supplier_pricing_request", {
+		p_request_id: params.requestId,
+		p_reviewed_by: params.reviewedBy,
+		p_admin_notes: params.adminNotes,
+	});
+	if (error) throw new Error(normalizeRpcError(error.message));
+}
+
+export async function approveAllocationIncreaseRequest(
+	params: ReviewRequestParams,
+): Promise<string> {
+	const { data, error } = await supabase.rpc(
+		"approve_allocation_increase_request",
+		{
+			p_request_id: params.requestId,
+			p_reviewed_by: params.reviewedBy,
+			p_admin_notes: params.adminNotes,
+		},
+	);
+	if (error) throw new Error(normalizeRpcError(error.message));
+	return data as string;
+}
+
+export async function rejectAllocationIncreaseRequest(
+	params: ReviewRequestParams,
+): Promise<void> {
+	const { error } = await supabase.rpc("reject_allocation_increase_request", {
 		p_request_id: params.requestId,
 		p_reviewed_by: params.reviewedBy,
 		p_admin_notes: params.adminNotes,

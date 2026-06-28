@@ -46,8 +46,12 @@ import { PackageDetailsSection } from "../../components/orders/orderId/sections/
 import { PackagesTable } from "../../components/orders/orderId/sections/PackagesTable";
 import { TasksSection } from "../../components/orders/orderId/sections/TasksSection";
 import { TeamMembersCard } from "../../components/orders/orderId/sections/TeamMembersCard";
+import { AllocationsSection } from "../../components/orders/orderId/sections/AllocationsSection";
 import { Sidebar } from "../../components/Sidebar";
+import { useAuth } from "../../hooks/useAuth";
 import { useRequirePageAccess } from "../../hooks/usePageAccess";
+
+const ALLOCATION_EDIT_ROLES = ["admin", "executive", "project_lead", "director"];
 
 export const Route = createFileRoute("/orders/$orderId")({
 	component: OrderDetailPage,
@@ -58,6 +62,10 @@ import { useOrderDetailPage } from "@/features/orders/hooks/useOrderDetailPage";
 function OrderDetailPage() {
 	useRequirePageAccess();
 	const { orderId } = Route.useParams();
+	const { profile } = useAuth();
+	const canEditAllocations = ALLOCATION_EDIT_ROLES.includes(
+		profile?.roles?.name ?? "",
+	);
 	const page = useOrderDetailPage(orderId);
 	const {
 		authLoading,
@@ -152,6 +160,12 @@ function OrderDetailPage() {
 									updatePackageStatusMutation={
 										packageMutations.updatePackageStatusMutation
 									}
+								/>
+
+								<AllocationsSection
+									orderId={orderId}
+									clientId={order.clients?.id ?? null}
+									canEdit={canEditAllocations}
 								/>
 
 								<TeamMembersCard teamMembers={queries.teamMembers} />

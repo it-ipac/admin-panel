@@ -459,16 +459,19 @@ export const resolvePackages = ({
 
 		const effectiveDestination = pkg.destination || globalDestination || null;
 
-		const ipacReference = generateIpacReference({
-			destination: effectiveDestination,
-			tag,
-			isCustom,
-			boxNumber,
-			itemNumber: pkg.designation,
-			quantity: pkg.quantity,
-			generateRandomId: generateRandomBoxIds,
-			randomSuffix: pkg.randomSuffix,
-		});
+		// Prefer the IPAC reference supplied per-box (BMY); fall back to generation.
+		const ipacReference =
+			pkg.ipacReference ||
+			generateIpacReference({
+				destination: effectiveDestination,
+				tag,
+				isCustom,
+				boxNumber,
+				itemNumber: pkg.designation,
+				quantity: pkg.quantity,
+				generateRandomId: generateRandomBoxIds,
+				randomSuffix: pkg.randomSuffix,
+			});
 
 		return {
 			packageNumber: pkg.packageNumber,
@@ -629,44 +632,50 @@ export const resolvePackages = ({
 		};
 	});
 
-	const resolvedPackages: ResolvedPackageRow[] = previews.map((preview) => ({
-		packageNumber: preview.packageNumber,
-		designation: preview.designation,
-		quantity: preview.quantity,
-		randomSuffix: preview.randomSuffix,
-		item_length: preview.item.length,
-		item_width: preview.item.width,
-		item_height: preview.item.height,
-		box_type_id: (preview as any).boxTypeId,
-		packing_type_id: templateMode === "v54plus" ? null : preview.packingTypeId,
-		sei_category: preview.seiCategoryId,
-		sei_protection: preview.seiProtectionId,
-		internal_length: preview.internal.length,
-		internal_width: preview.internal.width,
-		internal_height: preview.internal.height,
-		external_length: preview.external.length,
-		external_width: preview.external.width,
-		external_height: preview.external.height,
-		net_weight: preview.netWeight,
-		tare: preview.tare,
-		gross_weight: preview.grossWeight,
-		manufacturing: preview.manufacturing,
-		securing: preview.securing.map((part) => ({
-			typeId: part.typeId,
-			quantity: part.quantity,
-			width: part.width,
-			thickness: part.thickness,
-			typeLabel: part.typeLabel,
-		})),
-		accessories: preview.accessories.map((part) => ({
-			typeId: part.typeId,
-			amount: part.quantity,
-			typeLabel: part.typeLabel,
-		})),
-		destination: preview.destination,
-		categoryLabel: preview.tag || null,
-		boxTypeLabel: preview.boxTypeLabel,
-	}));
+	const resolvedPackages: ResolvedPackageRow[] = previews.map(
+		(preview, index) => ({
+			packageNumber: preview.packageNumber,
+			designation: preview.designation,
+			quantity: preview.quantity,
+			randomSuffix: preview.randomSuffix,
+			item_length: preview.item.length,
+			item_width: preview.item.width,
+			item_height: preview.item.height,
+			box_type_id: (preview as any).boxTypeId,
+			packing_type_id:
+				templateMode === "v54plus" ? null : preview.packingTypeId,
+			sei_category: preview.seiCategoryId,
+			sei_protection: preview.seiProtectionId,
+			internal_length: preview.internal.length,
+			internal_width: preview.internal.width,
+			internal_height: preview.internal.height,
+			external_length: preview.external.length,
+			external_width: preview.external.width,
+			external_height: preview.external.height,
+			net_weight: preview.netWeight,
+			tare: preview.tare,
+			gross_weight: preview.grossWeight,
+			manufacturing: preview.manufacturing,
+			securing: preview.securing.map((part) => ({
+				typeId: part.typeId,
+				quantity: part.quantity,
+				width: part.width,
+				thickness: part.thickness,
+				typeLabel: part.typeLabel,
+			})),
+			accessories: preview.accessories.map((part) => ({
+				typeId: part.typeId,
+				amount: part.quantity,
+				typeLabel: part.typeLabel,
+			})),
+			destination: preview.destination,
+			categoryLabel: preview.tag || null,
+			boxTypeLabel: preview.boxTypeLabel,
+			ipacReference: preview.ipacReference,
+			tagL1: rawPackages[index]?.tagL1 ?? null,
+			tagL2: rawPackages[index]?.tagL2 ?? null,
+		}),
+	);
 
 	const missingBoxTypeCount = previews.filter(
 		(preview) => !preview.boxTypeResolved,

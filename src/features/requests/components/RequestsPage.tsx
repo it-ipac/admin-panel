@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { cn } from "../../../lib/cn";
 import {
+	useAllocationIncreaseRequests,
 	useMaterialRequests,
 	usePricingRequests,
 	useVariantRequests,
 } from "../hooks/useRequestsQueries";
+import { AllocationRequestsTab } from "./AllocationRequestsTab";
 import { AuditLogTab } from "./AuditLogTab";
 import { MaterialRequestsTab } from "./MaterialRequestsTab";
 import { PricingRequestsTab } from "./PricingRequestsTab";
@@ -12,7 +14,7 @@ import { VariantRequestsTab } from "./VariantRequestsTab";
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
-type TabKey = "materials" | "variants" | "pricing" | "history";
+type TabKey = "materials" | "variants" | "pricing" | "allocations" | "history";
 
 interface TabConfig {
 	key: TabKey;
@@ -39,6 +41,7 @@ export function RequestsPage() {
 	const { data: materialRequests } = useMaterialRequests();
 	const { data: variantRequests } = useVariantRequests();
 	const { data: pricingRequests } = usePricingRequests();
+	const { data: allocationRequests } = useAllocationIncreaseRequests();
 
 	const tabs: TabConfig[] = [
 		{
@@ -55,6 +58,11 @@ export function RequestsPage() {
 			key: "pricing",
 			label: "Pricing",
 			count: pricingRequests?.length,
+		},
+		{
+			key: "allocations",
+			label: "Allocations",
+			count: allocationRequests?.length,
 		},
 		{
 			key: "history",
@@ -106,6 +114,7 @@ export function RequestsPage() {
 					{activeTab === "materials" && <MaterialRequestsTab />}
 					{activeTab === "variants" && <VariantRequestsTab />}
 					{activeTab === "pricing" && <PricingRequestsTab />}
+					{activeTab === "allocations" && <AllocationRequestsTab />}
 					{activeTab === "history" && <AuditLogTab />}
 				</div>
 			</div>

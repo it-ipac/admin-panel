@@ -64,6 +64,7 @@ interface Props {
 	setGlobalDestination: (value: string) => void;
 	generateRandomBoxIds: boolean;
 	setGenerateRandomBoxIds: (value: boolean) => void;
+	itemsDumpSlot?: import("react").ReactNode;
 }
 
 export function OrderCreateFormDialog({
@@ -104,6 +105,7 @@ export function OrderCreateFormDialog({
 	setGlobalDestination,
 	generateRandomBoxIds,
 	setGenerateRandomBoxIds,
+	itemsDumpSlot,
 }: Props) {
 	const [clientSearchQuery, setClientSearchQuery] = useState("");
 	const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
@@ -620,6 +622,14 @@ export function OrderCreateFormDialog({
 								error={fileError || validationErrors.file}
 								helperText="We parse the Calculation sheet and detect package rows."
 							/>
+							{itemsDumpSlot && (
+								<div className="mt-4 border-t border-neutral-200 pt-4">
+									<p className="mb-2 text-sm font-semibold text-neutral-800">
+										TAQA items file (optional)
+									</p>
+									{itemsDumpSlot}
+								</div>
+							)}
 							{packageCount > 0 && (
 								<p className="mt-2 text-xs text-neutral-600">
 									Detected {packageCount} package row(s) in column B starting at

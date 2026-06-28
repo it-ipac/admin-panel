@@ -253,6 +253,141 @@ export const db = {
 			.select("*");
 	},
 
+	// ── Order item allocations (milk model: items_db.expected_qty = Σ allocations) ──
+	getOrderItemAllocations: async (orderId: string) => {
+		// A large order can hold thousands of allocations (one per item × destination),
+		// but PostgREST caps an uncapped select at 1000 rows. Page through with .range().
+		// created_at is identical across a bulk-inserted order, so add `id` as a unique
+		// tiebreaker — otherwise page boundaries are non-deterministic (gaps/dupes).
+		const pageSize = 1000;
+		let from = 0;
+		const all: Record<string, unknown>[] = [];
+		while (true) {
+			const { data, error } = await supabase
+				.from("order_item_allocation")
+				.select(
+					`id, order_id, items_db_id, destination_id, expected_qty, packed_qty, is_standard_box, created_at,
+					 items_db:items_db(id, item_num, description, reference, category_id),
+					 destinations:destinations(id, code, name)`,
+				)
+				.eq("order_id", orderId)
+				.order("created_at", { ascending: true })
+				.order("id", { ascending: true })
+				.range(from, from + pageSize - 1);
+			if (error) return { data: null, error };
+			const rows = (data || []) as Record<string, unknown>[];
+			all.push(...rows);
+			if (rows.length < pageSize) break;
+			from += pageSize;
+		}
+		return { data: all, error: null };
+	},
+
+	// Edit an allocation's expected_qty (RPC keeps the items_db rollup in sync).
+	setAllocationExpected: async (allocationId: string, expected: number) => {
+		return supabase.rpc("set_allocation_expected", {
+			p_allocation_id: allocationId,
+			p_expected: expected,
+		});
+	},
+
+	// Add (or top-up) an allocation for (order, item, destination); bumps the items_db rollup.
+	addOrderItemAllocation: async (payload: {
+		orderId: string;
+		itemsDbId: string;
+		destinationId: string;
+		expected: number;
+		isStandardBox: boolean;
+	}) => {
+		return supabase.rpc("add_order_item_allocation", {
+			p_order_id: payload.orderId,
+			p_items_db_id: payload.itemsDbId,
+			p_destination_id: payload.destinationId,
+			p_expected: payload.expected,
+			p_is_standard_box: payload.isStandardBox,
+		});
+	},
+
+	// Reconcile primitive: SET the allocation's expected to the given value (overwrite),
+	// insert if missing, delta-adjust the items_db rollup. Never touches packed.
+	upsertOrderItemAllocation: async (payload: {
+		orderId: string;
+		itemsDbId: string;
+		destinationId: string;
+		expected: number;
+		isStandardBox: boolean;
+	}) => {
+		return supabase.rpc("upsert_order_item_allocation", {
+			p_order_id: payload.orderId,
+			p_items_db_id: payload.itemsDbId,
+			p_destination_id: payload.destinationId,
+			p_expected: payload.expected,
+			p_is_standard_box: payload.isStandardBox,
+		});
+	},
+
+	getActiveDestinations: async () => {
+		return supabase
+			.from("destinations")
+			.select("id, code, name")
+			.eq("active", true)
+			.order("code", { ascending: true });
+	},
+
+	// Full client catalog for the allocation item picker (item_num + description + category).
+	getClientCatalogItems: async (clientId: string) => {
+		const pageSize = 1000;
+		let from = 0;
+		const all: Array<{
+			id: string;
+			item_num: string | null;
+			description: string | null;
+			reference: string | null;
+			category_id: string | null;
+		}> = [];
+		while (true) {
+			const { data, error } = await supabase
+				.from("items_db")
+				.select("id, item_num, description, reference, category_id")
+				.eq("client_id", clientId)
+				.order("item_num", { ascending: true })
+				.range(from, from + pageSize - 1);
+			if (error) return { data: null, error };
+			const rows = (data || []) as Array<{
+				id: string;
+				item_num: string | null;
+				description: string | null;
+				reference: string | null;
+				category_id: string | null;
+			}>;
+			all.push(...rows);
+			if (rows.length < pageSize) break;
+			from += pageSize;
+		}
+		return { data: all, error: null };
+	},
+
+	// Create a brand-new catalog item (expected_qty starts at 0; the allocation RPC bumps it).
+	createCatalogItem: async (payload: {
+		clientId: string;
+		itemNum: string;
+		description: string;
+		categoryId: string | null;
+	}) => {
+		return supabase
+			.from("items_db")
+			.insert({
+				client_id: payload.clientId,
+				item_num: payload.itemNum,
+				description: payload.description,
+				category_id: payload.categoryId,
+				expected_qty: 0,
+				packed_qty: 0,
+			})
+			.select("id, item_num, description, category_id")
+			.single();
+	},
+
 	createOrderPackages: async (payload: {
 		order_id: string;
 		package_numbers: number[];
@@ -355,6 +490,8 @@ export const db = {
 			maintenance_db_id: string;
 			pkg_instance_id: string;
 			quantity: number;
+			// false = "shadow" plan (order-create); only confirmed items count as packed.
+			is_confirmed?: boolean;
 		}>,
 	) => {
 		if (!rows.length) return { data: [], error: null };
@@ -521,6 +658,58 @@ export const db = {
 		is_final: boolean;
 	}) => {
 		return supabase.from("order_package_securing").insert(payload);
+	},
+
+	// ── Bulk variants (one insert per call; callers chunk + correlate by order) ──
+	// PostgREST returns inserted rows in input order, so the returned id[] lines up
+	// with the input payload[] index-for-index.
+	createPackageInfos: async (
+		payloads: Array<Record<string, unknown>>,
+	): Promise<{ data: Array<{ id: string }> | null; error: unknown }> => {
+		if (!payloads.length) return { data: [], error: null };
+		return supabase.from("package_info").insert(payloads).select("id");
+	},
+
+	createBeams: async (
+		payloads: Array<{
+			quantity?: number | null;
+			type?: string | null;
+			width?: number | null;
+			thickness?: number | null;
+			space?: number | null;
+		}>,
+	): Promise<{ data: Array<{ id: string }> | null; error: unknown }> => {
+		if (!payloads.length) return { data: [], error: null };
+		return supabase.from("beam").insert(payloads).select("id");
+	},
+
+	createSecuringTemplates: async (
+		payloads: Array<{
+			quantity?: number | null;
+			type_id?: string | null;
+			thickness?: number | null;
+			horizontal_bar?: string | null;
+			vertical_bar?: string | null;
+			skids?: string | null;
+		}>,
+	): Promise<{ data: Array<{ id: string }> | null; error: unknown }> => {
+		if (!payloads.length) return { data: [], error: null };
+		return supabase.from("securing_template").insert(payloads).select("id");
+	},
+
+	createOrderPackageSecurings: async (
+		payloads: Array<{
+			order_package_id: string;
+			securing_template_id: string | null;
+			securing_side: "big_sides" | "small_sides" | "lid" | "base";
+			is_final: boolean;
+		}>,
+	): Promise<{ error: unknown }> => {
+		if (!payloads.length) return { error: null };
+		const { error } = await supabase
+			.from("order_package_securing")
+			.insert(payloads);
+		return { error };
 	},
 
 	getOrders: async () => {

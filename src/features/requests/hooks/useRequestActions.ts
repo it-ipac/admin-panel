@@ -2,9 +2,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "../../../hooks/useToast";
 import { requestQueryKeys } from "../services/queryKeys";
 import {
+	approveAllocationIncreaseRequest,
 	approveMaterialRequest,
 	approvePricingRequest,
 	approveVariantRequest,
+	rejectAllocationIncreaseRequest,
 	rejectMaterialRequest,
 	rejectPricingRequest,
 	rejectVariantRequest,
@@ -17,6 +19,7 @@ const INVALIDATE_KEYS = [
 	requestQueryKeys.materialRequests(),
 	requestQueryKeys.variantRequests(),
 	requestQueryKeys.pricingRequests(),
+	requestQueryKeys.allocationIncreaseRequests(),
 	requestQueryKeys.auditLog(),
 ] as const;
 
@@ -131,6 +134,45 @@ export function useRejectPricingRequest() {
 		onSuccess: () => {
 			invalidateAll();
 			toast.success({ title: "Pricing request rejected." });
+		},
+		onError: (err: Error) => {
+			toast.error({ title: "Rejection failed", description: err.message });
+		},
+	});
+}
+
+// ─── Allocation increase mutations ────────────────────────────────────────────
+
+export function useApproveAllocationIncrease() {
+	const toast = useToast();
+	const invalidateAll = useInvalidateAll();
+
+	return useMutation({
+		mutationFn: (params: ReviewRequestParams) =>
+			approveAllocationIncreaseRequest(params),
+		onSuccess: () => {
+			invalidateAll();
+			toast.success({
+				title: "Allocation increase approved.",
+				description: "The order allocation and item master total were raised.",
+			});
+		},
+		onError: (err: Error) => {
+			toast.error({ title: "Approval failed", description: err.message });
+		},
+	});
+}
+
+export function useRejectAllocationIncrease() {
+	const toast = useToast();
+	const invalidateAll = useInvalidateAll();
+
+	return useMutation({
+		mutationFn: (params: ReviewRequestParams) =>
+			rejectAllocationIncreaseRequest(params),
+		onSuccess: () => {
+			invalidateAll();
+			toast.success({ title: "Allocation increase rejected." });
 		},
 		onError: (err: Error) => {
 			toast.error({ title: "Rejection failed", description: err.message });

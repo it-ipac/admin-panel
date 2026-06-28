@@ -120,6 +120,11 @@ export interface RawPackageRow {
 	destination: string | null;
 	categoryLabel: string | null;
 	ipacReference: string | null;
+	// "Extended info" per-box columns (BMU–BMZ). Null when absent (old templates).
+	tagL1: string | null;
+	tagL2: string | null;
+	boxNo: string | null;
+	boxItemReference: string | null;
 }
 
 export interface ResolvedPackageRow {
@@ -159,6 +164,10 @@ export interface ResolvedPackageRow {
 	destination: string | null;
 	categoryLabel: string | null;
 	boxTypeLabel: string | null;
+	// Per-box values carried from the "Extended info" columns (null on old templates).
+	ipacReference: string | null;
+	tagL1: string | null;
+	tagL2: string | null;
 	instanceOverrides?: Record<number, { destination: string | null }>;
 }
 
