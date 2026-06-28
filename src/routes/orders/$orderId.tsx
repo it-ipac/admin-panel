@@ -19,7 +19,7 @@
  */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { FileText } from "lucide-react";
+import { FileText, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { Suspense } from "react";
 import { MediaGallery } from "../../components/orders/orderId/MediaGallery";
 import { AddItemModal } from "../../components/orders/orderId/modals/AddItemModal";
@@ -31,6 +31,7 @@ import { SyncInventoryModal } from "../../components/orders/orderId/modals/SyncI
 import { AllocationsSection } from "../../components/orders/orderId/sections/AllocationsSection";
 import { AttendanceSection } from "../../components/orders/orderId/sections/AttendanceSection";
 import { DangerZone } from "../../components/orders/orderId/sections/DangerZone";
+import { OrderAllocationRequestsSection } from "../../components/orders/orderId/sections/OrderAllocationRequestsSection";
 import {
 	OrderDetailSkeleton,
 	OrderDetailSkeletonBody,
@@ -119,9 +120,6 @@ function OrderDetailPage() {
 							setEditedName={page.setEditedName}
 							updateOrderNameMutation={orderMutations.updateOrderNameMutation}
 							onExportExcel={page.exportToExcel}
-							onScanInventory={inventorySync.handleScanInventory}
-							isScanningInventory={inventorySync.isScanningInventory}
-							onPrepareGlobalSync={globalSync.handlePrepareGlobalSync}
 						/>
 
 						{globalSync.showGlobalSyncModal && (
@@ -355,6 +353,45 @@ function OrderDetailPage() {
 										regenerateReferences.handleRegenerateReferences
 									}
 								/>
+
+								{canEditAllocations && (
+									<OrderAllocationRequestsSection
+										orderId={orderId}
+										canReview={canEditAllocations}
+									/>
+								)}
+
+								{/* Sync tools — dev-oriented, intentionally compact */}
+								{canEditAllocations && (
+									<div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-4">
+										<p className="text-xs font-medium text-neutral-500 mb-3 uppercase tracking-wide">
+											Sync tools
+										</p>
+										<div className="flex flex-col gap-2">
+											<button
+												type="button"
+												onClick={inventorySync.handleScanInventory}
+												disabled={inventorySync.isScanningInventory}
+												className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-neutral-200 rounded-md text-neutral-600 hover:bg-neutral-50 disabled:opacity-50 transition-colors"
+											>
+												{inventorySync.isScanningInventory ? (
+													<Loader2 className="w-3.5 h-3.5 animate-spin" />
+												) : (
+													<Sparkles className="w-3.5 h-3.5" />
+												)}
+												Sync &amp; Link Inventory
+											</button>
+											<button
+												type="button"
+												onClick={globalSync.handlePrepareGlobalSync}
+												className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-neutral-200 rounded-md text-neutral-600 hover:bg-neutral-50 transition-colors"
+											>
+												<RefreshCw className="w-3.5 h-3.5" />
+												Sync Destinations
+											</button>
+										</div>
+									</div>
+								)}
 							</div>
 						</div>
 					</div>

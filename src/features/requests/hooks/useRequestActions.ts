@@ -143,15 +143,26 @@ export function useRejectPricingRequest() {
 
 // ─── Allocation increase mutations ────────────────────────────────────────────
 
-export function useApproveAllocationIncrease() {
+/**
+ * @param orderId - when provided, also invalidates the per-order query key so
+ *   the OrderAllocationRequestsSection refreshes after approve/reject/edit.
+ */
+export function useApproveAllocationIncrease(orderId?: string) {
 	const toast = useToast();
 	const invalidateAll = useInvalidateAll();
+	const queryClient = useQueryClient();
 
 	return useMutation({
 		mutationFn: (params: ReviewRequestParams) =>
 			approveAllocationIncreaseRequest(params),
 		onSuccess: () => {
 			invalidateAll();
+			if (orderId) {
+				queryClient.invalidateQueries({
+					queryKey:
+						requestQueryKeys.allocationIncreaseRequestsForOrder(orderId),
+				});
+			}
 			toast.success({
 				title: "Allocation increase approved.",
 				description: "The order allocation and item master total were raised.",
@@ -163,15 +174,26 @@ export function useApproveAllocationIncrease() {
 	});
 }
 
-export function useRejectAllocationIncrease() {
+/**
+ * @param orderId - when provided, also invalidates the per-order query key so
+ *   the OrderAllocationRequestsSection refreshes after approve/reject/edit.
+ */
+export function useRejectAllocationIncrease(orderId?: string) {
 	const toast = useToast();
 	const invalidateAll = useInvalidateAll();
+	const queryClient = useQueryClient();
 
 	return useMutation({
 		mutationFn: (params: ReviewRequestParams) =>
 			rejectAllocationIncreaseRequest(params),
 		onSuccess: () => {
 			invalidateAll();
+			if (orderId) {
+				queryClient.invalidateQueries({
+					queryKey:
+						requestQueryKeys.allocationIncreaseRequestsForOrder(orderId),
+				});
+			}
 			toast.success({ title: "Allocation increase rejected." });
 		},
 		onError: (err: Error) => {

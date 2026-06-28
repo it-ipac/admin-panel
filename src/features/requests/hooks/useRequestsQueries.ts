@@ -6,6 +6,7 @@ import {
 	fetchAuditLog,
 	fetchMaterialRejectionImpact,
 	fetchMaterialRequests,
+	fetchOrderAllocationIncreaseRequests,
 	fetchPricingRequests,
 	fetchVariantRequests,
 } from "../services/requestsService";
@@ -74,6 +75,17 @@ export function useAllocationIncreaseRequests() {
 	return useQuery({
 		queryKey: requestQueryKeys.allocationIncreaseRequests(),
 		queryFn: fetchAllocationIncreaseRequests,
+		staleTime: STALE_30S,
+	});
+}
+
+// ─── Allocation increase requests — per order ─────────────────────────────────
+
+export function useOrderAllocationIncreaseRequests(orderId: string) {
+	return useQuery({
+		queryKey: requestQueryKeys.allocationIncreaseRequestsForOrder(orderId),
+		queryFn: () => fetchOrderAllocationIncreaseRequests(orderId),
+		enabled: !!orderId,
 		staleTime: STALE_30S,
 	});
 }

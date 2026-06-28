@@ -10,8 +10,6 @@ import {
 	FileSpreadsheet,
 	Loader2,
 	Printer,
-	RefreshCw,
-	Sparkles,
 	X,
 } from "lucide-react";
 import type { Order } from "@/features/orders/types";
@@ -25,12 +23,9 @@ interface OrderHeaderProps {
 	setEditedName: (name: string) => void;
 	updateOrderNameMutation: UseMutationResult<any, Error, string>;
 	onExportExcel: () => void;
-	onScanInventory: () => void;
-	isScanningInventory: boolean;
-	onPrepareGlobalSync: () => void;
 }
 
-/** Page header: back link, editable order name, print/export/sync actions. */
+/** Page header: back link, editable order name, print/export actions. */
 export function OrderHeader({
 	order,
 	isEditingName,
@@ -39,9 +34,6 @@ export function OrderHeader({
 	setEditedName,
 	updateOrderNameMutation,
 	onExportExcel,
-	onScanInventory,
-	isScanningInventory,
-	onPrepareGlobalSync,
 }: OrderHeaderProps) {
 	return (
 		<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -141,25 +133,6 @@ export function OrderHeader({
 						</DropdownMenu.Content>
 					</DropdownMenu.Portal>
 				</DropdownMenu.Root>
-				<button
-					onClick={onScanInventory}
-					disabled={isScanningInventory}
-					className="flex items-center gap-2 px-3 py-2 border border-accent-200 bg-accent-50 text-accent-700 rounded-lg hover:bg-accent-100 disabled:opacity-50 transition-colors"
-				>
-					{isScanningInventory ? (
-						<Loader2 className="w-4 h-4 animate-spin" />
-					) : (
-						<Sparkles className="w-4 h-4" />
-					)}
-					Sync & Link Inventory
-				</button>
-				<button
-					onClick={onPrepareGlobalSync}
-					className="flex items-center gap-2 px-3 py-2 border border-primary-200 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100"
-				>
-					<RefreshCw className="w-4 h-4" />
-					Sync Destinations
-				</button>
 				<button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
 					<Edit className="w-4 h-4" />
 					Edit Order

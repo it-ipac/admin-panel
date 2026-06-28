@@ -115,6 +115,16 @@ interface AllocationRequestBaseRow {
 	items_db: { expected_qty: number | null } | null;
 }
 
+/** Allocation row shape from the batch fetch (includes id for Edit flow). */
+interface AllocationBatchRow {
+	id: string;
+	order_id: string;
+	items_db_id: string;
+	destination_id: string;
+	expected_qty: number;
+	packed_qty: number;
+}
+
 /**
  * Fetches pending allocation-increase requests with the joins needed to show
  * "current expected → resulting expected" and the items_db master total.
@@ -155,7 +165,9 @@ export async function fetchAllocationIncreaseRequests(): Promise<
 
 	const { data: allocationRows, error: allocationErr } = await supabase
 		.from("order_item_allocation")
-		.select("order_id, items_db_id, destination_id, expected_qty, packed_qty")
+		.select(
+			"id, order_id, items_db_id, destination_id, expected_qty, packed_qty",
+		)
 		.in("order_id", orderIds)
 		.in("items_db_id", itemIds)
 		.in("destination_id", destinationIds);
@@ -164,11 +176,76 @@ export async function fetchAllocationIncreaseRequests(): Promise<
 
 	const allocationByKey = new Map<
 		string,
-		{ expected_qty: number; packed_qty: number }
+		{ id: string; expected_qty: number; packed_qty: number }
 	>();
-	for (const alloc of allocationRows ?? []) {
+	for (const alloc of (allocationRows ?? []) as AllocationBatchRow[]) {
 		const key = `${alloc.order_id}|${alloc.items_db_id}|${alloc.destination_id}`;
 		allocationByKey.set(key, {
+			id: alloc.id,
+			expected_qty: alloc.expected_qty,
+			packed_qty: alloc.packed_qty,
+		});
+	}
+
+	return rows.map((row) => ({
+		...row,
+		allocation:
+			allocationByKey.get(
+				`${row.order_id}|${row.items_db_id}|${row.destination_id}`,
+			) ?? null,
+	}));
+}
+
+/**
+ * Fetches pending allocation-increase requests for a single order.
+ * Mirrors fetchAllocationIncreaseRequests but scoped by order_id.
+ */
+export async function fetchOrderAllocationIncreaseRequests(
+	orderId: string,
+): Promise<AllocationIncreaseRequest[]> {
+	const { data, error } = await supabase
+		.from("allocation_increase_requests")
+		.select(
+			`
+      *,
+      item:items_db!items_db_id(item_num, description),
+      items_db:items_db!items_db_id(expected_qty),
+      destination:destinations!destination_id(code, name),
+      order:orders!order_id(order_name),
+      requested_by_profile:profiles!requested_by(full_name)
+    `,
+		)
+		.eq("order_id", orderId)
+		.order("requested_at", { ascending: true });
+
+	if (error) throw new Error(error.message);
+
+	const rows = (data ?? []) as unknown as AllocationRequestBaseRow[];
+	if (rows.length === 0) return [];
+
+	const orderIds = [orderId];
+	const itemIds = [...new Set(rows.map((r) => r.items_db_id))];
+	const destinationIds = [...new Set(rows.map((r) => r.destination_id))];
+
+	const { data: allocationRows, error: allocationErr } = await supabase
+		.from("order_item_allocation")
+		.select(
+			"id, order_id, items_db_id, destination_id, expected_qty, packed_qty",
+		)
+		.in("order_id", orderIds)
+		.in("items_db_id", itemIds)
+		.in("destination_id", destinationIds);
+
+	if (allocationErr) throw new Error(allocationErr.message);
+
+	const allocationByKey = new Map<
+		string,
+		{ id: string; expected_qty: number; packed_qty: number }
+	>();
+	for (const alloc of (allocationRows ?? []) as AllocationBatchRow[]) {
+		const key = `${alloc.order_id}|${alloc.items_db_id}|${alloc.destination_id}`;
+		allocationByKey.set(key, {
+			id: alloc.id,
 			expected_qty: alloc.expected_qty,
 			packed_qty: alloc.packed_qty,
 		});

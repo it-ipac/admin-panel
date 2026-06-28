@@ -140,8 +140,9 @@ export interface AllocationIncreaseRequest {
 	/**
 	 * Current per-order allocation for this item+destination. May be null when no
 	 * allocation row exists yet (approval creates it via INSERT … ON CONFLICT).
+	 * `id` is included to support the Edit (custom-delta) flow.
 	 */
-	allocation: { expected_qty: number; packed_qty: number } | null;
+	allocation: { id: string; expected_qty: number; packed_qty: number } | null;
 	/** items_db master rollup total (expected_qty across all allocations). */
 	items_db: { expected_qty: number | null } | null;
 }
