@@ -1,7 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	deleteDetailRowsById,
+	deleteOrderCascade,
+} from "../../../features/orders/utils/deleteOrderCascade";
 import { useAuth } from "../../../hooks/useAuth";
 import { db } from "../../../lib/supabase";
+import { ManifestDumpPanel } from "../../clients/ManifestDumpPanel";
+import type { ManifestDumpPayload } from "../../clients/manifest/useManifestDump";
 import { useToastContext } from "../../ui/ToastProvider";
 import {
 	OrderCreateConfirmDialog,
@@ -111,6 +117,8 @@ export function OrderCreateDialog({
 	>({});
 	const [globalDestination, setGlobalDestination] = useState("");
 	const [generateRandomBoxIds, setGenerateRandomBoxIds] = useState(false);
+	const [itemsDumpPayload, setItemsDumpPayload] =
+		useState<ManifestDumpPayload | null>(null);
 	const isCreatingOrderRef = useRef(false);
 
 	const { data: clients = [], isLoading: clientsLoading } = useQuery({
@@ -296,6 +304,7 @@ export function OrderCreateDialog({
 			setItemMatchStatusByPackage({});
 			setGlobalDestination("");
 			setInstanceOverrides({});
+			setItemsDumpPayload(null);
 			isCreatingOrderRef.current = false;
 		}
 	}, [open]);
@@ -322,6 +331,14 @@ export function OrderCreateDialog({
 			);
 		}
 	}, [globalDestination]);
+
+	// Drop any uploaded items dump when we leave a valid existing-client selection,
+	// so a stale dump can never be imported under the wrong (or empty) client.
+	useEffect(() => {
+		if (!(clientMode === "existing" && selectedClientId)) {
+			setItemsDumpPayload(null);
+		}
+	}, [clientMode, selectedClientId]);
 
 	useEffect(() => {
 		if (clientMode !== "existing") {
@@ -1150,11 +1167,31 @@ export function OrderCreateDialog({
 		});
 
 		try {
-			const { data, error } =
-				await db.getClientItemsDbForOrderCreate(effectiveClientId);
-			if (error) throw error;
+			// Match against the dropped TAQA items file when present. Its items are NOT in
+			// items_db yet (that upsert happens on Create), so matching the live DB would
+			// wrongly report every m2m item as "Not found". matchedItemId is left empty for
+			// dump matches — the real items_db id is resolved on Create after the upsert.
+			const usingDump = !!(
+				itemsDumpPayload && itemsDumpPayload.rows.length > 0
+			);
+			let lookup: ReturnType<typeof buildClientItemLookup>;
+			if (usingDump) {
+				lookup = buildClientItemLookup(
+					(itemsDumpPayload?.rows || []).map((dumpRow) => ({
+						// Non-empty sentinel id (real DB id is assigned on Create); only used
+						// here to register the lookup entry, never persisted.
+						id: dumpRow.item_num || dumpRow.reference || "dump-item",
+						item_num: dumpRow.item_num,
+						reference: dumpRow.reference,
+					})) as any[],
+				);
+			} else {
+				const { data, error } =
+					await db.getClientItemsDbForOrderCreate(effectiveClientId);
+				if (error) throw error;
+				lookup = buildClientItemLookup((data || []) as any[]);
+			}
 
-			const lookup = buildClientItemLookup((data || []) as any[]);
 			const { matches, unmatched } = matchPackageDesignations(
 				resolvedPackages.map((pkg) => ({
 					packageNumber: pkg.packageNumber,
@@ -1169,7 +1206,7 @@ export function OrderCreateDialog({
 					status: "matched",
 					searchedItemNumber: match.searchedItemNumber,
 					matchedItemNumber: match.matchedItemNumber,
-					matchedItemId: match.matchedItemId,
+					matchedItemId: usingDump ? "" : match.matchedItemId,
 				};
 			}
 			for (const miss of unmatched) {
@@ -1366,6 +1403,16 @@ export function OrderCreateDialog({
 			description: "This can take a moment for large Excel files.",
 			variant: "info",
 		});
+		// Captured via onOrderCreated so a failure after the order row exists can
+		// cascade-delete the half-built order rather than leave it hollow.
+		let createdOrderId: string | null = null;
+		// Detail rows with no order back-pointer (package_info/beam/securing_template):
+		// tracked here so cleanup can remove any that were inserted but not yet linked.
+		const detailRowIds = {
+			packageInfoIds: [] as string[],
+			beamIds: [] as string[],
+			templateIds: [] as string[],
+		};
 		try {
 			const effectiveClientName =
 				clientMode === "new"
@@ -1418,7 +1465,12 @@ export function OrderCreateDialog({
 				materialVariantMap,
 				queryClient,
 				preferredItemLinksByPackage,
+				itemsDumpPayload,
 				generateRandomBoxIds,
+				onOrderCreated: (orderId) => {
+					createdOrderId = orderId;
+				},
+				detailRowIds,
 			});
 			console.log("[OrderCreate] UI - submitOrderCreate completed");
 			onOpenChange(false);
@@ -1429,14 +1481,39 @@ export function OrderCreateDialog({
 			});
 		} catch (error: any) {
 			console.error("[OrderCreate] UI - create order failed", error);
+			// Roll back the partial order so a mid-build failure never leaves a hollow
+			// order behind. Best-effort — a cleanup failure must not mask the real error.
+			let cleanedUp = false;
+			if (createdOrderId) {
+				try {
+					console.log(
+						"[OrderCreate] UI - cleaning up partial order",
+						createdOrderId,
+					);
+					await deleteOrderCascade(createdOrderId);
+					// Remove any detail rows that were inserted but not yet linked (the
+					// cascade can only reach linked ones). No-op for already-deleted ids.
+					await deleteDetailRowsById(detailRowIds);
+					void queryClient.invalidateQueries({ queryKey: ["orders"] });
+					cleanedUp = true;
+				} catch (cleanupError) {
+					console.error(
+						"[OrderCreate] UI - partial-order cleanup failed",
+						cleanupError,
+					);
+				}
+			}
 			const rawMessage = error?.message || "Failed to create order";
 			const isTransientNetworkFailure =
 				/failed to fetch|networkerror|err_failed|cors|520|522|524/i.test(
 					rawMessage,
 				);
-			const message = isTransientNetworkFailure
+			const baseMessage = isTransientNetworkFailure
 				? "Temporary API/network failure while creating securing data. Please retry once."
 				: rawMessage;
+			const message = cleanedUp
+				? `${baseMessage} The half-built order was rolled back — safe to retry.`
+				: baseMessage;
 			setShowConfirm(true);
 			setSubmitError(message);
 			toast({
@@ -1485,6 +1562,15 @@ export function OrderCreateDialog({
 				setGlobalDestination={setGlobalDestination}
 				generateRandomBoxIds={generateRandomBoxIds}
 				setGenerateRandomBoxIds={setGenerateRandomBoxIds}
+				itemsDumpSlot={
+					clientMode === "existing" && selectedClientId ? (
+						<ManifestDumpPanel
+							key={selectedClientId}
+							clientId={selectedClientId}
+							onPayloadChange={setItemsDumpPayload}
+						/>
+					) : null
+				}
 				onFileSelected={handleFileSelected}
 				onExcelVersionModeChange={async (mode) => {
 					setExcelVersionMode(mode);

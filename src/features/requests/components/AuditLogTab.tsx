@@ -30,6 +30,15 @@ function extractSnapshotLabel(
 		if (variant) return variant;
 		return "Pricing entry";
 	}
+	if (requestType === "allocation_increase") {
+		const delta =
+			typeof snapshot.requested_delta === "number"
+				? snapshot.requested_delta
+				: typeof snapshot.requested_delta === "string"
+					? snapshot.requested_delta
+					: null;
+		return delta !== null ? `+${delta} units` : "Allocation increase";
+	}
 	return "—";
 }
 
@@ -42,6 +51,7 @@ function buildResultingLink(
 		material: "/inventory",
 		material_variant: "/inventory",
 		supplier_pricing: "/inventory",
+		allocation_increase: "/orders",
 	};
 	return `${basePathMap[requestType]}?highlight=${resultingId}`;
 }

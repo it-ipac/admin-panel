@@ -19,7 +19,7 @@
  */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { FileText } from "lucide-react";
+import { FileText, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { Suspense } from "react";
 import { MediaGallery } from "../../components/orders/orderId/MediaGallery";
 import { AddItemModal } from "../../components/orders/orderId/modals/AddItemModal";
@@ -28,8 +28,10 @@ import { AttendanceCleanerModal } from "../../components/orders/orderId/modals/A
 import { EndTaskModal } from "../../components/orders/orderId/modals/EndTaskModal";
 import { GlobalSyncModal } from "../../components/orders/orderId/modals/GlobalSyncModal";
 import { SyncInventoryModal } from "../../components/orders/orderId/modals/SyncInventoryModal";
+import { AllocationsSection } from "../../components/orders/orderId/sections/AllocationsSection";
 import { AttendanceSection } from "../../components/orders/orderId/sections/AttendanceSection";
 import { DangerZone } from "../../components/orders/orderId/sections/DangerZone";
+import { OrderAllocationRequestsSection } from "../../components/orders/orderId/sections/OrderAllocationRequestsSection";
 import {
 	OrderDetailSkeleton,
 	OrderDetailSkeletonBody,
@@ -47,7 +49,15 @@ import { PackagesTable } from "../../components/orders/orderId/sections/Packages
 import { TasksSection } from "../../components/orders/orderId/sections/TasksSection";
 import { TeamMembersCard } from "../../components/orders/orderId/sections/TeamMembersCard";
 import { Sidebar } from "../../components/Sidebar";
+import { useAuth } from "../../hooks/useAuth";
 import { useRequirePageAccess } from "../../hooks/usePageAccess";
+
+const ALLOCATION_EDIT_ROLES = [
+	"admin",
+	"executive",
+	"project_lead",
+	"director",
+];
 
 export const Route = createFileRoute("/orders/$orderId")({
 	component: OrderDetailPage,
@@ -59,6 +69,10 @@ import { useOrderDetailPage } from "@/features/orders/hooks/useOrderDetailPage";
 function OrderDetailPage() {
 	useRequirePageAccess();
 	const { orderId } = Route.useParams();
+	const { profile } = useAuth();
+	const canEditAllocations = ALLOCATION_EDIT_ROLES.includes(
+		profile?.roles?.name ?? "",
+	);
 	const page = useOrderDetailPage(orderId);
 	const movePackageMutation = useMovePackage();
 	const {
@@ -108,9 +122,6 @@ function OrderDetailPage() {
 							setEditedName={page.setEditedName}
 							updateOrderNameMutation={orderMutations.updateOrderNameMutation}
 							onExportExcel={page.exportToExcel}
-							onScanInventory={inventorySync.handleScanInventory}
-							isScanningInventory={inventorySync.isScanningInventory}
-							onPrepareGlobalSync={globalSync.handlePrepareGlobalSync}
 						/>
 
 						{globalSync.showGlobalSyncModal && (
@@ -154,6 +165,12 @@ function OrderDetailPage() {
 									updatePackageStatusMutation={
 										packageMutations.updatePackageStatusMutation
 									}
+								/>
+
+								<AllocationsSection
+									orderId={orderId}
+									clientId={order.clients?.id ?? null}
+									canEdit={canEditAllocations}
 								/>
 
 								<TeamMembersCard teamMembers={queries.teamMembers} />
@@ -342,6 +359,45 @@ function OrderDetailPage() {
 										regenerateReferences.handleRegenerateReferences
 									}
 								/>
+
+								{canEditAllocations && (
+									<OrderAllocationRequestsSection
+										orderId={orderId}
+										canReview={canEditAllocations}
+									/>
+								)}
+
+								{/* Sync tools — dev-oriented, intentionally compact */}
+								{canEditAllocations && (
+									<div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-4">
+										<p className="text-xs font-medium text-neutral-500 mb-3 uppercase tracking-wide">
+											Sync tools
+										</p>
+										<div className="flex flex-col gap-2">
+											<button
+												type="button"
+												onClick={inventorySync.handleScanInventory}
+												disabled={inventorySync.isScanningInventory}
+												className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-neutral-200 rounded-md text-neutral-600 hover:bg-neutral-50 disabled:opacity-50 transition-colors"
+											>
+												{inventorySync.isScanningInventory ? (
+													<Loader2 className="w-3.5 h-3.5 animate-spin" />
+												) : (
+													<Sparkles className="w-3.5 h-3.5" />
+												)}
+												Sync &amp; Link Inventory
+											</button>
+											<button
+												type="button"
+												onClick={globalSync.handlePrepareGlobalSync}
+												className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-neutral-200 rounded-md text-neutral-600 hover:bg-neutral-50 transition-colors"
+											>
+												<RefreshCw className="w-3.5 h-3.5" />
+												Sync Destinations
+											</button>
+										</div>
+									</div>
+								)}
 							</div>
 						</div>
 					</div>

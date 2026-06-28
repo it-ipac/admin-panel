@@ -120,4 +120,132 @@ describe("parsePackageRows", () => {
 		expect(rows[1].designation).toBe("PKG-REAL-2");
 		expect(rows[1].quantity).toBe(1);
 	});
+
+	it("parses TAQA per-box codes from column B (SB + m2m)", () => {
+		const sheet = createSheet();
+
+		// Standard box: no item, becomes "Standard Box", ref derived from col B.
+		sheet.getCell("A4").value = 1;
+		sheet.getCell("B4").value = "ADF-P-AC-SB-#01";
+		sheet.getCell("C4").value = "Wooden Box";
+
+		// m2m box: item number is the token right after "#<box>-".
+		sheet.getCell("A5").value = 1;
+		sheet.getCell("B5").value = "ADF-P-NAC-#01-181072516-02G07B003-(NB+DFS)";
+		sheet.getCell("C5").value = "Wooden Box";
+
+		// m2m box with decimal box number + alphanumeric item number.
+		sheet.getCell("A6").value = 1;
+		sheet.getCell("B6").value = "AIN-W-AC-#08-N02248-Check-(NB+DFS)";
+		sheet.getCell("C6").value = "Wooden Box";
+
+		const rows = parsePackageRows(sheet, 0);
+		expect(rows).toHaveLength(3);
+
+		// SB box → no item, Standard Box, derived ref == col B.
+		expect(rows[0].designation).toBeNull();
+		expect(rows[0].boxTypeLabel).toBe("Standard Box");
+		expect(rows[0].destination).toBe("ADF");
+		expect(rows[0].tagL1).toBe("P");
+		expect(rows[0].tagL2).toBe("AC");
+		expect(rows[0].boxNo).toBe("#01");
+		expect(rows[0].ipacReference).toBe("ADF-P-AC-SB-#01");
+
+		// m2m box → item number extracted, real box type kept.
+		expect(rows[1].designation).toBe("181072516");
+		expect(rows[1].boxTypeLabel).toBe("Wooden Box");
+		expect(rows[1].destination).toBe("ADF");
+		expect(rows[1].tagL1).toBe("P");
+		expect(rows[1].tagL2).toBe("NAC");
+		expect(rows[1].boxNo).toBe("#01");
+		expect(rows[1].boxItemReference).toBe("02G07B003");
+		expect(rows[1].ipacReference).toBe("ADF-P-NAC-#01");
+
+		// Alphanumeric item number.
+		expect(rows[2].designation).toBe("N02248");
+		expect(rows[2].boxItemReference).toBe("Check");
+		expect(rows[2].ipacReference).toBe("AIN-W-AC-#08");
+	});
+
+	it("trusts column B over Extended-info for TAQA codes (the AC/NAC conflict)", () => {
+		const sheet = createSheet();
+
+		// Extended-info present but DISAGREES with column B — mirrors the real client
+		// bug where Non-AC m2m boxes are mis-tagged "AC". Column B must win.
+		sheet.getCell("BMD3").value = "Destination";
+		sheet.getCell("BME3").value = "tag L1";
+		sheet.getCell("BMF3").value = "tag L2";
+		sheet.getCell("BMG3").value = "Box no.";
+		sheet.getCell("BMH3").value = "IPAC ref";
+		sheet.getCell("BMI3").value = "box type";
+
+		sheet.getCell("A4").value = 1;
+		sheet.getCell("B4").value = "ADF-P-NAC-#01-181072516-02G07B003-(NB+DFS)";
+		sheet.getCell("C4").value = "Wooden Box";
+		sheet.getCell("BMD4").value = "ADF";
+		sheet.getCell("BME4").value = "P";
+		sheet.getCell("BMF4").value = "AC"; // WRONG (col B says NAC)
+		sheet.getCell("BMG4").value = "#01";
+		sheet.getCell("BMH4").value = "ADF-P-AC-#01"; // WRONG
+
+		const rows = parsePackageRows(sheet, 0);
+		expect(rows).toHaveLength(1);
+		expect(rows[0].tagL2).toBe("NAC"); // from col B, not the buggy "AC"
+		expect(rows[0].ipacReference).toBe("ADF-P-NAC-#01"); // derived from col B
+		expect(rows[0].designation).toBe("181072516"); // item still from col B
+	});
+
+	it("falls back to Extended-info when column B is not a TAQA box code", () => {
+		const sheet = createSheet();
+
+		sheet.getCell("BMD3").value = "Destination";
+		sheet.getCell("BME3").value = "tag L1";
+		sheet.getCell("BMF3").value = "tag L2";
+		sheet.getCell("BMH3").value = "IPAC ref";
+
+		sheet.getCell("A4").value = 1;
+		sheet.getCell("B4").value = "PLAIN-DESIGNATION"; // no #box token → not a TAQA code
+		sheet.getCell("C4").value = "Wooden Box";
+		sheet.getCell("BMD4").value = "AUH";
+		sheet.getCell("BME4").value = "W";
+		sheet.getCell("BMF4").value = "AC";
+		sheet.getCell("BMH4").value = "CUSTOM-REF-99";
+
+		const rows = parsePackageRows(sheet, 0);
+		expect(rows).toHaveLength(1);
+		expect(rows[0].destination).toBe("AUH");
+		expect(rows[0].tagL1).toBe("W");
+		expect(rows[0].ipacReference).toBe("CUSTOM-REF-99");
+		expect(rows[0].designation).toBe("PLAIN-DESIGNATION");
+	});
+
+	it("uses Extended-info box type 'SB' only when column B is not a TAQA code", () => {
+		const sheet = createSheet();
+
+		sheet.getCell("BMD3").value = "Destination";
+		sheet.getCell("BMI3").value = "box type";
+
+		// Non-TAQA column B (no #box token) → Extended-info box type decides.
+		sheet.getCell("A4").value = 1;
+		sheet.getCell("B4").value = "PLAIN-DESIGNATION";
+		sheet.getCell("C4").value = "Wooden Box";
+		sheet.getCell("BMD4").value = "ADF";
+		sheet.getCell("BMI4").value = "SB";
+
+		const rows = parsePackageRows(sheet, 0);
+		expect(rows).toHaveLength(1);
+		expect(rows[0].designation).toBeNull();
+		expect(rows[0].boxTypeLabel).toBe("Standard Box");
+
+		// A TAQA m2m code with Extended-info box type "SB" stays m2m — column B wins.
+		const sheet2 = createSheet();
+		sheet2.getCell("BMI3").value = "box type";
+		sheet2.getCell("A4").value = 1;
+		sheet2.getCell("B4").value = "ADF-P-NAC-#01-181072516-02G07B003-(NB+DFS)";
+		sheet2.getCell("C4").value = "Wooden Box";
+		sheet2.getCell("BMI4").value = "SB";
+		const rows2 = parsePackageRows(sheet2, 0);
+		expect(rows2[0].designation).toBe("181072516");
+		expect(rows2[0].boxTypeLabel).toBe("Wooden Box");
+	});
 });

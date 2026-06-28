@@ -2,9 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { requestQueryKeys } from "../services/queryKeys";
 import {
+	fetchAllocationIncreaseRequests,
 	fetchAuditLog,
 	fetchMaterialRejectionImpact,
 	fetchMaterialRequests,
+	fetchOrderAllocationIncreaseRequests,
 	fetchPricingRequests,
 	fetchVariantRequests,
 } from "../services/requestsService";
@@ -65,6 +67,27 @@ export function usePricingRequests() {
 	}, [query.data]);
 
 	return { ...query, data: dataWithBlockedState };
+}
+
+// ─── Allocation increase requests ─────────────────────────────────────────────
+
+export function useAllocationIncreaseRequests() {
+	return useQuery({
+		queryKey: requestQueryKeys.allocationIncreaseRequests(),
+		queryFn: fetchAllocationIncreaseRequests,
+		staleTime: STALE_30S,
+	});
+}
+
+// ─── Allocation increase requests — per order ─────────────────────────────────
+
+export function useOrderAllocationIncreaseRequests(orderId: string) {
+	return useQuery({
+		queryKey: requestQueryKeys.allocationIncreaseRequestsForOrder(orderId),
+		queryFn: () => fetchOrderAllocationIncreaseRequests(orderId),
+		enabled: !!orderId,
+		staleTime: STALE_30S,
+	});
 }
 
 // ─── Audit log ────────────────────────────────────────────────────────────────

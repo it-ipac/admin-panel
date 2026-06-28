@@ -1,11 +1,21 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { db } from "../../../../lib/supabase";
+import { db, supabase } from "../../../../lib/supabase";
+import {
+	loadCatalogFromManifest,
+	type ManifestCatalogResult,
+	writeAllocationsForOrder,
+} from "../../../clients/manifest/manifestImport.service";
+import type { ManifestDumpPayload } from "../../../clients/manifest/useManifestDump";
 import {
 	buildClientItemLookup,
 	matchPackageDesignations,
 } from "./itemNumberMatching";
 import type { MaterialVariantOption, ResolvedPackageRow } from "./types";
-import { generateIpacReference, mapCategoryToTag } from "./utils";
+import {
+	buildInstanceCategoryLabel,
+	generateIpacReference,
+	mapCategoryToTag,
+} from "./utils";
 
 interface SubmitParams {
 	resolvedPackages: ResolvedPackageRow[];
@@ -25,7 +35,24 @@ interface SubmitParams {
 		number,
 		{ itemId: string; itemNumber: string }
 	>;
+	/** Optional TAQA items dump to load into items_db + write allocations for (Way 1). */
+	itemsDumpPayload?: ManifestDumpPayload | null;
 	generateRandomBoxIds?: boolean;
+	/**
+	 * Called once the `orders` row exists (Step 7). Lets the caller record the id so it
+	 * can cascade-delete the partial order if a later step throws.
+	 */
+	onOrderCreated?: (orderId: string) => void;
+	/**
+	 * Collects ids of detail rows that have no order back-pointer (package_info, beam,
+	 * securing_template), pushed as they are inserted. On failure the caller deletes
+	 * these after the order cascade, so a mid-build throw cannot orphan them.
+	 */
+	detailRowIds?: {
+		packageInfoIds: string[];
+		beamIds: string[];
+		templateIds: string[];
+	};
 }
 
 const wait = (ms: number) =>
@@ -115,7 +142,10 @@ export const submitOrderCreate = async ({
 	materialVariantMap,
 	queryClient,
 	preferredItemLinksByPackage,
+	itemsDumpPayload,
 	generateRandomBoxIds,
+	onOrderCreated,
+	detailRowIds,
 }: SubmitParams) => {
 	const logStep = (step: string, payload?: unknown) => {
 		if (payload !== undefined) {
@@ -192,6 +222,29 @@ export const submitOrderCreate = async ({
 		throw new Error(
 			`Negative material quantities found in package(s): ${packageList}. Quantity must be 0 or greater.`,
 		);
+	}
+
+	// Way 1: load the TAQA items dump into items_db FIRST, so the designation
+	// matching below binds boxes to the freshly-imported items. Allocations are
+	// written once the order exists (after Step 7).
+	let manifestCatalog: ManifestCatalogResult | null = null;
+	if (
+		itemsDumpPayload &&
+		itemsDumpPayload.rows.length > 0 &&
+		selectedClientId
+	) {
+		logStep("Step 1b/14 - Loading items dump into catalog");
+		manifestCatalog = await loadCatalogFromManifest({
+			clientId: selectedClientId,
+			rows: itemsDumpPayload.rows,
+			categoriesToCreate: itemsDumpPayload.categoriesToCreate,
+			categoryIdByRaw: itemsDumpPayload.categoryIdByRaw,
+			keyByRaw: itemsDumpPayload.keyByRaw,
+		});
+		logStep("Step 1b/14 - Items dump loaded", {
+			itemsUpserted: manifestCatalog.itemsUpserted,
+			categoriesCreated: manifestCatalog.categoriesCreated,
+		});
 	}
 
 	const getVariantUnitId = (
@@ -363,7 +416,11 @@ export const submitOrderCreate = async ({
 
 	logStep("Step 7/14 - Creating order record");
 	const order = await createOrder({ clientId });
+	// Report the id immediately so the caller can clean up this order if any later
+	// step fails (creation is not a single DB transaction).
+	onOrderCreated?.(order.id);
 	logStep("Step 7/14 - Created order record", { orderId: order.id });
+
 	const normalizedCategoryIds = Array.from(
 		new Set((selectedCategoryIds || []).filter(Boolean)),
 	);
@@ -491,7 +548,21 @@ export const submitOrderCreate = async ({
 		status: "design";
 		packed_at: null;
 		destination: string | null;
+		category_id: string | null;
 	}> = [];
+
+	// Resolve per-box category (BMV/BMW + box type) to a real pkg_category id.
+	const { data: clientCategories } = await supabase
+		.from("pkg_category")
+		.select("id, label")
+		.eq("client_id", selectedClientId);
+	const categoryLabelToId = new Map<string, string>();
+	for (const category of (clientCategories || []) as Array<{
+		id: string;
+		label: string | null;
+	}>) {
+		if (category.label) categoryLabelToId.set(category.label, category.id);
+	}
 
 	const sequenceByTag = new Map<string, number>();
 
@@ -534,14 +605,26 @@ export const submitOrderCreate = async ({
 				randomSuffix: Math.random().toString(36).substring(2, 10).toUpperCase(),
 			});
 
+			// Prefer the per-box IPAC reference (BMY); resolve the box's category.
+			const finalIpacReference = pkg.ipacReference || generatedIpacReference;
+			const categoryLabel = buildInstanceCategoryLabel(
+				pkg.tagL1,
+				pkg.tagL2,
+				!isCustom,
+			);
+			const categoryId = categoryLabel
+				? (categoryLabelToId.get(categoryLabel) ?? null)
+				: null;
+
 			instanceRows.push({
 				order_pkg_overview_id: overviewId,
 				order_package_id: orderPackage.id,
 				instance_number: instanceNumber,
-				ipac_reference: generatedIpacReference,
+				ipac_reference: finalIpacReference,
 				status: "design",
 				packed_at: null,
 				destination: instanceDestination,
+				category_id: categoryId,
 			});
 		}
 	}
@@ -591,11 +674,14 @@ export const submitOrderCreate = async ({
 				maintenance_db_id: maintenanceDbId,
 				pkg_instance_id: instanceRow.id,
 				quantity: 1,
+				// Shadow plan: bound but NOT packed. The packer confirms it in the app,
+				// which flips is_confirmed and makes it count toward packed_qty.
+				is_confirmed: false,
 			};
 		})
 		.filter((row): row is NonNullable<typeof row> => !!row);
 
-	logStep("Step 13/14 - Creating linked pkd_item rows", {
+	logStep("Step 13/14 - Creating linked pkd_item shadow rows", {
 		rowCount: packedItemRows.length,
 	});
 	const packedItemChunkSize = 500;
@@ -606,130 +692,291 @@ export const submitOrderCreate = async ({
 		if (packedItemsError) throw packedItemsError;
 	}
 
+	// Step 14 — package detail rows, built in BULK (a handful of multi-row inserts)
+	// instead of ~30 sequential calls per box. A 300-box order becomes seconds, not
+	// minutes, shrinking the window for a mid-build disconnect. Insert order respects the
+	// FK chain: beams → securing_template (refs beams) → order_package_securing (refs
+	// template). If anything throws, the caller cascade-deletes the partial order.
+	logStep("Step 14/14 - Creating package detail rows (bulk)", {
+		packageCount: resolvedPackages.length,
+	});
+
+	const SECURING_SIDES = [
+		{ key: "big_sides" as const, pick: (m: any) => m.big, includeSkids: false },
+		{
+			key: "small_sides" as const,
+			pick: (m: any) => m.small,
+			includeSkids: false,
+		},
+		{ key: "lid" as const, pick: (m: any) => m.lid, includeSkids: false },
+		{ key: "base" as const, pick: (m: any) => m.base, includeSkids: true },
+	];
+
+	const partHasData = (part: any) =>
+		part.typeLabel ||
+		part.quantity !== null ||
+		part.width !== null ||
+		part.thickness !== null ||
+		part.space !== null;
+
+	// Insert rows in chunks (PostgREST preserves input order) and return ids aligned
+	// 1:1 with the input array. withRetry covers transient network blips per chunk.
+	const DETAIL_CHUNK = 500;
+	// NOTE: these inserts are deliberately NOT wrapped in withRetry. They have no
+	// idempotency key, so retrying a "transient" failure that actually committed
+	// server-side (a lost success response) would double-apply rows — silently doubling
+	// materials, or orphaning beams/templates. Instead any failure propagates to the
+	// caller's cleanup (which cascade-deletes the partial order + the tracked detail
+	// rows). The order_package info link-update below IS idempotent, so it keeps retry.
+	const bulkInsertReturning = async <T>(
+		rows: T[],
+		insert: (
+			chunk: T[],
+		) => Promise<{ data: Array<{ id: string }> | null; error: unknown }>,
+		label: string,
+		sink?: string[],
+	): Promise<string[]> => {
+		const ids: string[] = [];
+		for (let i = 0; i < rows.length; i += DETAIL_CHUNK) {
+			const chunk = rows.slice(i, i + DETAIL_CHUNK);
+			const { data, error } = await insert(chunk);
+			if (error) throw error;
+			const returned = data || [];
+			if (returned.length !== chunk.length) {
+				throw new Error(
+					`${label}: server returned ${returned.length} of ${chunk.length} inserted rows`,
+				);
+			}
+			for (const row of returned) {
+				ids.push(row.id);
+				// Track committed ids as we go so cleanup can remove them even if a
+				// later chunk/phase throws (these tables have no order back-pointer).
+				sink?.push(row.id);
+			}
+		}
+		return ids;
+	};
+	const bulkInsertVoid = async <T>(
+		rows: T[],
+		insert: (chunk: T[]) => Promise<{ error: unknown }>,
+	): Promise<void> => {
+		for (let i = 0; i < rows.length; i += DETAIL_CHUNK) {
+			const { error } = await insert(rows.slice(i, i + DETAIL_CHUNK));
+			if (error) throw error;
+		}
+	};
+
+	// Only packages that resolved to a real order_package row get detail (defensive;
+	// createOrderPackages was called for every resolved package).
+	const detailPackages: Array<{
+		pkg: ResolvedPackageRow;
+		orderPackage: { id: string; package_number: number };
+	}> = [];
 	for (const pkg of resolvedPackages) {
-		logStep("Step 14/14 - Creating package detail rows", {
-			packageNumber: pkg.packageNumber,
-		});
 		const orderPackage = packageByNumber.get(pkg.packageNumber);
 		if (!orderPackage) continue;
+		detailPackages.push({ pkg, orderPackage });
+	}
 
-		const { data: originalInfo, error: originalError } =
-			await db.createPackageInfo({
-				internal_length: pkg.internal_length,
-				internal_width: pkg.internal_width,
-				internal_height: pkg.internal_height,
-				external_length: pkg.external_length,
-				external_width: pkg.external_width,
-				external_height: pkg.external_height,
-				quantity: normalizedInstanceCountByPackage.get(pkg.packageNumber) || 1,
-				packing_type_id: pkg.packing_type_id,
-				sei_category: pkg.sei_category,
-				sei_protection: pkg.sei_protection,
-				box_type_id: pkg.box_type_id,
-				tare: pkg.tare,
-				net_weight: pkg.net_weight,
-				gross_weight: pkg.gross_weight,
-			});
-		if (originalError) throw originalError;
+	// Phase A — package_info: one "original" + one empty "final" per box, then link.
+	const originalInfoIds = await bulkInsertReturning(
+		detailPackages.map(({ pkg }) => ({
+			internal_length: pkg.internal_length,
+			internal_width: pkg.internal_width,
+			internal_height: pkg.internal_height,
+			external_length: pkg.external_length,
+			external_width: pkg.external_width,
+			external_height: pkg.external_height,
+			quantity: normalizedInstanceCountByPackage.get(pkg.packageNumber) || 1,
+			packing_type_id: pkg.packing_type_id,
+			sei_category: pkg.sei_category,
+			sei_protection: pkg.sei_protection,
+			box_type_id: pkg.box_type_id,
+			tare: pkg.tare,
+			net_weight: pkg.net_weight,
+			gross_weight: pkg.gross_weight,
+		})),
+		(chunk) => db.createPackageInfos(chunk),
+		"package_info (original)",
+		detailRowIds?.packageInfoIds,
+	);
+	const finalInfoIds = await bulkInsertReturning(
+		detailPackages.map(() => ({})),
+		(chunk) => db.createPackageInfos(chunk),
+		"package_info (final)",
+		detailRowIds?.packageInfoIds,
+	);
 
-		const { data: finalInfo, error: finalError } = await db.createPackageInfo(
-			{},
+	// Link each order_package to its two info rows — run the updates concurrently in
+	// small batches (fast without flooding the connection).
+	const LINK_BATCH = 25;
+	for (let i = 0; i < detailPackages.length; i += LINK_BATCH) {
+		const batch = detailPackages.slice(i, i + LINK_BATCH);
+		const results = await Promise.all(
+			batch.map(({ orderPackage }, j) =>
+				withRetry(() =>
+					db.updateOrderPackageInfo({
+						order_package_id: orderPackage.id,
+						original_pkg_info: originalInfoIds[i + j] || null,
+						final_pkg_info: finalInfoIds[i + j] || null,
+					}),
+				),
+			),
 		);
-		if (finalError) throw finalError;
+		for (const result of results) if (result.error) throw result.error;
+	}
 
-		const { error: updateError } = await db.updateOrderPackageInfo({
-			order_package_id: orderPackage.id,
-			original_pkg_info: originalInfo?.id || null,
-			final_pkg_info: finalInfo?.id || null,
-		});
-		if (updateError) throw updateError;
-
-		const createBeamIfNeeded = async (part: any) => {
-			const hasData =
-				part.typeLabel ||
-				part.quantity !== null ||
-				part.width !== null ||
-				part.thickness !== null ||
-				part.space !== null;
-			if (!hasData) return null;
-			if (!part.typeId)
-				throw new Error("Missing manufacturing material selection");
-			const { data, error } = await withRetry(() =>
-				db.createBeam({
-					quantity: part.quantity,
-					type: part.typeId,
-					width: part.width,
-					thickness: part.thickness,
-					space: part.space,
-				}),
-			);
-			if (error) throw error;
-			return data?.id || null;
+	// Phase B — beams (only for sides/slots that carry data). Track each beam's
+	// (packageIndex, side, slot) so templates can reference the right id.
+	type BeamSlot = "horizontal" | "vertical" | "skids";
+	const beamSpecs: Array<{
+		pkgIndex: number;
+		side: string;
+		slot: BeamSlot;
+		payload: {
+			quantity: number | null;
+			type: string | null;
+			width: number | null;
+			thickness: number | null;
+			space: number | null;
 		};
+	}> = [];
+	detailPackages.forEach(({ pkg }, pkgIndex) => {
+		for (const { key, pick, includeSkids } of SECURING_SIDES) {
+			const side = pick(pkg.manufacturing);
+			const slots: Array<[BeamSlot, any]> = [
+				["horizontal", side.horizontal],
+				["vertical", side.vertical],
+			];
+			if (includeSkids) slots.push(["skids", side.skids]);
+			for (const [slot, part] of slots) {
+				if (!partHasData(part)) continue;
+				if (!part.typeId)
+					throw new Error("Missing manufacturing material selection");
+				beamSpecs.push({
+					pkgIndex,
+					side: key,
+					slot,
+					payload: {
+						quantity: part.quantity,
+						type: part.typeId,
+						width: part.width,
+						thickness: part.thickness,
+						space: part.space,
+					},
+				});
+			}
+		}
+	});
+	const beamIds = await bulkInsertReturning(
+		beamSpecs.map((spec) => spec.payload),
+		(chunk) => db.createBeams(chunk),
+		"beam",
+		detailRowIds?.beamIds,
+	);
+	const beamIdByKey = new Map<string, string>();
+	beamSpecs.forEach((spec, i) => {
+		beamIdByKey.set(`${spec.pkgIndex}:${spec.side}:${spec.slot}`, beamIds[i]);
+	});
 
-		const createSide = async (
-			sideKey: "big_sides" | "small_sides" | "lid" | "base",
-			side: any,
-			includeSkids: boolean,
-		) => {
-			const horizontalId = await createBeamIfNeeded(side.horizontal);
-			const verticalId = await createBeamIfNeeded(side.vertical);
-			const skidsId = includeSkids
-				? await createBeamIfNeeded(side.skids)
-				: null;
-			const { data: template, error: templateError } = await withRetry(() =>
-				db.createSecuringTemplate({
+	// Phase C — securing_template: one "original" (referencing the beams) + one empty
+	// "final" per (package, side), matching the legacy per-side behaviour.
+	const templateSpecs: Array<{
+		key: string;
+		payload: {
+			quantity?: number | null;
+			type_id?: string | null;
+			thickness?: number | null;
+			horizontal_bar?: string | null;
+			vertical_bar?: string | null;
+			skids?: string | null;
+		};
+	}> = [];
+	detailPackages.forEach(({ pkg }, pkgIndex) => {
+		for (const { key, pick } of SECURING_SIDES) {
+			const side = pick(pkg.manufacturing);
+			templateSpecs.push({
+				key: `${pkgIndex}:${key}:orig`,
+				payload: {
 					quantity: side.template.quantity,
 					type_id: side.template.typeId,
 					thickness: side.template.thickness,
-					horizontal_bar: horizontalId,
-					vertical_bar: verticalId,
-					skids: skidsId,
-				}),
-			);
-			if (templateError) throw templateError;
-			const { error: securingError } = await withRetry(() =>
-				db.createOrderPackageSecuring({
-					order_package_id: orderPackage.id,
-					securing_template_id: template?.id || null,
-					securing_side: sideKey,
-					is_final: false,
-				}),
-			);
-			if (securingError) throw securingError;
-			const { data: finalTemplate, error: finalTemplateError } =
-				await withRetry(() => db.createSecuringTemplate({}));
-			if (finalTemplateError) throw finalTemplateError;
-			const { error: finalSecuringError } = await withRetry(() =>
-				db.createOrderPackageSecuring({
-					order_package_id: orderPackage.id,
-					securing_template_id: finalTemplate?.id || null,
-					securing_side: sideKey,
-					is_final: true,
-				}),
-			);
-			if (finalSecuringError) throw finalSecuringError;
-		};
+					horizontal_bar:
+						beamIdByKey.get(`${pkgIndex}:${key}:horizontal`) ?? null,
+					vertical_bar: beamIdByKey.get(`${pkgIndex}:${key}:vertical`) ?? null,
+					skids: beamIdByKey.get(`${pkgIndex}:${key}:skids`) ?? null,
+				},
+			});
+			templateSpecs.push({ key: `${pkgIndex}:${key}:final`, payload: {} });
+		}
+	});
+	const templateIds = await bulkInsertReturning(
+		templateSpecs.map((spec) => spec.payload),
+		(chunk) => db.createSecuringTemplates(chunk),
+		"securing_template",
+		detailRowIds?.templateIds,
+	);
+	const templateIdByKey = new Map<string, string>();
+	templateSpecs.forEach((spec, i) => {
+		templateIdByKey.set(spec.key, templateIds[i]);
+	});
 
-		await createSide("big_sides", pkg.manufacturing.big, false);
-		await createSide("small_sides", pkg.manufacturing.small, false);
-		await createSide("lid", pkg.manufacturing.lid, false);
-		await createSide("base", pkg.manufacturing.base, true);
+	// Phase D — order_package_securing rows (original + final per side).
+	const securingRows: Array<{
+		order_package_id: string;
+		securing_template_id: string | null;
+		securing_side: "big_sides" | "small_sides" | "lid" | "base";
+		is_final: boolean;
+	}> = [];
+	detailPackages.forEach(({ orderPackage }, pkgIndex) => {
+		for (const { key } of SECURING_SIDES) {
+			securingRows.push({
+				order_package_id: orderPackage.id,
+				securing_template_id:
+					templateIdByKey.get(`${pkgIndex}:${key}:orig`) ?? null,
+				securing_side: key,
+				is_final: false,
+			});
+			securingRows.push({
+				order_package_id: orderPackage.id,
+				securing_template_id:
+					templateIdByKey.get(`${pkgIndex}:${key}:final`) ?? null,
+				securing_side: key,
+				is_final: true,
+			});
+		}
+	});
+	await bulkInsertVoid(securingRows, (chunk) =>
+		db.createOrderPackageSecurings(chunk),
+	);
 
-		const securingPayload = pkg.securing
-			.filter((part) => {
-				const hasData =
-					part.quantity !== null ||
-					part.width !== null ||
-					part.thickness !== null;
-				return (
-					hasData &&
-					!!part.typeId &&
-					part.quantity !== null &&
-					part.quantity !== undefined
-				);
-			})
-			.map((part) => ({
+	// Phase E — securing + accessory materials across all boxes, one bulk insert.
+	const materialRows: Array<{
+		order_package_id: string;
+		material_variant_id: string;
+		material_type: string;
+		is_final: boolean;
+		quantity: number;
+		unit_id: string | null;
+		length: number | null;
+		width: number | null;
+		height: number | null;
+		comment: string | null;
+	}> = [];
+	for (const { pkg, orderPackage } of detailPackages) {
+		for (const part of pkg.securing) {
+			const hasData =
+				part.quantity !== null ||
+				part.width !== null ||
+				part.thickness !== null;
+			if (
+				!hasData ||
+				!part.typeId ||
+				part.quantity === null ||
+				part.quantity === undefined
+			)
+				continue;
+			materialRows.push({
 				order_package_id: orderPackage.id,
 				material_variant_id: part.typeId as string,
 				material_type: "Securing",
@@ -740,43 +987,57 @@ export const submitOrderCreate = async ({
 				width: part.width ?? null,
 				height: part.thickness ?? null,
 				comment: null,
-			}));
-		if (securingPayload.length > 0) {
-			const { error } = await db.createOrderPackageMaterials(securingPayload);
-			if (error) throw error;
-		}
-
-		const accessoryPayload = pkg.accessories
-			.filter((part) => {
-				const hasData = part.typeLabel || part.amount !== null;
-				return (
-					hasData &&
-					!!part.typeId &&
-					part.amount !== null &&
-					part.amount !== undefined
-				);
-			})
-			.map((part) => {
-				return {
-					order_package_id: orderPackage.id,
-					material_variant_id: part.typeId as string,
-					material_type: "Accessories",
-					is_final: false,
-					quantity: part.amount ?? 0,
-					unit_id: getVariantUnitId(part.typeId),
-					length: null,
-					width: null,
-					height: null,
-					comment: null,
-				};
 			});
-		if (accessoryPayload.length > 0) {
-			const { error } = await db.createOrderPackageMaterials(accessoryPayload);
-			if (error) throw error;
+		}
+		for (const part of pkg.accessories) {
+			const hasData = part.typeLabel || part.amount !== null;
+			if (
+				!hasData ||
+				!part.typeId ||
+				part.amount === null ||
+				part.amount === undefined
+			)
+				continue;
+			materialRows.push({
+				order_package_id: orderPackage.id,
+				material_variant_id: part.typeId as string,
+				material_type: "Accessories",
+				is_final: false,
+				quantity: part.amount ?? 0,
+				unit_id: getVariantUnitId(part.typeId),
+				length: null,
+				width: null,
+				height: null,
+				comment: null,
+			});
 		}
 	}
+	await bulkInsertVoid(materialRows, async (chunk) => {
+		const { error } = await db.createOrderPackageMaterials(chunk);
+		return { error };
+	});
 
-	logStep("Step 14/14 - Package detail rows complete");
+	logStep("Step 14/14 - Package detail rows complete", {
+		packages: detailPackages.length,
+		beams: beamSpecs.length,
+		templates: templateSpecs.length,
+		securingRows: securingRows.length,
+		materialRows: materialRows.length,
+	});
+
+	// Reconcile the order's item allocations LAST — after every other write — so a failure
+	// mid-submit followed by a retry (which creates a fresh order) can never double-apply the
+	// expected_qty delta. The reconcile RPC is itself atomic and idempotent per order.
+	if (manifestCatalog && itemsDumpPayload) {
+		logStep("Step 14b/14 - Reconciling item allocations for order");
+		const allocationsWritten = await writeAllocationsForOrder(
+			order.id,
+			itemsDumpPayload.rows,
+			manifestCatalog.idByItemNum,
+			manifestCatalog.idByCode,
+		);
+		logStep("Step 14b/14 - Allocations reconciled", { allocationsWritten });
+	}
 
 	void Promise.allSettled([
 		queryClient.invalidateQueries({ queryKey: ["orders"] }),

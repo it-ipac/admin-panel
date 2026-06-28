@@ -18,6 +18,8 @@ interface ReviewActionModalProps {
 	/** Populated for reject_material to show cascade warning */
 	rejectionImpact?: MaterialRejectionImpact | null;
 	isLoadingImpact?: boolean;
+	/** Optional informational note shown on approve (e.g. allocation math). */
+	approveNote?: string | null;
 	isPending: boolean;
 	onConfirm: (adminNotes: string | null) => void;
 }
@@ -28,6 +30,7 @@ const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
 	material: "material",
 	material_variant: "variant",
 	supplier_pricing: "pricing",
+	allocation_increase: "allocation increase",
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -41,6 +44,7 @@ export function ReviewActionModal({
 	contextLine,
 	rejectionImpact,
 	isLoadingImpact,
+	approveNote,
 	isPending,
 	onConfirm,
 }: ReviewActionModalProps) {
@@ -100,6 +104,13 @@ export function ReviewActionModal({
 					<p className="text-xs text-neutral-500 bg-neutral-50 px-3 py-2 rounded-md mb-4">
 						{contextLine}
 					</p>
+
+					{/* Informational note shown on approve (e.g. allocation math) */}
+					{isApprove && approveNote && (
+						<div className="mb-4 p-3 border border-primary-200 bg-primary-50 rounded-lg">
+							<p className="text-sm text-primary-800">{approveNote}</p>
+						</div>
+					)}
 
 					{/* Cascade warning for material rejection */}
 					{hasCascadeWarning && (

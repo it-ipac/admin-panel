@@ -351,6 +351,37 @@ export const mapTagsToIpacTag = (tags: string[]): string => {
 	return "TAG";
 };
 
+/**
+ * Build the expected pkg_category label for a box instance from its Extended-info
+ * tags (BMV/BMW) and box type. Standard boxes get the 3-tag "+ SB" variant.
+ * Returns null when the tags are absent/unrecognized (category left unset).
+ */
+export const buildInstanceCategoryLabel = (
+	tagL1: string | null | undefined,
+	tagL2: string | null | undefined,
+	isStandardBox: boolean,
+): string | null => {
+	const l1 = (tagL1 || "").trim().toUpperCase();
+	const l2raw = (tagL2 || "").trim().toUpperCase();
+	if (!l1 && !l2raw) return null;
+
+	const l1full = l1 === "P" ? "Power" : l1 === "W" ? "Water" : null;
+	const l2code = l2raw.replace(/-?SB$/, "").replace(/[^A-Z]/g, "");
+	const l2full =
+		l2code === "AC"
+			? "AC"
+			: l2code === "NAC" || l2code === "NONAC"
+				? "Non-AC"
+				: l2code === "Y" || l2code === "YARD"
+					? "Yard"
+					: l2code === "DG" || l2code === "HAZARDS"
+						? "Hazards"
+						: null;
+	if (!l1full || !l2full) return null;
+
+	return `${l1full} + ${l2full}${isStandardBox ? " + SB" : ""}`;
+};
+
 export const generateIpacReference = (params: {
 	destination: string | null;
 	tag: string;

@@ -161,6 +161,54 @@ export const parsePackageRows = (
 			extractCellText(sheet.getCell(`${column}${rowNumber}`)),
 		);
 
+	// Locate the "Extended info" columns (Destination / tag L1 / tag L2 / Box no. /
+	// IPAC ref / box type) by their header labels in rows 1-5, so the parser keeps
+	// working wherever that block is placed. (It has moved between template revisions;
+	// a .xlsb only exposes the block when it sits inside the saved used-range, so the
+	// columns are not at a fixed position.)
+	const extColumns: {
+		destination: number | null;
+		tagL1: number | null;
+		tagL2: number | null;
+		boxNo: number | null;
+		ipacRef: number | null;
+		boxType: number | null;
+	} = {
+		destination: null,
+		tagL1: null,
+		tagL2: null,
+		boxNo: null,
+		ipacRef: null,
+		boxType: null,
+	};
+	const normalizeHeader = (value: string) =>
+		value.toLowerCase().replace(/\s+/g, " ").replace(/\.$/, "").trim();
+	for (let headerRowNumber = 1; headerRowNumber <= 5; headerRowNumber += 1) {
+		sheet
+			.getRow(headerRowNumber)
+			.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+				const label = normalizeHeader(extractCellText(cell));
+				if (label === "destination" && !extColumns.destination)
+					extColumns.destination = colNumber;
+				else if (label === "tag l1" && !extColumns.tagL1)
+					extColumns.tagL1 = colNumber;
+				else if (label === "tag l2" && !extColumns.tagL2)
+					extColumns.tagL2 = colNumber;
+				else if (label === "box no" && !extColumns.boxNo)
+					extColumns.boxNo = colNumber;
+				else if (label === "ipac ref" && !extColumns.ipacRef)
+					extColumns.ipacRef = colNumber;
+				else if (label === "box type" && !extColumns.boxType)
+					extColumns.boxType = colNumber;
+			});
+	}
+	const getExtText = (colNumber: number | null, rowNumber: number) =>
+		colNumber
+			? normalizeDefensorText(
+					extractCellText(sheet.getCell(rowNumber, colNumber)),
+				)
+			: "";
+
 	for (let row = 4; row < 1000; row += 1) {
 		const rawDesignation = getText("B", row);
 		const isStandardByDesignation =
@@ -433,11 +481,89 @@ export const parsePackageRows = (
 			manufacturing.lid = sanitizeGasTemplate(manufacturing.lid);
 		}
 
+		// Per-box info. TAQA orders encode it BOTH in the "Extended info" columns
+		// (located above by header) AND in column B itself. We ALWAYS read the
+		// Extended-info columns (used verbatim when present), but ALSO parse column B
+		// directly, because a .xlsb only exposes that block when it lies inside the
+		// saved used-range — otherwise column B is the only carrier of this data.
+		//   SB box:  DEST-L1-L2-SB-#box            e.g. ADF-P-AC-SB-#01
+		//   m2m box: DEST-L1-L2-#box-ITEM-REF-...  e.g. ADF-P-NAC-#01-181072516-02G07B003-(…)
+		const extDestination = getExtText(extColumns.destination, row) || null;
+		const extTagL1 = getExtText(extColumns.tagL1, row) || null;
+		const extTagL2 = getExtText(extColumns.tagL2, row) || null;
+		const extBoxNo = getExtText(extColumns.boxNo, row) || null;
+		const extIpacRef = getExtText(extColumns.ipacRef, row) || null;
+		const extBoxType = getExtText(extColumns.boxType, row) || null;
+		const extBoxTypeUpper = (extBoxType || "").trim().toUpperCase();
+
+		// Parse column B — the always-available fallback source.
+		const segs = (rawDesignation || "")
+			.split("-")
+			.map((part) => part.trim())
+			.filter(Boolean);
+		const boxIdx = segs.findIndex((part) => /^#[0-9.]+$/.test(part));
+		const isTaqaBoxCode = boxIdx >= 1;
+		let cbDestination: string | null = null;
+		let cbTagL1: string | null = null;
+		let cbTagL2: string | null = null;
+		let cbBoxNo: string | null = null;
+		let cbItemNumber: string | null = null;
+		let cbItemReference: string | null = null;
+		let cbIsStandardBox = false;
+		let cbDerivedIpacRef: string | null = null;
+		if (isTaqaBoxCode) {
+			cbDestination = segs[0] || null;
+			const preBox = segs.slice(1, boxIdx);
+			// "SB" (or "X") right before the box number marks a standard box.
+			cbIsStandardBox =
+				preBox.length > 0 && /^(SB|X)$/i.test(preBox[preBox.length - 1]);
+			const tags = cbIsStandardBox ? preBox.slice(0, -1) : preBox;
+			cbTagL1 = tags[0] || null;
+			cbTagL2 = tags[1] || null;
+			cbBoxNo = segs[boxIdx] || null;
+			if (!cbIsStandardBox) {
+				// m2m: item number is the token right after "#<box>-", reference the next.
+				cbItemNumber = segs[boxIdx + 1] || null;
+				cbItemReference = segs[boxIdx + 2] || null;
+			}
+			// Box-identity reference = everything up to and including the box number.
+			// For SB this equals the BMY value (e.g. ADF-P-AC-SB-#01).
+			cbDerivedIpacRef = segs.slice(0, boxIdx + 1).join("-");
+		}
+
+		// Column B wins on disagreement: when it is a TAQA box code, its own SB marker
+		// decides; the Extended-info box type only applies to non-TAQA rows. ("X" = SB.)
+		const isStandardBox = isTaqaBoxCode
+			? cbIsStandardBox
+			: extBoxTypeUpper === "SB" || extBoxTypeUpper === "X";
+
+		// Column B is the authoritative per-box code, so it WINS whenever it is a
+		// parseable TAQA box code; the Extended-info columns are only a fallback (for
+		// non-TAQA designations, or fields column B does not carry). Rationale: the
+		// client's Extended-info formula mis-tags Non-AC m2m boxes as "AC" (it matches
+		// the "AC" inside "NAC"), so trusting column B keeps destination/tags/ref right.
+		const destination = cbDestination || extDestination || null;
+		const tagL1 = cbTagL1 || extTagL1 || null;
+		const tagL2 = cbTagL2 || extTagL2 || null;
+		const boxNo = cbBoxNo || extBoxNo || null;
+		const itemReference = cbItemReference;
+		// IPAC reference: derived from column B (correct), else the Extended-info value.
+		const ipacReference = cbDerivedIpacRef || extIpacRef || null;
+
+		// Standard boxes carry no item. m2m boxes carry the item number parsed from
+		// column B. Non-TAQA rows keep the raw designation (existing behaviour).
+		const finalDesignation = isStandardBox
+			? null
+			: isTaqaBoxCode
+				? cbItemNumber
+				: designation;
+		const finalBoxTypeLabel = isStandardBox ? "Standard Box" : boxTypeLabel;
+
 		rows.push({
 			rowIndex: row,
 			randomSuffix: Math.random().toString(36).substring(2, 10).toUpperCase(),
 			packageNumber,
-			designation,
+			designation: finalDesignation,
 			quantity,
 
 			item_length: itemLength,
@@ -452,7 +578,7 @@ export const parsePackageRows = (
 			net_weight: netWeight,
 			tare,
 			gross_weight: grossWeight,
-			boxTypeLabel,
+			boxTypeLabel: finalBoxTypeLabel,
 			packingTypeRaw,
 			packingTypeCode,
 			seiCategoryRaw,
@@ -461,8 +587,12 @@ export const parsePackageRows = (
 			securing,
 			accessories,
 			categoryLabel,
-			destination: null,
-			ipacReference: null,
+			destination,
+			ipacReference,
+			tagL1,
+			tagL2,
+			boxNo,
+			boxItemReference: itemReference,
 		});
 
 		packageNumber += 1;
