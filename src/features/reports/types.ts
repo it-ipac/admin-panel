@@ -5,7 +5,8 @@ export type FilterParams = {
 	dateFrom: string | null;
 	dateTo: string | null;
 	// 'instance_created_at' uses order_pkg_instance.created_at
-	// 'item_packed_at' uses MAX(pkd_item.created_at) — the real "packed" date
+	// 'item_packed_at' uses the report RPC's effective packed date:
+	// order_pkg_instance.packed_at, falling back to MAX(pkd_item.created_at).
 	dateFilterMode: "item_packed_at" | "instance_created_at";
 	tags: string[];
 	destinations: string[];
@@ -59,7 +60,7 @@ export type ReportInstanceData = {
 	tag: string | null;
 	status: string;
 	created_at: string;
-	last_packed_at: string | null; // derived: MAX(pkd_item.created_at)
+	last_packed_at: string | null; // effective packed date from the report RPC
 	item_count: number;
 	order_id: string;
 	order_name: string;

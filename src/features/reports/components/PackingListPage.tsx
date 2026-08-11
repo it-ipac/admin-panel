@@ -464,11 +464,24 @@ export const PackingListPage = React.forwardRef<
 			inst: ReportInstanceData,
 			status: (typeof STATUS_OPTIONS)[number],
 		) => {
+			// Keep the first packed timestamp stable when a box is reopened.
+			// The report RPC uses this value in preference to later item activity.
+			const { data: currentInstance, error: currentErr } = await supabase
+				.from("order_pkg_instance")
+				.select("packed_at")
+				.eq("id", inst.id)
+				.single();
+			if (currentErr) throw currentErr;
+
+			const packedAt =
+				currentInstance?.packed_at ??
+				(status === "packed" ? new Date().toISOString() : null);
+
 			const { error: instErr } = await supabase
 				.from("order_pkg_instance")
 				.update({
 					status,
-					packed_at: status === "packed" ? new Date().toISOString() : null,
+					packed_at: packedAt,
 				})
 				.eq("id", inst.id);
 			if (instErr) throw instErr;

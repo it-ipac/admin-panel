@@ -1,0 +1,51 @@
+{
+  "created_on": "2026-08-10",
+  "purpose": "Consolidated box comparison snapshots",
+  "order": {
+    "id": "3b1d8933-f97f-4dc1-9a32-a0266d756566",
+    "name": "2026-0619-V55-TAQA-2-Final Tablet-R1",
+    "client": "TAQA",
+    "client_id": "7549e727-1684-4261-b96b-7524679b3e88"
+  },
+  "before_redo_snapshot": {
+    "captured_at": "2026-08-10T14:30:46.781195Z",
+    "destination": "AIN",
+    "date_mode": "item_packed_at",
+    "date_from": "2026-07-21T00:00:00Z",
+    "date_to": "2026-08-06T23:59:59Z",
+    "box_count": 11,
+    "source_logic": "MAX(pkd_item.created_at) because the report RPC is currently reverted",
+    "boxes": [
+      {"box_instance_id":"0d82f4dd-7750-46e8-a3d6-41e29859f9a6","box_reference":"AIN-P-NAC-#01","instance_status":"design","package_status":"packed","packed_at":null,"item_count":4,"latest_item_created_at":"2026-07-22T11:01:06.259885Z","external_length":261,"external_width":86,"external_height":83},
+      {"box_instance_id":"aae4a9bf-3c80-43dd-80dc-a2891c26e141","box_reference":"AIN-P-NAC-#15","instance_status":"design","package_status":"packed","packed_at":null,"item_count":5,"latest_item_created_at":"2026-07-22T07:58:38.108997Z","external_length":291,"external_width":66,"external_height":78},
+      {"box_instance_id":"19cd90ce-f42b-4776-84a6-0ba566d986b5","box_reference":"AIN-P-NAC-SB-#03","instance_status":"design","package_status":"packed","packed_at":null,"item_count":6,"latest_item_created_at":"2026-07-21T04:44:39.157803Z","external_length":122,"external_width":100,"external_height":68},
+      {"box_instance_id":"b9090d7c-876e-4c05-9958-f521dbc46d81","box_reference":"AIN-P-NAC-SB-#04","instance_status":"design","package_status":"packed","packed_at":null,"item_count":12,"latest_item_created_at":"2026-07-21T05:58:32.330508Z","external_length":122,"external_width":100,"external_height":68},
+      {"box_instance_id":"b5e7d1aa-5adc-4095-a64f-fd14727078d3","box_reference":"AIN-P-NAC-SB-#05","instance_status":"design","package_status":"packed","packed_at":null,"item_count":13,"latest_item_created_at":"2026-07-21T06:04:53.568579Z","external_length":122,"external_width":100,"external_height":68},
+      {"box_instance_id":"ce21d641-70a0-4538-9bda-e223681a656c","box_reference":"AIN-P-NAC-SB-#06","instance_status":"design","package_status":"packed","packed_at":null,"item_count":14,"latest_item_created_at":"2026-07-21T10:50:14.051677Z","external_length":122,"external_width":100,"external_height":68},
+      {"box_instance_id":"07907c05-3384-435a-9985-a322496e90d0","box_reference":"AIN-P-NAC-SB-#07","instance_status":"design","package_status":"packed","packed_at":null,"item_count":9,"latest_item_created_at":"2026-07-21T08:12:35.357241Z","external_length":122,"external_width":100,"external_height":68},
+      {"box_instance_id":"41c77801-f081-4877-93d9-caabc3f978a1","box_reference":"AIN-W-AC-#09","instance_status":"approved","package_status":"packed","packed_at":null,"item_count":1,"latest_item_created_at":"2026-08-03T11:01:28.320903Z","external_length":191,"external_width":156,"external_height":68},
+      {"box_instance_id":"9af775e0-f08c-4027-ad77-bc7b05ca0da7","box_reference":"AIN-W-AC-75414-#05.2","instance_status":"design","package_status":"packed","packed_at":null,"item_count":1,"latest_item_created_at":"2026-07-22T06:24:25.039263Z","external_length":176,"external_width":81,"external_height":234},
+      {"box_instance_id":"1f4f8327-95f0-4281-b385-e5f516c52dbe","box_reference":"AIN-W-NAC-#26","instance_status":"design","package_status":"packed","packed_at":null,"item_count":1,"latest_item_created_at":"2026-07-31T06:56:39.565459Z","external_length":206,"external_width":86,"external_height":98},
+      {"box_instance_id":"bef87632-7894-483a-a14e-e4ef6150d189","box_reference":"AIN-W-NAC-SB-#06","instance_status":"design","package_status":"packed","packed_at":null,"item_count":2,"latest_item_created_at":"2026-08-03T06:56:45.953404Z","external_length":122,"external_width":100,"external_height":68}
+    ]
+  },
+  "count_snapshots": {
+    "from_2026-07-21": [
+      {"label":"taqa-packed-all","package_status":"packed","destination":"all","date_filter":null,"has_items_only":false,"box_count":488},
+      {"label":"taqa-all-status-all","package_status":"all","destination":"all","date_filter":null,"has_items_only":false,"box_count":870},
+      {"label":"item-packed-from-21-july-all","package_status":"all","destination":"all","date_filter":"item_packed_at","date_from":"2026-07-21T00:00:00Z","has_items_only":false,"box_count":20},
+      {"label":"item-packed-from-21-july-ain","package_status":"all","destination":"AIN","date_filter":"item_packed_at","date_from":"2026-07-21T00:00:00Z","has_items_only":false,"box_count":14},
+      {"label":"box-created-from-21-july-all","package_status":"all","destination":"all","date_filter":"instance_created_at","date_from":"2026-07-21T00:00:00Z","has_items_only":false,"box_count":6},
+      {"label":"box-created-from-21-july-ain","package_status":"all","destination":"AIN","date_filter":"instance_created_at","date_from":"2026-07-21T00:00:00Z","has_items_only":false,"box_count":2},
+      {"label":"report-before-redo-ain","package_status":"packed","destination":"AIN","date_filter":"item_packed_at","date_from":"2026-07-21T00:00:00Z","date_to":"2026-08-06T23:59:59Z","has_items_only":true,"box_count":11}
+    ],
+    "from_2026-07-01": [
+      {"label":"taqa-packed-all","package_status":"packed","destination":"all","date_filter":null,"has_items_only":false,"box_count":488},
+      {"label":"taqa-all-status-all","package_status":"all","destination":"all","date_filter":null,"has_items_only":false,"box_count":870},
+      {"label":"item-date-from-2026-07-01-all","package_status":"all","destination":"all","date_filter":"item_packed_at","date_from":"2026-07-01T00:00:00Z","has_items_only":false,"box_count":82},
+      {"label":"item-date-from-2026-07-01-ain","package_status":"all","destination":"AIN","date_filter":"item_packed_at","date_from":"2026-07-01T00:00:00Z","has_items_only":false,"box_count":31},
+      {"label":"box-created-from-2026-07-01-all","package_status":"all","destination":"all","date_filter":"instance_created_at","date_from":"2026-07-01T00:00:00Z","has_items_only":false,"box_count":24},
+      {"label":"box-created-from-2026-07-01-ain","package_status":"all","destination":"AIN","date_filter":"instance_created_at","date_from":"2026-07-01T00:00:00Z","has_items_only":false,"box_count":4}
+    ]
+  }
+}
