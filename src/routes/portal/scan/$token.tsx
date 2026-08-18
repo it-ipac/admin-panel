@@ -267,7 +267,7 @@ function TokenResolver() {
 					</div>
 				</div>
 				<h2 className="mt-6 text-xl font-bold text-neutral-900">
-					Resolving QR Code...
+					Loading QR Code information...
 				</h2>
 				<p className="text-neutral-500 mt-2">Checking security clearance</p>
 			</div>
