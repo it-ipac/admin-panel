@@ -5,12 +5,19 @@ import { useToastContext } from "../../components/ui/ToastProvider";
 import { useAuth } from "../../hooks/useAuth";
 import { auth, db } from "../../lib/supabase";
 
+type PortalLoginSearch = {
+	returnUrl?: string;
+};
+
 export const Route = createFileRoute("/portal/login")({
+	validateSearch: (search: Record<string, unknown>): PortalLoginSearch =>
+		typeof search.returnUrl === "string" ? { returnUrl: search.returnUrl } : {},
 	component: PortalLogin,
 });
 
 function PortalLogin() {
 	const navigate = useNavigate();
+	const { returnUrl: rawReturnUrl } = Route.useSearch();
 	const { user, loading } = useAuth();
 	const { toast } = useToastContext();
 
@@ -18,8 +25,6 @@ function PortalLogin() {
 	const [password, setPassword] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	const searchParams = new window.URLSearchParams(window.location.search);
-	const rawReturnUrl = searchParams.get("returnUrl");
 	const returnUrl = rawReturnUrl?.startsWith("/portal/")
 		? rawReturnUrl
 		: "/portal/projects";

@@ -45,10 +45,7 @@ function TokenResolver() {
 
 				// 2. Identify who owns this entity to find their portal settings
 				let clientId = null;
-				let targetEntity:
-					| { type: "package"; id: string }
-					| { type: "item"; id: string }
-					| null = null;
+				let targetPackageId: string | null = null;
 
 				if (qrData.entity_type === "package") {
 					// New flow: package QR represents an order_pkg_instance id.
@@ -67,6 +64,7 @@ function TokenResolver() {
 					}
 
 					if (pkgInstance) {
+						targetPackageId = String(pkgInstance.id);
 						const orderId =
 							(Array.isArray(pkgInstance.order_pkg_overview)
 								? pkgInstance.order_pkg_overview[0]?.order_id
@@ -85,7 +83,8 @@ function TokenResolver() {
 							clientId = order?.client_id;
 						}
 					} else {
-						// Legacy fallback: token may still target order_packages.id.
+						// Legacy fallback: accept an order_packages token only when it
+						// identifies one physical box unambiguously.
 						const { data: pkg } = await supabase
 							.from("order_packages")
 							.select("order_id")
@@ -93,6 +92,21 @@ function TokenResolver() {
 							.maybeSingle();
 
 						if (pkg?.order_id) {
+							const { data: packageInstances, error: packageInstancesError } =
+								await supabase
+									.from("order_pkg_instance")
+									.select("id")
+									.eq("order_package_id", qrData.entity_id)
+									.limit(2);
+
+							if (packageInstancesError) throw packageInstancesError;
+							if (packageInstances?.length !== 1) {
+								throw new Error(
+									"This QR code does not identify a single package.",
+								);
+							}
+							targetPackageId = String(packageInstances[0].id);
+
 							const { data: order } = await supabase
 								.from("orders")
 								.select("client_id")
@@ -101,23 +115,33 @@ function TokenResolver() {
 							clientId = order?.client_id;
 						}
 					}
-
-					targetEntity = {
-						type: "package",
-						id: String(qrData.entity_id),
-					};
 				} else if (qrData.entity_type === "item") {
-					// Legacy: token points to items_db
+					// Legacy item tokens are usable only when every matching packed
+					// record belongs to one exact physical box.
 					const { data: mDb } = await supabase
 						.from("items_db")
 						.select("client_id")
 						.eq("id", qrData.entity_id)
 						.single();
 					clientId = mDb?.client_id;
-					targetEntity = {
-						type: "item",
-						id: String(qrData.entity_id),
-					};
+
+					const { data: packedItems, error: packedItemsError } = await supabase
+						.from("pkd_item")
+						.select("pkg_instance_id")
+						.eq("maintenance_db_id", qrData.entity_id);
+
+					if (packedItemsError) throw packedItemsError;
+					const packageIds = [
+						...new Set(
+							(packedItems || [])
+								.map((item: any) => item.pkg_instance_id)
+								.filter(Boolean),
+						),
+					];
+					if (packageIds.length !== 1) {
+						throw new Error("This QR code does not identify a single package.");
+					}
+					targetPackageId = String(packageIds[0]);
 				} else if (qrData.entity_type === "pkd_item") {
 					// New flow: token points to a specific pkd_item (physical packed instance)
 					const { data: pkdItem } = await supabase
@@ -135,6 +159,9 @@ function TokenResolver() {
 						.maybeSingle();
 
 					if (pkdItem) {
+						targetPackageId = pkdItem.pkg_instance_id
+							? String(pkdItem.pkg_instance_id)
+							: null;
 						const pkgInstance = Array.isArray(pkdItem.order_pkg_instance)
 							? pkdItem.order_pkg_instance[0]
 							: pkdItem.order_pkg_instance;
@@ -151,17 +178,12 @@ function TokenResolver() {
 							clientId = order?.client_id;
 						}
 					}
-
-					targetEntity = {
-						type: "item",
-						id: String(qrData.entity_id),
-					};
 				} else {
 					throw new Error("Unsupported QR entity type.");
 				}
 
-				if (!clientId) {
-					throw new Error("Cannot identify the owner of this item.");
+				if (!clientId || !targetPackageId) {
+					throw new Error("Cannot identify the package for this QR code.");
 				}
 
 				// 3. Look up Client Portal Settings
@@ -191,7 +213,7 @@ function TokenResolver() {
 						// User is not logged in, redirect them to login with a returnUrl to this exact scan endpoint
 						toast({
 							title: "Authentication Required",
-							description: "Please log in to view this item.",
+							description: "Please log in to view this package.",
 							variant: "info",
 						});
 						navigate({
@@ -204,7 +226,7 @@ function TokenResolver() {
 					// User IS logged in. We must verify they belong to THIS exact client
 					const { data: profile } = await db.getProfile(user.id);
 
-					// Staff roles may scan/view any client's item. Everyone else
+					// Staff roles may scan/view any client's package. Everyone else
 					// (client, sales, unknown) is scoped to their own client_id.
 					const STAFF_VIEW_ALL_ROLES = [
 						"admin",
@@ -217,28 +239,17 @@ function TokenResolver() {
 					const isStaff = role ? STAFF_VIEW_ALL_ROLES.includes(role) : false;
 					if (!isStaff && profile.client_id !== clientId) {
 						throw new Error(
-							"You do not have permission to view items belonging to this client.",
+							"You do not have permission to view packages belonging to this client.",
 						);
 					}
 				}
 
-				if (!targetEntity) {
-					throw new Error("Unable to resolve QR destination.");
-				}
-
-				// 5. All checks passed! Redirect to the actual resource page
+				// 5. All checks passed! Redirect to the exact package page.
 				if (isMounted) {
-					if (targetEntity.type === "package") {
-						navigate({
-							to: "/portal/package/$id",
-							params: { id: targetEntity.id },
-						});
-					} else {
-						navigate({
-							to: "/portal/item/$id",
-							params: { id: targetEntity.id },
-						});
-					}
+					navigate({
+						to: "/portal/package/$id",
+						params: { id: targetPackageId },
+					});
 				}
 			} catch (e: any) {
 				if (isMounted) {
