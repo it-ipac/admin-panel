@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Loader2, PackageX, ShieldAlert } from "lucide-react";
+import { Loader2, PackageX, QrCode, ShieldAlert } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../../hooks/useAuth";
 import { auth, db, supabase } from "../../../lib/supabase";
@@ -8,6 +8,8 @@ import { auth, db, supabase } from "../../../lib/supabase";
 export const Route = createFileRoute("/portal/projects/")({
 	component: PortalProjects,
 });
+
+const QR_DRIVEN_PORTAL = true;
 
 function PortalProjects() {
 	const navigate = useNavigate();
@@ -71,7 +73,7 @@ function PortalProjects() {
 			if (error) throw error;
 			return data || [];
 		},
-		enabled: !!clientId,
+		enabled: !QR_DRIVEN_PORTAL && !!clientId,
 	});
 
 	const searchToken = itemSearch.trim().toLowerCase();
@@ -158,6 +160,51 @@ function PortalProjects() {
 				>
 					Sign out & try again
 				</button>
+			</div>
+		);
+	}
+
+	if (QR_DRIVEN_PORTAL) {
+		return (
+			<div className="min-h-screen bg-neutral-50">
+				<header className="bg-white border-b border-neutral-200">
+					<div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+						<div className="flex justify-between items-center h-16">
+							<div className="flex items-center gap-3">
+								<div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+									<QrCode className="w-5 h-5 text-white" />
+								</div>
+								<h1 className="text-lg font-bold text-neutral-900">
+									IPAC Portal
+								</h1>
+							</div>
+							<button
+								className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
+								onClick={async () => {
+									await auth.signOut();
+									navigate({ to: "/portal/login" });
+								}}
+							>
+								Log out
+							</button>
+						</div>
+					</div>
+				</header>
+
+				<main className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
+					<section className="w-full max-w-lg rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
+						<div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
+							<QrCode className="h-8 w-8" />
+						</div>
+						<h2 className="text-2xl font-bold text-neutral-900">
+							Scan a QR code to view package details.
+						</h2>
+						<p className="mt-3 text-neutral-500">
+							Use the camera on your device to scan the QR code attached to a
+							box or package.
+						</p>
+					</section>
+				</main>
 			</div>
 		);
 	}
