@@ -104,11 +104,7 @@ function PortalLogin() {
 			<div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-neutral-100 p-8 relative z-10">
 				<div className="text-center mb-10">
 					<div className="mx-auto mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-neutral-200">
-						<img
-							src="/IPAC_logo.svg"
-							alt="IPAC"
-							className="h-10 w-auto"
-						/>
+						<img src="/IPAC_logo.svg" alt="IPAC" className="h-10 w-auto" />
 					</div>
 					<p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-primary-700">
 						IPAC

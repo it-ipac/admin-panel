@@ -570,12 +570,12 @@ function PackageView() {
 	}
 
 	return (
-			<div className="min-h-screen bg-neutral-50 pb-24 dark:bg-steel-950">
-				<PortalHeader
-					title="Package Details"
-					onScan={() => setScannerOpen(true)}
-					activePage="package"
-				/>
+		<div className="min-h-screen bg-neutral-50 pb-24 dark:bg-steel-950">
+			<PortalHeader
+				title="Package Details"
+				onScan={() => setScannerOpen(true)}
+				activePage="package"
+			/>
 
 			<main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-5">
 				<div className="flex items-center justify-between gap-4 rounded-2xl border border-primary-200 bg-white px-4 py-3 shadow-sm sm:px-5 dark:border-steel-700 dark:bg-steel-900/85">

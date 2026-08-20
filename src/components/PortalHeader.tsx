@@ -69,14 +69,8 @@ export function PortalHeader({
 		}
 	};
 
-	const homeButtonClass =
-		"inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-[background-color,border-color,color,box-shadow,transform] duration-200 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:translate-y-0";
-	const homeActiveClass =
-		activePage === "home"
-			? "border-neutral-200 bg-white text-neutral-900 shadow-sm dark:border-steel-700 dark:bg-steel-800 dark:text-white"
-			: "border-transparent bg-transparent text-neutral-500 hover:border-neutral-200 hover:bg-neutral-100 hover:text-neutral-900 dark:text-steel-300 dark:hover:border-steel-700 dark:hover:bg-steel-800 dark:hover:text-white";
 	const scanButtonClass =
-		"inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-transparent bg-primary-600 text-white shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:bg-primary-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:translate-y-0 dark:bg-primary-500 dark:hover:bg-primary-400";
+		"inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-transparent bg-primary-600 px-3.5 text-sm font-semibold text-white shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:bg-primary-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:translate-y-0 dark:bg-primary-500 dark:hover:bg-primary-400";
 
 	return (
 		<header className="sticky top-0 z-40 border-b border-app-border bg-app-surface/95 shadow-[0_1px_0_rgba(15,23,42,0.04)] backdrop-blur-xl dark:shadow-[0_1px_0_rgba(15,23,42,0.2)]">
@@ -101,23 +95,19 @@ export function PortalHeader({
 					</Link>
 
 					<div className="ml-1 flex shrink-0 items-center gap-1.5">
-						<Link
-							to="/portal/projects"
-							className={`${homeButtonClass} ${homeActiveClass}`}
-							aria-label="Home"
-							title="Home"
-							aria-current={activePage === "home" ? "page" : undefined}
-						>
-							<Home className="h-4 w-4" aria-hidden="true" />
-						</Link>
-						<button
-							type="button"
-							onClick={onScan}
-							className={scanButtonClass}
-							aria-label="Scan QR"
-							title="Scan QR"
-						>
-							<Camera className="h-4 w-4" aria-hidden="true" />
+						{activePage !== "home" && (
+							<Link
+								to="/portal/projects"
+								className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-app-border bg-app-surface px-3.5 text-sm font-semibold text-app-text-strong shadow-sm transition-[background-color,border-color,color,box-shadow,transform] duration-200 hover:-translate-y-px hover:bg-app-surface-muted hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:translate-y-0"
+							>
+								<Home className="h-4 w-4" aria-hidden="true" />
+								<span className="hidden sm:inline">Home</span>
+							</Link>
+						)}
+						<button type="button" onClick={onScan} className={scanButtonClass}>
+							<Camera className="h-4 w-4 text-white" aria-hidden="true" />
+							<span className="text-white sm:hidden">Scan</span>
+							<span className="hidden text-white sm:inline">Scan package</span>
 						</button>
 					</div>
 
@@ -218,7 +208,6 @@ export function PortalHeader({
 						)}
 					</div>
 				</div>
-
 			</div>
 		</header>
 	);

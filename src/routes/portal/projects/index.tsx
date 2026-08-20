@@ -1,16 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
+	ArrowRight,
 	Camera,
-	ChevronRight,
+	Check,
 	Images,
 	Keyboard,
 	Loader2,
+	LockKeyhole,
 	MapPin,
 	PackageCheck,
 	PackageX,
 	Ruler,
+	ScanLine,
 	ShieldAlert,
+	ShieldCheck,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { QrScanner } from "../../../components/orders/orderId/modals/QrScanner";
@@ -21,51 +25,94 @@ import { auth, db, supabase } from "../../../lib/supabase";
 
 export const Route = createFileRoute("/portal/projects/")({
 	component: PortalProjects,
+	head: () => ({
+		meta: [{ title: "Package Portal | IPAC" }],
+	}),
 });
 
 const QR_DRIVEN_PORTAL = true;
 
 function PortalRecordFlowIllustration() {
 	const recordSignals = [
-		{ label: "Contents", icon: PackageCheck },
-		{ label: "Dimensions", icon: Ruler },
-		{ label: "Destination", icon: MapPin },
-		{ label: "Photos", icon: Images },
+		{
+			label: "Verified contents",
+			detail: "See exactly what was packed",
+			icon: PackageCheck,
+		},
+		{
+			label: "Dimensions",
+			detail: "Review size and package details",
+			icon: Ruler,
+		},
+		{
+			label: "Destination",
+			detail: "Confirm where the package is going",
+			icon: MapPin,
+		},
+		{
+			label: "Photo record",
+			detail: "Access supporting visual evidence",
+			icon: Images,
+		},
 	];
 
 	return (
-		<div
-			role="img"
-			aria-label="Scan the IPAC QR label to open the package record"
-			className="relative overflow-hidden rounded-[1.25rem] border border-slate-700 bg-[#0c1728] shadow-[0_20px_40px_-30px_rgba(15,23,42,0.9)]"
-		>
-			<div className="relative px-3 pb-3 pt-3 sm:px-4 sm:pt-4">
-				<div className="relative flex min-h-[104px] items-center justify-center overflow-hidden rounded-lg border border-slate-600/70 bg-[#17263b] px-2 py-3 sm:min-h-[112px] sm:px-4">
+		<div className="overflow-hidden rounded-[1.5rem] border border-app-border bg-app-surface shadow-[0_24px_70px_-42px_rgba(15,23,42,0.55)]">
+			<div className="border-b border-app-border bg-neutral-950 p-5 sm:p-6 dark:bg-steel-950">
+				<div className="mb-5 flex items-start justify-between gap-4">
+					<div>
+						<p className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary-300">
+							Your package label
+						</p>
+						<h3 className="mt-1.5 text-lg font-semibold tracking-tight text-white">
+							One scan. Complete visibility.
+						</h3>
+					</div>
+					<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5">
+						<ScanLine className="h-5 w-5 text-primary-300" aria-hidden="true" />
+					</span>
+				</div>
+
+				<div className="relative flex min-h-[118px] items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[#17263b] px-3 py-5 sm:min-h-[132px] sm:px-5">
+					<div
+						className="absolute inset-y-4 left-1/2 w-px bg-primary-400/25"
+						aria-hidden="true"
+					/>
+					<div
+						className="absolute inset-x-4 top-1/2 h-px bg-primary-400/25"
+						aria-hidden="true"
+					/>
 					<img
 						src="/image.png"
-						alt="Full IPAC package label for package AUH-P-AC-SB-BOX number 01"
-						className="relative z-0 block h-auto w-full max-w-[560px] rounded-[2px] shadow-[0_12px_24px_-10px_rgba(0,0,0,0.75)]"
+						alt="Example IPAC package label with a QR code"
+						className="relative z-10 block h-auto w-full max-w-[560px] rounded-sm shadow-[0_14px_28px_-10px_rgba(0,0,0,0.8)]"
 					/>
 				</div>
-				<div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-slate-300">
-					<span>Full label</span>
-					<span className="text-slate-500">·</span>
-					<span className="text-primary-200">QR code only</span>
+				<div className="mt-3 flex items-center gap-2 text-xs text-steel-300">
+					<Check className="h-3.5 w-3.5 text-success-400" aria-hidden="true" />
+					Scan the QR code printed on the yellow label
 				</div>
 			</div>
 
-			<div className="border-t border-slate-700 bg-app-surface px-3 py-3 dark:bg-steel-900 sm:px-4">
-				<div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-					{recordSignals.map(({ label, icon: Icon }) => (
-						<div
-							key={label}
-							className="flex min-w-0 items-center gap-1.5 rounded-lg border border-app-border bg-app-surface-muted px-2 py-1.5 text-[10px] font-semibold text-app-text-strong"
-						>
-							<Icon className="h-3.5 w-3.5 shrink-0 text-primary-600 dark:text-primary-300" />
-							<span className="truncate">{label}</span>
-						</div>
-					))}
-				</div>
+			<div className="grid gap-px bg-app-border sm:grid-cols-2">
+				{recordSignals.map(({ label, detail, icon: Icon }) => (
+					<div
+						key={label}
+						className="flex min-w-0 items-start gap-3 bg-app-surface px-4 py-4"
+					>
+						<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-300">
+							<Icon className="h-4 w-4" aria-hidden="true" />
+						</span>
+						<span className="min-w-0">
+							<span className="block text-xs font-semibold text-app-text-strong">
+								{label}
+							</span>
+							<span className="mt-0.5 block text-[11px] leading-4 text-app-text-muted">
+								{detail}
+							</span>
+						</span>
+					</div>
+				))}
 			</div>
 		</div>
 	);
@@ -246,104 +293,148 @@ function PortalProjects() {
 	if (QR_DRIVEN_PORTAL) {
 		return (
 			<div className="min-h-screen bg-app-bg">
+				<a
+					href="#package-access"
+					className="sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:not-sr-only focus:rounded-lg focus:bg-neutral-950 focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+				>
+					Skip to package access
+				</a>
 				<PortalHeader
-					title="Client Overview"
+					title="Package Portal"
 					onScan={() => setScannerOpen(true)}
 					activePage="home"
+					maxWidth="max-w-7xl"
 				/>
 
-				<main className="h-[calc(100svh-4rem)] overflow-hidden px-3 py-3 sm:px-4 sm:py-4">
-					<section className="mx-auto grid h-full w-full max-w-5xl overflow-hidden rounded-[1.5rem] border border-app-border bg-app-surface shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)] md:grid-cols-[1.12fr_0.88fr]">
-						<div className="flex min-h-0 items-center justify-center px-4 py-5 sm:px-8 sm:py-6">
-							<div className="w-full max-w-2xl text-center">
-								<div className="flex items-center justify-center gap-3">
-									<div className="flex h-9 w-9 items-center justify-center rounded-xl border border-app-border bg-app-surface-muted p-2">
-										<img
-											src="/IPAC_logo.svg"
-											alt="IPAC"
-											className="h-full w-full"
-										/>
-									</div>
-									<div className="text-left">
-										<div className="text-[10px] font-bold uppercase tracking-[0.28em] text-app-text-muted">
-											IPAC
-										</div>
-										<div className="text-sm font-medium text-app-text-strong">
-											Package information for your team
-										</div>
-									</div>
-								</div>
-								<h2 className="portal-hero-headline animate-fade-in mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">
-									Your package is ready to view.
-								</h2>
-								<p className="mx-auto mt-2 max-w-xl text-sm leading-5 text-app-text-muted">
-									Scan the IPAC QR label or use the token below to open the
-									exact package record.
-								</p>
+				<main
+					id="package-access"
+					tabIndex={-1}
+					className="relative isolate overflow-hidden focus:outline-none"
+				>
+					<div
+						className="pointer-events-none absolute inset-0 -z-10"
+						aria-hidden="true"
+					>
+						<div className="absolute -left-40 top-12 h-80 w-80 rounded-full bg-primary-200/30 blur-3xl dark:bg-primary-900/15" />
+						<div className="absolute -right-32 top-1/3 h-72 w-72 rounded-full bg-aqua-200/20 blur-3xl dark:bg-aqua-900/10" />
+					</div>
 
-								<div className="mx-auto mt-5 max-w-2xl rounded-[1.25rem] border-2 border-primary-200 bg-primary-50/40 p-2 shadow-[0_20px_50px_-30px_rgba(37,99,235,0.55)] dark:border-primary-800/70 dark:bg-primary-950/20 sm:p-3">
-									<button
-										type="button"
-										onClick={() => setScannerOpen(true)}
-										className="group flex min-h-16 w-full items-center justify-between gap-4 rounded-xl bg-primary-600 px-4 py-3 text-left text-white shadow-lg shadow-primary-900/20 transition-colors hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-primary-500 dark:hover:bg-primary-400"
-									>
-										<div className="flex items-center gap-4">
-											<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20">
-												<Camera className="h-4 w-4" />
-											</div>
-											<div>
-												<div className="text-sm font-semibold">Open camera</div>
-												<div className="text-xs text-white/75">
-													Scan the QR label with your device
-												</div>
-											</div>
-										</div>
-										<ChevronRight className="h-5 w-5 text-white/75 transition-transform group-hover:translate-x-0.5" />
-									</button>
+					<section className="mx-auto grid w-full max-w-7xl items-center gap-10 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16 lg:px-8 lg:py-16 xl:py-20">
+						<div className="mx-auto w-full max-w-xl lg:mx-0">
+							<div className="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary-800 dark:border-primary-800 dark:bg-primary-950/40 dark:text-primary-200">
+								<ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+								Secure client access
+							</div>
 
-									<div className="my-3 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-app-text-muted">
-										<span className="h-px flex-1 bg-app-border" />
-										<span>Or use a token</span>
-										<span className="h-px flex-1 bg-app-border" />
-									</div>
+							<h2 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-[-0.035em] text-app-text-strong sm:text-5xl">
+								Open any package record in seconds.
+							</h2>
+							<p className="mt-4 max-w-lg text-base leading-7 text-app-text-muted sm:text-lg">
+								Scan the QR code on an IPAC label to view its contents,
+								dimensions, destination, and photo record.
+							</p>
 
-									<div className="rounded-xl border border-app-border bg-app-surface p-3 text-left">
-										<label className="mb-2 flex items-center gap-2 text-sm font-semibold text-app-text-strong">
-											<Keyboard className="h-4 w-4 text-app-text-muted" />
-											Paste token or scan URL
-										</label>
-										<div className="flex flex-col gap-2 sm:flex-row">
-											<input
-												type="text"
-												value={qrInput}
-												onChange={(event) => setQrInput(event.target.value)}
-												onKeyDown={(event) => {
-													if (event.key === "Enter") {
-														event.preventDefault();
-														handleQrSubmit(qrInput);
-													}
-												}}
-												placeholder="Paste a token or scan URL"
-												className="min-h-12 flex-1 rounded-xl border border-app-border bg-app-surface-muted px-4 py-3 text-sm text-app-text-strong placeholder:text-app-text-muted focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+							<div className="mt-8 rounded-[1.5rem] border border-app-border bg-app-surface p-2 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.55)] sm:p-3">
+								<button
+									type="button"
+									onClick={() => setScannerOpen(true)}
+									className="group flex min-h-20 w-full items-center justify-between gap-4 rounded-2xl bg-primary-600 px-4 py-4 text-left text-white shadow-lg shadow-primary-900/20 transition-[background-color,box-shadow,transform] hover:-translate-y-0.5 hover:bg-primary-700 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:translate-y-0 dark:bg-primary-500 dark:hover:bg-primary-400"
+								>
+									<div className="flex items-center gap-4">
+										<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
+											<Camera
+												className="h-5 w-5 text-white"
+												aria-hidden="true"
 											/>
-											<button
-												type="button"
-												onClick={() => handleQrSubmit(qrInput)}
-												disabled={!qrInput.trim()}
-												className="inline-flex min-h-12 items-center justify-center rounded-xl bg-neutral-950 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
-											>
-												Go
-											</button>
+										</div>
+										<div>
+											<div className="text-base font-semibold text-white">
+												Scan package QR code
+											</div>
+											<div className="mt-0.5 text-xs text-white/75">
+												Use your device camera
+											</div>
 										</div>
 									</div>
+									<ArrowRight
+										className="h-5 w-5 text-white/80 transition-transform group-hover:translate-x-1"
+										aria-hidden="true"
+									/>
+								</button>
+
+								<div className="my-4 flex items-center gap-3 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-app-text-muted">
+									<span className="h-px flex-1 bg-app-border" />
+									<span>Or enter label details</span>
+									<span className="h-px flex-1 bg-app-border" />
 								</div>
+
+								<form
+									onSubmit={(event) => {
+										event.preventDefault();
+										handleQrSubmit(qrInput);
+									}}
+									className="rounded-xl bg-app-surface p-1 text-left"
+								>
+									<label
+										htmlFor="package-token"
+										className="mb-2 flex items-center gap-2 text-sm font-semibold text-app-text-strong"
+									>
+										<Keyboard
+											className="h-4 w-4 text-app-text-muted"
+											aria-hidden="true"
+										/>
+										Package token or scan URL
+									</label>
+									<div className="flex flex-col gap-2 sm:flex-row">
+										<input
+											id="package-token"
+											type="text"
+											value={qrInput}
+											onChange={(event) => setQrInput(event.target.value)}
+											placeholder="e.g. the code below the QR label"
+											autoComplete="off"
+											spellCheck={false}
+											aria-describedby="package-token-help"
+											className="min-h-12 flex-1 rounded-xl border border-app-border bg-app-surface-muted px-4 py-3 text-sm text-app-text-strong placeholder:text-app-text-muted focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+										/>
+										<button
+											type="submit"
+											disabled={!qrInput.trim()}
+											className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-steel-950 dark:hover:bg-steel-800"
+										>
+											Open record
+											<ArrowRight className="h-4 w-4" aria-hidden="true" />
+										</button>
+									</div>
+									<p
+										id="package-token-help"
+										className="mt-2 px-1 text-xs leading-5 text-app-text-muted"
+									>
+										You can paste the complete scan link or enter its token.
+									</p>
+								</form>
+							</div>
+
+							<div className="mt-5 flex flex-col gap-2 text-xs text-app-text-muted sm:flex-row sm:items-center sm:gap-5">
+								<span className="inline-flex items-center gap-2">
+									<LockKeyhole
+										className="h-3.5 w-3.5 text-success-600 dark:text-success-400"
+										aria-hidden="true"
+									/>
+									Protected by your signed-in account
+								</span>
+								<span className="inline-flex items-center gap-2">
+									<Camera
+										className="h-3.5 w-3.5 text-primary-600 dark:text-primary-300"
+										aria-hidden="true"
+									/>
+									Camera opens only when requested
+								</span>
 							</div>
 						</div>
 
-						<div className="flex min-h-0 items-center border-t border-app-border bg-app-surface-muted/40 px-4 py-4 md:border-l md:border-t-0 sm:px-6">
-							<div className="w-full">
-								<PortalRecordFlowIllustration />
-							</div>
+						<div className="mx-auto w-full max-w-xl lg:mx-0">
+							<PortalRecordFlowIllustration />
 						</div>
 					</section>
 				</main>

@@ -127,8 +127,9 @@ function PhotoGallery({
 	};
 	const showLightboxPhoto = (
 		index: number,
-		direction: "forward" | "backward" =
-			index > (lightbox ?? active) ? "forward" : "backward",
+		direction: "forward" | "backward" = index > (lightbox ?? active)
+			? "forward"
+			: "backward",
 	) => {
 		if (index === lightbox) return;
 		setLightboxDirection(direction);
@@ -185,7 +186,10 @@ function PhotoGallery({
 						}}
 						onPointerUp={() => {
 							interactionRef.current.isPointerDown = false;
-							if (!interactionRef.current.moved && !interactionRef.current.suppressClick) {
+							if (
+								!interactionRef.current.moved &&
+								!interactionRef.current.suppressClick
+							) {
 								openLightbox();
 							}
 						}}
@@ -309,7 +313,11 @@ function PhotoGallery({
 					>
 						<X className="w-7 h-7" />
 					</button>
-					<AnimatePresence initial={false} mode="wait" custom={lightboxDirection}>
+					<AnimatePresence
+						initial={false}
+						mode="wait"
+						custom={lightboxDirection}
+					>
 						<motion.img
 							key={photos[lightbox].id}
 							custom={lightboxDirection}
