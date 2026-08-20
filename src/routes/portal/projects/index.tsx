@@ -35,6 +35,7 @@ function PortalRecordFlowIllustration() {
 
 	return (
 		<div
+			role="img"
 			aria-label="Scan the IPAC QR label to open the package record"
 			className="relative overflow-hidden rounded-[1.25rem] border border-slate-700 bg-[#0c1728] shadow-[0_20px_40px_-30px_rgba(15,23,42,0.9)]"
 		>
@@ -255,82 +256,89 @@ function PortalProjects() {
 					<section className="mx-auto grid h-full w-full max-w-5xl overflow-hidden rounded-[1.5rem] border border-app-border bg-app-surface shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)] md:grid-cols-[1.12fr_0.88fr]">
 						<div className="flex min-h-0 items-center justify-center px-4 py-5 sm:px-8 sm:py-6">
 							<div className="w-full max-w-2xl text-center">
-							<div className="flex items-center justify-center gap-3">
-								<div className="flex h-9 w-9 items-center justify-center rounded-xl border border-app-border bg-app-surface-muted p-2">
-									<img src="/IPAC_logo.svg" alt="IPAC" className="h-full w-full" />
-								</div>
-								<div className="text-left">
-									<div className="text-[10px] font-bold uppercase tracking-[0.28em] text-app-text-muted">
-										IPAC
-									</div>
-									<div className="text-sm font-medium text-app-text-strong">
-										Package information for your team
-									</div>
-								</div>
-							</div>
-							<h2 className="portal-hero-headline animate-fade-in mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">
-								Your package is ready to view.
-							</h2>
-							<p className="mx-auto mt-2 max-w-xl text-sm leading-5 text-app-text-muted">
-								Scan the IPAC QR label or use the token below to open the exact package record.
-							</p>
-
-							<div className="mx-auto mt-5 max-w-2xl rounded-[1.25rem] border-2 border-primary-200 bg-primary-50/40 p-2 shadow-[0_20px_50px_-30px_rgba(37,99,235,0.55)] dark:border-primary-800/70 dark:bg-primary-950/20 sm:p-3">
-								<button
-									type="button"
-									onClick={() => setScannerOpen(true)}
-									className="group flex min-h-16 w-full items-center justify-between gap-4 rounded-xl bg-primary-600 px-4 py-3 text-left text-white shadow-lg shadow-primary-900/20 transition-colors hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-primary-500 dark:hover:bg-primary-400"
-								>
-									<div className="flex items-center gap-4">
-										<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20">
-											<Camera className="h-4 w-4" />
-										</div>
-										<div>
-											<div className="text-sm font-semibold">Open camera</div>
-											<div className="text-xs text-white/75">Scan the QR label with your device</div>
-										</div>
-									</div>
-									<ChevronRight className="h-5 w-5 text-white/75 transition-transform group-hover:translate-x-0.5" />
-								</button>
-
-								<div className="my-3 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-app-text-muted">
-									<span className="h-px flex-1 bg-app-border" />
-									<span>Or use a token</span>
-									<span className="h-px flex-1 bg-app-border" />
-								</div>
-
-								<div className="rounded-xl border border-app-border bg-app-surface p-3 text-left">
-									<label className="mb-2 flex items-center gap-2 text-sm font-semibold text-app-text-strong">
-										<Keyboard className="h-4 w-4 text-app-text-muted" />
-										Paste token or scan URL
-									</label>
-									<div className="flex flex-col gap-2 sm:flex-row">
-										<input
-											type="text"
-											value={qrInput}
-											onChange={(event) => setQrInput(event.target.value)}
-											onKeyDown={(event) => {
-												if (event.key === "Enter") {
-													event.preventDefault();
-													handleQrSubmit(qrInput);
-												}
-											}}
-											placeholder="Paste a token or scan URL"
-											className="min-h-12 flex-1 rounded-xl border border-app-border bg-app-surface-muted px-4 py-3 text-sm text-app-text-strong placeholder:text-app-text-muted focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+								<div className="flex items-center justify-center gap-3">
+									<div className="flex h-9 w-9 items-center justify-center rounded-xl border border-app-border bg-app-surface-muted p-2">
+										<img
+											src="/IPAC_logo.svg"
+											alt="IPAC"
+											className="h-full w-full"
 										/>
-										<button
-											type="button"
-											onClick={() => handleQrSubmit(qrInput)}
-											disabled={!qrInput.trim()}
-											className="inline-flex min-h-12 items-center justify-center rounded-xl bg-neutral-950 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
-										>
-											Go
-										</button>
+									</div>
+									<div className="text-left">
+										<div className="text-[10px] font-bold uppercase tracking-[0.28em] text-app-text-muted">
+											IPAC
+										</div>
+										<div className="text-sm font-medium text-app-text-strong">
+											Package information for your team
+										</div>
+									</div>
+								</div>
+								<h2 className="portal-hero-headline animate-fade-in mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">
+									Your package is ready to view.
+								</h2>
+								<p className="mx-auto mt-2 max-w-xl text-sm leading-5 text-app-text-muted">
+									Scan the IPAC QR label or use the token below to open the
+									exact package record.
+								</p>
+
+								<div className="mx-auto mt-5 max-w-2xl rounded-[1.25rem] border-2 border-primary-200 bg-primary-50/40 p-2 shadow-[0_20px_50px_-30px_rgba(37,99,235,0.55)] dark:border-primary-800/70 dark:bg-primary-950/20 sm:p-3">
+									<button
+										type="button"
+										onClick={() => setScannerOpen(true)}
+										className="group flex min-h-16 w-full items-center justify-between gap-4 rounded-xl bg-primary-600 px-4 py-3 text-left text-white shadow-lg shadow-primary-900/20 transition-colors hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-primary-500 dark:hover:bg-primary-400"
+									>
+										<div className="flex items-center gap-4">
+											<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20">
+												<Camera className="h-4 w-4" />
+											</div>
+											<div>
+												<div className="text-sm font-semibold">Open camera</div>
+												<div className="text-xs text-white/75">
+													Scan the QR label with your device
+												</div>
+											</div>
+										</div>
+										<ChevronRight className="h-5 w-5 text-white/75 transition-transform group-hover:translate-x-0.5" />
+									</button>
+
+									<div className="my-3 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-app-text-muted">
+										<span className="h-px flex-1 bg-app-border" />
+										<span>Or use a token</span>
+										<span className="h-px flex-1 bg-app-border" />
+									</div>
+
+									<div className="rounded-xl border border-app-border bg-app-surface p-3 text-left">
+										<label className="mb-2 flex items-center gap-2 text-sm font-semibold text-app-text-strong">
+											<Keyboard className="h-4 w-4 text-app-text-muted" />
+											Paste token or scan URL
+										</label>
+										<div className="flex flex-col gap-2 sm:flex-row">
+											<input
+												type="text"
+												value={qrInput}
+												onChange={(event) => setQrInput(event.target.value)}
+												onKeyDown={(event) => {
+													if (event.key === "Enter") {
+														event.preventDefault();
+														handleQrSubmit(qrInput);
+													}
+												}}
+												placeholder="Paste a token or scan URL"
+												className="min-h-12 flex-1 rounded-xl border border-app-border bg-app-surface-muted px-4 py-3 text-sm text-app-text-strong placeholder:text-app-text-muted focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+											/>
+											<button
+												type="button"
+												onClick={() => handleQrSubmit(qrInput)}
+												disabled={!qrInput.trim()}
+												className="inline-flex min-h-12 items-center justify-center rounded-xl bg-neutral-950 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+											>
+												Go
+											</button>
+										</div>
 									</div>
 								</div>
 							</div>
 						</div>
-					</div>
 
 						<div className="flex min-h-0 items-center border-t border-app-border bg-app-surface-muted/40 px-4 py-4 md:border-l md:border-t-0 sm:px-6">
 							<div className="w-full">

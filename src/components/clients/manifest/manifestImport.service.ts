@@ -250,9 +250,7 @@ const upsertItems = async (
 	const payloads = Array.from(byItem.entries()).map(([itemNum, { rep }]) => {
 		const existing = existingByNum.get(itemNum);
 		const description =
-			(existing?.description && existing.description.trim()) ||
-			rep.description ||
-			null;
+			existing?.description?.trim() || rep.description || null;
 		return {
 			client_id: clientId,
 			item_num: itemNum,
