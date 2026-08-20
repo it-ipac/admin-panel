@@ -32,29 +32,13 @@ const FULL_ACCESS_ROLES: ReadonlySet<string> = new Set([
 	"sales",
 ]);
 
-/**
- * Pages a `client` may access (read-only, scoped to their own data by RLS).
- * Clients use the dedicated /my-orders page, NOT the internal staff /orders pages.
- */
-const CLIENT_PAGES: readonly string[] = [
-	"/dashboard",
-	"/my-orders",
-	"/reports",
-];
-
-/**
- * Temporary kill switch for client access to the admin panel.
- * Flip to `false` when you want client users to regain the limited pages above.
- */
-const BLOCK_CLIENT_ADMIN_PANEL = true;
-
 /** Pages the given role may access. Empty array = no admin-panel access. */
 export function allowedPagesForRole(
 	role: string | null | undefined,
 ): readonly string[] {
 	if (!role) return [];
 	if (FULL_ACCESS_ROLES.has(role)) return ADMIN_PAGES;
-	if (role === "client") return BLOCK_CLIENT_ADMIN_PANEL ? [] : CLIENT_PAGES;
+	if (role === "client") return [];
 	// packer and any unknown role: no admin-panel access (they use the ops app / portal).
 	return [];
 }

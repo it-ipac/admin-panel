@@ -7,6 +7,8 @@ import {
 	Link,
 	Outlet,
 	Scripts,
+	useLocation,
+	useNavigate,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
@@ -114,13 +116,42 @@ function RootComponent() {
 	const authState = useAuthState();
 	const [isHydrated, setIsHydrated] = useState(false);
 	const { theme } = Route.useLoaderData();
+	const location = useLocation();
+	const navigate = useNavigate();
 	const showTanStackDevtools =
 		import.meta.env.DEV &&
 		import.meta.env.VITE_ENABLE_TANSTACK_DEVTOOLS === "true";
+	const role = authState.profile?.roles?.name ?? null;
+	const isClientUser = role === "client";
+	const isPortalRoute = location.pathname.startsWith("/portal");
+	const forcePortalAccess =
+		!authState.loading && !!authState.user && !!authState.profile && isClientUser && !isPortalRoute;
 
 	useEffect(() => {
 		setIsHydrated(true);
 	}, []);
+
+	useEffect(() => {
+		if (!forcePortalAccess) return;
+
+		navigate({
+			to: "/portal/login",
+			search: { returnUrl: "/portal/projects" },
+		});
+	}, [forcePortalAccess, navigate]);
+
+	if (forcePortalAccess) {
+		return (
+			<RootDocument theme={theme}>
+				<div className="min-h-screen flex items-center justify-center bg-neutral-50">
+					<div className="flex flex-col items-center gap-4 text-center">
+						<div className="w-8 h-8 rounded-full border-4 border-primary-200 border-t-primary-600 animate-spin" />
+						<p className="text-neutral-600">Redirecting to the client portal...</p>
+					</div>
+				</div>
+			</RootDocument>
+		);
+	}
 
 	return (
 		<RootDocument theme={theme}>
