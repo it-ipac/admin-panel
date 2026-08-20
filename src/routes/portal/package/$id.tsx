@@ -5,11 +5,15 @@ import {
 	useParams,
 } from "@tanstack/react-router";
 import {
+	Box,
 	ChevronLeft,
 	ChevronRight,
+	Images,
 	Loader2,
+	MapPin,
 	Maximize,
 	Ruler,
+	ShieldCheck,
 	X,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -77,8 +81,10 @@ const createLightboxVariants = (shouldReduceMotion: boolean) =>
 
 function BoxPhotoGallery({
 	photos,
+	packageNumber,
 }: {
 	photos: { id: string; image_url: string; notes: string | null }[];
+	packageNumber: string | number | null;
 }) {
 	const [active, setActive] = useState(0);
 	const [lightbox, setLightbox] = useState<number | null>(null);
@@ -111,6 +117,15 @@ function BoxPhotoGallery({
 		showPhoto((active - 1 + photos.length) % photos.length, "backward");
 	const next = () => showPhoto((active + 1) % photos.length, "forward");
 	const activePhoto = photos[active];
+	const activeNote = activePhoto.notes?.trim() || "";
+	const normalizedActiveNote = activeNote.toLowerCase().replace(/[\s#]/g, "");
+	const normalizedPackageCaption = `package${String(packageNumber)}`
+		.toLowerCase()
+		.replace(/[\s#]/g, "");
+	const repeatedPackageCaption = packageNumber
+		? normalizedActiveNote === normalizedPackageCaption
+		: false;
+	const visibleNote = repeatedPackageCaption ? "" : activeNote;
 	const openLightbox = () => {
 		setLightboxDirection("forward");
 		setLightbox(active);
@@ -140,7 +155,10 @@ function BoxPhotoGallery({
 	};
 
 	return (
-		<section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-steel-700 dark:bg-steel-900">
+		<section
+			className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_20px_50px_-36px_rgba(15,23,42,0.45)] dark:border-steel-700 dark:bg-steel-900"
+			aria-label="Package inspection photos"
+		>
 			<div className="relative aspect-video overflow-hidden bg-neutral-950">
 				<AnimatePresence initial={false} mode="wait" custom={slideDirection}>
 					<motion.img
@@ -211,18 +229,24 @@ function BoxPhotoGallery({
 						<button
 							type="button"
 							onClick={prev}
-							className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white transition-colors"
+							className="group absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/55 text-white shadow-lg backdrop-blur-sm transition-[background-color,border-color,transform] duration-200 hover:scale-105 hover:border-white/25 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-95 motion-reduce:transform-none motion-reduce:transition-none"
 							aria-label="Show previous photo"
 						>
-							<ChevronLeft className="w-5 h-5" />
+							<ChevronLeft
+								className="h-5 w-5 text-white transition-transform duration-200 group-hover:-translate-x-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+								aria-hidden="true"
+							/>
 						</button>
 						<button
 							type="button"
 							onClick={next}
-							className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white transition-colors"
+							className="group absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/55 text-white shadow-lg backdrop-blur-sm transition-[background-color,border-color,transform] duration-200 hover:scale-105 hover:border-white/25 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-95 motion-reduce:transform-none motion-reduce:transition-none"
 							aria-label="Show next photo"
 						>
-							<ChevronRight className="w-5 h-5" />
+							<ChevronRight
+								className="h-5 w-5 text-white transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+								aria-hidden="true"
+							/>
 						</button>
 						<div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
 							{photos.map((photo, i) => (
@@ -237,20 +261,28 @@ function BoxPhotoGallery({
 						</div>
 					</>
 				)}
-				<div className="absolute top-3 left-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm">
-					Inspection photos
+				<div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md">
+					<Images className="h-3.5 w-3.5 text-white" aria-hidden="true" />
+					<span className="text-white">Inspection photos</span>
 				</div>
-				<button
-					type="button"
-					onClick={openLightbox}
-					className="absolute right-12 top-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/70"
-					aria-label="Open full screen photo"
-				>
-					<Maximize className="h-3 w-3" />
-					<span>Open</span>
-				</button>
-				<div className="absolute top-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold tabular-nums text-white backdrop-blur-sm">
-					{active + 1} / {photos.length}
+				<div className="absolute right-3 top-3 flex items-center gap-1.5">
+					<button
+						type="button"
+						onClick={openLightbox}
+						className="group inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-white/25 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:translate-y-0 motion-reduce:transform-none motion-reduce:transition-none"
+						aria-label="Open full-screen photo"
+					>
+						<Maximize
+							className="h-3.5 w-3.5 text-white transition-transform duration-200 group-hover:scale-110 motion-reduce:transform-none motion-reduce:transition-none"
+							aria-hidden="true"
+						/>
+						<span className="hidden text-white sm:inline">Expand</span>
+					</button>
+					<div className="flex h-8 items-center rounded-full border border-white/10 bg-black/55 px-2.5 text-xs font-semibold tabular-nums text-white shadow-sm backdrop-blur-md">
+						<span className="text-white">
+							{active + 1} / {photos.length}
+						</span>
+					</div>
 				</div>
 			</div>
 			{photos.length > 1 && (
@@ -272,9 +304,13 @@ function BoxPhotoGallery({
 					))}
 				</div>
 			)}
-			{activePhoto.notes && (
-				<p className="border-t border-neutral-100 px-4 py-3 text-sm text-neutral-600 dark:border-steel-700 dark:text-steel-300">
-					{activePhoto.notes}
+			{visibleNote && (
+				<p className="flex items-start gap-2 border-t border-neutral-100 px-4 py-3 text-sm leading-5 text-neutral-600 dark:border-steel-700 dark:text-steel-300">
+					<Images
+						className="mt-0.5 h-4 w-4 shrink-0 text-primary-600 dark:text-primary-300"
+						aria-hidden="true"
+					/>
+					{visibleNote}
 				</p>
 			)}
 			{lightbox !== null && (
@@ -370,6 +406,9 @@ function BoxPhotoGallery({
 
 export const Route = createFileRoute("/portal/package/$id")({
 	component: PackageView,
+	head: () => ({
+		meta: [{ title: "Package Details | IPAC" }],
+	}),
 });
 
 function PackageView() {
@@ -569,6 +608,39 @@ function PackageView() {
 		);
 	}
 
+	const boxTypeName =
+		(Array.isArray(pkg.box_type)
+			? pkg.box_type[0]?.name
+			: (pkg.box_type as any)?.name) || "Standard wooden crate";
+	const packageContext = [
+		pkg.package_number ? `Package #${pkg.package_number}` : null,
+		pkg.instance_number ? `Instance #${pkg.instance_number}` : null,
+	]
+		.filter(Boolean)
+		.join(" • ");
+	const reference =
+		pkg.reference_number ||
+		(pkg.package_number ? `Package ${pkg.package_number}` : "Package record");
+	const dimensionValues = [
+		Number(pkg.actual_length),
+		Number(pkg.actual_width),
+		Number(pkg.actual_height),
+	];
+	const calculatedVolume = dimensionValues.every(
+		(value) => Number.isFinite(value) && value > 0,
+	)
+		? (dimensionValues.reduce((total, value) => total * value, 1) / 1_000_000)
+				.toFixed(2)
+				.replace(/\.00$/, "")
+		: null;
+	const volume = pkg.actual_volume || calculatedVolume;
+	const dimensions = [
+		{ label: "Length", value: pkg.actual_length, unit: "cm", icon: Ruler },
+		{ label: "Width", value: pkg.actual_width, unit: "cm", icon: Ruler },
+		{ label: "Height", value: pkg.actual_height, unit: "cm", icon: Ruler },
+		{ label: "Volume", value: volume, unit: "m³", icon: Maximize },
+	];
+
 	return (
 		<div className="min-h-screen bg-neutral-50 pb-24 dark:bg-steel-950">
 			<PortalHeader
@@ -577,123 +649,120 @@ function PackageView() {
 				activePage="package"
 			/>
 
-			<main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-5">
-				<div className="flex items-center justify-between gap-4 rounded-2xl border border-primary-200 bg-white px-4 py-3 shadow-sm sm:px-5 dark:border-steel-700 dark:bg-steel-900/85">
-					<div className="flex items-center gap-3">
-						<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 p-2 shadow-sm dark:bg-steel-800">
-							<img src="/IPAC_logo.svg" alt="IPAC" className="h-full w-full" />
-						</div>
-						<div>
-							<p className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary-800 dark:text-primary-300">
-								IPAC client portal
-							</p>
-							<p className="mt-0.5 text-sm text-primary-950 dark:text-primary-100">
+			<main className="mx-auto max-w-4xl space-y-5 px-3 py-5 sm:px-6 sm:py-8 lg:px-8">
+				<div className="flex items-center justify-between gap-3 rounded-2xl border border-primary-200 bg-primary-50/70 px-3 py-2.5 shadow-sm sm:px-4 dark:border-primary-800/70 dark:bg-primary-950/25">
+					<div className="flex min-w-0 items-center gap-2.5">
+						<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-primary-700 shadow-sm ring-1 ring-primary-100 dark:bg-steel-900 dark:text-primary-300 dark:ring-primary-800">
+							<ShieldCheck className="h-4.5 w-4.5" aria-hidden="true" />
+						</span>
+						<div className="min-w-0">
+							<p className="truncate text-xs font-semibold text-primary-950 dark:text-primary-100">
 								Verified package record
+							</p>
+							<p className="truncate text-[11px] text-primary-700 dark:text-primary-300">
+								Authenticated by IPAC
 							</p>
 						</div>
 					</div>
-					<span className="hidden text-xs font-medium text-primary-800 sm:block dark:text-primary-300">
-						Prepared for your team
+					<span className="shrink-0 rounded-full border border-primary-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary-800 shadow-sm dark:border-primary-800 dark:bg-steel-900 dark:text-primary-200">
+						{pkg.status || "Packed"}
 					</span>
 				</div>
 				{/* Box Photo Gallery */}
 				{boxPhotos && boxPhotos.length > 0 && (
-					<BoxPhotoGallery photos={boxPhotos} />
+					<BoxPhotoGallery
+						photos={boxPhotos}
+						packageNumber={pkg.package_number}
+					/>
 				)}
 
 				{/* Package Hero Card */}
-				<section className="rounded-2xl border border-neutral-100 bg-white p-6 shadow-sm sm:p-8 dark:border-steel-700 dark:bg-steel-900">
-					<div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
-						<div>
-							<div className="flex items-center gap-2 mb-2">
-								<span className="bg-primary-100 text-primary-800 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide dark:bg-primary-900/40 dark:text-primary-200">
-									{pkg.status || "Packed"}
-								</span>
-								<span className="text-sm font-medium text-neutral-500 dark:text-steel-400">
-									Box #{pkg.package_number}
-									{pkg.instance_number
-										? ` • Instance #${pkg.instance_number}`
-										: ""}
-								</span>
-							</div>
-							<h2 className="text-3xl font-black text-neutral-950 tracking-tight dark:text-white">
-								{pkg.reference_number || `Package ${pkg.package_number}`}
-							</h2>
-						</div>
+				<section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_20px_50px_-36px_rgba(15,23,42,0.45)] dark:border-steel-700 dark:bg-steel-900">
+					<div className="p-5 sm:p-7">
+						<p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-700 dark:text-primary-300">
+							Package identity
+						</p>
+						<h2 className="mt-2 break-words text-2xl font-bold leading-tight tracking-[-0.025em] text-neutral-950 sm:text-3xl dark:text-white">
+							{reference}
+						</h2>
+						{packageContext && (
+							<p className="mt-2 text-sm font-medium text-neutral-500 dark:text-steel-400">
+								{packageContext}
+							</p>
+						)}
+					</div>
 
-						<div className="text-left sm:text-right">
-							<div className="text-sm text-neutral-500 font-medium dark:text-steel-400">
-								Box Type
+					<div className="grid gap-px border-y border-neutral-200 bg-neutral-200 sm:grid-cols-2 dark:border-steel-700 dark:bg-steel-700">
+						<div className="flex items-start gap-3 bg-neutral-50 px-5 py-4 sm:px-7 dark:bg-steel-800/65">
+							<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-primary-700 shadow-sm dark:bg-steel-900 dark:text-primary-300">
+								<Box className="h-4 w-4" aria-hidden="true" />
+							</span>
+							<div className="min-w-0">
+								<p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-500 dark:text-steel-400">
+									Package type
+								</p>
+								<p className="mt-1 text-sm font-semibold leading-5 text-neutral-900 dark:text-white">
+									{boxTypeName}
+								</p>
 							</div>
-							<div className="text-lg font-bold text-neutral-900 dark:text-white">
-								{(Array.isArray(pkg.box_type)
-									? pkg.box_type[0]?.name
-									: (pkg.box_type as any)?.name) || "Standard Wooden Crate"}
+						</div>
+						<div className="flex items-start gap-3 bg-neutral-50 px-5 py-4 sm:px-7 dark:bg-steel-800/65">
+							<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-primary-700 shadow-sm dark:bg-steel-900 dark:text-primary-300">
+								<MapPin className="h-4 w-4" aria-hidden="true" />
+							</span>
+							<div className="min-w-0">
+								<p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-500 dark:text-steel-400">
+									Destination
+								</p>
+								<p className="mt-1 text-sm font-semibold leading-5 text-neutral-900 dark:text-white">
+									{pkg.destination || "Not specified"}
+								</p>
 							</div>
 						</div>
 					</div>
 
-					{pkg.destination && (
-						<div className="mb-6 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 dark:border-steel-700 dark:bg-steel-800/70">
-							<div className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-steel-400">
-								Destination
+					<div className="p-5 sm:p-7">
+						<div className="mb-3 flex items-end justify-between gap-3">
+							<div>
+								<p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500 dark:text-steel-400">
+									Measurements
+								</p>
+								<h3 className="mt-1 text-base font-semibold text-neutral-900 dark:text-white">
+									External dimensions
+								</h3>
 							</div>
-							<div className="mt-1 font-semibold text-neutral-900 dark:text-white">
-								{pkg.destination}
-							</div>
+							<span className="text-[11px] text-neutral-500 dark:text-steel-400">
+								Recorded in centimetres
+							</span>
 						</div>
-					)}
 
-					{/* Dimensions Grid */}
-					<div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6 border-t border-neutral-100 dark:border-steel-700">
-						<div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200/60 dark:border-steel-700 dark:bg-steel-800/70">
-							<div className="flex items-center gap-2 text-neutral-500 mb-1 dark:text-steel-400">
-								<Ruler className="w-4 h-4" />
-								<span className="text-xs font-semibold uppercase">Length</span>
-							</div>
-							<div className="text-xl font-bold text-neutral-900 dark:text-white">
-								{pkg.actual_length || "--"}{" "}
-								<span className="text-sm font-medium text-neutral-500 dark:text-steel-400">
-									cm
-								</span>
-							</div>
-						</div>
-						<div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200/60 dark:border-steel-700 dark:bg-steel-800/70">
-							<div className="flex items-center gap-2 text-neutral-500 mb-1 dark:text-steel-400">
-								<Ruler className="w-4 h-4" />
-								<span className="text-xs font-semibold uppercase">Width</span>
-							</div>
-							<div className="text-xl font-bold text-neutral-900 dark:text-white">
-								{pkg.actual_width || "--"}{" "}
-								<span className="text-sm font-medium text-neutral-500 dark:text-steel-400">
-									cm
-								</span>
-							</div>
-						</div>
-						<div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200/60 dark:border-steel-700 dark:bg-steel-800/70">
-							<div className="flex items-center gap-2 text-neutral-500 mb-1 dark:text-steel-400">
-								<Ruler className="w-4 h-4 text-rotate-90" />
-								<span className="text-xs font-semibold uppercase">Height</span>
-							</div>
-							<div className="text-xl font-bold text-neutral-900 dark:text-white">
-								{pkg.actual_height || "--"}{" "}
-								<span className="text-sm font-medium text-neutral-500 dark:text-steel-400">
-									cm
-								</span>
-							</div>
-						</div>
-						<div className="bg-primary-50 rounded-xl p-4 border border-primary-100/60 dark:border-primary-700/60 dark:bg-primary-900/25">
-							<div className="flex items-center gap-2 text-primary-600 mb-1 dark:text-primary-300">
-								<Maximize className="w-4 h-4" />
-								<span className="text-xs font-semibold uppercase">Volume</span>
-							</div>
-							<div className="text-xl font-bold text-primary-950 dark:text-primary-100">
-								{pkg.actual_volume || "--"}{" "}
-								<span className="text-sm font-medium text-primary-600 dark:text-primary-300">
-									m³
-								</span>
-							</div>
-						</div>
+						<dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-neutral-200 bg-neutral-200 sm:grid-cols-4 dark:border-steel-700 dark:bg-steel-700">
+							{dimensions.map(({ label, value, unit, icon: Icon }, index) => (
+								<div
+									key={label}
+									className={`bg-white px-4 py-4 dark:bg-steel-900 ${index === dimensions.length - 1 ? "bg-primary-50 dark:bg-primary-950/25" : ""}`}
+								>
+									<dt className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-neutral-500 dark:text-steel-400">
+										<Icon
+											className={`h-3.5 w-3.5 ${index === dimensions.length - 1 ? "text-primary-600 dark:text-primary-300" : ""}`}
+											aria-hidden="true"
+										/>
+										{label}
+									</dt>
+									<dd className="mt-2 text-xl font-bold tabular-nums text-neutral-950 dark:text-white">
+										{value || "—"}{" "}
+										<span className="text-xs font-medium text-neutral-500 dark:text-steel-400">
+											{unit}
+										</span>
+									</dd>
+								</div>
+							))}
+						</dl>
+						{!pkg.actual_volume && calculatedVolume && (
+							<p className="mt-2 text-right text-[10px] text-neutral-500 dark:text-steel-400">
+								Volume calculated from recorded dimensions
+							</p>
+						)}
 					</div>
 				</section>
 			</main>
