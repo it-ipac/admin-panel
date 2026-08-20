@@ -22,9 +22,6 @@ interface PortalHeaderProps {
 	title: string;
 	onScan: () => void;
 	activePage?: "home" | "package";
-	tokenValue?: string;
-	onTokenValueChange?: (value: string) => void;
-	onTokenSubmit?: () => void;
 	maxWidth?: "max-w-4xl" | "max-w-7xl";
 }
 
@@ -32,9 +29,6 @@ export function PortalHeader({
 	title,
 	onScan,
 	activePage = "home",
-	tokenValue,
-	onTokenValueChange,
-	onTokenSubmit,
 	maxWidth = "max-w-4xl",
 }: PortalHeaderProps) {
 	const navigate = useNavigate();
@@ -83,10 +77,6 @@ export function PortalHeader({
 			: "border-transparent bg-transparent text-neutral-500 hover:border-neutral-200 hover:bg-neutral-100 hover:text-neutral-900 dark:text-steel-300 dark:hover:border-steel-700 dark:hover:bg-steel-800 dark:hover:text-white";
 	const scanButtonClass =
 		"inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-transparent bg-primary-600 text-white shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:bg-primary-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:translate-y-0 dark:bg-primary-500 dark:hover:bg-primary-400";
-	const showTokenEntry =
-		typeof tokenValue === "string" &&
-		typeof onTokenValueChange === "function" &&
-		typeof onTokenSubmit === "function";
 
 	return (
 		<header className="sticky top-0 z-40 border-b border-app-border bg-app-surface/95 shadow-[0_1px_0_rgba(15,23,42,0.04)] backdrop-blur-xl dark:shadow-[0_1px_0_rgba(15,23,42,0.2)]">
@@ -131,44 +121,7 @@ export function PortalHeader({
 						</button>
 					</div>
 
-					{showTokenEntry ? (
-						<div className="hidden flex-1 justify-center px-2 lg:flex">
-							<div className="flex w-full max-w-2xl items-center gap-2 rounded-2xl border border-neutral-200 bg-white/90 px-3 py-2 shadow-sm backdrop-blur dark:border-steel-700 dark:bg-steel-900/80">
-								<label
-									htmlFor="portal-token-input"
-									className="shrink-0 text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-500 dark:text-steel-400"
-								>
-									Token
-								</label>
-								<input
-									id="portal-token-input"
-									type="text"
-									value={tokenValue}
-									onChange={(event) =>
-										onTokenValueChange?.(event.target.value)
-									}
-									onKeyDown={(event) => {
-										if (event.key === "Enter") {
-											event.preventDefault();
-											onTokenSubmit?.();
-										}
-									}}
-									placeholder="Paste token or scan URL"
-									className="min-w-0 flex-1 bg-transparent text-sm text-app-text-strong placeholder:text-app-text-muted focus:outline-none"
-								/>
-								<button
-									type="button"
-									onClick={onTokenSubmit}
-									disabled={!tokenValue.trim()}
-									className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg bg-neutral-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"
-								>
-									Go
-								</button>
-							</div>
-						</div>
-					) : (
-						<div className="flex-1" aria-hidden="true" />
-					)}
+					<div className="flex-1" aria-hidden="true" />
 
 					<div className="ml-auto flex shrink-0 items-center gap-1.5">
 						<button

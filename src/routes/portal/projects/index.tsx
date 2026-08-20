@@ -4,6 +4,7 @@ import {
 	Camera,
 	ChevronRight,
 	Images,
+	Keyboard,
 	Loader2,
 	MapPin,
 	PackageCheck,
@@ -248,9 +249,6 @@ function PortalProjects() {
 					title="Client Overview"
 					onScan={() => setScannerOpen(true)}
 					activePage="home"
-					tokenValue={qrInput}
-					onTokenValueChange={setQrInput}
-					onTokenSubmit={() => handleQrSubmit(qrInput)}
 				/>
 
 				<main className="h-[calc(100svh-4rem)] overflow-hidden px-3 py-3 sm:px-4 sm:py-4">
@@ -294,6 +292,42 @@ function PortalProjects() {
 									</div>
 									<ChevronRight className="h-5 w-5 text-white/75 transition-transform group-hover:translate-x-0.5" />
 								</button>
+
+								<div className="my-3 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-app-text-muted">
+									<span className="h-px flex-1 bg-app-border" />
+									<span>Or use a token</span>
+									<span className="h-px flex-1 bg-app-border" />
+								</div>
+
+								<div className="rounded-xl border border-app-border bg-app-surface p-3 text-left">
+									<label className="mb-2 flex items-center gap-2 text-sm font-semibold text-app-text-strong">
+										<Keyboard className="h-4 w-4 text-app-text-muted" />
+										Paste token or scan URL
+									</label>
+									<div className="flex flex-col gap-2 sm:flex-row">
+										<input
+											type="text"
+											value={qrInput}
+											onChange={(event) => setQrInput(event.target.value)}
+											onKeyDown={(event) => {
+												if (event.key === "Enter") {
+													event.preventDefault();
+													handleQrSubmit(qrInput);
+												}
+											}}
+											placeholder="Paste a token or scan URL"
+											className="min-h-12 flex-1 rounded-xl border border-app-border bg-app-surface-muted px-4 py-3 text-sm text-app-text-strong placeholder:text-app-text-muted focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+										/>
+										<button
+											type="button"
+											onClick={() => handleQrSubmit(qrInput)}
+											disabled={!qrInput.trim()}
+											className="inline-flex min-h-12 items-center justify-center rounded-xl bg-neutral-950 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+										>
+											Go
+										</button>
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
