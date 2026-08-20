@@ -11,12 +11,11 @@ import {
 	useNavigate,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { createServerFn } from "@tanstack/react-start";
-import { getCookie } from "@tanstack/react-start/server";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { ToastProvider } from "../components/ui/ToastProvider";
 import { AuthContext, useAuthState } from "../hooks/useAuth";
+import { getThemePreference } from "../lib/theme";
 import appCss from "../styles.css?url";
 
 // Create a client
@@ -27,11 +26,6 @@ const queryClient = new QueryClient({
 			retry: 1,
 		},
 	},
-});
-
-const getThemeCookie = createServerFn({ method: "GET" }).handler(async () => {
-	const theme = getCookie("ipac-theme-preference") || "system";
-	return theme;
 });
 
 export const Route = createRootRoute({
@@ -47,8 +41,7 @@ export const Route = createRootRoute({
 		],
 	}),
 	loader: async () => {
-		const theme = await getThemeCookie();
-		return { theme };
+		return { theme: getThemePreference() };
 	},
 	component: RootComponent,
 	notFoundComponent: NotFoundComponent,

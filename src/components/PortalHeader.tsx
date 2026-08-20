@@ -1,0 +1,272 @@
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { Link, useNavigate } from "@tanstack/react-router";
+import {
+	Camera,
+	ChevronDown,
+	Home,
+	Loader2,
+	LogOut,
+	Moon,
+	Sun,
+	UserRound,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useAuth } from "../hooks/useAuth";
+import {
+	getThemePreference,
+	setThemePreference,
+	type ThemePreference,
+} from "../lib/theme";
+
+interface PortalHeaderProps {
+	title: string;
+	onScan: () => void;
+	activePage?: "home" | "package";
+	tokenValue?: string;
+	onTokenValueChange?: (value: string) => void;
+	onTokenSubmit?: () => void;
+	maxWidth?: "max-w-4xl" | "max-w-7xl";
+}
+
+export function PortalHeader({
+	title,
+	onScan,
+	activePage = "home",
+	tokenValue,
+	onTokenValueChange,
+	onTokenSubmit,
+	maxWidth = "max-w-4xl",
+}: PortalHeaderProps) {
+	const navigate = useNavigate();
+	const { profile, user, signOut } = useAuth();
+	const [themePreference, setThemePreferenceState] =
+		useState<ThemePreference>("system");
+	const [systemDark, setSystemDark] = useState(false);
+	const [signingOut, setSigningOut] = useState(false);
+
+	useEffect(() => {
+		setThemePreferenceState(getThemePreference());
+		const media = window.matchMedia("(prefers-color-scheme: dark)");
+		const updateSystemTheme = () => setSystemDark(media.matches);
+		updateSystemTheme();
+		media.addEventListener("change", updateSystemTheme);
+		return () => media.removeEventListener("change", updateSystemTheme);
+	}, []);
+
+	const isDark =
+		themePreference === "dark" || (themePreference === "system" && systemDark);
+	const nextTheme = isDark ? "light" : "dark";
+	const displayName =
+		profile?.full_name || profile?.username || user?.email || "Portal account";
+
+	const handleThemeToggle = () => {
+		setThemePreference(nextTheme);
+		setThemePreferenceState(nextTheme);
+	};
+
+	const handleSignOut = async () => {
+		if (signingOut) return;
+		setSigningOut(true);
+		try {
+			await signOut();
+			navigate({ to: "/portal/login" });
+		} finally {
+			setSigningOut(false);
+		}
+	};
+
+	const homeButtonClass =
+		"inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-[background-color,border-color,color,box-shadow,transform] duration-200 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:translate-y-0";
+	const homeActiveClass =
+		activePage === "home"
+			? "border-neutral-200 bg-white text-neutral-900 shadow-sm dark:border-steel-700 dark:bg-steel-800 dark:text-white"
+			: "border-transparent bg-transparent text-neutral-500 hover:border-neutral-200 hover:bg-neutral-100 hover:text-neutral-900 dark:text-steel-300 dark:hover:border-steel-700 dark:hover:bg-steel-800 dark:hover:text-white";
+	const scanButtonClass =
+		"inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-transparent bg-primary-600 text-white shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:bg-primary-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:translate-y-0 dark:bg-primary-500 dark:hover:bg-primary-400";
+	const showTokenEntry =
+		typeof tokenValue === "string" &&
+		typeof onTokenValueChange === "function" &&
+		typeof onTokenSubmit === "function";
+
+	return (
+		<header className="sticky top-0 z-40 border-b border-app-border bg-app-surface/95 shadow-[0_1px_0_rgba(15,23,42,0.04)] backdrop-blur-xl dark:shadow-[0_1px_0_rgba(15,23,42,0.2)]">
+			<div className={`${maxWidth} mx-auto px-4 sm:px-6 lg:px-8`}>
+				<div className="flex min-h-16 items-center gap-3 py-2 sm:min-h-[4.5rem]">
+					<Link
+						to="/portal/projects"
+						className="group flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+						aria-label="IPAC portal home"
+					>
+						<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-app-border bg-app-surface-muted shadow-sm transition-transform duration-200 group-hover:-translate-y-px group-hover:shadow-md dark:border-steel-700 dark:bg-steel-800">
+							<img src="/IPAC_logo.svg" alt="" className="h-7 w-auto" />
+						</div>
+						<div className="min-w-0">
+							<p className="hidden truncate text-[9px] font-bold uppercase tracking-[0.24em] text-primary-700 dark:text-primary-300 sm:block">
+								IPAC / Client access
+							</p>
+							<h1 className="truncate text-sm font-semibold tracking-tight text-app-text-strong sm:text-base">
+								{title}
+							</h1>
+						</div>
+					</Link>
+
+					<div className="ml-1 flex shrink-0 items-center gap-1.5">
+						<Link
+							to="/portal/projects"
+							className={`${homeButtonClass} ${homeActiveClass}`}
+							aria-label="Home"
+							title="Home"
+							aria-current={activePage === "home" ? "page" : undefined}
+						>
+							<Home className="h-4 w-4" aria-hidden="true" />
+						</Link>
+						<button
+							type="button"
+							onClick={onScan}
+							className={scanButtonClass}
+							aria-label="Scan QR"
+							title="Scan QR"
+						>
+							<Camera className="h-4 w-4" aria-hidden="true" />
+						</button>
+					</div>
+
+					{showTokenEntry ? (
+						<div className="hidden flex-1 justify-center px-2 lg:flex">
+							<div className="flex w-full max-w-2xl items-center gap-2 rounded-2xl border border-neutral-200 bg-white/90 px-3 py-2 shadow-sm backdrop-blur dark:border-steel-700 dark:bg-steel-900/80">
+								<label
+									htmlFor="portal-token-input"
+									className="shrink-0 text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-500 dark:text-steel-400"
+								>
+									Token
+								</label>
+								<input
+									id="portal-token-input"
+									type="text"
+									value={tokenValue}
+									onChange={(event) =>
+										onTokenValueChange?.(event.target.value)
+									}
+									onKeyDown={(event) => {
+										if (event.key === "Enter") {
+											event.preventDefault();
+											onTokenSubmit?.();
+										}
+									}}
+									placeholder="Paste token or scan URL"
+									className="min-w-0 flex-1 bg-transparent text-sm text-app-text-strong placeholder:text-app-text-muted focus:outline-none"
+								/>
+								<button
+									type="button"
+									onClick={onTokenSubmit}
+									disabled={!tokenValue.trim()}
+									className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg bg-neutral-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"
+								>
+									Go
+								</button>
+							</div>
+						</div>
+					) : (
+						<div className="flex-1" aria-hidden="true" />
+					)}
+
+					<div className="ml-auto flex shrink-0 items-center gap-1.5">
+						<button
+							type="button"
+							onClick={handleThemeToggle}
+							className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-neutral-600 transition-[background-color,color,border-color,transform] duration-200 hover:-translate-y-px hover:border-neutral-200 hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:translate-y-0 dark:text-steel-300 dark:hover:border-steel-700 dark:hover:bg-steel-800 dark:hover:text-white"
+							aria-label={`Switch to ${nextTheme} theme`}
+							title={`Switch to ${nextTheme} theme`}
+						>
+							{isDark ? (
+								<Sun
+									className="h-5 w-5 transition-transform duration-300 group-hover:rotate-12"
+									aria-hidden="true"
+								/>
+							) : (
+								<Moon
+									className="h-5 w-5 transition-transform duration-300 group-hover:-rotate-12"
+									aria-hidden="true"
+								/>
+							)}
+						</button>
+
+						<div
+							className="hidden h-7 w-px bg-neutral-200 md:block dark:bg-steel-700"
+							aria-hidden="true"
+						/>
+
+						{user ? (
+							<DropdownMenu.Root>
+								<DropdownMenu.Trigger asChild>
+									<button
+										type="button"
+										className="group inline-flex min-h-11 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-2.5 text-sm font-semibold text-neutral-700 shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-neutral-300 hover:bg-neutral-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:translate-y-0 sm:px-3 dark:border-steel-700 dark:bg-steel-800 dark:text-steel-100 dark:hover:border-steel-600 dark:hover:bg-steel-700"
+										aria-label="Open account menu"
+										title="Account"
+									>
+										<span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-200">
+											<UserRound className="h-4 w-4" aria-hidden="true" />
+										</span>
+										<span className="hidden max-w-28 truncate lg:block">
+											Account
+										</span>
+										<ChevronDown
+											className="hidden h-4 w-4 text-neutral-400 transition-transform duration-200 group-data-[state=open]:rotate-180 sm:block"
+											aria-hidden="true"
+										/>
+									</button>
+								</DropdownMenu.Trigger>
+								<DropdownMenu.Portal>
+									<DropdownMenu.Content
+										align="end"
+										sideOffset={8}
+										className="z-50 min-w-60 origin-top-right rounded-2xl border border-neutral-200 bg-white p-2 shadow-xl outline-none dark:border-steel-700 dark:bg-steel-900"
+									>
+										<div className="px-3 py-2.5">
+											<p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">
+												Signed in as
+											</p>
+											<p className="mt-1 max-w-52 truncate text-sm font-bold text-neutral-900">
+												{displayName}
+											</p>
+										</div>
+										<DropdownMenu.Separator className="my-1 h-px bg-neutral-200 dark:bg-steel-700" />
+										<DropdownMenu.Item
+											onSelect={() => void handleSignOut()}
+											disabled={signingOut}
+											className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 text-sm font-semibold text-danger-700 outline-none transition-colors hover:bg-danger-50 focus:bg-danger-50 data-[disabled]:cursor-wait data-[disabled]:opacity-60 dark:text-danger-300 dark:hover:bg-danger-950/30 dark:focus:bg-danger-950/30"
+										>
+											{signingOut ? (
+												<Loader2
+													className="h-4 w-4 animate-spin"
+													aria-hidden="true"
+												/>
+											) : (
+												<LogOut className="h-4 w-4" aria-hidden="true" />
+											)}
+											{signingOut ? "Signing out..." : "Log out"}
+										</DropdownMenu.Item>
+									</DropdownMenu.Content>
+								</DropdownMenu.Portal>
+							</DropdownMenu.Root>
+						) : (
+							<Link
+								to="/portal/login"
+								className="group inline-flex min-h-11 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-2.5 text-sm font-semibold text-neutral-700 shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-neutral-300 hover:bg-neutral-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:translate-y-0 sm:px-3 dark:border-steel-700 dark:bg-steel-800 dark:text-steel-100 dark:hover:border-steel-600 dark:hover:bg-steel-700"
+								aria-label="Log in"
+								title="Log in"
+							>
+								<span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-200">
+									<UserRound className="h-4 w-4" aria-hidden="true" />
+								</span>
+								<span className="hidden max-w-28 truncate lg:block">Login</span>
+							</Link>
+						)}
+					</div>
+				</div>
+
+			</div>
+		</header>
+	);
+}

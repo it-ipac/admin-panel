@@ -12,15 +12,16 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Image,
-	Info,
 	Loader2,
 	MapPin,
+	Maximize,
 	PackageX,
 	Ruler,
 	Scale,
 	X,
 } from "lucide-react";
-import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useRef, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 
 const getPublicUrl = (path: string | null) => {
@@ -28,6 +29,56 @@ const getPublicUrl = (path: string | null) => {
 	if (path.startsWith("http")) return path;
 	return `https://fqynbudvpvpiljdrrvem.supabase.co/storage/v1/object/public/media/${path}`;
 };
+
+const createSlideVariants = (shouldReduceMotion: boolean) =>
+	({
+		enter: (direction: "forward" | "backward") => ({
+			opacity: 0,
+			x: shouldReduceMotion ? 0 : direction === "forward" ? 32 : -32,
+			scale: shouldReduceMotion ? 1 : 1.01,
+		}),
+		center: {
+			opacity: 1,
+			x: 0,
+			scale: 1,
+		},
+		exit: (direction: "forward" | "backward") => ({
+			opacity: 0,
+			x: shouldReduceMotion ? 0 : direction === "forward" ? -16 : 16,
+			scale: shouldReduceMotion ? 1 : 0.99,
+		}),
+	}) as const;
+
+const createLightboxVariants = (shouldReduceMotion: boolean) =>
+	({
+		backdrop: {
+			hidden: { opacity: 0 },
+			show: { opacity: 1 },
+			exit: { opacity: 0 },
+		},
+		panel: {
+			hidden: {
+				opacity: 0,
+				scale: shouldReduceMotion ? 1 : 0.96,
+				y: shouldReduceMotion ? 0 : 16,
+			},
+			show: {
+				opacity: 1,
+				scale: 1,
+				y: 0,
+			},
+			exit: {
+				opacity: 0,
+				scale: shouldReduceMotion ? 1 : 0.98,
+				y: shouldReduceMotion ? 0 : 10,
+			},
+		},
+		image: {
+			hidden: { opacity: 0, scale: shouldReduceMotion ? 1 : 0.985 },
+			show: { opacity: 1, scale: 1 },
+			exit: { opacity: 0, scale: shouldReduceMotion ? 1 : 0.99 },
+		},
+	}) as const;
 
 export const Route = createFileRoute("/portal/item/$id")({
 	component: ItemView,
@@ -40,30 +91,150 @@ function PhotoGallery({
 }) {
 	const [active, setActive] = useState(0);
 	const [lightbox, setLightbox] = useState<number | null>(null);
+	const [lightboxDirection, setLightboxDirection] = useState<
+		"forward" | "backward"
+	>("forward");
+	const [slideDirection, setSlideDirection] = useState<"forward" | "backward">(
+		"forward",
+	);
+	const shouldReduceMotion = useReducedMotion();
+	const slideVariants = createSlideVariants(!!shouldReduceMotion);
+	const lightboxVariants = createLightboxVariants(!!shouldReduceMotion);
+	const interactionRef = useRef({
+		isPointerDown: false,
+		startX: 0,
+		startY: 0,
+		moved: false,
+		suppressClick: false,
+	});
 
 	if (!photos.length) return null;
 
-	const prev = () => setActive((a) => (a - 1 + photos.length) % photos.length);
-	const next = () => setActive((a) => (a + 1) % photos.length);
+	const showPhoto = (
+		index: number,
+		direction: "forward" | "backward" = index > active ? "forward" : "backward",
+	) => {
+		if (index === active) return;
+		setSlideDirection(direction);
+		setActive(index);
+	};
+	const prev = () =>
+		showPhoto((active - 1 + photos.length) % photos.length, "backward");
+	const next = () => showPhoto((active + 1) % photos.length, "forward");
+	const openLightbox = () => {
+		setLightboxDirection("forward");
+		setLightbox(active);
+	};
+	const showLightboxPhoto = (
+		index: number,
+		direction: "forward" | "backward" =
+			index > (lightbox ?? active) ? "forward" : "backward",
+	) => {
+		if (index === lightbox) return;
+		setLightboxDirection(direction);
+		setLightbox(index);
+	};
+	const prevLightbox = () =>
+		showLightboxPhoto(
+			((lightbox ?? active) - 1 + photos.length) % photos.length,
+			"backward",
+		);
+	const nextLightbox = () =>
+		showLightboxPhoto(((lightbox ?? active) + 1) % photos.length, "forward");
+	const markSwipeHandled = () => {
+		interactionRef.current.suppressClick = true;
+		window.setTimeout(() => {
+			interactionRef.current.suppressClick = false;
+		}, 150);
+	};
 
 	return (
 		<section className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
-			<div className="relative aspect-video bg-neutral-900">
-				<img
-					src={getPublicUrl(photos[active].image_url)}
-					alt={photos[active].notes || `Photo ${active + 1}`}
-					className="w-full h-full object-contain cursor-zoom-in"
-					onClick={() => setLightbox(active)}
-				/>
+			<div className="relative aspect-video overflow-hidden bg-neutral-900">
+				<AnimatePresence initial={false} mode="wait" custom={slideDirection}>
+					<motion.img
+						key={photos[active].id}
+						custom={slideDirection}
+						variants={slideVariants}
+						src={getPublicUrl(photos[active].image_url)}
+						alt={photos[active].notes || `Photo ${active + 1}`}
+						className="absolute inset-0 h-full w-full cursor-grab touch-pan-y object-contain active:cursor-grabbing"
+						initial="enter"
+						animate="center"
+						exit="exit"
+						transition={{
+							duration: shouldReduceMotion ? 0 : 0.24,
+							ease: [0.22, 1, 0.36, 1],
+						}}
+						drag="x"
+						dragConstraints={{ left: 0, right: 0 }}
+						dragElastic={0.12}
+						onPointerDown={(e) => {
+							interactionRef.current.isPointerDown = true;
+							interactionRef.current.startX = e.clientX;
+							interactionRef.current.startY = e.clientY;
+							interactionRef.current.moved = false;
+						}}
+						onPointerMove={(e) => {
+							if (!interactionRef.current.isPointerDown) return;
+							const dx = e.clientX - interactionRef.current.startX;
+							const dy = e.clientY - interactionRef.current.startY;
+							if (Math.hypot(dx, dy) > 8) {
+								interactionRef.current.moved = true;
+							}
+						}}
+						onPointerUp={() => {
+							interactionRef.current.isPointerDown = false;
+							if (!interactionRef.current.moved && !interactionRef.current.suppressClick) {
+								openLightbox();
+							}
+						}}
+						onDragEnd={(_, info) => {
+							if (info.offset.x < -45 || info.velocity.x < -350) {
+								next();
+								markSwipeHandled();
+							}
+							if (info.offset.x > 45 || info.velocity.x > 350) {
+								prev();
+								markSwipeHandled();
+							}
+						}}
+						onClick={(e) => {
+							if (
+								interactionRef.current.moved ||
+								interactionRef.current.suppressClick
+							) {
+								e.preventDefault();
+								e.stopPropagation();
+								return;
+							}
+							openLightbox();
+						}}
+					/>
+				</AnimatePresence>
+				<div className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+					Tap to expand
+				</div>
+				<button
+					type="button"
+					onClick={openLightbox}
+					className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/70"
+					aria-label="Open full screen photo"
+				>
+					<Maximize className="h-3 w-3" />
+					<span>Open</span>
+				</button>
 				{photos.length > 1 && (
 					<>
 						<button
+							type="button"
 							onClick={prev}
 							className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white transition-colors"
 						>
 							<ChevronLeft className="w-5 h-5" />
 						</button>
 						<button
+							type="button"
 							onClick={next}
 							className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white transition-colors"
 						>
@@ -72,8 +243,9 @@ function PhotoGallery({
 						<div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
 							{photos.map((photo, i) => (
 								<button
+									type="button"
 									key={photo.id || i}
-									onClick={() => setActive(i)}
+									onClick={() => showPhoto(i)}
 									className={`w-2 h-2 rounded-full transition-colors ${i === active ? "bg-white" : "bg-white/40"}`}
 								/>
 							))}
@@ -92,12 +264,12 @@ function PhotoGallery({
 						<button
 							key={photo.id}
 							onClick={() => setActive(i)}
-							className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === active ? "border-primary-500" : "border-neutral-200"}`}
+							className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-300 ${i === active ? "scale-105 border-primary-500 shadow-md" : "border-neutral-200 opacity-70 hover:scale-[1.03] hover:opacity-100"}`}
 						>
 							<img
 								src={getPublicUrl(photo.image_url)}
 								alt=""
-								className="w-full h-full object-cover"
+								className="w-full h-full object-cover transition-transform duration-300"
 							/>
 						</button>
 					))}
@@ -112,8 +284,15 @@ function PhotoGallery({
 
 			{/* Lightbox */}
 			{lightbox !== null && (
-				<div
+				<motion.div
 					className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+					variants={lightboxVariants.backdrop}
+					initial="hidden"
+					animate="show"
+					transition={{
+						duration: shouldReduceMotion ? 0 : 0.2,
+						ease: [0.22, 1, 0.36, 1],
+					}}
 					onClick={(e) => {
 						if (e.target === e.currentTarget) setLightbox(null);
 					}}
@@ -123,39 +302,69 @@ function PhotoGallery({
 					tabIndex={-1}
 				>
 					<button
-						className="absolute top-4 right-4 text-white/70 hover:text-white"
+						type="button"
+						className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white/80 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white"
 						onClick={() => setLightbox(null)}
+						aria-label="Close full-screen photo"
 					>
 						<X className="w-7 h-7" />
 					</button>
-					<img
-						src={getPublicUrl(photos[lightbox].image_url)}
-						alt=""
-						className="max-w-full max-h-full object-contain"
-					/>
+					<AnimatePresence initial={false} mode="wait" custom={lightboxDirection}>
+						<motion.img
+							key={photos[lightbox].id}
+							custom={lightboxDirection}
+							src={getPublicUrl(photos[lightbox].image_url)}
+							alt=""
+							className="max-w-full max-h-full object-contain shadow-2xl cursor-grab active:cursor-grabbing touch-pan-y"
+							variants={slideVariants}
+							initial="enter"
+							animate="center"
+							exit="exit"
+							transition={{
+								duration: shouldReduceMotion ? 0 : 0.22,
+								ease: [0.22, 1, 0.36, 1],
+							}}
+							drag="x"
+							dragConstraints={{ left: 0, right: 0 }}
+							dragElastic={0.12}
+							onDragEnd={(_, info) => {
+								if (info.offset.x < -45 || info.velocity.x < -350) {
+									nextLightbox();
+								}
+								if (info.offset.x > 45 || info.velocity.x > 350) {
+									prevLightbox();
+								}
+							}}
+							onClick={() => nextLightbox()}
+						/>
+					</AnimatePresence>
 					{photos.length > 1 && (
 						<>
 							<button
+								type="button"
 								onClick={(e) => {
 									e.stopPropagation();
-									setLightbox((l) => (l! - 1 + photos.length) % photos.length);
+									prevLightbox();
 								}}
-								className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white"
+								className="absolute left-4 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/90 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:scale-105"
+								aria-label="Show previous photo"
 							>
 								<ChevronLeft className="w-6 h-6" />
 							</button>
 							<button
+								type="button"
 								onClick={(e) => {
 									e.stopPropagation();
-									setLightbox((l) => (l! + 1) % photos.length);
+									nextLightbox();
 								}}
-								className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white"
+								className="absolute right-4 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/90 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:scale-105"
+								aria-label="Show next photo"
 							>
 								<ChevronRight className="w-6 h-6" />
 							</button>
 						</>
 					)}
-				</div>
+				</motion.div>
 			)}
 		</section>
 	);
@@ -381,12 +590,19 @@ function ItemView() {
 							>
 								<ArrowLeft className="w-5 h-5" />
 							</button>
-							<div className="w-8 h-8 bg-success-600 rounded-lg flex items-center justify-center">
-								<Info className="w-5 h-5 text-white" />
+							<img
+								src="/IPAC_logo.svg"
+								alt="IPAC"
+								className="h-8 w-auto shrink-0"
+							/>
+							<div className="min-w-0">
+								<p className="truncate text-[10px] font-semibold uppercase tracking-[0.28em] text-primary-700/80">
+									IPAC Client Portal
+								</p>
+								<h1 className="text-lg font-bold text-neutral-900">
+									Item Details
+								</h1>
 							</div>
-							<h1 className="text-lg font-bold text-neutral-900">
-								Item Details
-							</h1>
 						</div>
 					</div>
 				</div>

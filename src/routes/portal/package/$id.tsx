@@ -1,15 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useParams } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	useNavigate,
+	useParams,
+} from "@tanstack/react-router";
 import {
 	ChevronLeft,
 	ChevronRight,
 	Loader2,
 	Maximize,
-	Package,
 	Ruler,
 	X,
 } from "lucide-react";
-import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useRef, useState } from "react";
+import { QrScanner } from "../../../components/orders/orderId/modals/QrScanner";
+import { PortalHeader } from "../../../components/PortalHeader";
+import { parseQrToken } from "../../../features/orders/hooks/useInstanceQr";
 import { supabase } from "../../../lib/supabase";
 
 const getPublicUrl = (path: string | null) => {
@@ -18,6 +25,56 @@ const getPublicUrl = (path: string | null) => {
 	return `https://fqynbudvpvpiljdrrvem.supabase.co/storage/v1/object/public/media/${path}`;
 };
 
+const createSlideVariants = (shouldReduceMotion: boolean) =>
+	({
+		enter: (direction: "forward" | "backward") => ({
+			opacity: 0,
+			x: shouldReduceMotion ? 0 : direction === "forward" ? 32 : -32,
+			scale: shouldReduceMotion ? 1 : 1.01,
+		}),
+		center: {
+			opacity: 1,
+			x: 0,
+			scale: 1,
+		},
+		exit: (direction: "forward" | "backward") => ({
+			opacity: 0,
+			x: shouldReduceMotion ? 0 : direction === "forward" ? -16 : 16,
+			scale: shouldReduceMotion ? 1 : 0.99,
+		}),
+	}) as const;
+
+const createLightboxVariants = (shouldReduceMotion: boolean) =>
+	({
+		backdrop: {
+			hidden: { opacity: 0 },
+			show: { opacity: 1 },
+			exit: { opacity: 0 },
+		},
+		panel: {
+			hidden: {
+				opacity: 0,
+				scale: shouldReduceMotion ? 1 : 0.96,
+				y: shouldReduceMotion ? 0 : 16,
+			},
+			show: {
+				opacity: 1,
+				scale: 1,
+				y: 0,
+			},
+			exit: {
+				opacity: 0,
+				scale: shouldReduceMotion ? 1 : 0.98,
+				y: shouldReduceMotion ? 0 : 10,
+			},
+		},
+		image: {
+			hidden: { opacity: 0, scale: shouldReduceMotion ? 1 : 0.985 },
+			show: { opacity: 1, scale: 1 },
+			exit: { opacity: 0, scale: shouldReduceMotion ? 1 : 0.99 },
+		},
+	}) as const;
+
 function BoxPhotoGallery({
 	photos,
 }: {
@@ -25,54 +82,186 @@ function BoxPhotoGallery({
 }) {
 	const [active, setActive] = useState(0);
 	const [lightbox, setLightbox] = useState<number | null>(null);
+	const [lightboxDirection, setLightboxDirection] = useState<
+		"forward" | "backward"
+	>("forward");
+	const [slideDirection, setSlideDirection] = useState<"forward" | "backward">(
+		"forward",
+	);
+	const shouldReduceMotion = useReducedMotion();
+	const slideVariants = createSlideVariants(!!shouldReduceMotion);
+	const lightboxVariants = createLightboxVariants(!!shouldReduceMotion);
+	const interactionRef = useRef({
+		isPointerDown: false,
+		startX: 0,
+		startY: 0,
+		moved: false,
+		suppressClick: false,
+	});
 	if (!photos.length) return null;
-	const prev = () => setActive((a) => (a - 1 + photos.length) % photos.length);
-	const next = () => setActive((a) => (a + 1) % photos.length);
+	const showPhoto = (
+		index: number,
+		direction: "forward" | "backward" = index > active ? "forward" : "backward",
+	) => {
+		if (index === active) return;
+		setSlideDirection(direction);
+		setActive(index);
+	};
+	const prev = () =>
+		showPhoto((active - 1 + photos.length) % photos.length, "backward");
+	const next = () => showPhoto((active + 1) % photos.length, "forward");
+	const activePhoto = photos[active];
+	const openLightbox = () => {
+		setLightboxDirection("forward");
+		setLightbox(active);
+	};
+	const showLightboxPhoto = (
+		index: number,
+		direction: "forward" | "backward" = index > (lightbox ?? active)
+			? "forward"
+			: "backward",
+	) => {
+		if (index === lightbox) return;
+		setLightboxDirection(direction);
+		setLightbox(index);
+	};
+	const prevLightbox = () =>
+		showLightboxPhoto(
+			((lightbox ?? active) - 1 + photos.length) % photos.length,
+			"backward",
+		);
+	const nextLightbox = () =>
+		showLightboxPhoto(((lightbox ?? active) + 1) % photos.length, "forward");
+	const markSwipeHandled = () => {
+		interactionRef.current.suppressClick = true;
+		window.setTimeout(() => {
+			interactionRef.current.suppressClick = false;
+		}, 150);
+	};
+
 	return (
-		<section className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
-			<div className="relative aspect-video bg-neutral-900">
-				<img
-					src={getPublicUrl(photos[active].image_url)}
-					alt={photos[active].notes || `Box photo ${active + 1}`}
-					className="w-full h-full object-contain cursor-zoom-in"
-					onClick={() => setLightbox(active)}
-				/>
+		<section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-steel-700 dark:bg-steel-900">
+			<div className="relative aspect-video overflow-hidden bg-neutral-950">
+				<AnimatePresence initial={false} mode="wait" custom={slideDirection}>
+					<motion.img
+						key={activePhoto.id}
+						custom={slideDirection}
+						variants={slideVariants}
+						src={getPublicUrl(activePhoto.image_url)}
+						alt={activePhoto.notes || `Box photo ${active + 1}`}
+						className="absolute inset-0 h-full w-full cursor-grab touch-pan-y object-contain active:cursor-grabbing"
+						initial="enter"
+						animate="center"
+						exit="exit"
+						transition={{
+							duration: shouldReduceMotion ? 0 : 0.24,
+							ease: [0.22, 1, 0.36, 1],
+						}}
+						drag="x"
+						dragConstraints={{ left: 0, right: 0 }}
+						dragElastic={0.12}
+						onPointerDown={(e) => {
+							interactionRef.current.isPointerDown = true;
+							interactionRef.current.startX = e.clientX;
+							interactionRef.current.startY = e.clientY;
+							interactionRef.current.moved = false;
+						}}
+						onPointerMove={(e) => {
+							if (!interactionRef.current.isPointerDown) return;
+							const dx = e.clientX - interactionRef.current.startX;
+							const dy = e.clientY - interactionRef.current.startY;
+							if (Math.hypot(dx, dy) > 8) {
+								interactionRef.current.moved = true;
+							}
+						}}
+						onPointerUp={() => {
+							interactionRef.current.isPointerDown = false;
+							if (
+								!interactionRef.current.moved &&
+								!interactionRef.current.suppressClick
+							) {
+								openLightbox();
+							}
+						}}
+						onDragEnd={(_, info) => {
+							if (info.offset.x < -45 || info.velocity.x < -350) {
+								next();
+								markSwipeHandled();
+							}
+							if (info.offset.x > 45 || info.velocity.x > 350) {
+								prev();
+								markSwipeHandled();
+							}
+						}}
+						onClick={(e) => {
+							if (
+								interactionRef.current.moved ||
+								interactionRef.current.suppressClick
+							) {
+								e.preventDefault();
+								e.stopPropagation();
+								return;
+							}
+							openLightbox();
+						}}
+					/>
+				</AnimatePresence>
 				{photos.length > 1 && (
 					<>
 						<button
+							type="button"
 							onClick={prev}
 							className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white transition-colors"
+							aria-label="Show previous photo"
 						>
 							<ChevronLeft className="w-5 h-5" />
 						</button>
 						<button
+							type="button"
 							onClick={next}
 							className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white transition-colors"
+							aria-label="Show next photo"
 						>
 							<ChevronRight className="w-5 h-5" />
 						</button>
 						<div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
 							{photos.map((photo, i) => (
 								<button
+									type="button"
 									key={photo.id || i}
-									onClick={() => setActive(i)}
-									className={`w-2 h-2 rounded-full transition-colors ${i === active ? "bg-white" : "bg-white/40"}`}
+									onClick={() => showPhoto(i)}
+									className={`h-2 rounded-full transition-all duration-300 ${i === active ? "w-5 bg-white" : "w-2 bg-white/40 hover:bg-white/70"}`}
+									aria-label={`Show photo ${i + 1}`}
 								/>
 							))}
 						</div>
 					</>
 				)}
-				<div className="absolute top-3 left-3 bg-black/50 text-white text-xs font-semibold px-2 py-1 rounded-full">
-					Box Photos
+				<div className="absolute top-3 left-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+					Inspection photos
+				</div>
+				<button
+					type="button"
+					onClick={openLightbox}
+					className="absolute right-12 top-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/70"
+					aria-label="Open full screen photo"
+				>
+					<Maximize className="h-3 w-3" />
+					<span>Open</span>
+				</button>
+				<div className="absolute top-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold tabular-nums text-white backdrop-blur-sm">
+					{active + 1} / {photos.length}
 				</div>
 			</div>
 			{photos.length > 1 && (
-				<div className="flex gap-2 p-3 overflow-x-auto">
+				<div className="flex gap-2 overflow-x-auto p-3">
 					{photos.map((photo, i) => (
 						<button
+							type="button"
 							key={photo.id}
-							onClick={() => setActive(i)}
-							className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === active ? "border-primary-500" : "border-neutral-200"}`}
+							onClick={() => showPhoto(i)}
+							className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${i === active ? "scale-105 border-primary-600 shadow-md" : "border-neutral-200 opacity-70 hover:scale-[1.03] hover:opacity-100"}`}
+							aria-label={`Show photo ${i + 1}`}
 						>
 							<img
 								src={getPublicUrl(photo.image_url)}
@@ -83,9 +272,21 @@ function BoxPhotoGallery({
 					))}
 				</div>
 			)}
+			{activePhoto.notes && (
+				<p className="border-t border-neutral-100 px-4 py-3 text-sm text-neutral-600 dark:border-steel-700 dark:text-steel-300">
+					{activePhoto.notes}
+				</p>
+			)}
 			{lightbox !== null && (
-				<div
-					className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+				<motion.div
+					className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+					variants={lightboxVariants.backdrop}
+					initial="hidden"
+					animate="show"
+					transition={{
+						duration: shouldReduceMotion ? 0 : 0.2,
+						ease: [0.22, 1, 0.36, 1],
+					}}
 					onClick={(e) => {
 						if (e.target === e.currentTarget) setLightbox(null);
 					}}
@@ -95,39 +296,73 @@ function BoxPhotoGallery({
 					tabIndex={-1}
 				>
 					<button
-						className="absolute top-4 right-4 text-white/70 hover:text-white"
+						type="button"
+						className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white/80 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white"
 						onClick={() => setLightbox(null)}
+						aria-label="Close full-screen photo"
 					>
 						<X className="w-7 h-7" />
 					</button>
-					<img
-						src={getPublicUrl(photos[lightbox].image_url)}
-						alt=""
-						className="max-w-full max-h-full object-contain"
-					/>
+					<AnimatePresence
+						initial={false}
+						mode="wait"
+						custom={lightboxDirection}
+					>
+						<motion.img
+							key={photos[lightbox].id}
+							custom={lightboxDirection}
+							src={getPublicUrl(photos[lightbox].image_url)}
+							alt=""
+							className="max-w-full max-h-full object-contain shadow-2xl cursor-grab active:cursor-grabbing touch-pan-y"
+							variants={slideVariants}
+							initial="enter"
+							animate="center"
+							exit="exit"
+							transition={{
+								duration: shouldReduceMotion ? 0 : 0.22,
+								ease: [0.22, 1, 0.36, 1],
+							}}
+							drag="x"
+							dragConstraints={{ left: 0, right: 0 }}
+							dragElastic={0.12}
+							onDragEnd={(_, info) => {
+								if (info.offset.x < -45 || info.velocity.x < -350) {
+									nextLightbox();
+								}
+								if (info.offset.x > 45 || info.velocity.x > 350) {
+									prevLightbox();
+								}
+							}}
+							onClick={() => nextLightbox()}
+						/>
+					</AnimatePresence>
 					{photos.length > 1 && (
 						<>
 							<button
+								type="button"
 								onClick={(e) => {
 									e.stopPropagation();
-									setLightbox((l) => (l! - 1 + photos.length) % photos.length);
+									prevLightbox();
 								}}
-								className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white"
+								className="absolute left-4 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/90 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:scale-105"
+								aria-label="Show previous photo"
 							>
 								<ChevronLeft className="w-6 h-6" />
 							</button>
 							<button
+								type="button"
 								onClick={(e) => {
 									e.stopPropagation();
-									setLightbox((l) => (l! + 1) % photos.length);
+									nextLightbox();
 								}}
-								className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white"
+								className="absolute right-4 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/90 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:scale-105"
+								aria-label="Show next photo"
 							>
 								<ChevronRight className="w-6 h-6" />
 							</button>
 						</>
 					)}
-				</div>
+				</motion.div>
 			)}
 		</section>
 	);
@@ -139,6 +374,14 @@ export const Route = createFileRoute("/portal/package/$id")({
 
 function PackageView() {
 	const { id } = useParams({ from: "/portal/package/$id" });
+	const navigate = useNavigate();
+	const [scannerOpen, setScannerOpen] = useState(false);
+	const handleQrSubmit = (raw: string) => {
+		const token = parseQrToken(raw);
+		if (!token) return;
+		setScannerOpen(false);
+		navigate({ to: "/portal/scan/$token", params: { token } });
+	};
 
 	const { data: pkg, isLoading } = useQuery({
 		queryKey: ["portal-package", id],
@@ -312,7 +555,7 @@ function PackageView() {
 
 	if (isLoading) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-neutral-50">
+			<div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-steel-950">
 				<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
 			</div>
 		);
@@ -320,61 +563,69 @@ function PackageView() {
 
 	if (!pkg) {
 		return (
-			<div className="p-8 text-center bg-neutral-50 min-h-screen">
+			<div className="p-8 text-center bg-neutral-50 min-h-screen dark:bg-steel-950">
 				Package not found
 			</div>
 		);
 	}
 
 	return (
-		<div className="min-h-screen bg-neutral-50 pb-24">
-			{/* Brand Header */}
-			<header className="bg-white border-b border-neutral-200 sticky top-0 z-30">
-				<div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-					<div className="flex justify-between items-center h-16">
-						<div className="flex items-center gap-3">
-							<div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-								<Package className="w-5 h-5 text-white" />
-							</div>
-							<h1 className="text-lg font-bold text-neutral-900">
-								Package Details
-							</h1>
+			<div className="min-h-screen bg-neutral-50 pb-24 dark:bg-steel-950">
+				<PortalHeader
+					title="Package Details"
+					onScan={() => setScannerOpen(true)}
+					activePage="package"
+				/>
+
+			<main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-5">
+				<div className="flex items-center justify-between gap-4 rounded-2xl border border-primary-200 bg-white px-4 py-3 shadow-sm sm:px-5 dark:border-steel-700 dark:bg-steel-900/85">
+					<div className="flex items-center gap-3">
+						<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 p-2 shadow-sm dark:bg-steel-800">
+							<img src="/IPAC_logo.svg" alt="IPAC" className="h-full w-full" />
+						</div>
+						<div>
+							<p className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary-800 dark:text-primary-300">
+								IPAC client portal
+							</p>
+							<p className="mt-0.5 text-sm text-primary-950 dark:text-primary-100">
+								Verified package record
+							</p>
 						</div>
 					</div>
+					<span className="hidden text-xs font-medium text-primary-800 sm:block dark:text-primary-300">
+						Prepared for your team
+					</span>
 				</div>
-			</header>
-
-			<main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
 				{/* Box Photo Gallery */}
 				{boxPhotos && boxPhotos.length > 0 && (
 					<BoxPhotoGallery photos={boxPhotos} />
 				)}
 
 				{/* Package Hero Card */}
-				<section className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 sm:p-8">
+				<section className="rounded-2xl border border-neutral-100 bg-white p-6 shadow-sm sm:p-8 dark:border-steel-700 dark:bg-steel-900">
 					<div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
 						<div>
 							<div className="flex items-center gap-2 mb-2">
-								<span className="bg-primary-100 text-primary-800 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
+								<span className="bg-primary-100 text-primary-800 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide dark:bg-primary-900/40 dark:text-primary-200">
 									{pkg.status || "Packed"}
 								</span>
-								<span className="text-sm font-medium text-neutral-500">
+								<span className="text-sm font-medium text-neutral-500 dark:text-steel-400">
 									Box #{pkg.package_number}
 									{pkg.instance_number
 										? ` • Instance #${pkg.instance_number}`
 										: ""}
 								</span>
 							</div>
-							<h2 className="text-3xl font-black text-neutral-900 tracking-tight">
+							<h2 className="text-3xl font-black text-neutral-950 tracking-tight dark:text-white">
 								{pkg.reference_number || `Package ${pkg.package_number}`}
 							</h2>
 						</div>
 
 						<div className="text-left sm:text-right">
-							<div className="text-sm text-neutral-500 font-medium">
+							<div className="text-sm text-neutral-500 font-medium dark:text-steel-400">
 								Box Type
 							</div>
-							<div className="text-lg font-bold text-neutral-900">
+							<div className="text-lg font-bold text-neutral-900 dark:text-white">
 								{(Array.isArray(pkg.box_type)
 									? pkg.box_type[0]?.name
 									: (pkg.box_type as any)?.name) || "Standard Wooden Crate"}
@@ -383,61 +634,74 @@ function PackageView() {
 					</div>
 
 					{pkg.destination && (
-						<div className="mb-6 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
-							<div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+						<div className="mb-6 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 dark:border-steel-700 dark:bg-steel-800/70">
+							<div className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-steel-400">
 								Destination
 							</div>
-							<div className="mt-1 font-semibold text-neutral-900">
+							<div className="mt-1 font-semibold text-neutral-900 dark:text-white">
 								{pkg.destination}
 							</div>
 						</div>
 					)}
 
 					{/* Dimensions Grid */}
-					<div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6 border-t border-neutral-100">
-						<div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200/60">
-							<div className="flex items-center gap-2 text-neutral-500 mb-1">
+					<div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6 border-t border-neutral-100 dark:border-steel-700">
+						<div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200/60 dark:border-steel-700 dark:bg-steel-800/70">
+							<div className="flex items-center gap-2 text-neutral-500 mb-1 dark:text-steel-400">
 								<Ruler className="w-4 h-4" />
 								<span className="text-xs font-semibold uppercase">Length</span>
 							</div>
-							<div className="text-xl font-bold text-neutral-900">
+							<div className="text-xl font-bold text-neutral-900 dark:text-white">
 								{pkg.actual_length || "--"}{" "}
-								<span className="text-sm font-medium text-neutral-500">cm</span>
+								<span className="text-sm font-medium text-neutral-500 dark:text-steel-400">
+									cm
+								</span>
 							</div>
 						</div>
-						<div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200/60">
-							<div className="flex items-center gap-2 text-neutral-500 mb-1">
+						<div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200/60 dark:border-steel-700 dark:bg-steel-800/70">
+							<div className="flex items-center gap-2 text-neutral-500 mb-1 dark:text-steel-400">
 								<Ruler className="w-4 h-4" />
 								<span className="text-xs font-semibold uppercase">Width</span>
 							</div>
-							<div className="text-xl font-bold text-neutral-900">
+							<div className="text-xl font-bold text-neutral-900 dark:text-white">
 								{pkg.actual_width || "--"}{" "}
-								<span className="text-sm font-medium text-neutral-500">cm</span>
+								<span className="text-sm font-medium text-neutral-500 dark:text-steel-400">
+									cm
+								</span>
 							</div>
 						</div>
-						<div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200/60">
-							<div className="flex items-center gap-2 text-neutral-500 mb-1">
+						<div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200/60 dark:border-steel-700 dark:bg-steel-800/70">
+							<div className="flex items-center gap-2 text-neutral-500 mb-1 dark:text-steel-400">
 								<Ruler className="w-4 h-4 text-rotate-90" />
 								<span className="text-xs font-semibold uppercase">Height</span>
 							</div>
-							<div className="text-xl font-bold text-neutral-900">
+							<div className="text-xl font-bold text-neutral-900 dark:text-white">
 								{pkg.actual_height || "--"}{" "}
-								<span className="text-sm font-medium text-neutral-500">cm</span>
+								<span className="text-sm font-medium text-neutral-500 dark:text-steel-400">
+									cm
+								</span>
 							</div>
 						</div>
-						<div className="bg-primary-50 rounded-xl p-4 border border-primary-100/60">
-							<div className="flex items-center gap-2 text-primary-600 mb-1">
+						<div className="bg-primary-50 rounded-xl p-4 border border-primary-100/60 dark:border-primary-700/60 dark:bg-primary-900/25">
+							<div className="flex items-center gap-2 text-primary-600 mb-1 dark:text-primary-300">
 								<Maximize className="w-4 h-4" />
 								<span className="text-xs font-semibold uppercase">Volume</span>
 							</div>
-							<div className="text-xl font-bold text-primary-900">
+							<div className="text-xl font-bold text-primary-950 dark:text-primary-100">
 								{pkg.actual_volume || "--"}{" "}
-								<span className="text-sm font-medium text-primary-600">m³</span>
+								<span className="text-sm font-medium text-primary-600 dark:text-primary-300">
+									m³
+								</span>
 							</div>
 						</div>
 					</div>
 				</section>
 			</main>
+			<QrScanner
+				open={scannerOpen}
+				onClose={() => setScannerOpen(false)}
+				onResult={handleQrSubmit}
+			/>
 		</div>
 	);
 }

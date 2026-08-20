@@ -3,7 +3,7 @@ import {
 	useNavigate,
 	useParams,
 } from "@tanstack/react-router";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useToastContext } from "../../../components/ui/ToastProvider";
 import { useAuth } from "../../../hooks/useAuth";
@@ -270,32 +270,42 @@ function TokenResolver() {
 
 	if (resolving || authLoading) {
 		return (
-			<div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50">
-				<div className="relative">
-					<div className="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
-					<div className="absolute inset-0 flex items-center justify-center">
-						<div className="w-6 h-6 bg-primary-600 rounded-sm"></div>
+			<div className="flex min-h-screen items-center justify-center bg-app-bg p-6">
+				<div className="w-full max-w-sm rounded-3xl border border-app-border bg-app-surface p-8 text-center shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)]">
+					<div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-app-border bg-app-surface-muted p-3">
+						<img src="/IPAC_logo.svg" alt="IPAC" className="h-full w-full" />
+					</div>
+					<div className="mx-auto mt-6 flex h-10 w-10 items-center justify-center rounded-full bg-primary-50 text-primary-700">
+						<ShieldCheck className="h-5 w-5" />
+					</div>
+					<h2 className="mt-4 text-lg font-semibold text-app-text-strong">
+						Verifying your package
+					</h2>
+					<p className="mt-2 text-sm leading-6 text-app-text-muted">
+						IPAC is securely opening the package record linked to this QR code.
+					</p>
+					<div className="mx-auto mt-6 h-1.5 w-32 overflow-hidden rounded-full bg-app-surface-muted">
+						<div className="h-full w-1/2 animate-pulse rounded-full bg-primary-600" />
 					</div>
 				</div>
-				<h2 className="mt-6 text-xl font-bold text-neutral-900">
-					Loading QR Code information...
-				</h2>
-				<p className="text-neutral-500 mt-2">Checking security clearance</p>
 			</div>
 		);
 	}
 
 	// Only reached if there was an error
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
-			<div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-neutral-100 p-8 text-center">
+		<div className="flex min-h-screen items-center justify-center bg-app-bg p-4">
+			<div className="w-full max-w-md rounded-3xl border border-app-border bg-app-surface p-8 text-center shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)]">
+				<div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-2xl border border-app-border bg-app-surface-muted p-2.5">
+					<img src="/IPAC_logo.svg" alt="IPAC" className="h-full w-full" />
+				</div>
 				<div className="w-16 h-16 bg-danger-100 rounded-full flex items-center justify-center mx-auto mb-6">
 					<AlertCircle className="w-8 h-8 text-danger-600" />
 				</div>
-				<h2 className="text-2xl font-bold text-neutral-900 mb-2">
-					Access Denied
+				<h2 className="text-2xl font-semibold text-app-text-strong mb-2">
+					Package link unavailable
 				</h2>
-				<p className="text-neutral-600 mb-8">{error}</p>
+				<p className="text-app-text-muted mb-8">{error}</p>
 				<button
 					onClick={() => navigate({ to: "/portal/login" })}
 					className="w-full py-3 px-4 bg-neutral-900 hover:bg-black text-white rounded-xl font-medium transition-colors"
