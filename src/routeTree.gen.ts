@@ -22,6 +22,7 @@ import { Route as DataImportRouteImport } from './routes/data-import'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PortalIndexRouteImport } from './routes/portal/index'
 import { Route as OrdersIndexRouteImport } from './routes/orders/index'
 import { Route as MyOrdersIndexRouteImport } from './routes/my-orders/index'
 import { Route as ClientsIndexRouteImport } from './routes/clients/index'
@@ -97,6 +98,11 @@ const ClientsRoute = ClientsRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/portal/',
+  path: '/portal/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrdersIndexRoute = OrdersIndexRouteImport.update({
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/clients/': typeof ClientsIndexRoute
   '/my-orders/': typeof MyOrdersIndexRoute
   '/orders/': typeof OrdersIndexRoute
+  '/portal/': typeof PortalIndexRoute
   '/portal/item/$id': typeof PortalItemIdRoute
   '/portal/package/$id': typeof PortalPackageIdRoute
   '/portal/scan/$token': typeof PortalScanTokenRoute
@@ -199,6 +206,7 @@ export interface FileRoutesByTo {
   '/clients': typeof ClientsIndexRoute
   '/my-orders': typeof MyOrdersIndexRoute
   '/orders': typeof OrdersIndexRoute
+  '/portal': typeof PortalIndexRoute
   '/portal/item/$id': typeof PortalItemIdRoute
   '/portal/package/$id': typeof PortalPackageIdRoute
   '/portal/scan/$token': typeof PortalScanTokenRoute
@@ -226,6 +234,7 @@ export interface FileRoutesById {
   '/clients/': typeof ClientsIndexRoute
   '/my-orders/': typeof MyOrdersIndexRoute
   '/orders/': typeof OrdersIndexRoute
+  '/portal/': typeof PortalIndexRoute
   '/portal/item/$id': typeof PortalItemIdRoute
   '/portal/package/$id': typeof PortalPackageIdRoute
   '/portal/scan/$token': typeof PortalScanTokenRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/my-orders/'
     | '/orders/'
+    | '/portal/'
     | '/portal/item/$id'
     | '/portal/package/$id'
     | '/portal/scan/$token'
@@ -277,6 +287,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/my-orders'
     | '/orders'
+    | '/portal'
     | '/portal/item/$id'
     | '/portal/package/$id'
     | '/portal/scan/$token'
@@ -303,6 +314,7 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/my-orders/'
     | '/orders/'
+    | '/portal/'
     | '/portal/item/$id'
     | '/portal/package/$id'
     | '/portal/scan/$token'
@@ -324,6 +336,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   UsersRoute: typeof UsersRoute
   PortalLoginRoute: typeof PortalLoginRoute
+  PortalIndexRoute: typeof PortalIndexRoute
   PortalItemIdRoute: typeof PortalItemIdRoute
   PortalPackageIdRoute: typeof PortalPackageIdRoute
   PortalScanTokenRoute: typeof PortalScanTokenRoute
@@ -421,6 +434,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/': {
+      id: '/portal/'
+      path: '/portal'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orders/': {
@@ -558,6 +578,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   UsersRoute: UsersRoute,
   PortalLoginRoute: PortalLoginRoute,
+  PortalIndexRoute: PortalIndexRoute,
   PortalItemIdRoute: PortalItemIdRoute,
   PortalPackageIdRoute: PortalPackageIdRoute,
   PortalScanTokenRoute: PortalScanTokenRoute,
