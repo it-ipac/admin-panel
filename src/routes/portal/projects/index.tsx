@@ -15,7 +15,6 @@ import {
 	Ruler,
 	ScanLine,
 	ShieldAlert,
-	ShieldCheck,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { QrScanner } from "../../../components/orders/orderId/modals/QrScanner";
@@ -60,15 +59,10 @@ function PortalRecordFlowIllustration() {
 	return (
 		<div className="overflow-hidden rounded-[1.5rem] border border-app-border bg-app-surface shadow-[0_24px_70px_-42px_rgba(15,23,42,0.55)]">
 			<div className="border-b border-app-border bg-neutral-950 p-5 sm:p-6 dark:bg-steel-950">
-				<div className="mb-5 flex items-start justify-between gap-4">
-					<div>
-						<p className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary-300">
-							Your package label
-						</p>
-						<h3 className="mt-1.5 text-lg font-semibold tracking-tight text-white">
-							One scan. Complete visibility.
-						</h3>
-					</div>
+				<div className="mb-5 flex items-center justify-between gap-4">
+					<p className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary-300">
+						Your package label
+					</p>
 					<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5">
 						<ScanLine className="h-5 w-5 text-primary-300" aria-hidden="true" />
 					</span>
@@ -327,7 +321,7 @@ function PortalProjects() {
 
 	if (QR_DRIVEN_PORTAL) {
 		return (
-			<div className="min-h-screen bg-app-bg">
+			<div className="flex h-dvh flex-col overflow-hidden bg-app-bg">
 				<a
 					href="#package-access"
 					className="sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:not-sr-only focus:rounded-lg focus:bg-neutral-950 focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
@@ -344,7 +338,7 @@ function PortalProjects() {
 				<main
 					id="package-access"
 					tabIndex={-1}
-					className="relative isolate overflow-hidden focus:outline-none"
+					className="relative isolate min-h-0 flex-1 overflow-hidden focus:outline-none"
 				>
 					<div
 						className="pointer-events-none absolute inset-0 -z-10"
@@ -354,21 +348,11 @@ function PortalProjects() {
 						<div className="absolute -right-32 top-1/3 h-72 w-72 rounded-full bg-aqua-200/20 blur-3xl dark:bg-aqua-900/10" />
 					</div>
 
-					<section className="mx-auto grid w-full max-w-7xl items-center gap-10 px-3 py-6 sm:px-6 sm:py-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16 lg:px-8 lg:py-16 xl:py-20">
+					<section className="mx-auto grid h-full min-h-0 w-full max-w-7xl items-center gap-8 px-3 py-4 sm:px-6 sm:py-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:px-8 lg:py-8">
 						<div className="mx-auto w-full max-w-xl lg:mx-0">
-							<div className="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary-800 dark:border-primary-800 dark:bg-primary-950/40 dark:text-primary-200">
-								<ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-								Secure client access
-							</div>
-
-							<h2 className="mt-4 text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-app-text-strong sm:mt-5 sm:text-5xl">
+							<h2 className="text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-app-text-strong sm:text-5xl">
 								Open any package record in seconds.
 							</h2>
-							<p className="mt-3 max-w-lg text-sm leading-6 text-app-text-muted sm:mt-4 sm:text-lg sm:leading-7">
-								Scan the QR code on an IPAC label to view its contents,
-								dimensions, destination, and photo record.
-							</p>
-
 							<div className="mt-6 rounded-[1.25rem] border border-app-border bg-app-surface p-2 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.55)] sm:mt-8 sm:rounded-[1.5rem] sm:p-3">
 								<button
 									type="button"

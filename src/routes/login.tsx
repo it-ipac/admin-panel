@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Eye, EyeOff, Loader2, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 import { loginSchema, validateInput } from "@/lib/validation";
 import { useAuth } from "../hooks/useAuth";
@@ -219,6 +219,27 @@ function LoginPage() {
 								"Sign in"
 							)}
 						</button>
+
+						<div className="mt-6 flex items-center gap-3 text-xs font-medium uppercase tracking-[0.2em] text-neutral-400">
+							<span className="h-px flex-1 bg-neutral-200" />
+							<span>OR</span>
+							<span className="h-px flex-1 bg-neutral-200" />
+						</div>
+
+						<div className="flex justify-center">
+							<Link
+								to="/portal/projects"
+								className="group inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm text-neutral-500 transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-50 hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+							>
+								<Package
+									className="h-4 w-4 transition-colors group-hover:text-primary-600"
+									aria-hidden="true"
+								/>
+								<span className="font-medium text-neutral-700 group-hover:text-primary-700">
+									Package Portal →
+								</span>
+							</Link>
+						</div>
 					</form>
 				</div>
 			</div>

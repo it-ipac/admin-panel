@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 
+import * as Dialog from "@radix-ui/react-dialog";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
 	createRootRoute,
@@ -11,6 +12,13 @@ import {
 	useNavigate,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import {
+	ArrowRight,
+	LayoutDashboard,
+	Loader2,
+	LogOut,
+	PackageCheck,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { ToastProvider } from "../components/ui/ToastProvider";
@@ -105,19 +113,86 @@ function RootDocument({
 	);
 }
 
+function WorkspaceSwitchDialog({
+	open,
+	pending,
+	onCancel,
+	onConfirm,
+}: Readonly<{
+	open: boolean;
+	pending: boolean;
+	onCancel: () => void;
+	onConfirm: () => void;
+}>) {
+	return (
+		<Dialog.Root
+			open={open}
+			onOpenChange={(nextOpen) => {
+				if (!nextOpen && !pending) onCancel();
+			}}
+		>
+			<Dialog.Portal>
+				<Dialog.Overlay className="fixed inset-0 z-[10000] bg-steel-950/65 backdrop-blur-sm" />
+				<Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-[calc(100%-2rem)] max-w-[28rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-app-border bg-app-surface shadow-2xl focus:outline-none">
+					<div className="px-6 pb-6 pt-7">
+						<div className="mb-6 flex items-center gap-2.5" aria-hidden="true">
+							<span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-600 text-white shadow-sm">
+								<PackageCheck className="h-6 w-6" />
+							</span>
+							<ArrowRight className="h-5 w-5 text-app-text-muted" />
+							<span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-app-border bg-app-surface-muted text-app-text-strong shadow-sm">
+								<LayoutDashboard className="h-6 w-6" />
+							</span>
+						</div>
+
+						<Dialog.Title className="text-2xl font-bold tracking-tight text-app-text-strong sm:text-[1.75rem]">
+							Leave Package Portal?
+						</Dialog.Title>
+					</div>
+
+					<div className="flex gap-3 border-t border-app-border bg-app-surface p-4">
+						<button
+							type="button"
+							onClick={onCancel}
+							disabled={pending}
+							className="h-12 flex-1 whitespace-nowrap rounded-xl border border-app-border px-4 text-base font-semibold text-app-text-strong transition-colors hover:bg-app-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:opacity-50"
+						>
+							Stay
+						</button>
+						<button
+							type="button"
+							onClick={onConfirm}
+							disabled={pending}
+							className="inline-flex h-12 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-primary-600 px-4 text-base font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+						>
+							{pending ? (
+								<Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+							) : (
+								<LogOut className="h-4 w-4" aria-hidden="true" />
+							)}
+							{pending ? "Signing out" : "Sign out"}
+						</button>
+					</div>
+				</Dialog.Content>
+			</Dialog.Portal>
+		</Dialog.Root>
+	);
+}
+
 function RootComponent() {
 	const authState = useAuthState();
 	const [isHydrated, setIsHydrated] = useState(false);
 	const { theme } = Route.useLoaderData();
 	const location = useLocation();
 	const navigate = useNavigate();
+	const [isSwitchingWorkspace, setIsSwitchingWorkspace] = useState(false);
 	const showTanStackDevtools =
 		import.meta.env.DEV &&
 		import.meta.env.VITE_ENABLE_TANSTACK_DEVTOOLS === "true";
 	const role = authState.profile?.roles?.name ?? null;
 	const isClientUser = role === "client";
 	const isPortalRoute = location.pathname.startsWith("/portal");
-	const forcePortalAccess =
+	const shouldPromptForDashboard =
 		!authState.loading &&
 		!!authState.user &&
 		!!authState.profile &&
@@ -129,25 +204,29 @@ function RootComponent() {
 	}, []);
 
 	useEffect(() => {
-		if (!forcePortalAccess) return;
+		if (shouldPromptForDashboard) return;
+		setIsSwitchingWorkspace(false);
+	}, [shouldPromptForDashboard]);
 
-		navigate({
-			to: "/portal/login",
-			search: { returnUrl: "/portal/projects" },
-		});
-	}, [forcePortalAccess, navigate]);
+	const handleDashboardAccessRequest = async () => {
+		setIsSwitchingWorkspace(true);
+		try {
+			await authState.signOut();
+			navigate({ to: "/login" });
+		} finally {
+			setIsSwitchingWorkspace(false);
+		}
+	};
 
-	if (forcePortalAccess) {
+	if (shouldPromptForDashboard) {
 		return (
 			<RootDocument theme={theme}>
-				<div className="min-h-screen flex items-center justify-center bg-neutral-50">
-					<div className="flex flex-col items-center gap-4 text-center">
-						<div className="w-8 h-8 rounded-full border-4 border-primary-200 border-t-primary-600 animate-spin" />
-						<p className="text-neutral-600">
-							Redirecting to the client portal...
-						</p>
-					</div>
-				</div>
+				<WorkspaceSwitchDialog
+					open
+					onCancel={() => navigate({ to: "/portal/projects" })}
+					onConfirm={handleDashboardAccessRequest}
+					pending={isSwitchingWorkspace}
+				/>
 			</RootDocument>
 		);
 	}
