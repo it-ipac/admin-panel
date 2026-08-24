@@ -602,10 +602,10 @@ function ItemView() {
 							>
 								<ArrowLeft className="w-5 h-5" />
 							</button>
-							<PortalBrand className="h-8 w-[7.75rem] rounded-lg border border-neutral-200" />
+							<PortalBrand variant="header" />
 							<div className="min-w-0">
 								<p className="truncate text-[10px] font-semibold uppercase tracking-[0.28em] text-primary-700/80">
-									Metrix-Assets Client Portal
+									Client access
 								</p>
 								<h1 className="text-lg font-bold text-neutral-900">
 									Item Details

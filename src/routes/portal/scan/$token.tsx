@@ -277,9 +277,10 @@ function TokenResolver() {
 			<div className="portal-brand flex min-h-screen items-center justify-center bg-app-bg p-4 sm:p-6">
 				<div className="w-full max-w-sm rounded-3xl border border-app-border bg-app-surface p-8 text-center shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)]">
 					<PortalBrand
-						variant="stacked"
-						className="mx-auto h-auto w-full max-w-[14rem] rounded-2xl border border-app-border p-1"
-						imageClassName="h-auto"
+						variant="full"
+						showTagline
+						className="mx-auto justify-center"
+						markClassName="h-12 w-12"
 					/>
 					<div className="mx-auto mt-6 flex h-10 w-10 items-center justify-center rounded-full bg-primary-50 text-primary-700">
 						<ShieldCheck className="h-5 w-5" />
@@ -304,9 +305,10 @@ function TokenResolver() {
 		<div className="portal-brand flex min-h-screen items-center justify-center bg-app-bg p-4">
 			<div className="w-full max-w-md rounded-3xl border border-app-border bg-app-surface p-8 text-center shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)]">
 				<PortalBrand
-					variant="stacked"
-					className="mx-auto mb-6 h-auto w-full max-w-[13rem] rounded-2xl border border-app-border p-1"
-					imageClassName="h-auto"
+					variant="full"
+					showTagline
+					className="mx-auto mb-6 justify-center"
+					markClassName="h-12 w-12"
 				/>
 				<div className="w-16 h-16 bg-danger-100 rounded-full flex items-center justify-center mx-auto mb-6">
 					<AlertCircle className="w-8 h-8 text-danger-600" />

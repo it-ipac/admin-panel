@@ -797,6 +797,24 @@ button.text-white {
 	--hover-bg-primary-100: light-dark(#dff3fb, rgba(0, 129, 197, 0.22));
 }
 
+.portal-wordmark {
+	font-family:
+		Montserrat, "Avenir Next", "Century Gothic", Futura, "Arial Black", Arial,
+		sans-serif;
+	font-weight: 900;
+	letter-spacing: -0.035em;
+	line-height: 1;
+}
+
+.portal-wordmark .metrix-wordmark__metrix {
+	color: #243e9f !important;
+}
+
+.portal-wordmark .metrix-wordmark__assets,
+.portal-wordmark .metrix-wordmark__version {
+	color: #2d7bc7 !important;
+}
+
 .portal-brand .bg-primary-50 {
 	background-color: var(--bg-primary-50) !important;
 }

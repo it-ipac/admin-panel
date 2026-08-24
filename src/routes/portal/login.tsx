@@ -108,9 +108,10 @@ function PortalLogin() {
 			<div className="relative z-10 w-full max-w-md rounded-2xl border border-neutral-100 bg-white p-6 shadow-xl sm:p-8">
 				<div className="mb-8 text-center sm:mb-10">
 					<PortalBrand
-						variant="stacked"
-						className="mx-auto mb-5 h-auto w-full max-w-[17rem] rounded-2xl shadow-sm ring-1 ring-neutral-200 sm:mb-6 sm:max-w-[20rem]"
-						imageClassName="h-auto"
+						variant="full"
+						showTagline
+						className="mx-auto mb-5 justify-center sm:mb-6"
+						markClassName="h-14 w-14 sm:h-16 sm:w-16"
 					/>
 					<p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-primary-700">
 						Secure client access
