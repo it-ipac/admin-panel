@@ -407,7 +407,7 @@ function BoxPhotoGallery({
 export const Route = createFileRoute("/portal/package/$id")({
 	component: PackageView,
 	head: () => ({
-		meta: [{ title: "Package Details | Metrix-Assets 4.0" }],
+		meta: [{ title: "Package Details | Client Portal" }],
 	}),
 });
 
@@ -660,7 +660,7 @@ function PackageView() {
 								Verified package record
 							</p>
 							<p className="truncate text-[11px] text-primary-700 dark:text-primary-300">
-								Authenticated by Metrix-Assets
+								Authenticated in the client portal
 							</p>
 						</div>
 					</div>

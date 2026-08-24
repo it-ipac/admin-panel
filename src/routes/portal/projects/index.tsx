@@ -26,7 +26,7 @@ import { auth, db, supabase } from "../../../lib/supabase";
 export const Route = createFileRoute("/portal/projects/")({
 	component: PortalProjects,
 	head: () => ({
-		meta: [{ title: "Package Portal | Metrix-Assets 4.0" }],
+		meta: [{ title: "Package Portal | Client Portal" }],
 	}),
 });
 
@@ -79,7 +79,7 @@ function PortalRecordFlowIllustration() {
 					/>
 						<img
 						src="/image.png"
-						alt="Example Metrix-Assets package label with a QR code"
+						alt="Example client package label with a QR code"
 						className="relative z-10 block h-auto w-full max-w-[560px] rounded-sm shadow-[0_14px_28px_-10px_rgba(0,0,0,0.8)]"
 					/>
 				</div>

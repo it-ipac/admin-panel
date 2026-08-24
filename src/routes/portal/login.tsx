@@ -15,7 +15,7 @@ export const Route = createFileRoute("/portal/login")({
 		typeof search.returnUrl === "string" ? { returnUrl: search.returnUrl } : {},
 	component: PortalLogin,
 	head: () => ({
-		meta: [{ title: "Client Portal Login | Metrix-Assets 4.0" }],
+		meta: [{ title: "Client Portal Login | Client Portal" }],
 	}),
 });
 
@@ -65,7 +65,7 @@ function PortalLogin() {
 				if (profileData?.data?.roles?.name === "client") {
 					toast({
 						title: "Access Granted",
-						description: "Welcome to your Metrix-Assets Client Portal.",
+						description: "Welcome to your client portal.",
 						variant: "success",
 					});
 					goToReturnUrl();
@@ -117,7 +117,7 @@ function PortalLogin() {
 						Secure client access
 					</p>
 					<h1 className="mt-1 text-2xl font-bold tracking-tight text-neutral-900">
-						Metrix-Assets Client Portal
+						Client Portal
 					</h1>
 					<p className="text-neutral-500 text-sm mt-2 font-medium">
 						Log in to track your items and packages.
@@ -175,7 +175,7 @@ function PortalLogin() {
 
 				<div className="mt-8 text-center border-t border-neutral-100 pt-6">
 					<p className="text-xs text-neutral-400 font-medium">
-						Powered by Metrix-Assets 4.0
+						Powered by Precision
 					</p>
 				</div>
 			</div>

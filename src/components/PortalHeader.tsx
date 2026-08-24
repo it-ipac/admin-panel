@@ -82,7 +82,7 @@ export function PortalHeader({
 					<Link
 						to="/portal/projects"
 						className="group mr-auto flex min-w-0 flex-1 items-center gap-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 min-[360px]:gap-1.5 min-[480px]:gap-2 sm:gap-3"
-						aria-label="Metrix-Assets client portal home"
+						aria-label="Client portal home"
 					>
 						<PortalBrand
 							variant="header"
@@ -91,7 +91,7 @@ export function PortalHeader({
 						/>
 						<div className="hidden min-w-0 flex-1 border-l border-app-border pl-3 sm:block">
 							<p className="truncate text-[9px] font-bold uppercase tracking-[0.24em] text-primary-700 dark:text-primary-300">
-								Client access
+								Client portal
 							</p>
 							<h1 className="truncate text-sm font-semibold tracking-tight text-app-text-strong md:text-base">
 								{title}

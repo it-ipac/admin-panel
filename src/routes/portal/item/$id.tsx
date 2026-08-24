@@ -84,7 +84,7 @@ const createLightboxVariants = (shouldReduceMotion: boolean) =>
 export const Route = createFileRoute("/portal/item/$id")({
 	component: ItemView,
 	head: () => ({
-		meta: [{ title: "Item Details | Metrix-Assets 4.0" }],
+		meta: [{ title: "Item Details | Client Portal" }],
 	}),
 });
 
@@ -605,7 +605,7 @@ function ItemView() {
 							<PortalBrand variant="header" />
 							<div className="min-w-0">
 								<p className="truncate text-[10px] font-semibold uppercase tracking-[0.28em] text-primary-700/80">
-									Client access
+									Client portal
 								</p>
 								<h1 className="text-lg font-bold text-neutral-900">
 									Item Details

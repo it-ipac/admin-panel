@@ -13,7 +13,7 @@ import { db, supabase } from "../../../lib/supabase";
 export const Route = createFileRoute("/portal/scan/$token")({
 	component: TokenResolver,
 	head: () => ({
-		meta: [{ title: "Opening Package | Metrix-Assets 4.0" }],
+		meta: [{ title: "Opening Package | Client Portal" }],
 	}),
 });
 
@@ -289,8 +289,8 @@ function TokenResolver() {
 						Verifying your package
 					</h2>
 					<p className="mt-2 text-sm leading-6 text-app-text-muted">
-						Metrix-Assets is securely opening the package record linked to this
-						QR code.
+						The client portal is securely opening the package record linked to
+						this QR code.
 					</p>
 					<div className="mx-auto mt-6 h-1.5 w-32 overflow-hidden rounded-full bg-app-surface-muted">
 						<div className="h-full w-1/2 animate-pulse rounded-full bg-primary-600" />
