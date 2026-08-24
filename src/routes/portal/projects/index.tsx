@@ -329,7 +329,7 @@ function PortalProjects() {
 					Skip to package access
 				</a>
 				<PortalHeader
-					title="Metrix-Assets Portal"
+					title="Package Portal"
 					onScan={() => setScannerOpen(true)}
 					activePage="home"
 					maxWidth="max-w-7xl"

@@ -83,12 +83,12 @@ export function PortalHeader({
 						aria-label="Metrix-Assets client portal home"
 					>
 						<PortalBrand
-							className="h-9 w-[7.5rem] border border-app-border shadow-sm transition-[border-color,box-shadow,transform] duration-200 group-hover:-translate-y-0.5 group-hover:border-primary-300 group-hover:shadow-lg group-hover:shadow-primary-600/10 group-active:translate-y-0 group-active:scale-[0.97] group-focus-visible:border-primary-400 motion-reduce:transform-none motion-reduce:transition-none sm:h-10 sm:w-[9.5rem]"
-							imageClassName="transition-transform duration-200 group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none"
+							variant="mark"
+							className="h-9 w-9 shrink-0 transition-transform duration-200 group-hover:scale-105 group-active:scale-[0.97] sm:h-[42px] sm:w-[42px] motion-reduce:transform-none"
 						/>
 						<div className="min-w-0">
 							<p className="hidden truncate text-[9px] font-bold uppercase tracking-[0.24em] text-primary-700 dark:text-primary-300 sm:block">
-								Metrix-Assets / Client access
+								METRIX-ASSETS / CLIENT ACCESS
 							</p>
 							<h1 className="truncate text-xs font-semibold tracking-tight text-app-text-strong min-[360px]:text-sm sm:text-base">
 								{title}

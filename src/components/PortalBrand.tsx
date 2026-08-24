@@ -1,5 +1,5 @@
 interface PortalBrandProps {
-	variant?: "horizontal" | "stacked";
+	variant?: "horizontal" | "stacked" | "mark";
 	className?: string;
 	imageClassName?: string;
 	alt?: string;
@@ -16,6 +16,19 @@ export function PortalBrand({
 	imageClassName = "",
 	alt = "IPAC logo",
 }: PortalBrandProps) {
+	if (variant === "mark") {
+		return (
+			<svg
+				viewBox="250 100 300 300"
+				role="img"
+				aria-label={alt}
+				className={`block h-full w-full ${className}`}
+			>
+				<use href="/assets/ipac_vertical_logo.svg#svg1" />
+			</svg>
+		);
+	}
+
 	return (
 		<span
 			className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white ${className}`}
