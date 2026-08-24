@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRef, useState } from "react";
+import { PortalBrand } from "../../../components/PortalBrand";
 import { supabase } from "../../../lib/supabase";
 
 const getPublicUrl = (path: string | null) => {
@@ -82,6 +83,9 @@ const createLightboxVariants = (shouldReduceMotion: boolean) =>
 
 export const Route = createFileRoute("/portal/item/$id")({
 	component: ItemView,
+	head: () => ({
+		meta: [{ title: "Item Details | Metrix-Assets 4.0" }],
+	}),
 });
 
 function PhotoGallery({
@@ -577,7 +581,7 @@ function ItemView() {
 		record.source === "pkd_item" ? (record.data as any).quantity : null;
 
 	return (
-		<div className="min-h-screen bg-neutral-50 pb-24">
+		<div className="portal-brand min-h-screen bg-neutral-50 pb-24">
 			{/* Header */}
 			<header className="bg-white border-b border-neutral-200 sticky top-0 z-30">
 				<div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -598,14 +602,10 @@ function ItemView() {
 							>
 								<ArrowLeft className="w-5 h-5" />
 							</button>
-							<img
-								src="/IPAC_logo.svg"
-								alt="IPAC"
-								className="h-8 w-auto shrink-0"
-							/>
+							<PortalBrand className="h-8 w-[7.75rem] rounded-lg border border-neutral-200" />
 							<div className="min-w-0">
 								<p className="truncate text-[10px] font-semibold uppercase tracking-[0.28em] text-primary-700/80">
-									IPAC Client Portal
+									Metrix-Assets Client Portal
 								</p>
 								<h1 className="text-lg font-bold text-neutral-900">
 									Item Details
@@ -705,11 +705,11 @@ function ItemView() {
 						))}
 					</div>
 
-					{/* IPAC Notes */}
+					{/* Portal notes */}
 					{item?.ipac_comments && (
 						<div className="mt-6">
 							<h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wide mb-3">
-								IPAC Notes
+								Portal Notes
 							</h3>
 							<div className="bg-warning-50 rounded-xl p-4 border border-warning-100 text-warning-900 text-sm leading-relaxed">
 								{item.ipac_comments}

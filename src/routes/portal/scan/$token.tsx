@@ -5,12 +5,16 @@ import {
 } from "@tanstack/react-router";
 import { AlertCircle, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
+import { PortalBrand } from "../../../components/PortalBrand";
 import { useToastContext } from "../../../components/ui/ToastProvider";
 import { useAuth } from "../../../hooks/useAuth";
 import { db, supabase } from "../../../lib/supabase";
 
 export const Route = createFileRoute("/portal/scan/$token")({
 	component: TokenResolver,
+	head: () => ({
+		meta: [{ title: "Opening Package | Metrix-Assets 4.0" }],
+	}),
 });
 
 function TokenResolver() {
@@ -270,11 +274,13 @@ function TokenResolver() {
 
 	if (resolving || authLoading) {
 		return (
-			<div className="flex min-h-screen items-center justify-center bg-app-bg p-6">
+			<div className="portal-brand flex min-h-screen items-center justify-center bg-app-bg p-4 sm:p-6">
 				<div className="w-full max-w-sm rounded-3xl border border-app-border bg-app-surface p-8 text-center shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)]">
-					<div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-app-border bg-app-surface-muted p-3">
-						<img src="/IPAC_logo.svg" alt="IPAC" className="h-full w-full" />
-					</div>
+					<PortalBrand
+						variant="stacked"
+						className="mx-auto h-auto w-full max-w-[14rem] rounded-2xl border border-app-border p-1"
+						imageClassName="h-auto"
+					/>
 					<div className="mx-auto mt-6 flex h-10 w-10 items-center justify-center rounded-full bg-primary-50 text-primary-700">
 						<ShieldCheck className="h-5 w-5" />
 					</div>
@@ -282,7 +288,8 @@ function TokenResolver() {
 						Verifying your package
 					</h2>
 					<p className="mt-2 text-sm leading-6 text-app-text-muted">
-						IPAC is securely opening the package record linked to this QR code.
+						Metrix-Assets is securely opening the package record linked to this
+						QR code.
 					</p>
 					<div className="mx-auto mt-6 h-1.5 w-32 overflow-hidden rounded-full bg-app-surface-muted">
 						<div className="h-full w-1/2 animate-pulse rounded-full bg-primary-600" />
@@ -294,11 +301,13 @@ function TokenResolver() {
 
 	// Only reached if there was an error
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-app-bg p-4">
+		<div className="portal-brand flex min-h-screen items-center justify-center bg-app-bg p-4">
 			<div className="w-full max-w-md rounded-3xl border border-app-border bg-app-surface p-8 text-center shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)]">
-				<div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-2xl border border-app-border bg-app-surface-muted p-2.5">
-					<img src="/IPAC_logo.svg" alt="IPAC" className="h-full w-full" />
-				</div>
+				<PortalBrand
+					variant="stacked"
+					className="mx-auto mb-6 h-auto w-full max-w-[13rem] rounded-2xl border border-app-border p-1"
+					imageClassName="h-auto"
+				/>
 				<div className="w-16 h-16 bg-danger-100 rounded-full flex items-center justify-center mx-auto mb-6">
 					<AlertCircle className="w-8 h-8 text-danger-600" />
 				</div>

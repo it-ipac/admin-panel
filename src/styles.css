@@ -773,6 +773,62 @@ button.text-white {
 	opacity: light-dark(1, 0.05);
 }
 
+/* Metrix-Assets portal palette is scoped so the admin workspace is unchanged. */
+.portal-brand {
+	--color-primary-50: #eff9fe;
+	--color-primary-100: #dff3fb;
+	--color-primary-200: #b9e8f7;
+	--color-primary-300: #83d2ee;
+	--color-primary-400: #65b9e5;
+	--color-primary-500: #0081c5;
+	--color-primary-600: #005ea8;
+	--color-primary-700: #013d86;
+	--color-primary-800: #0c2b7b;
+	--color-primary-900: #070630;
+	--color-primary-950: #03021f;
+	--bg-primary-50: light-dark(#eff9fe, rgba(0, 129, 197, 0.16));
+	--bg-primary-100: light-dark(#dff3fb, rgba(0, 129, 197, 0.24));
+	--border-primary-100: light-dark(#dff3fb, rgba(0, 129, 197, 0.2));
+	--border-primary-200: light-dark(#b9e8f7, rgba(0, 129, 197, 0.34));
+	--border-primary-300: light-dark(#83d2ee, rgba(101, 185, 229, 0.46));
+	--text-primary-700: light-dark(#013d86, #83d2ee);
+	--text-primary-800: light-dark(#0c2b7b, #b9e8f7);
+	--text-primary-900: light-dark(#070630, #dff3fb);
+	--hover-bg-primary-100: light-dark(#dff3fb, rgba(0, 129, 197, 0.22));
+}
+
+.portal-brand .bg-primary-50 {
+	background-color: var(--bg-primary-50) !important;
+}
+
+.portal-brand .bg-primary-100 {
+	background-color: var(--bg-primary-100) !important;
+}
+
+.portal-brand .border-primary-100 {
+	border-color: var(--border-primary-100) !important;
+}
+
+.portal-brand .border-primary-200 {
+	border-color: var(--border-primary-200) !important;
+}
+
+.portal-brand .border-primary-300 {
+	border-color: var(--border-primary-300) !important;
+}
+
+.portal-brand .text-primary-700 {
+	color: var(--text-primary-700) !important;
+}
+
+.portal-brand .text-primary-800 {
+	color: var(--text-primary-800) !important;
+}
+
+.portal-brand .text-primary-900 {
+	color: var(--text-primary-900) !important;
+}
+
 /* Map common Tailwind hover states to our semantic variables for seamless dark mode */
 .hover\:bg-neutral-50:hover {
 	background-color: var(--app-bg) !important;

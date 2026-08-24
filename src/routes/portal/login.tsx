@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { PortalBrand } from "../../components/PortalBrand";
 import { useToastContext } from "../../components/ui/ToastProvider";
 import { useAuth } from "../../hooks/useAuth";
 import { auth, db } from "../../lib/supabase";
@@ -13,6 +14,9 @@ export const Route = createFileRoute("/portal/login")({
 	validateSearch: (search: Record<string, unknown>): PortalLoginSearch =>
 		typeof search.returnUrl === "string" ? { returnUrl: search.returnUrl } : {},
 	component: PortalLogin,
+	head: () => ({
+		meta: [{ title: "Client Portal Login | Metrix-Assets 4.0" }],
+	}),
 });
 
 function PortalLogin() {
@@ -61,7 +65,7 @@ function PortalLogin() {
 				if (profileData?.data?.roles?.name === "client") {
 					toast({
 						title: "Access Granted",
-						description: "Welcome to your Client Portal.",
+						description: "Welcome to your Metrix-Assets Client Portal.",
 						variant: "success",
 					});
 					goToReturnUrl();
@@ -96,21 +100,23 @@ function PortalLogin() {
 	}
 
 	return (
-		<div className="auth-bg min-h-screen flex items-center justify-center bg-steel-50 relative overflow-hidden">
+		<div className="portal-brand auth-bg relative flex min-h-screen items-center justify-center overflow-hidden bg-steel-50 px-4 py-8 sm:px-6">
 			{/* Brand Decoration */}
 			<div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-primary-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob" />
 			<div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-steel-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000" />
 
-			<div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-neutral-100 p-8 relative z-10">
-				<div className="text-center mb-10">
-					<div className="mx-auto mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-neutral-200">
-						<img src="/IPAC_logo.svg" alt="IPAC" className="h-10 w-auto" />
-					</div>
+			<div className="relative z-10 w-full max-w-md rounded-2xl border border-neutral-100 bg-white p-6 shadow-xl sm:p-8">
+				<div className="mb-8 text-center sm:mb-10">
+					<PortalBrand
+						variant="stacked"
+						className="mx-auto mb-5 h-auto w-full max-w-[17rem] rounded-2xl shadow-sm ring-1 ring-neutral-200 sm:mb-6 sm:max-w-[20rem]"
+						imageClassName="h-auto"
+					/>
 					<p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-primary-700">
-						IPAC
+						Secure client access
 					</p>
-					<h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
-						IPAC Client Portal
+					<h1 className="mt-1 text-2xl font-bold tracking-tight text-neutral-900">
+						Metrix-Assets Client Portal
 					</h1>
 					<p className="text-neutral-500 text-sm mt-2 font-medium">
 						Log in to track your items and packages.
@@ -168,7 +174,7 @@ function PortalLogin() {
 
 				<div className="mt-8 text-center border-t border-neutral-100 pt-6">
 					<p className="text-xs text-neutral-400 font-medium">
-						Powered by IPAC Global Packaging
+						Powered by Metrix-Assets 4.0
 					</p>
 				</div>
 			</div>

@@ -26,7 +26,7 @@ import { auth, db, supabase } from "../../../lib/supabase";
 export const Route = createFileRoute("/portal/projects/")({
 	component: PortalProjects,
 	head: () => ({
-		meta: [{ title: "Package Portal | IPAC" }],
+		meta: [{ title: "Package Portal | Metrix-Assets 4.0" }],
 	}),
 });
 
@@ -79,7 +79,7 @@ function PortalRecordFlowIllustration() {
 					/>
 					<img
 						src="/image.png"
-						alt="Example IPAC package label with a QR code"
+						alt="Example Metrix-Assets package label with a QR code"
 						className="relative z-10 block h-auto w-full max-w-[560px] rounded-sm shadow-[0_14px_28px_-10px_rgba(0,0,0,0.8)]"
 					/>
 				</div>
@@ -321,7 +321,7 @@ function PortalProjects() {
 
 	if (QR_DRIVEN_PORTAL) {
 		return (
-			<div className="flex h-dvh flex-col overflow-hidden bg-app-bg">
+			<div className="portal-brand flex h-dvh flex-col overflow-hidden bg-app-bg">
 				<a
 					href="#package-access"
 					className="sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:not-sr-only focus:rounded-lg focus:bg-neutral-950 focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
@@ -329,7 +329,7 @@ function PortalProjects() {
 					Skip to package access
 				</a>
 				<PortalHeader
-					title="Package Portal"
+					title="Metrix-Assets Portal"
 					onScan={() => setScannerOpen(true)}
 					activePage="home"
 					maxWidth="max-w-7xl"
@@ -350,6 +350,15 @@ function PortalProjects() {
 
 					<section className="mx-auto grid h-full min-h-0 w-full max-w-7xl items-center gap-8 px-3 py-4 sm:px-6 sm:py-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:px-8 lg:py-8">
 						<div className="mx-auto w-full max-w-xl lg:mx-0">
+							<div className="mb-4 flex items-center gap-3 sm:mb-6">
+								<div
+									className="h-px w-8 bg-primary-500 sm:w-12"
+									aria-hidden="true"
+								/>
+								<p className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary-700 dark:text-primary-300 sm:text-[11px]">
+									Powered by Precision
+								</p>
+							</div>
 							<h2 className="text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-app-text-strong sm:text-5xl">
 								Open any package record in seconds.
 							</h2>

@@ -17,6 +17,7 @@ import {
 	setThemePreference,
 	type ThemePreference,
 } from "../lib/theme";
+import { PortalBrand } from "./PortalBrand";
 
 interface PortalHeaderProps {
 	title: string;
@@ -73,24 +74,21 @@ export function PortalHeader({
 		"group relative inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-primary-500 bg-primary-600 text-sm font-semibold text-white shadow-sm shadow-primary-900/15 transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary-400 hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-600/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.97] motion-reduce:transform-none motion-reduce:transition-none sm:h-11 sm:w-auto sm:gap-2 sm:px-3.5 dark:bg-primary-500 dark:hover:bg-primary-400";
 
 	return (
-		<header className="sticky top-0 z-40 border-b border-app-border bg-app-surface/95 shadow-[0_1px_0_rgba(15,23,42,0.04)] backdrop-blur-xl dark:shadow-[0_1px_0_rgba(15,23,42,0.2)]">
+		<header className="portal-brand sticky top-0 z-40 border-b border-app-border bg-app-surface/95 shadow-[0_1px_0_rgba(15,23,42,0.04)] backdrop-blur-xl dark:shadow-[0_1px_0_rgba(15,23,42,0.2)]">
 			<div className={`${maxWidth} mx-auto px-3 sm:px-6 lg:px-8`}>
 				<div className="flex min-h-16 items-center gap-1.5 py-2 sm:min-h-[4.5rem] sm:gap-3">
 					<Link
 						to="/portal/projects"
 						className="group mr-auto flex min-w-0 items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 sm:gap-3"
-						aria-label="IPAC portal home"
+						aria-label="Metrix-Assets client portal home"
 					>
-						<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-app-border bg-app-surface-muted shadow-sm transition-[border-color,box-shadow,transform] duration-200 group-hover:-translate-y-0.5 group-hover:border-primary-300 group-hover:shadow-lg group-hover:shadow-primary-600/10 group-active:translate-y-0 group-active:scale-[0.97] group-focus-visible:border-primary-400 motion-reduce:transform-none motion-reduce:transition-none sm:h-10 sm:w-10 dark:border-steel-700 dark:bg-steel-800 dark:group-hover:border-primary-700">
-							<img
-								src="/IPAC_logo.svg"
-								alt=""
-								className="h-6 w-auto transition-transform duration-200 group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none sm:h-7"
-							/>
-						</div>
+						<PortalBrand
+							className="h-9 w-[7.5rem] border border-app-border shadow-sm transition-[border-color,box-shadow,transform] duration-200 group-hover:-translate-y-0.5 group-hover:border-primary-300 group-hover:shadow-lg group-hover:shadow-primary-600/10 group-active:translate-y-0 group-active:scale-[0.97] group-focus-visible:border-primary-400 motion-reduce:transform-none motion-reduce:transition-none sm:h-10 sm:w-[9.5rem]"
+							imageClassName="transition-transform duration-200 group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none"
+						/>
 						<div className="min-w-0">
 							<p className="hidden truncate text-[9px] font-bold uppercase tracking-[0.24em] text-primary-700 dark:text-primary-300 sm:block">
-								IPAC / Client access
+								Metrix-Assets / Client access
 							</p>
 							<h1 className="truncate text-xs font-semibold tracking-tight text-app-text-strong min-[360px]:text-sm sm:text-base">
 								{title}

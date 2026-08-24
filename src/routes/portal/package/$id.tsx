@@ -407,7 +407,7 @@ function BoxPhotoGallery({
 export const Route = createFileRoute("/portal/package/$id")({
 	component: PackageView,
 	head: () => ({
-		meta: [{ title: "Package Details | IPAC" }],
+		meta: [{ title: "Package Details | Metrix-Assets 4.0" }],
 	}),
 });
 
@@ -642,7 +642,7 @@ function PackageView() {
 	];
 
 	return (
-		<div className="min-h-screen bg-neutral-50 pb-24 dark:bg-steel-950">
+		<div className="portal-brand min-h-screen bg-neutral-50 pb-24 dark:bg-steel-950">
 			<PortalHeader
 				title="Package Details"
 				onScan={() => setScannerOpen(true)}
@@ -660,7 +660,7 @@ function PackageView() {
 								Verified package record
 							</p>
 							<p className="truncate text-[11px] text-primary-700 dark:text-primary-300">
-								Authenticated by IPAC
+								Authenticated by Metrix-Assets
 							</p>
 						</div>
 					</div>
