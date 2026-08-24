@@ -78,8 +78,8 @@ function PortalRecordFlowIllustration() {
 						aria-hidden="true"
 					/>
 					<img
-						src="/image.png"
-						alt="Example Metrix-Assets package label with a QR code"
+						src="/assets/ipac_horizontal_logo.svg"
+						alt="IPAC logo"
 						className="relative z-10 block h-auto w-full max-w-[560px] rounded-sm shadow-[0_14px_28px_-10px_rgba(0,0,0,0.8)]"
 					/>
 				</div>

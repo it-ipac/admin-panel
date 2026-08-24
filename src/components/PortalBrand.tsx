@@ -6,15 +6,15 @@ interface PortalBrandProps {
 }
 
 const brandAssets = {
-	horizontal: "/metrix-assets-horizontal.jpeg",
-	stacked: "/metrix-assets-stacked.jpeg",
+	horizontal: "/assets/ipac_horizontal_logo.svg",
+	stacked: "/assets/ipac_vertical_logo.svg",
 } as const;
 
 export function PortalBrand({
 	variant = "horizontal",
 	className = "",
 	imageClassName = "",
-	alt = "Metrix-Assets 4.0, Powered by Precision",
+	alt = "IPAC logo",
 }: PortalBrandProps) {
 	return (
 		<span
