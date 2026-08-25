@@ -1,5 +1,6 @@
 import { Camera, Loader2, ScanLine, X } from "lucide-react";
 import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
+import { PortalTooltip } from "../../../PortalTooltip";
 
 interface QrScannerProps {
 	open: boolean;
@@ -161,16 +162,22 @@ export function QrScanner({ open, onClose, onResult }: QrScannerProps) {
 							</p>
 						</div>
 					</div>
-					<button
-						ref={closeButtonRef}
-						type="button"
-						onClick={onClose}
-						className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-app-border bg-app-surface-muted text-app-text-strong transition-[background-color,border-color] hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:border-white/20 dark:hover:bg-white/15 dark:hover:text-white dark:focus-visible:ring-white dark:focus-visible:ring-offset-steel-950"
-						aria-label="Close QR scanner"
-						title="Close scanner (Escape)"
+					<PortalTooltip
+						label="Close scanner"
+						shortcut="Esc"
+						align="end"
+						showOnFocus={false}
 					>
-						<X className="h-5 w-5" aria-hidden="true" />
-					</button>
+						<button
+							ref={closeButtonRef}
+							type="button"
+							onClick={onClose}
+							className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-app-border bg-app-surface-muted text-app-text-strong transition-[background-color,border-color] hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:border-white/20 dark:hover:bg-white/15 dark:hover:text-white dark:focus-visible:ring-white dark:focus-visible:ring-offset-steel-950"
+							aria-label="Close QR scanner"
+						>
+							<X className="h-5 w-5" aria-hidden="true" />
+						</button>
+					</PortalTooltip>
 				</div>
 
 				<div className="px-3 pt-3 sm:px-6 sm:pt-5">
