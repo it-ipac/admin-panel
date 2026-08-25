@@ -93,42 +93,48 @@ function PortalLogin() {
 
 	if (loading) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-neutral-50">
-				<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+			<div
+				className="flex h-screen items-center justify-center bg-neutral-50"
+				style={{ height: "100dvh" }}
+			>
+				<Loader2 className="h-8 w-8 animate-spin text-primary-600" />
 			</div>
 		);
 	}
 
 	return (
-		<div className="portal-brand auth-bg relative flex min-h-screen items-center justify-center overflow-hidden bg-steel-50 px-4 py-8 sm:px-6">
+		<div
+			className="portal-brand auth-bg relative flex h-screen items-center justify-center overflow-y-auto bg-steel-50 px-[clamp(0.75rem,3vw,1.5rem)] py-[clamp(0.75rem,2.5vh,2rem)]"
+			style={{ height: "100dvh" }}
+		>
 			{/* Brand Decoration */}
-			<div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-primary-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob" />
-			<div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-steel-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000" />
+			<div className="pointer-events-none absolute top-[-20%] left-[-10%] h-[600px] w-[600px] rounded-full bg-primary-100 opacity-50 mix-blend-multiply blur-3xl filter animate-blob" />
+			<div className="pointer-events-none absolute right-[-10%] bottom-[-20%] h-[600px] w-[600px] rounded-full bg-steel-200 opacity-50 mix-blend-multiply blur-3xl filter animate-blob animation-delay-2000" />
 
-			<div className="relative z-10 w-full max-w-md rounded-2xl border border-neutral-100 bg-white p-6 shadow-xl sm:p-8">
-				<div className="mb-8 text-center sm:mb-10">
+			<div className="relative z-10 my-auto w-full max-w-md rounded-2xl border border-neutral-100 bg-white p-[clamp(1rem,2.6vh,2rem)] shadow-xl">
+				<div className="text-center">
 					<PortalBrand
 						variant="full"
 						showTagline
-						className="mx-auto mb-5 justify-center sm:mb-6"
+						className="mx-auto mb-[clamp(0.75rem,1.8vh,1.25rem)] justify-center"
 						markClassName="h-14 w-14 sm:h-16 sm:w-16"
 					/>
-					<p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-primary-700">
-						Secure client access
-					</p>
-					<h1 className="mt-1 text-2xl font-bold tracking-tight text-neutral-900">
+					<h1 className="text-[clamp(1.5rem,3.2vh,2rem)] font-bold tracking-tight text-neutral-900">
 						Client Portal
 					</h1>
-					<p className="text-neutral-500 text-sm mt-2 font-medium">
-						Log in to track your items and packages.
+					<p className="mt-[clamp(0.25rem,0.8vh,0.5rem)] text-[clamp(0.8rem,1.8vh,0.95rem)] font-medium text-neutral-500">
+						Login to track your packages.
 					</p>
 				</div>
 
-				<form onSubmit={handleLogin} className="space-y-6">
+				<form
+					onSubmit={handleLogin}
+					className="mt-[clamp(1rem,2.5vh,1.75rem)] flex flex-col gap-[clamp(0.9rem,2vh,1.35rem)]"
+				>
 					<div>
 						<label
 							htmlFor="login-identifier"
-							className="block text-sm font-semibold text-neutral-700 mb-2"
+							className="mb-1.5 block text-sm font-semibold text-neutral-700"
 						>
 							Email Address or Username
 						</label>
@@ -138,14 +144,15 @@ function PortalLogin() {
 							required
 							value={identifier}
 							onChange={(e) => setIdentifier(e.target.value)}
-							className="w-full px-4 py-3 placeholder-neutral-400 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow transition-colors bg-neutral-50"
+							className="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-[clamp(0.65rem,1.5vh,0.85rem)] text-base placeholder-neutral-400 transition-colors transition-shadow focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none"
 							placeholder="you@company.com or username"
+							autoComplete="username"
 						/>
 					</div>
 					<div>
 						<label
 							htmlFor="login-password"
-							className="block text-sm font-semibold text-neutral-700 mb-2"
+							className="mb-1.5 block text-sm font-semibold text-neutral-700"
 						>
 							Password
 						</label>
@@ -155,29 +162,24 @@ function PortalLogin() {
 							required
 							value={password}
 							onChange={(e) => setPassword(e.target.value)}
-							className="w-full px-4 py-3 placeholder-neutral-400 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow transition-colors bg-neutral-50"
+							className="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-[clamp(0.65rem,1.5vh,0.85rem)] text-base placeholder-neutral-400 transition-colors transition-shadow focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none"
 							placeholder="••••••••"
+							autoComplete="current-password"
 						/>
 					</div>
 
 					<button
 						type="submit"
 						disabled={isSubmitting}
-						className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-xl text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-md shadow-primary-600/20"
+						className="flex w-full items-center justify-center rounded-xl border border-transparent bg-primary-600 px-4 py-[clamp(0.7rem,1.6vh,0.9rem)] text-sm font-bold text-white shadow-md shadow-primary-600/20 transition-all hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
 					>
 						{isSubmitting ? (
-							<Loader2 className="w-5 h-5 animate-spin" />
+							<Loader2 className="h-5 w-5 animate-spin" />
 						) : (
 							"Sign In"
 						)}
 					</button>
 				</form>
-
-				<div className="mt-8 text-center border-t border-neutral-100 pt-6">
-					<p className="text-xs text-neutral-400 font-medium">
-						Powered by Precision
-					</p>
-				</div>
 			</div>
 		</div>
 	);
