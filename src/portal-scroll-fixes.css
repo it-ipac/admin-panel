@@ -1,6 +1,5 @@
 /* Portal route overflow and viewport layout fixes.
-   The portal may grow beyond the viewport and scroll normally, while decorative
-   off-canvas artwork remains clipped horizontally. */
+   Keep real content scrollable while clipping decorative overflow. */
 
 .portal-brand.h-dvh.flex-col {
 	height: auto !important;
@@ -8,6 +7,7 @@
 	min-height: 100dvh;
 	overflow-x: clip !important;
 	overflow-y: visible !important;
+	background-color: light-dark(#f4f7fb, var(--app-bg)) !important;
 }
 
 .portal-brand.h-dvh.flex-col > main#package-access {
@@ -48,100 +48,14 @@
 		> section
 		> div:first-of-type
 		> h2 {
-		order: 1;
 		margin-inline: auto;
 		max-width: 20ch;
 		text-align: center;
 	}
 
-	.portal-brand.h-dvh.flex-col
-		> main#package-access
-		> section
-		> div:first-of-type
-		> h2
-		+ div {
-		order: 2;
-	}
-
-	.portal-brand.h-dvh.flex-col
-		> main#package-access
-		> section
-		> div:first-of-type
-		> h2
-		+ div
-		+ div {
-		order: 3;
-		justify-content: center;
-	}
-
-	.portal-brand.h-dvh.flex-col
-		> main#package-access
-		> section
-		> div:first-of-type
-		> h2
-		+ div
-		+ div
-		+ div {
-		order: 4;
-	}
-
-	/* Closing brand signature. */
-	.portal-brand.h-dvh.flex-col
-		> main#package-access
-		> section
-		> div:first-of-type
-		> div:first-child {
-		order: 5;
+	.portal-brand.h-dvh.flex-col .portal-signature {
 		width: min(100%, 30rem);
-		margin: clamp(1rem, 2.4vh, 1.6rem) auto 0 !important;
-		justify-content: center;
-		gap: clamp(0.75rem, 2vw, 1rem);
-	}
-
-	.portal-brand.h-dvh.flex-col
-		> main#package-access
-		> section
-		> div:first-of-type
-		> div:first-child
-		> div:first-child {
-		width: auto !important;
-		flex: 1 1 0;
-		max-width: 5rem;
-		background: linear-gradient(
-			90deg,
-			transparent,
-			light-dark(#2b789d, #2f9ed8)
-		) !important;
-		opacity: 0.78;
-	}
-
-	.portal-brand.h-dvh.flex-col
-		> main#package-access
-		> section
-		> div:first-of-type
-		> div:first-child
-		> p {
-		flex: 0 0 auto;
-		white-space: nowrap;
-		color: light-dark(#174f6b, #87d9ff) !important;
-		letter-spacing: 0.22em !important;
-	}
-
-	.portal-brand.h-dvh.flex-col
-		> main#package-access
-		> section
-		> div:first-of-type
-		> div:first-child::after {
-		content: "";
-		height: 1px;
-		flex: 1 1 0;
-		max-width: 5rem;
-		background: linear-gradient(
-			90deg,
-			light-dark(#2b789d, #2f9ed8),
-			transparent
-		);
-		opacity: 0.78;
+		margin-inline: auto;
 	}
 }
 
@@ -191,12 +105,12 @@
 	background: linear-gradient(
 		90deg,
 		transparent,
-		#005ea8 22%,
-		#65b9e5 50%,
-		#005ea8 78%,
+		light-dark(#005ea8, #65b9e5) 22%,
+		light-dark(#65b9e5, #b9e8f7) 50%,
+		light-dark(#005ea8, #65b9e5) 78%,
 		transparent
 	);
-	box-shadow: 0 0 14px rgba(101, 185, 229, 0.35);
+	box-shadow: 0 0 14px rgba(101, 185, 229, 0.28);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -205,16 +119,7 @@
 	}
 }
 
-/* --------------------------------------------------------------------------
-   Portal light-theme refinement
-   -------------------------------------------------------------------------- */
-
-/* Use a cool, quiet canvas in light mode while leaving the navy dark canvas. */
-.portal-brand.h-dvh.flex-col {
-	background-color: light-dark(#f4f7fb, var(--app-bg)) !important;
-}
-
-/* Ambient artwork is intentionally much quieter on white. */
+/* Quiet the projects-page ambient artwork in light mode. */
 .portal-brand.h-dvh.flex-col
 	> main#package-access
 	> div[aria-hidden="true"]
@@ -234,7 +139,7 @@
 	box-shadow: 0 12px 34px -26px rgba(15, 23, 42, 0.34) !important;
 }
 
-/* Primary actions must remain white on blue despite the global text rules. */
+/* Primary actions remain white on brand blue despite global text rules. */
 header.portal-brand button[aria-label="Scan package QR code"],
 header.portal-brand button[aria-label="Scan package QR code"] *,
 .portal-brand.h-dvh.flex-col
@@ -254,18 +159,7 @@ header.portal-brand button[aria-label="Scan package QR code"] *,
 	color: #ffffff !important;
 }
 
-.portal-brand.h-dvh.flex-col
-	> main#package-access
-	> section
-	> div:first-of-type
-	> h2
-	+ div
-	> button:first-child
-	div.mt-0\.5 {
-	opacity: 0.78;
-}
-
-/* Disabled manual submit has its own state instead of a faded black button. */
+/* Disabled manual submit has a deliberate state instead of faded black. */
 .portal-brand.h-dvh.flex-col
 	> main#package-access
 	form
@@ -296,22 +190,14 @@ header.portal-brand button[aria-label="Scan package QR code"] *,
 }
 
 @media (max-width: 1023px) {
-	.portal-brand.h-dvh.flex-col
-		> main#package-access
-		> section
-		> div:first-of-type
-		> h2
-		+ div
-		+ div
-		+ div
-		details {
+	.portal-brand.h-dvh.flex-col details {
 		border-color: light-dark(#dce4ee, var(--app-border)) !important;
 		background-color: light-dark(#fbfcfe, var(--app-surface)) !important;
 		box-shadow: 0 8px 24px -22px rgba(15, 23, 42, 0.32) !important;
 	}
 }
 
-/* Header action group: flatter in light mode, retained depth in dark mode. */
+/* Header action cluster behaves as one control group in both themes. */
 header.portal-brand nav[aria-label="Portal actions"] {
 	background-color: light-dark(#f7f9fc, #182230) !important;
 	border-color: light-dark(#e2e8f0, var(--app-border)) !important;
@@ -321,16 +207,18 @@ header.portal-brand nav[aria-label="Portal actions"] {
 header.portal-brand
 	nav[aria-label="Portal actions"]
 	> :is(button, a):not([aria-label="Scan package QR code"]) {
-	background-color: light-dark(transparent, var(--app-surface)) !important;
-	border-color: light-dark(transparent, var(--app-border)) !important;
+	background-color: transparent !important;
+	border-color: transparent !important;
 	box-shadow: none !important;
 }
 
-header.portal-brand button[aria-label="Open account menu"] > span[aria-hidden="true"] {
-	opacity: 0;
+header.portal-brand
+	nav[aria-label="Portal actions"]
+	> :is(button, a):not([aria-label="Scan package QR code"]):hover {
+	background-color: light-dark(rgba(219, 234, 254, 0.7), rgba(30, 64, 175, 0.22)) !important;
 }
 
-/* Manual dark-theme overrides for non-color properties. */
+/* Restore dark-mode depth where useful without changing structure. */
 html[data-theme="dark"]
 	.portal-brand.h-dvh.flex-col
 	> main#package-access
@@ -346,52 +234,9 @@ html[data-theme="dark"]
 	> div:first-of-type
 	> h2
 	+ div {
-	box-shadow: 0 24px 60px -36px rgba(15, 23, 42, 0.55) !important;
+	box-shadow: 0 24px 60px -36px rgba(0, 0, 0, 0.55) !important;
 }
 
-html[data-theme="dark"] header.portal-brand nav[aria-label="Portal actions"] {
-	box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
-}
-
-html[data-theme="dark"]
-	header.portal-brand
-	button[aria-label="Open account menu"]
-	> span[aria-hidden="true"] {
-	opacity: 0.82;
-}
-
-@media (max-width: 1023px) {
-	html[data-theme="dark"]
-		.portal-brand.h-dvh.flex-col
-		> main#package-access
-		> section
-		> div:first-of-type
-		> div:first-child
-		> div:first-child,
-	html[data-theme="dark"]
-		.portal-brand.h-dvh.flex-col
-		> main#package-access
-		> section
-		> div:first-of-type
-		> div:first-child::after {
-		opacity: 0.9;
-	}
-
-	html[data-theme="dark"]
-		.portal-brand.h-dvh.flex-col
-		> main#package-access
-		> section
-		> div:first-of-type
-		> h2
-		+ div
-		+ div
-		+ div
-		details {
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-	}
-}
-
-/* System dark mode has no data-theme attribute. */
 @media (prefers-color-scheme: dark) {
 	html:not([data-theme="light"])
 		.portal-brand.h-dvh.flex-col
@@ -408,50 +253,6 @@ html[data-theme="dark"]
 		> div:first-of-type
 		> h2
 		+ div {
-		box-shadow: 0 24px 60px -36px rgba(15, 23, 42, 0.55) !important;
-	}
-
-	html:not([data-theme="light"])
-		header.portal-brand
-		nav[aria-label="Portal actions"] {
-		box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
-	}
-
-	html:not([data-theme="light"])
-		header.portal-brand
-		button[aria-label="Open account menu"]
-		> span[aria-hidden="true"] {
-		opacity: 0.82;
-	}
-
-	@media (max-width: 1023px) {
-		html:not([data-theme="light"])
-			.portal-brand.h-dvh.flex-col
-			> main#package-access
-			> section
-			> div:first-of-type
-			> div:first-child
-			> div:first-child,
-		html:not([data-theme="light"])
-			.portal-brand.h-dvh.flex-col
-			> main#package-access
-			> section
-			> div:first-of-type
-			> div:first-child::after {
-			opacity: 0.9;
-		}
-
-		html:not([data-theme="light"])
-			.portal-brand.h-dvh.flex-col
-			> main#package-access
-			> section
-			> div:first-of-type
-			> h2
-			+ div
-			+ div
-			+ div
-			details {
-			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-		}
+		box-shadow: 0 24px 60px -36px rgba(0, 0, 0, 0.55) !important;
 	}
 }
