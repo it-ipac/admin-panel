@@ -104,12 +104,15 @@ function PortalLogin() {
 
 	return (
 		<div
-			className="portal-brand auth-bg relative flex h-screen items-center justify-center overflow-y-auto bg-steel-50 px-[clamp(0.75rem,3vw,1.5rem)] py-[clamp(0.75rem,2.5vh,2rem)]"
+			className="portal-brand auth-bg relative flex h-screen items-center justify-center overflow-x-hidden overflow-y-auto bg-steel-50 px-[clamp(0.75rem,3vw,1.5rem)] py-[clamp(0.75rem,2.5vh,2rem)]"
 			style={{ height: "100dvh" }}
 		>
-			{/* Brand Decoration */}
-			<div className="pointer-events-none absolute top-[-20%] left-[-10%] h-[600px] w-[600px] rounded-full bg-primary-100 opacity-50 mix-blend-multiply blur-3xl filter animate-blob" />
-			<div className="pointer-events-none absolute right-[-10%] bottom-[-20%] h-[600px] w-[600px] rounded-full bg-steel-200 opacity-50 mix-blend-multiply blur-3xl filter animate-blob animation-delay-2000" />
+			{/* Decorative blobs are clipped inside their own layer so they never
+			    create page-level horizontal or vertical scroll overflow. */}
+			<div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+				<div className="absolute top-[-20%] left-[-10%] h-[600px] w-[600px] rounded-full bg-primary-100 opacity-50 mix-blend-multiply blur-3xl filter animate-blob" />
+				<div className="absolute right-[-10%] bottom-[-20%] h-[600px] w-[600px] rounded-full bg-steel-200 opacity-50 mix-blend-multiply blur-3xl filter animate-blob animation-delay-2000" />
+			</div>
 
 			<div className="relative z-10 my-auto w-full max-w-md rounded-2xl border border-neutral-100 bg-white p-[clamp(1rem,2.6vh,2rem)] shadow-xl">
 				<div className="text-center">
