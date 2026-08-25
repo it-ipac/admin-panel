@@ -2,9 +2,6 @@
    The portal may grow beyond the viewport and scroll normally, while decorative
    off-canvas artwork remains clipped horizontally. */
 
-/* Keep the page at least one viewport tall without locking it to the viewport.
-   This lets the flex layout use any spare vertical space for real centering,
-   while still allowing the document to become taller and scroll when needed. */
 .portal-brand.h-dvh.flex-col {
 	height: auto !important;
 	min-height: 100vh;
@@ -13,8 +10,6 @@
 	overflow-y: visible !important;
 }
 
-/* The main area owns the remaining height below PortalHeader. It stays a flex
-   container so the content can genuinely center vertically when it is short. */
 .portal-brand.h-dvh.flex-col > main#package-access {
 	display: flex !important;
 	flex: 1 1 auto !important;
@@ -30,9 +25,6 @@
 	align-content: center !important;
 }
 
-/* Mobile/tablet presentation: center the primary experience on both axes.
-   The previous layout started at the top of the remaining viewport, which left
-   a large unused block below the form on tall phones. */
 @media (max-width: 1023px) {
 	.portal-brand.h-dvh.flex-col > main#package-access > section {
 		justify-items: center;
@@ -51,7 +43,6 @@
 		text-align: center;
 	}
 
-	/* Headline first. */
 	.portal-brand.h-dvh.flex-col
 		> main#package-access
 		> section
@@ -63,7 +54,6 @@
 		text-align: center;
 	}
 
-	/* Scan / manual-entry card. */
 	.portal-brand.h-dvh.flex-col
 		> main#package-access
 		> section
@@ -73,7 +63,6 @@
 		order: 2;
 	}
 
-	/* Camera privacy note. */
 	.portal-brand.h-dvh.flex-col
 		> main#package-access
 		> section
@@ -85,7 +74,6 @@
 		justify-content: center;
 	}
 
-	/* Expandable "what you can view" panel. */
 	.portal-brand.h-dvh.flex-col
 		> main#package-access
 		> section
@@ -97,8 +85,7 @@
 		order: 4;
 	}
 
-	/* Reuse the original eyebrow as a closing brand signature on mobile, but
-	   make both rules equal and fade them toward the text. */
+	/* Closing brand signature. */
 	.portal-brand.h-dvh.flex-col
 		> main#package-access
 		> section
@@ -125,7 +112,7 @@
 			transparent,
 			light-dark(#2b789d, #2f9ed8)
 		) !important;
-		opacity: light-dark(0.78, 0.9);
+		opacity: 0.78;
 	}
 
 	.portal-brand.h-dvh.flex-col
@@ -154,14 +141,11 @@
 			light-dark(#2b789d, #2f9ed8),
 			transparent
 		);
-		opacity: light-dark(0.78, 0.9);
+		opacity: 0.78;
 	}
 }
 
-/* Login title treatment. The global heading rule forces a solid heading color,
-   so this intentionally overrides it with a brand gradient and a restrained
-   illuminated rule. This keeps the title distinct without competing with the
-   Metrix wordmark above it. */
+/* Login title treatment. */
 @keyframes portalLoginTitleShimmer {
 	0%,
 	100% {
@@ -223,27 +207,22 @@
 
 /* --------------------------------------------------------------------------
    Portal light-theme refinement
-
-   Dark mode already has strong depth because the navy surfaces separate
-   naturally. Light mode needs quieter elevation, slightly tinted canvas areas,
-   and explicit foreground colors for primary actions so global text rules do
-   not wash them out.
    -------------------------------------------------------------------------- */
 
-/* Give the white surfaces a real canvas to sit on without changing dark mode. */
+/* Use a cool, quiet canvas in light mode while leaving the navy dark canvas. */
 .portal-brand.h-dvh.flex-col {
 	background-color: light-dark(#f4f7fb, var(--app-bg)) !important;
 }
 
-/* The two ambient glows were visually much stronger on white than on navy. */
+/* Ambient artwork is intentionally much quieter on white. */
 .portal-brand.h-dvh.flex-col
 	> main#package-access
 	> div[aria-hidden="true"]
 	> div {
-	opacity: light-dark(0.34, 1);
+	opacity: 0.34;
 }
 
-/* Main scan/manual-entry surface: reduce the floating-card look in light mode. */
+/* Main scan/manual-entry surface. */
 .portal-brand.h-dvh.flex-col
 	> main#package-access
 	> section
@@ -252,13 +231,10 @@
 	+ div {
 	border-color: light-dark(#dce4ee, var(--app-border)) !important;
 	background-color: light-dark(#ffffff, var(--app-surface)) !important;
-	box-shadow: light-dark(
-		0 12px 34px -26px rgba(15, 23, 42, 0.34),
-		0 24px 60px -36px rgba(15, 23, 42, 0.55)
-	) !important;
+	box-shadow: 0 12px 34px -26px rgba(15, 23, 42, 0.34) !important;
 }
 
-/* Keep the primary scan CTA legible regardless of the global text-color rules. */
+/* Primary actions must remain white on blue despite the global text rules. */
 header.portal-brand button[aria-label="Scan package QR code"],
 header.portal-brand button[aria-label="Scan package QR code"] *,
 .portal-brand.h-dvh.flex-col
@@ -278,7 +254,6 @@ header.portal-brand button[aria-label="Scan package QR code"] *,
 	color: #ffffff !important;
 }
 
-/* Retain the intended secondary hierarchy inside the blue CTA. */
 .portal-brand.h-dvh.flex-col
 	> main#package-access
 	> section
@@ -290,8 +265,7 @@ header.portal-brand button[aria-label="Scan package QR code"] *,
 	opacity: 0.78;
 }
 
-/* Manual open button: a disabled control should look intentionally unavailable,
-   not like an enabled black button faded to 40%. */
+/* Disabled manual submit has its own state instead of a faded black button. */
 .portal-brand.h-dvh.flex-col
 	> main#package-access
 	form
@@ -321,7 +295,6 @@ header.portal-brand button[aria-label="Scan package QR code"] *,
 	color: #ffffff !important;
 }
 
-/* The disclosure card should be present, not floating above the canvas. */
 @media (max-width: 1023px) {
 	.portal-brand.h-dvh.flex-col
 		> main#package-access
@@ -334,22 +307,15 @@ header.portal-brand button[aria-label="Scan package QR code"] *,
 		details {
 		border-color: light-dark(#dce4ee, var(--app-border)) !important;
 		background-color: light-dark(#fbfcfe, var(--app-surface)) !important;
-		box-shadow: light-dark(
-			0 8px 24px -22px rgba(15, 23, 42, 0.32),
-			0 1px 2px rgba(0, 0, 0, 0.05)
-		) !important;
+		box-shadow: 0 8px 24px -22px rgba(15, 23, 42, 0.32) !important;
 	}
 }
 
-/* Header: keep the dark grouped control cluster, but make its light translation
-   flatter so it belongs to the header instead of reading as a floating widget. */
+/* Header action group: flatter in light mode, retained depth in dark mode. */
 header.portal-brand nav[aria-label="Portal actions"] {
 	background-color: light-dark(#f7f9fc, #182230) !important;
 	border-color: light-dark(#e2e8f0, var(--app-border)) !important;
-	box-shadow: light-dark(
-		0 1px 2px rgba(15, 23, 42, 0.04),
-		0 1px 3px rgba(15, 23, 42, 0.05)
-	) !important;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
 }
 
 header.portal-brand
@@ -360,8 +326,132 @@ header.portal-brand
 	box-shadow: none !important;
 }
 
-/* The green dot looked like a notification in light mode. Keep it only as a
-   very subtle signed-in cue on dark surfaces. */
 header.portal-brand button[aria-label="Open account menu"] > span[aria-hidden="true"] {
-	opacity: light-dark(0, 0.82);
+	opacity: 0;
+}
+
+/* Manual dark-theme overrides for non-color properties. */
+html[data-theme="dark"]
+	.portal-brand.h-dvh.flex-col
+	> main#package-access
+	> div[aria-hidden="true"]
+	> div {
+	opacity: 1;
+}
+
+html[data-theme="dark"]
+	.portal-brand.h-dvh.flex-col
+	> main#package-access
+	> section
+	> div:first-of-type
+	> h2
+	+ div {
+	box-shadow: 0 24px 60px -36px rgba(15, 23, 42, 0.55) !important;
+}
+
+html[data-theme="dark"] header.portal-brand nav[aria-label="Portal actions"] {
+	box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+}
+
+html[data-theme="dark"]
+	header.portal-brand
+	button[aria-label="Open account menu"]
+	> span[aria-hidden="true"] {
+	opacity: 0.82;
+}
+
+@media (max-width: 1023px) {
+	html[data-theme="dark"]
+		.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> section
+		> div:first-of-type
+		> div:first-child
+		> div:first-child,
+	html[data-theme="dark"]
+		.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> section
+		> div:first-of-type
+		> div:first-child::after {
+		opacity: 0.9;
+	}
+
+	html[data-theme="dark"]
+		.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> section
+		> div:first-of-type
+		> h2
+		+ div
+		+ div
+		+ div
+		details {
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+	}
+}
+
+/* System dark mode has no data-theme attribute. */
+@media (prefers-color-scheme: dark) {
+	html:not([data-theme="light"])
+		.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> div[aria-hidden="true"]
+		> div {
+		opacity: 1;
+	}
+
+	html:not([data-theme="light"])
+		.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> section
+		> div:first-of-type
+		> h2
+		+ div {
+		box-shadow: 0 24px 60px -36px rgba(15, 23, 42, 0.55) !important;
+	}
+
+	html:not([data-theme="light"])
+		header.portal-brand
+		nav[aria-label="Portal actions"] {
+		box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+	}
+
+	html:not([data-theme="light"])
+		header.portal-brand
+		button[aria-label="Open account menu"]
+		> span[aria-hidden="true"] {
+		opacity: 0.82;
+	}
+
+	@media (max-width: 1023px) {
+		html:not([data-theme="light"])
+			.portal-brand.h-dvh.flex-col
+			> main#package-access
+			> section
+			> div:first-of-type
+			> div:first-child
+			> div:first-child,
+		html:not([data-theme="light"])
+			.portal-brand.h-dvh.flex-col
+			> main#package-access
+			> section
+			> div:first-of-type
+			> div:first-child::after {
+			opacity: 0.9;
+		}
+
+		html:not([data-theme="light"])
+			.portal-brand.h-dvh.flex-col
+			> main#package-access
+			> section
+			> div:first-of-type
+			> h2
+			+ div
+			+ div
+			+ div
+			details {
+			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+		}
+	}
 }
