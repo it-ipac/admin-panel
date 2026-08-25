@@ -24,6 +24,7 @@ import { useEffect, useState } from "react";
 import { ToastProvider } from "../components/ui/ToastProvider";
 import { AuthContext, useAuthState } from "../hooks/useAuth";
 import { getThemePreference } from "../lib/theme";
+import portalScrollFixesCss from "../portal-scroll-fixes.css?url";
 import appCss from "../styles.css?url";
 
 // Create a client
@@ -45,6 +46,7 @@ export const Route = createRootRoute({
 		],
 		links: [
 			{ rel: "stylesheet", href: appCss },
+			{ rel: "stylesheet", href: portalScrollFixesCss },
 			{ rel: "icon", href: "/IPAC_favicon.ico" },
 		],
 	}),
