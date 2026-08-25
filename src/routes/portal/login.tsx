@@ -119,7 +119,7 @@ function PortalLogin() {
 						className="mx-auto mb-[clamp(0.75rem,1.8vh,1.25rem)] justify-center"
 						markClassName="h-14 w-14 sm:h-16 sm:w-16"
 					/>
-					<h1 className="text-[clamp(1.5rem,3.2vh,2rem)] font-bold tracking-tight text-neutral-900">
+					<h1 className="bg-gradient-to-r from-primary-700 via-primary-500 to-sky-400 bg-clip-text text-[clamp(1.5rem,3.2vh,2rem)] font-extrabold tracking-tight text-transparent dark:from-primary-300 dark:via-sky-300 dark:to-cyan-200">
 						Client Portal
 					</h1>
 					<p className="mt-[clamp(0.25rem,0.8vh,0.5rem)] text-[clamp(0.8rem,1.8vh,0.95rem)] font-medium text-neutral-500">
