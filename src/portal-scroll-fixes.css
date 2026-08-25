@@ -120,8 +120,12 @@
 		width: auto !important;
 		flex: 1 1 0;
 		max-width: 5rem;
-		background: linear-gradient(90deg, transparent, #2f9ed8) !important;
-		opacity: 0.9;
+		background: linear-gradient(
+			90deg,
+			transparent,
+			light-dark(#2b789d, #2f9ed8)
+		) !important;
+		opacity: light-dark(0.78, 0.9);
 	}
 
 	.portal-brand.h-dvh.flex-col
@@ -132,7 +136,7 @@
 		> p {
 		flex: 0 0 auto;
 		white-space: nowrap;
-		color: light-dark(#0d5678, #87d9ff) !important;
+		color: light-dark(#174f6b, #87d9ff) !important;
 		letter-spacing: 0.22em !important;
 	}
 
@@ -145,8 +149,12 @@
 		height: 1px;
 		flex: 1 1 0;
 		max-width: 5rem;
-		background: linear-gradient(90deg, #2f9ed8, transparent);
-		opacity: 0.9;
+		background: linear-gradient(
+			90deg,
+			light-dark(#2b789d, #2f9ed8),
+			transparent
+		);
+		opacity: light-dark(0.78, 0.9);
 	}
 }
 
@@ -211,4 +219,149 @@
 	.portal-brand.auth-bg h1 {
 		animation: none;
 	}
+}
+
+/* --------------------------------------------------------------------------
+   Portal light-theme refinement
+
+   Dark mode already has strong depth because the navy surfaces separate
+   naturally. Light mode needs quieter elevation, slightly tinted canvas areas,
+   and explicit foreground colors for primary actions so global text rules do
+   not wash them out.
+   -------------------------------------------------------------------------- */
+
+/* Give the white surfaces a real canvas to sit on without changing dark mode. */
+.portal-brand.h-dvh.flex-col {
+	background-color: light-dark(#f4f7fb, var(--app-bg)) !important;
+}
+
+/* The two ambient glows were visually much stronger on white than on navy. */
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	> div[aria-hidden="true"]
+	> div {
+	opacity: light-dark(0.34, 1);
+}
+
+/* Main scan/manual-entry surface: reduce the floating-card look in light mode. */
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	> section
+	> div:first-of-type
+	> h2
+	+ div {
+	border-color: light-dark(#dce4ee, var(--app-border)) !important;
+	background-color: light-dark(#ffffff, var(--app-surface)) !important;
+	box-shadow: light-dark(
+		0 12px 34px -26px rgba(15, 23, 42, 0.34),
+		0 24px 60px -36px rgba(15, 23, 42, 0.55)
+	) !important;
+}
+
+/* Keep the primary scan CTA legible regardless of the global text-color rules. */
+header.portal-brand button[aria-label="Scan package QR code"],
+header.portal-brand button[aria-label="Scan package QR code"] *,
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	> section
+	> div:first-of-type
+	> h2
+	+ div
+	> button:first-child,
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	> section
+	> div:first-of-type
+	> h2
+	+ div
+	> button:first-child * {
+	color: #ffffff !important;
+}
+
+/* Retain the intended secondary hierarchy inside the blue CTA. */
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	> section
+	> div:first-of-type
+	> h2
+	+ div
+	> button:first-child
+	div.mt-0\.5 {
+	opacity: 0.78;
+}
+
+/* Manual open button: a disabled control should look intentionally unavailable,
+   not like an enabled black button faded to 40%. */
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	form
+	button[type="submit"]:disabled {
+	border: 1px solid light-dark(#dce4ee, #243247) !important;
+	background: light-dark(#edf2f7, #0b1220) !important;
+	box-shadow: none !important;
+	color: light-dark(#8b9aae, #64748b) !important;
+	opacity: 1 !important;
+}
+
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	form
+	button[type="submit"]:disabled * {
+	color: inherit !important;
+}
+
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	form
+	button[type="submit"]:not(:disabled),
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	form
+	button[type="submit"]:not(:disabled) * {
+	color: #ffffff !important;
+}
+
+/* The disclosure card should be present, not floating above the canvas. */
+@media (max-width: 1023px) {
+	.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> section
+		> div:first-of-type
+		> h2
+		+ div
+		+ div
+		+ div
+		details {
+		border-color: light-dark(#dce4ee, var(--app-border)) !important;
+		background-color: light-dark(#fbfcfe, var(--app-surface)) !important;
+		box-shadow: light-dark(
+			0 8px 24px -22px rgba(15, 23, 42, 0.32),
+			0 1px 2px rgba(0, 0, 0, 0.05)
+		) !important;
+	}
+}
+
+/* Header: keep the dark grouped control cluster, but make its light translation
+   flatter so it belongs to the header instead of reading as a floating widget. */
+header.portal-brand nav[aria-label="Portal actions"] {
+	background-color: light-dark(#f7f9fc, #182230) !important;
+	border-color: light-dark(#e2e8f0, var(--app-border)) !important;
+	box-shadow: light-dark(
+		0 1px 2px rgba(15, 23, 42, 0.04),
+		0 1px 3px rgba(15, 23, 42, 0.05)
+	) !important;
+}
+
+header.portal-brand
+	nav[aria-label="Portal actions"]
+	> :is(button, a):not([aria-label="Scan package QR code"]) {
+	background-color: light-dark(transparent, var(--app-surface)) !important;
+	border-color: light-dark(transparent, var(--app-border)) !important;
+	box-shadow: none !important;
+}
+
+/* The green dot looked like a notification in light mode. Keep it only as a
+   very subtle signed-in cue on dark surfaces. */
+header.portal-brand button[aria-label="Open account menu"] > span[aria-hidden="true"] {
+	opacity: light-dark(0, 0.82);
 }
