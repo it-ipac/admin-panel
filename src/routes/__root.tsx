@@ -21,13 +21,13 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { PortalBrand } from "../components/PortalBrand";
 import { ToastProvider } from "../components/ui/ToastProvider";
 import { AuthContext, useAuthState } from "../hooks/useAuth";
 import { getThemePreference } from "../lib/theme";
 import portalScrollFixesCss from "../portal-scroll-fixes.css?url";
 import appCss from "../styles.css?url";
 
-// Create a client
 const queryClient = new QueryClient({
 	defaultOptions: {
 		queries: {
@@ -67,20 +67,51 @@ function NotFoundComponent() {
 		// Route.useLoaderData might throw if loader hasn't run or is not found context
 	}
 
+	const location = useLocation();
+	const isPortalNotFound = location.pathname.startsWith("/portal");
+
 	return (
 		<RootDocument theme={theme}>
-			<div className="min-h-screen flex items-center justify-center bg-neutral-50">
-				<div className="text-center">
-					<h1 className="text-6xl font-bold text-neutral-300">404</h1>
-					<p className="text-xl text-neutral-600 mt-4">Page not found</p>
-					<Link
-						to="/dashboard"
-						className="inline-block mt-6 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-					>
-						Go to Dashboard
-					</Link>
+			{isPortalNotFound ? (
+				<div className="portal-brand flex min-h-screen items-center justify-center bg-app-bg p-4 sm:p-6">
+					<div className="w-full max-w-md rounded-3xl border border-app-border bg-app-surface p-7 text-center shadow-[0_24px_70px_-42px_rgba(15,23,42,0.45)] sm:p-8">
+						<PortalBrand
+							variant="full"
+							showTagline
+							className="mx-auto mb-6 justify-center"
+							markClassName="!w-[6rem] sm:!w-[6.75rem]"
+						/>
+						<p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary-700 dark:text-primary-300">
+							404 · Client Portal
+						</p>
+						<h1 className="mt-3 text-2xl font-bold tracking-tight text-app-text-strong sm:text-3xl">
+							Package portal page not found
+						</h1>
+						<p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-app-text-muted">
+							The link may be outdated or incomplete. Return to the package portal and scan the label again.
+						</p>
+						<Link
+							to="/portal/projects"
+							className="mt-7 inline-flex min-h-11 items-center justify-center rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface dark:bg-primary-500 dark:hover:bg-primary-400"
+						>
+							<span className="text-white">Return to Package Portal</span>
+						</Link>
+					</div>
 				</div>
-			</div>
+			) : (
+				<div className="flex min-h-screen items-center justify-center bg-app-bg p-4">
+					<div className="text-center">
+						<h1 className="text-6xl font-bold text-app-text-muted">404</h1>
+						<p className="mt-4 text-xl text-app-text-subtle">Page not found</p>
+						<Link
+							to="/dashboard"
+							className="mt-6 inline-block rounded-lg bg-primary-600 px-6 py-3 text-white transition-colors hover:bg-primary-700"
+						>
+							<span className="text-white">Go to Dashboard</span>
+						</Link>
+					</div>
+				</div>
+			)}
 		</RootDocument>
 	);
 }
@@ -157,7 +188,7 @@ function WorkspaceSwitchDialog({
 							type="button"
 							onClick={onCancel}
 							disabled={pending}
-							className="h-12 flex-1 whitespace-nowrap rounded-xl border border-app-border px-4 text-base font-semibold text-app-text-strong transition-colors hover:bg-app-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:opacity-50"
+							className="h-12 flex-1 whitespace-nowrap rounded-xl border border-app-border px-4 text-base font-semibold text-app-text-strong transition-colors hover:bg-app-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface disabled:opacity-50"
 						>
 							Stay
 						</button>
@@ -165,14 +196,14 @@ function WorkspaceSwitchDialog({
 							type="button"
 							onClick={onConfirm}
 							disabled={pending}
-							className="inline-flex h-12 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-primary-600 px-4 text-base font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+							className="inline-flex h-12 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-primary-600 px-4 text-base font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface disabled:cursor-wait disabled:opacity-60"
 						>
 							{pending ? (
 								<Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
 							) : (
 								<LogOut className="h-4 w-4" aria-hidden="true" />
 							)}
-							{pending ? "Signing out" : "Sign out"}
+							<span className="text-white">{pending ? "Signing out" : "Sign out"}</span>
 						</button>
 					</div>
 				</Dialog.Content>
