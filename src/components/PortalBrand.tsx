@@ -47,13 +47,13 @@ function Tagline() {
 				className="h-px min-w-0 flex-1"
 				style={{
 					background:
-						"linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(125,164,181,0.38) 38%, #155576 100%)",
+						"linear-gradient(90deg, transparent 0%, light-dark(rgba(21,85,118,0.16), rgba(135,217,255,0.18)) 38%, light-dark(#155576, #87d9ff) 100%)",
 				}}
 			/>
 			<span
 				className="shrink-0 whitespace-nowrap text-[12px] italic leading-none text-neutral-950 dark:text-white min-[390px]:text-[13px] sm:text-[15px]"
 				style={{
-					fontFamily: 'Arial, Helvetica, sans-serif',
+					fontFamily: "Arial, Helvetica, sans-serif",
 					fontWeight: 400,
 					letterSpacing: "-0.01em",
 				}}
@@ -65,7 +65,7 @@ function Tagline() {
 				className="h-px min-w-0 flex-1"
 				style={{
 					background:
-						"linear-gradient(90deg, #155576 0%, rgba(125,164,181,0.38) 62%, rgba(255,255,255,0) 100%)",
+						"linear-gradient(90deg, light-dark(#155576, #87d9ff) 0%, light-dark(rgba(21,85,118,0.16), rgba(135,217,255,0.18)) 62%, transparent 100%)",
 				}}
 			/>
 		</span>
@@ -80,9 +80,7 @@ export function PortalBrand({
 }: PortalBrandProps) {
 	if (variant === "header") {
 		return (
-			<span
-				className={`inline-flex min-w-0 shrink items-center gap-1.5 ${className}`}
-			>
+			<span className={`inline-flex min-w-0 shrink items-center gap-1.5 ${className}`}>
 				<img
 					src="/IPAC_logo.svg"
 					alt=""
@@ -97,9 +95,7 @@ export function PortalBrand({
 	}
 
 	return (
-		<span
-			className={`inline-flex w-full max-w-[22rem] flex-col items-center justify-center text-center ${className}`}
-		>
+		<span className={`inline-flex w-full max-w-[22rem] flex-col items-center justify-center text-center ${className}`}>
 			<img
 				src="/IPAC_logo.svg"
 				alt=""
