@@ -109,9 +109,7 @@ function PortalLogin() {
 				<div className="mb-8 text-center sm:mb-10">
 					<PortalBrand
 						variant="full"
-						showTagline
-						className="mx-auto mb-5 justify-center sm:mb-6"
-						markClassName="h-14 w-14 sm:h-16 sm:w-16"
+						className="mx-auto mb-5 sm:mb-6"
 					/>
 					<p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-primary-700">
 						Secure client access
@@ -172,12 +170,6 @@ function PortalLogin() {
 						)}
 					</button>
 				</form>
-
-				<div className="mt-8 text-center border-t border-neutral-100 pt-6">
-					<p className="text-xs text-neutral-400 font-medium">
-						Powered by Precision
-					</p>
-				</div>
 			</div>
 		</div>
 	);
