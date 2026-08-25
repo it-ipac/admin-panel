@@ -28,9 +28,6 @@ function TokenResolver() {
 	useEffect(() => {
 		if (authLoading) return;
 
-		// Resolve package data only after authentication. Anonymous users may be
-		// blocked by RLS from the tables required to resolve the QR, which used to
-		// surface a misleading "Package link unavailable" error before login.
 		if (!user) {
 			toast({
 				title: "Authentication Required",
@@ -48,7 +45,6 @@ function TokenResolver() {
 
 		async function resolveToken() {
 			try {
-				// 1. Find the QR Code token in the database
 				const { data: qrData, error: qrError } = await supabase
 					.from("qr_codes")
 					.select("*")
@@ -63,12 +59,10 @@ function TokenResolver() {
 					throw new Error("This QR code has been deactivated.");
 				}
 
-				// 2. Identify who owns this entity to find their portal settings
 				let clientId = null;
 				let targetPackageId: string | null = null;
 
 				if (qrData.entity_type === "package") {
-					// New flow: package QR represents an order_pkg_instance id.
 					const { data: pkgInstance, error: pkgInstanceError } = await supabase
 						.from("order_pkg_instance")
 						.select(`
@@ -103,8 +97,6 @@ function TokenResolver() {
 							clientId = order?.client_id;
 						}
 					} else {
-						// Legacy fallback: accept an order_packages token only when it
-						// identifies one physical box unambiguously.
 						const { data: pkg } = await supabase
 							.from("order_packages")
 							.select("order_id")
@@ -136,8 +128,6 @@ function TokenResolver() {
 						}
 					}
 				} else if (qrData.entity_type === "item") {
-					// Legacy item tokens are usable only when every matching packed
-					// record belongs to one exact physical box.
 					const { data: mDb } = await supabase
 						.from("items_db")
 						.select("client_id")
@@ -163,7 +153,6 @@ function TokenResolver() {
 					}
 					targetPackageId = String(packageIds[0]);
 				} else if (qrData.entity_type === "pkd_item") {
-					// New flow: token points to a specific pkd_item (physical packed instance)
 					const { data: pkdItem } = await supabase
 						.from("pkd_item")
 						.select(`
@@ -206,7 +195,6 @@ function TokenResolver() {
 					throw new Error("Cannot identify the package for this QR code.");
 				}
 
-				// 3. Look up Client Portal Settings
 				const { data: clientData } = await supabase
 					.from("clients")
 					.select("portal_settings_id")
@@ -227,10 +215,8 @@ function TokenResolver() {
 					throw new Error("This client portal is currently disabled.");
 				}
 
-				// 4. Handle Authentication if required by Portal Settings
 				if (portalSettings.requires_auth) {
 					if (!user) {
-						// User is not logged in, redirect them to login with a returnUrl to this exact scan endpoint
 						toast({
 							title: "Authentication Required",
 							description: "Please log in to view this package.",
@@ -243,11 +229,7 @@ function TokenResolver() {
 						return;
 					}
 
-					// User IS logged in. We must verify they belong to THIS exact client
 					const { data: profile } = await db.getProfile(user.id);
-
-					// Staff roles may scan/view any client's package. Everyone else
-					// (client, sales, unknown) is scoped to their own client_id.
 					const STAFF_VIEW_ALL_ROLES = [
 						"admin",
 						"director",
@@ -264,7 +246,6 @@ function TokenResolver() {
 					}
 				}
 
-				// 5. All checks passed! Redirect to the exact package page.
 				if (isMounted) {
 					navigate({
 						to: "/portal/package/$id",
@@ -291,14 +272,14 @@ function TokenResolver() {
 	if (resolving || authLoading) {
 		return (
 			<div className="portal-brand flex min-h-screen items-center justify-center bg-app-bg p-4 sm:p-6">
-				<div className="w-full max-w-sm rounded-3xl border border-app-border bg-app-surface p-8 text-center shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)]">
+				<div className="w-full max-w-sm rounded-3xl border border-app-border bg-app-surface p-8 text-center shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)] dark:shadow-[0_24px_80px_-40px_rgba(0,0,0,0.8)]">
 					<PortalBrand
 						variant="full"
 						showTagline
 						className="mx-auto justify-center"
 						markClassName="h-12 w-12"
 					/>
-					<div className="mx-auto mt-6 flex h-10 w-10 items-center justify-center rounded-full bg-primary-50 text-primary-700">
+					<div className="mx-auto mt-6 flex h-10 w-10 items-center justify-center rounded-full border border-primary-100 bg-primary-50 text-primary-700 dark:border-primary-800 dark:bg-primary-950/40 dark:text-primary-200">
 						<ShieldCheck className="h-5 w-5" />
 					</div>
 					<h2 className="mt-4 text-lg font-semibold text-app-text-strong">
@@ -309,35 +290,35 @@ function TokenResolver() {
 						this QR code.
 					</p>
 					<div className="mx-auto mt-6 h-1.5 w-32 overflow-hidden rounded-full bg-app-surface-muted">
-						<div className="h-full w-1/2 animate-pulse rounded-full bg-primary-600" />
+						<div className="h-full w-1/2 animate-pulse rounded-full bg-primary-600 dark:bg-primary-400" />
 					</div>
 				</div>
 			</div>
 		);
 	}
 
-	// Only reached if there was an error
 	return (
 		<div className="portal-brand flex min-h-screen items-center justify-center bg-app-bg p-4">
-			<div className="w-full max-w-md rounded-3xl border border-app-border bg-app-surface p-8 text-center shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)]">
+			<div className="w-full max-w-md rounded-3xl border border-app-border bg-app-surface p-8 text-center shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)] dark:shadow-[0_24px_80px_-40px_rgba(0,0,0,0.8)]">
 				<PortalBrand
 					variant="full"
 					showTagline
 					className="mx-auto mb-6 justify-center"
 					markClassName="h-12 w-12"
 				/>
-				<div className="w-16 h-16 bg-danger-100 rounded-full flex items-center justify-center mx-auto mb-6">
-					<AlertCircle className="w-8 h-8 text-danger-600" />
+				<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-danger-200 bg-danger-50 dark:border-danger-800/70 dark:bg-danger-950/40">
+					<AlertCircle className="h-8 w-8 text-danger-600 dark:text-danger-300" />
 				</div>
-				<h2 className="text-2xl font-semibold text-app-text-strong mb-2">
+				<h2 className="mb-2 text-2xl font-semibold text-app-text-strong">
 					Package link unavailable
 				</h2>
-				<p className="text-app-text-muted mb-8">{error}</p>
+				<p className="mb-8 text-app-text-muted">{error}</p>
 				<button
+					type="button"
 					onClick={() => navigate({ to: "/portal/login" })}
-					className="w-full py-3 px-4 bg-neutral-900 hover:bg-black text-white rounded-xl font-medium transition-colors"
+					className="w-full rounded-xl border border-primary-500 bg-primary-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface dark:bg-primary-500 dark:hover:bg-primary-400"
 				>
-					Return Home
+					<span className="text-white">Return Home</span>
 				</button>
 			</div>
 		</div>
