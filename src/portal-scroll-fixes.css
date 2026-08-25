@@ -97,18 +97,43 @@
 		order: 4;
 	}
 
-	/* Move Powered by Precision out of the eyebrow position above the headline.
-	   It now closes the interaction as a quiet centered brand signature, using
-	   balanced rules on both sides instead of occupying prime headline space. */
+	/* Reuse the original eyebrow as a closing brand signature on mobile, but
+	   make both rules equal and fade them toward the text. */
 	.portal-brand.h-dvh.flex-col
 		> main#package-access
 		> section
 		> div:first-of-type
 		> div:first-child {
 		order: 5;
+		width: min(100%, 30rem);
+		margin: clamp(1rem, 2.4vh, 1.6rem) auto 0 !important;
 		justify-content: center;
-		margin-top: clamp(1.25rem, 3vh, 2rem) !important;
-		margin-bottom: 0 !important;
+		gap: clamp(0.75rem, 2vw, 1rem);
+	}
+
+	.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> section
+		> div:first-of-type
+		> div:first-child
+		> div:first-child {
+		width: auto !important;
+		flex: 1 1 0;
+		max-width: 5rem;
+		background: linear-gradient(90deg, transparent, #2f9ed8) !important;
+		opacity: 0.9;
+	}
+
+	.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> section
+		> div:first-of-type
+		> div:first-child
+		> p {
+		flex: 0 0 auto;
+		white-space: nowrap;
+		color: light-dark(#0d5678, #87d9ff) !important;
+		letter-spacing: 0.22em !important;
 	}
 
 	.portal-brand.h-dvh.flex-col
@@ -118,9 +143,10 @@
 		> div:first-child::after {
 		content: "";
 		height: 1px;
-		width: 3rem;
-		background: var(--color-primary-500);
-		opacity: 0.8;
+		flex: 1 1 0;
+		max-width: 5rem;
+		background: linear-gradient(90deg, #2f9ed8, transparent);
+		opacity: 0.9;
 	}
 }
 
