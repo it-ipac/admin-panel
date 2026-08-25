@@ -1,9 +1,10 @@
-/* Portal route overflow fixes.
-   /portal/projects should scroll normally when its content is taller than the
-   viewport, while decorative off-canvas artwork remains clipped horizontally. */
+/* Portal route overflow and viewport layout fixes.
+   The portal may grow beyond the viewport and scroll normally, while decorative
+   off-canvas artwork remains clipped horizontally. */
 
-/* QR-driven /portal/projects previously locked itself to h-dvh and hid all
-   overflow, which prevented the page from scrolling on shorter viewports. */
+/* Keep the page at least one viewport tall without locking it to the viewport.
+   This lets the flex layout use any spare vertical space for real centering,
+   while still allowing the document to become taller and scroll when needed. */
 .portal-brand.h-dvh.flex-col {
 	height: auto !important;
 	min-height: 100vh;
@@ -12,13 +13,113 @@
 	overflow-y: visible !important;
 }
 
+/* The main area owns the remaining height below PortalHeader. It stays a flex
+   container so the content can genuinely center vertically when it is short. */
 .portal-brand.h-dvh.flex-col > main#package-access {
+	display: flex !important;
+	flex: 1 1 auto !important;
 	min-height: 0 !important;
 	overflow-x: clip !important;
 	overflow-y: visible !important;
 }
 
 .portal-brand.h-dvh.flex-col > main#package-access > section {
+	flex: 1 0 auto !important;
 	height: auto !important;
 	min-height: 0 !important;
+	align-content: center !important;
+}
+
+/* Mobile/tablet presentation: center the primary experience on both axes.
+   The previous layout started at the top of the remaining viewport, which left
+   a large unused block below the form on tall phones. */
+@media (max-width: 1023px) {
+	.portal-brand.h-dvh.flex-col > main#package-access > section {
+		justify-items: center;
+		padding-top: clamp(1.5rem, 4vh, 3rem) !important;
+		padding-bottom: clamp(1.5rem, 4vh, 3rem) !important;
+	}
+
+	.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> section
+		> div:first-of-type {
+		display: flex;
+		width: 100%;
+		flex-direction: column;
+		align-items: stretch;
+		text-align: center;
+	}
+
+	/* Headline first. */
+	.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> section
+		> div:first-of-type
+		> h2 {
+		order: 1;
+		margin-inline: auto;
+		max-width: 20ch;
+		text-align: center;
+	}
+
+	/* Scan / manual-entry card. */
+	.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> section
+		> div:first-of-type
+		> h2
+		+ div {
+		order: 2;
+	}
+
+	/* Camera privacy note. */
+	.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> section
+		> div:first-of-type
+		> h2
+		+ div
+		+ div {
+		order: 3;
+		justify-content: center;
+	}
+
+	/* Expandable "what you can view" panel. */
+	.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> section
+		> div:first-of-type
+		> h2
+		+ div
+		+ div
+		+ div {
+		order: 4;
+	}
+
+	/* Move Powered by Precision out of the eyebrow position above the headline.
+	   It now closes the interaction as a quiet centered brand signature, using
+	   balanced rules on both sides instead of occupying prime headline space. */
+	.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> section
+		> div:first-of-type
+		> div:first-child {
+		order: 5;
+		justify-content: center;
+		margin-top: clamp(1.25rem, 3vh, 2rem) !important;
+		margin-bottom: 0 !important;
+	}
+
+	.portal-brand.h-dvh.flex-col
+		> main#package-access
+		> section
+		> div:first-of-type
+		> div:first-child::after {
+		content: "";
+		height: 1px;
+		width: 3rem;
+		background: var(--color-primary-500);
+		opacity: 0.8;
+	}
 }
