@@ -66,6 +66,7 @@ export function PortalTooltip({
 			onMouseEnter={show}
 			onMouseLeave={hide}
 			onPointerDown={hide}
+			onClickCapture={hide}
 			onFocusCapture={(event) => {
 				if (!showOnFocus) return;
 				const target = event.target;
