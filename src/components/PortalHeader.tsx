@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { setThemePreference } from "../lib/theme";
 import { PortalBrand } from "./PortalBrand";
+import { PortalTooltip } from "./PortalTooltip";
 
 interface PortalHeaderProps {
 	title: string;
@@ -126,53 +127,71 @@ export function PortalHeader({
 						aria-label="Portal actions"
 					>
 						{activePage !== "home" && (
-							<Link
-								to="/portal/projects"
-								className={utilityButtonClass}
-								aria-label="Portal home"
-								title="Home"
+							<PortalTooltip
+								label="Portal home"
+								detail="Back to package access"
+								align="start"
 							>
-								<Home className="h-[18px] w-[18px]" aria-hidden="true" />
-							</Link>
+								<Link
+									to="/portal/projects"
+									className={utilityButtonClass}
+									aria-label="Portal home"
+								>
+									<Home className="h-[18px] w-[18px]" aria-hidden="true" />
+								</Link>
+							</PortalTooltip>
 						)}
 
-						<button
-							type="button"
-							onClick={onScan}
-							className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-500 bg-primary-600 text-white shadow-[0_3px_10px_rgba(0,94,168,0.22)] transition-[background-color,border-color,box-shadow] duration-150 hover:border-primary-400 hover:bg-primary-700 hover:shadow-[0_4px_14px_rgba(0,94,168,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:bg-primary-800 max-[380px]:h-9 max-[380px]:w-9 sm:h-11 sm:w-auto sm:gap-2 sm:px-3.5 dark:bg-primary-500 dark:hover:bg-primary-400"
-							aria-label="Scan package QR code"
-							title="Scan package"
+						<PortalTooltip
+							label="Scan package"
+							detail="Use your device camera"
 						>
-							<Camera className="h-[18px] w-[18px] text-white" aria-hidden="true" />
-							<span className="hidden text-sm font-semibold text-white sm:inline">Scan</span>
-						</button>
+							<button
+								type="button"
+								onClick={onScan}
+								className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-500 bg-primary-600 text-white shadow-[0_3px_10px_rgba(0,94,168,0.22)] transition-[background-color,border-color,box-shadow] duration-150 hover:border-primary-400 hover:bg-primary-700 hover:shadow-[0_4px_14px_rgba(0,94,168,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:bg-primary-800 max-[380px]:h-9 max-[380px]:w-9 sm:h-11 sm:w-auto sm:gap-2 sm:px-3.5 dark:bg-primary-500 dark:hover:bg-primary-400"
+								aria-label="Scan package QR code"
+							>
+								<Camera className="h-[18px] w-[18px] text-white" aria-hidden="true" />
+								<span className="hidden text-sm font-semibold text-white sm:inline">Scan</span>
+							</button>
+						</PortalTooltip>
 
-						<button
-							type="button"
-							onClick={handleThemeToggle}
-							className={utilityButtonClass}
-							aria-label={`Switch to ${nextTheme} theme`}
-							title={`Switch to ${nextTheme} theme`}
+						<PortalTooltip
+							label={nextTheme === "dark" ? "Dark mode" : "Light mode"}
+							detail="Switch portal appearance"
 						>
-							{isDark ? (
-								<Sun className="h-[19px] w-[19px]" aria-hidden="true" />
-							) : (
-								<Moon className="h-[19px] w-[19px]" aria-hidden="true" />
-							)}
-						</button>
+							<button
+								type="button"
+								onClick={handleThemeToggle}
+								className={utilityButtonClass}
+								aria-label={`Switch to ${nextTheme} theme`}
+							>
+								{isDark ? (
+									<Sun className="h-[19px] w-[19px]" aria-hidden="true" />
+								) : (
+									<Moon className="h-[19px] w-[19px]" aria-hidden="true" />
+								)}
+							</button>
+						</PortalTooltip>
 
 						{user ? (
 							<DropdownMenu.Root>
-								<DropdownMenu.Trigger asChild>
-									<button
-										type="button"
-										className={`${utilityButtonClass} text-app-text-strong`}
-										aria-label="Open account menu"
-										title="Account"
-									>
-										<UserRound className="h-[19px] w-[19px]" aria-hidden="true" />
-									</button>
-								</DropdownMenu.Trigger>
+								<PortalTooltip
+									label="Your account"
+									detail="Profile & sign out"
+									align="end"
+								>
+									<DropdownMenu.Trigger asChild>
+										<button
+											type="button"
+											className={`${utilityButtonClass} text-app-text-strong`}
+											aria-label="Open account menu"
+										>
+											<UserRound className="h-[19px] w-[19px]" aria-hidden="true" />
+										</button>
+									</DropdownMenu.Trigger>
+								</PortalTooltip>
 								<DropdownMenu.Portal>
 									<DropdownMenu.Content
 										align="end"
@@ -205,14 +224,15 @@ export function PortalHeader({
 								</DropdownMenu.Portal>
 							</DropdownMenu.Root>
 						) : (
-							<Link
-								to="/portal/login"
-								className={utilityButtonClass}
-								aria-label="Log in"
-								title="Log in"
-							>
-								<UserRound className="h-[19px] w-[19px]" aria-hidden="true" />
-							</Link>
+							<PortalTooltip label="Sign in" detail="Open client access" align="end">
+								<Link
+									to="/portal/login"
+									className={utilityButtonClass}
+									aria-label="Log in"
+								>
+									<UserRound className="h-[19px] w-[19px]" aria-hidden="true" />
+								</Link>
+							</PortalTooltip>
 						)}
 					</nav>
 				</div>
