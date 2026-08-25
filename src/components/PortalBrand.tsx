@@ -22,12 +22,12 @@ function Wordmark({ compact = false }: { compact?: boolean }) {
 				letterSpacing: "-0.045em",
 			}}
 		>
-			<span style={{ color: "#1e289c" }}>METRIX-</span>
-			<span style={{ color: "#317bc6" }}>ASSETS</span>
+			<span style={{ color: "light-dark(#1e289c, #708cf0)" }}>METRIX-</span>
+			<span style={{ color: "light-dark(#317bc6, #61b8f2)" }}>ASSETS</span>
 			<span
 				className="ml-[0.08em] inline-block text-[0.5em] leading-none"
 				style={{
-					color: "#317bc6",
+					color: "light-dark(#317bc6, #61b8f2)",
 					fontWeight: 900,
 					letterSpacing: "-0.04em",
 					transform: "translateY(-0.04em)",
