@@ -28,6 +28,22 @@ function TokenResolver() {
 	useEffect(() => {
 		if (authLoading) return;
 
+		// Resolve package data only after authentication. Anonymous users may be
+		// blocked by RLS from the tables required to resolve the QR, which used to
+		// surface a misleading "Package link unavailable" error before login.
+		if (!user) {
+			toast({
+				title: "Authentication Required",
+				description: "Please log in to view this package.",
+				variant: "info",
+			});
+			navigate({
+				to: "/portal/login",
+				search: { returnUrl: `/portal/scan/${token}` },
+			});
+			return;
+		}
+
 		let isMounted = true;
 
 		async function resolveToken() {
