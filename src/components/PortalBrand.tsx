@@ -5,20 +5,69 @@ interface PortalBrandProps {
 	showTagline?: boolean;
 }
 
+const brandFont =
+	'Montserrat, "Avenir Next", "Century Gothic", Futura, "Arial Black", Arial, sans-serif';
+
 function Wordmark({ compact = false }: { compact?: boolean }) {
 	return (
 		<span
-			className={`portal-wordmark inline-flex items-baseline whitespace-nowrap ${
+			className={`inline-flex items-end whitespace-nowrap font-black leading-none ${
 				compact
 					? "text-[14px] min-[480px]:text-[15px] sm:text-[17px] md:text-[18px]"
-					: "text-2xl sm:text-[28px]"
+					: "text-[28px] min-[390px]:text-[30px] sm:text-[34px]"
 			}`}
+			style={{
+				fontFamily: brandFont,
+				fontWeight: 900,
+				letterSpacing: "-0.045em",
+			}}
 		>
-			<span className="metrix-wordmark__metrix">METRIX-</span>
-			<span className="metrix-wordmark__assets">ASSETS</span>
-			<span className="metrix-wordmark__version ml-[0.08em] translate-y-[0.17em] text-[0.55em] font-black">
+			<span style={{ color: "#1e289c" }}>METRIX-</span>
+			<span style={{ color: "#317bc6" }}>ASSETS</span>
+			<span
+				className="ml-[0.08em] inline-block text-[0.5em] leading-none"
+				style={{
+					color: "#317bc6",
+					fontWeight: 900,
+					letterSpacing: "-0.04em",
+					transform: "translateY(-0.04em)",
+				}}
+			>
 				4.0
 			</span>
+		</span>
+	);
+}
+
+function Tagline() {
+	return (
+		<span className="mt-2 flex w-full items-center justify-center gap-2.5 sm:mt-2.5 sm:gap-3">
+			<span
+				aria-hidden="true"
+				className="h-px min-w-0 flex-1"
+				style={{
+					background:
+						"linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(125,164,181,0.38) 38%, #155576 100%)",
+				}}
+			/>
+			<span
+				className="shrink-0 whitespace-nowrap text-[12px] italic leading-none text-neutral-950 dark:text-white min-[390px]:text-[13px] sm:text-[15px]"
+				style={{
+					fontFamily: 'Arial, Helvetica, sans-serif',
+					fontWeight: 400,
+					letterSpacing: "-0.01em",
+				}}
+			>
+				Powered by Precision
+			</span>
+			<span
+				aria-hidden="true"
+				className="h-px min-w-0 flex-1"
+				style={{
+					background:
+						"linear-gradient(90deg, #155576 0%, rgba(125,164,181,0.38) 62%, rgba(255,255,255,0) 100%)",
+				}}
+			/>
 		</span>
 	);
 }
@@ -48,21 +97,17 @@ export function PortalBrand({
 	}
 
 	return (
-		<span className={`inline-flex items-center gap-3 text-left ${className}`}>
+		<span
+			className={`inline-flex w-full max-w-[22rem] flex-col items-center justify-center text-center ${className}`}
+		>
 			<img
 				src="/IPAC_logo.svg"
 				alt=""
 				aria-hidden="true"
-				className={`h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14 ${markClassName}`}
+				className={`mb-2.5 h-auto w-[8.25rem] shrink-0 object-contain min-[390px]:w-[8.75rem] sm:mb-3 sm:w-[9.5rem] ${markClassName}`}
 			/>
-			<span className="flex flex-col gap-1">
-				<Wordmark />
-				{showTagline ? (
-					<span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-app-text-muted sm:text-[11px]">
-						Powered by Precision
-					</span>
-				) : null}
-			</span>
+			<Wordmark />
+			{showTagline ? <Tagline /> : null}
 		</span>
 	);
 }
