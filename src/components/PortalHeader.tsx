@@ -22,7 +22,7 @@ interface PortalHeaderProps {
 }
 
 const utilityButtonClass =
-	"inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-app-border bg-app-surface text-app-text-muted shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-[background-color,border-color,color,box-shadow] duration-150 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:bg-primary-100 max-[380px]:h-9 max-[380px]:w-9 sm:h-11 sm:w-11 dark:hover:border-primary-700 dark:hover:bg-primary-950/35 dark:hover:text-primary-200";
+	"inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-app-border bg-app-surface text-app-text-muted shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-[background-color,border-color,color,box-shadow] duration-150 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:bg-primary-100 max-[380px]:h-9 max-[380px]:w-9 sm:h-11 sm:w-11 dark:hover:border-primary-700 dark:hover:bg-primary-950/35 dark:hover:text-primary-200";
 
 export function PortalHeader({
 	title,
@@ -54,10 +54,6 @@ export function PortalHeader({
 
 		syncResolvedTheme();
 		media.addEventListener("change", syncResolvedTheme);
-
-		// Keep the icon/label in sync even if another part of the app changes the
-		// root theme attribute. This also removes the old hydration race where the
-		// header could believe it was in system/light mode while the DOM was dark.
 		const observer = new MutationObserver(syncResolvedTheme);
 		observer.observe(root, {
 			attributes: true,
@@ -76,9 +72,6 @@ export function PortalHeader({
 	const secondaryIdentity = profile?.username || user?.email || "Client portal";
 
 	const handleThemeToggle = () => {
-		// Read the theme that is actually applied to the document at click time
-		// instead of trusting React state that may still be hydrating. This makes
-		// the very first click deterministic and removes the double-click glitch.
 		const appliedTheme = document.documentElement.getAttribute("data-theme");
 		const currentlyDark =
 			appliedTheme === "dark" ||
@@ -103,16 +96,21 @@ export function PortalHeader({
 
 	return (
 		<header className="portal-brand sticky top-0 z-40 border-b border-app-border bg-app-surface/95 backdrop-blur-xl">
-			<div
-				className={`${maxWidth} mx-auto px-3 min-[480px]:px-4 sm:px-6 lg:px-8`}
-			>
-				<div className="flex min-h-[4.25rem] items-center justify-between gap-3 py-2 sm:min-h-[4.75rem]">
+			<div className={`${maxWidth} mx-auto px-3 min-[480px]:px-4 sm:px-6 lg:px-8`}>
+				<div className="flex min-h-[4.25rem] items-center justify-between gap-2 py-2 sm:min-h-[4.75rem] sm:gap-3">
 					<Link
 						to="/portal/projects"
-						className="flex min-w-0 items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+						className="flex min-w-0 items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface"
 						aria-label="Client portal home"
 					>
-						<PortalBrand variant="header" />
+						<PortalBrand
+							variant="header"
+							className={
+								activePage === "package"
+									? "max-[479px]:[&>span]:hidden"
+									: ""
+							}
+						/>
 						<div className="ml-4 hidden min-w-0 border-l border-app-border pl-4 xl:block">
 							<p className="text-[9px] font-bold uppercase tracking-[0.22em] text-app-text-muted">
 								Client portal
@@ -124,7 +122,7 @@ export function PortalHeader({
 					</Link>
 
 					<nav
-						className="flex shrink-0 items-center gap-1 rounded-2xl border border-app-border bg-app-surface-muted/60 p-1 shadow-[0_1px_3px_rgba(15,23,42,0.05)] sm:gap-1.5 sm:p-1.5"
+						className="flex shrink-0 items-center gap-0.5 rounded-2xl border border-app-border bg-app-surface-muted/60 p-1 shadow-[0_1px_3px_rgba(15,23,42,0.05)] min-[390px]:gap-1 sm:gap-1.5 sm:p-1.5"
 						aria-label="Portal actions"
 					>
 						{activePage !== "home" && (
@@ -141,14 +139,12 @@ export function PortalHeader({
 						<button
 							type="button"
 							onClick={onScan}
-							className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-500 bg-primary-600 text-white shadow-[0_3px_10px_rgba(0,94,168,0.22)] transition-[background-color,border-color,box-shadow] duration-150 hover:border-primary-400 hover:bg-primary-700 hover:shadow-[0_4px_14px_rgba(0,94,168,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:bg-primary-800 max-[380px]:h-9 max-[380px]:w-9 sm:h-11 sm:w-auto sm:gap-2 sm:px-3.5 dark:bg-primary-500 dark:hover:bg-primary-400"
+							className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-500 bg-primary-600 text-white shadow-[0_3px_10px_rgba(0,94,168,0.22)] transition-[background-color,border-color,box-shadow] duration-150 hover:border-primary-400 hover:bg-primary-700 hover:shadow-[0_4px_14px_rgba(0,94,168,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:bg-primary-800 max-[380px]:h-9 max-[380px]:w-9 sm:h-11 sm:w-auto sm:gap-2 sm:px-3.5 dark:bg-primary-500 dark:hover:bg-primary-400"
 							aria-label="Scan package QR code"
 							title="Scan package"
 						>
 							<Camera className="h-[18px] w-[18px] text-white" aria-hidden="true" />
-							<span className="hidden text-sm font-semibold text-white sm:inline">
-								Scan
-							</span>
+							<span className="hidden text-sm font-semibold text-white sm:inline">Scan</span>
 						</button>
 
 						<button
@@ -170,15 +166,11 @@ export function PortalHeader({
 								<DropdownMenu.Trigger asChild>
 									<button
 										type="button"
-										className={`${utilityButtonClass} relative text-app-text-strong`}
+										className={`${utilityButtonClass} text-app-text-strong`}
 										aria-label="Open account menu"
 										title="Account"
 									>
 										<UserRound className="h-[19px] w-[19px]" aria-hidden="true" />
-										<span
-											className="absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full border border-app-surface bg-success-500"
-											aria-hidden="true"
-										/>
 									</button>
 								</DropdownMenu.Trigger>
 								<DropdownMenu.Portal>
@@ -192,12 +184,8 @@ export function PortalHeader({
 												<UserRound className="h-5 w-5" aria-hidden="true" />
 											</div>
 											<div className="min-w-0">
-												<p className="truncate text-sm font-semibold text-app-text-strong">
-													{displayName}
-												</p>
-												<p className="mt-0.5 truncate text-xs text-app-text-muted">
-													{secondaryIdentity}
-												</p>
+												<p className="truncate text-sm font-semibold text-app-text-strong">{displayName}</p>
+												<p className="mt-0.5 truncate text-xs text-app-text-muted">{secondaryIdentity}</p>
 											</div>
 										</div>
 										<DropdownMenu.Separator className="my-1 h-px bg-app-border" />
