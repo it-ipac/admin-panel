@@ -91,17 +91,17 @@ function PortalLogin() {
 	if (loading) {
 		return (
 			<div
-				className="flex h-screen items-center justify-center bg-neutral-50"
+				className="portal-brand flex h-screen items-center justify-center bg-app-bg"
 				style={{ height: "100dvh" }}
 			>
-				<Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+				<Loader2 className="h-8 w-8 animate-spin text-primary-600 dark:text-primary-300" />
 			</div>
 		);
 	}
 
 	return (
 		<div
-			className="portal-brand auth-bg relative flex h-screen items-center justify-center overflow-x-hidden overflow-y-auto bg-steel-50 px-[clamp(0.75rem,3vw,1.5rem)] py-[clamp(0.75rem,2.5vh,2rem)]"
+			className="portal-brand auth-bg relative flex h-screen items-center justify-center overflow-x-hidden overflow-y-auto bg-app-bg px-[clamp(0.75rem,3vw,1.5rem)] py-[clamp(0.75rem,2.5vh,2rem)]"
 			style={{ height: "100dvh" }}
 		>
 			{/* Keep the background quiet and architectural rather than decorative. */}
@@ -198,7 +198,7 @@ function PortalLogin() {
 						<button
 							type="submit"
 							disabled={isSubmitting}
-							className="relative mt-1 flex min-h-12 w-full items-center justify-center rounded-xl border border-primary-500/25 bg-gradient-to-r from-primary-700 via-primary-600 to-primary-500 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_30px_-16px_rgba(0,94,168,0.95)] transition-[transform,filter,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_16px_34px_-18px_rgba(0,94,168,1)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 motion-reduce:transform-none"
+							className="relative mt-1 flex min-h-12 w-full items-center justify-center rounded-xl border border-primary-500/25 bg-gradient-to-r from-primary-700 via-primary-600 to-primary-500 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_30px_-16px_rgba(0,94,168,0.95)] transition-[transform,filter,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_16px_34px_-18px_rgba(0,94,168,1)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-app-surface active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 motion-reduce:transform-none"
 						>
 							{isSubmitting ? (
 								<Loader2 className="h-5 w-5 animate-spin text-white" />
