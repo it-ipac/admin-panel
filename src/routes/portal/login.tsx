@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { PortalBrand } from "../../components/PortalBrand";
 import { useToastContext } from "../../components/ui/ToastProvider";
@@ -44,7 +44,6 @@ function PortalLogin() {
 
 	useEffect(() => {
 		if (!loading && user) {
-			// Already logged in
 			goToReturnUrl();
 		}
 	}, [user, loading, goToReturnUrl]);
@@ -70,8 +69,6 @@ function PortalLogin() {
 					});
 					goToReturnUrl();
 				} else {
-					// They are standard admin staff trying to log into the portal? That's fine, but maybe redirect them to admin area?
-					// Or let them in if they are testing.
 					toast({
 						title: "Logged In",
 						description: "Redirecting...",
@@ -107,82 +104,113 @@ function PortalLogin() {
 			className="portal-brand auth-bg relative flex h-screen items-center justify-center overflow-x-hidden overflow-y-auto bg-steel-50 px-[clamp(0.75rem,3vw,1.5rem)] py-[clamp(0.75rem,2.5vh,2rem)]"
 			style={{ height: "100dvh" }}
 		>
-			{/* Decorative blobs are clipped inside their own layer so they never
-			    create page-level horizontal or vertical scroll overflow. */}
+			{/* Keep the background quiet and architectural rather than decorative. */}
 			<div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-				<div className="absolute top-[-20%] left-[-10%] h-[600px] w-[600px] rounded-full bg-primary-100 opacity-50 mix-blend-multiply blur-3xl filter animate-blob" />
-				<div className="absolute right-[-10%] bottom-[-20%] h-[600px] w-[600px] rounded-full bg-steel-200 opacity-50 mix-blend-multiply blur-3xl filter animate-blob animation-delay-2000" />
+				<div
+					className="absolute inset-0"
+					style={{
+						background:
+							"radial-gradient(circle at 50% 12%, rgba(0,129,197,0.13), transparent 34%), radial-gradient(circle at 88% 82%, rgba(49,123,198,0.08), transparent 28%)",
+					}}
+				/>
+				<div className="absolute left-1/2 top-0 h-px w-[min(82vw,46rem)] -translate-x-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent" />
 			</div>
 
-			<div className="relative z-10 my-auto w-full max-w-md rounded-2xl border border-neutral-100 bg-white p-[clamp(1rem,2.6vh,2rem)] shadow-xl">
-				<div className="text-center">
-					<PortalBrand
-						variant="full"
-						showTagline
-						className="mx-auto mb-[clamp(0.75rem,1.8vh,1.25rem)] justify-center"
-						markClassName="h-14 w-14 sm:h-16 sm:w-16"
-					/>
-					<h1 className="bg-gradient-to-r from-primary-700 via-primary-500 to-sky-400 bg-clip-text text-[clamp(1.5rem,3.2vh,2rem)] font-extrabold tracking-tight text-transparent dark:from-primary-300 dark:via-sky-300 dark:to-cyan-200">
-						Client Portal
-					</h1>
-					<p className="mt-[clamp(0.25rem,0.8vh,0.5rem)] text-[clamp(0.8rem,1.8vh,0.95rem)] font-medium text-neutral-500">
-						Login to track your packages.
-					</p>
-				</div>
+			<div className="relative z-10 my-auto w-full max-w-[27rem] overflow-hidden rounded-[1.75rem] border border-app-border bg-app-surface shadow-[0_28px_80px_-42px_rgba(2,8,23,0.9)]">
+				<div
+					className="pointer-events-none absolute inset-x-0 top-0 h-28"
+					style={{
+						background:
+							"linear-gradient(180deg, rgba(0,129,197,0.075), rgba(0,129,197,0))",
+					}}
+					aria-hidden="true"
+				/>
+				<div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/70 to-transparent" aria-hidden="true" />
 
-				<form
-					onSubmit={handleLogin}
-					className="mt-[clamp(1rem,2.5vh,1.75rem)] flex flex-col gap-[clamp(0.9rem,2vh,1.35rem)]"
-				>
-					<div>
-						<label
-							htmlFor="login-identifier"
-							className="mb-1.5 block text-sm font-semibold text-neutral-700"
-						>
-							Email Address or Username
-						</label>
-						<input
-							id="login-identifier"
-							type="text"
-							required
-							value={identifier}
-							onChange={(e) => setIdentifier(e.target.value)}
-							className="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-[clamp(0.65rem,1.5vh,0.85rem)] text-base placeholder-neutral-400 transition-colors transition-shadow focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none"
-							placeholder="you@company.com or username"
-							autoComplete="username"
+				<div className="relative p-[clamp(1.15rem,2.35vh,1.7rem)]">
+					<div className="text-center">
+						<PortalBrand
+							variant="full"
+							showTagline
+							className="mx-auto mb-[clamp(0.85rem,1.7vh,1.15rem)] justify-center"
+							markClassName="!w-[6.75rem] min-[390px]:!w-[7.25rem] sm:!w-[7.75rem]"
 						/>
-					</div>
-					<div>
-						<label
-							htmlFor="login-password"
-							className="mb-1.5 block text-sm font-semibold text-neutral-700"
+
+						<div className="mx-auto mb-3 h-px w-12 bg-gradient-to-r from-transparent via-primary-500/70 to-transparent" aria-hidden="true" />
+						<h1
+							className="text-[clamp(1.55rem,3vh,1.9rem)] font-extrabold tracking-[-0.035em]"
+							style={{
+								backgroundImage: "linear-gradient(90deg, #b9e8f7 0%, #65b9e5 48%, #2d7bc7 100%)",
+								WebkitBackgroundClip: "text",
+								backgroundClip: "text",
+								WebkitTextFillColor: "transparent",
+							}}
 						>
-							Password
-						</label>
-						<input
-							id="login-password"
-							type="password"
-							required
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							className="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-[clamp(0.65rem,1.5vh,0.85rem)] text-base placeholder-neutral-400 transition-colors transition-shadow focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none"
-							placeholder="••••••••"
-							autoComplete="current-password"
-						/>
+							Client Portal
+						</h1>
+						<p className="mt-1.5 text-[clamp(0.82rem,1.7vh,0.95rem)] font-medium text-app-text-muted">
+							Login to track your packages.
+						</p>
 					</div>
 
-					<button
-						type="submit"
-						disabled={isSubmitting}
-						className="flex w-full items-center justify-center rounded-xl border border-transparent bg-primary-600 px-4 py-[clamp(0.7rem,1.6vh,0.9rem)] text-sm font-bold text-white shadow-md shadow-primary-600/20 transition-all hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
+					<form
+						onSubmit={handleLogin}
+						className="mt-[clamp(1.15rem,2.4vh,1.65rem)] flex flex-col gap-[clamp(0.9rem,1.8vh,1.15rem)]"
 					>
-						{isSubmitting ? (
-							<Loader2 className="h-5 w-5 animate-spin" />
-						) : (
-							"Sign In"
-						)}
-					</button>
-				</form>
+						<div>
+							<label
+								htmlFor="login-identifier"
+								className="mb-2 block text-[13px] font-semibold tracking-[-0.01em] text-app-text-strong"
+							>
+								Email Address or Username
+							</label>
+							<input
+								id="login-identifier"
+								type="text"
+								required
+								value={identifier}
+								onChange={(e) => setIdentifier(e.target.value)}
+								className="min-h-12 w-full rounded-xl border border-app-border bg-app-surface-muted px-4 py-3 text-[15px] shadow-inner shadow-black/5 placeholder:text-app-text-muted transition-[border-color,box-shadow,background-color] focus:border-primary-500 focus:bg-app-surface focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+								placeholder="you@company.com or username"
+								autoComplete="username"
+							/>
+						</div>
+
+						<div>
+							<label
+								htmlFor="login-password"
+								className="mb-2 block text-[13px] font-semibold tracking-[-0.01em] text-app-text-strong"
+							>
+								Password
+							</label>
+							<input
+								id="login-password"
+								type="password"
+								required
+								value={password}
+								onChange={(e) => setPassword(e.target.value)}
+								className="min-h-12 w-full rounded-xl border border-app-border bg-app-surface-muted px-4 py-3 text-[15px] shadow-inner shadow-black/5 placeholder:text-app-text-muted transition-[border-color,box-shadow,background-color] focus:border-primary-500 focus:bg-app-surface focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+								placeholder="••••••••"
+								autoComplete="current-password"
+							/>
+						</div>
+
+						<button
+							type="submit"
+							disabled={isSubmitting}
+							className="relative mt-1 flex min-h-12 w-full items-center justify-center rounded-xl border border-primary-500/25 bg-gradient-to-r from-primary-700 via-primary-600 to-primary-500 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_30px_-16px_rgba(0,94,168,0.95)] transition-[transform,filter,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_16px_34px_-18px_rgba(0,94,168,1)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 motion-reduce:transform-none"
+						>
+							{isSubmitting ? (
+								<Loader2 className="h-5 w-5 animate-spin text-white" />
+							) : (
+								<>
+									<span className="text-white">Sign In</span>
+									<ArrowRight className="absolute right-4 h-4 w-4 text-white/80" aria-hidden="true" />
+								</>
+							)}
+						</button>
+					</form>
+				</div>
 			</div>
 		</div>
 	);
