@@ -1,0 +1,35 @@
+/* Portal route overflow fixes.
+   Keep decorative off-canvas artwork clipped horizontally while allowing
+   normal document scrolling when content is taller than the viewport. */
+
+/* Login: the fixed 100dvh scroll container made overflow-y:auto also create
+   horizontal overflow because the 600px decorative blobs extend off-canvas.
+   Use the viewport as a minimum height and let the document own vertical scroll. */
+.portal-brand.auth-bg {
+	height: auto !important;
+	min-height: 100vh;
+	min-height: 100dvh;
+	overflow-x: clip !important;
+	overflow-y: visible !important;
+}
+
+/* QR-driven /portal/projects previously locked itself to h-dvh and hid all
+   overflow, which prevented the page from scrolling on shorter viewports. */
+.portal-brand.h-dvh.flex-col {
+	height: auto !important;
+	min-height: 100vh;
+	min-height: 100dvh;
+	overflow-x: clip !important;
+	overflow-y: visible !important;
+}
+
+.portal-brand.h-dvh.flex-col > main#package-access {
+	min-height: 0 !important;
+	overflow-x: clip !important;
+	overflow-y: visible !important;
+}
+
+.portal-brand.h-dvh.flex-col > main#package-access > section {
+	height: auto !important;
+	min-height: 0 !important;
+}
