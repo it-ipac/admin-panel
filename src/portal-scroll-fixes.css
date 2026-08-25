@@ -123,3 +123,66 @@
 		opacity: 0.8;
 	}
 }
+
+/* Login title treatment. The global heading rule forces a solid heading color,
+   so this intentionally overrides it with a brand gradient and a restrained
+   illuminated rule. This keeps the title distinct without competing with the
+   Metrix wordmark above it. */
+@keyframes portalLoginTitleShimmer {
+	0%,
+	100% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+}
+
+.portal-brand.auth-bg h1 {
+	position: relative;
+	display: inline-block;
+	padding-inline: 0.15em;
+	padding-bottom: 0.42rem;
+	background-image: linear-gradient(
+		100deg,
+		light-dark(#0c2b7b, #f8fbff) 0%,
+		light-dark(#005ea8, #83d2ee) 32%,
+		light-dark(#0081c5, #65b9e5) 58%,
+		light-dark(#2d7bc7, #b9e8f7) 78%,
+		light-dark(#0c2b7b, #f8fbff) 100%
+	) !important;
+	background-size: 190% 100% !important;
+	background-position: 0% 50%;
+	-webkit-background-clip: text !important;
+	background-clip: text !important;
+	color: transparent !important;
+	-webkit-text-fill-color: transparent !important;
+	filter: drop-shadow(0 8px 18px rgba(0, 129, 197, 0.16));
+	animation: portalLoginTitleShimmer 7s ease-in-out infinite;
+}
+
+.portal-brand.auth-bg h1::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	bottom: 0;
+	width: clamp(3.5rem, 35%, 6rem);
+	height: 2px;
+	transform: translateX(-50%);
+	border-radius: 999px;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		#005ea8 22%,
+		#65b9e5 50%,
+		#005ea8 78%,
+		transparent
+	);
+	box-shadow: 0 0 14px rgba(101, 185, 229, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.portal-brand.auth-bg h1 {
+		animation: none;
+	}
+}
