@@ -11,11 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
-import {
-	getThemePreference,
-	setThemePreference,
-	type ThemePreference,
-} from "../lib/theme";
+import { setThemePreference } from "../lib/theme";
 import { PortalBrand } from "./PortalBrand";
 
 interface PortalHeaderProps {
@@ -36,30 +32,62 @@ export function PortalHeader({
 }: PortalHeaderProps) {
 	const navigate = useNavigate();
 	const { profile, user, signOut } = useAuth();
-	const [themePreference, setThemePreferenceState] =
-		useState<ThemePreference>("system");
-	const [systemDark, setSystemDark] = useState(false);
+	const [isDark, setIsDark] = useState(false);
 	const [signingOut, setSigningOut] = useState(false);
 
 	useEffect(() => {
-		setThemePreferenceState(getThemePreference());
+		const root = document.documentElement;
 		const media = window.matchMedia("(prefers-color-scheme: dark)");
-		const updateSystemTheme = () => setSystemDark(media.matches);
-		updateSystemTheme();
-		media.addEventListener("change", updateSystemTheme);
-		return () => media.removeEventListener("change", updateSystemTheme);
+
+		const syncResolvedTheme = () => {
+			const appliedTheme = root.getAttribute("data-theme");
+			if (appliedTheme === "dark") {
+				setIsDark(true);
+				return;
+			}
+			if (appliedTheme === "light") {
+				setIsDark(false);
+				return;
+			}
+			setIsDark(media.matches);
+		};
+
+		syncResolvedTheme();
+		media.addEventListener("change", syncResolvedTheme);
+
+		// Keep the icon/label in sync even if another part of the app changes the
+		// root theme attribute. This also removes the old hydration race where the
+		// header could believe it was in system/light mode while the DOM was dark.
+		const observer = new MutationObserver(syncResolvedTheme);
+		observer.observe(root, {
+			attributes: true,
+			attributeFilter: ["data-theme"],
+		});
+
+		return () => {
+			media.removeEventListener("change", syncResolvedTheme);
+			observer.disconnect();
+		};
 	}, []);
 
-	const isDark =
-		themePreference === "dark" || (themePreference === "system" && systemDark);
 	const nextTheme = isDark ? "light" : "dark";
 	const displayName =
 		profile?.full_name || profile?.username || user?.email || "Portal account";
 	const secondaryIdentity = profile?.username || user?.email || "Client portal";
 
 	const handleThemeToggle = () => {
-		setThemePreference(nextTheme);
-		setThemePreferenceState(nextTheme);
+		// Read the theme that is actually applied to the document at click time
+		// instead of trusting React state that may still be hydrating. This makes
+		// the very first click deterministic and removes the double-click glitch.
+		const appliedTheme = document.documentElement.getAttribute("data-theme");
+		const currentlyDark =
+			appliedTheme === "dark" ||
+			(appliedTheme !== "light" &&
+				window.matchMedia("(prefers-color-scheme: dark)").matches);
+		const targetTheme = currentlyDark ? "light" : "dark";
+
+		setThemePreference(targetTheme);
+		setIsDark(targetTheme === "dark");
 	};
 
 	const handleSignOut = async () => {
