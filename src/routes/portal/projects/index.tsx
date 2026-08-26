@@ -124,7 +124,7 @@ function MobileRecordSummary() {
 
 function PortalSignature() {
 	return (
-		<div className="portal-signature mt-5 flex w-full items-center justify-center gap-3 lg:mt-6" aria-label="Powered by Precision">
+		<div className="portal-signature mt-5 flex w-full items-center justify-center gap-3 lg:mt-6">
 			<span className="h-px min-w-0 flex-1 bg-gradient-to-r from-transparent to-primary-600/70 dark:to-primary-300/80" aria-hidden="true" />
 			<p className="shrink-0 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.22em] text-primary-700 dark:text-primary-300 sm:text-[11px]">
 				Powered by Precision
@@ -236,7 +236,7 @@ function PortalProjects() {
 					<div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-warning-200 bg-warning-50 dark:border-warning-700/60 dark:bg-warning-950/30">
 						<ShieldAlert className="h-7 w-7 text-warning-600 dark:text-warning-300" aria-hidden="true" />
 					</div>
-					<h2 className="mb-2 text-xl font-bold text-app-text-strong">Staff Account Detected</h2>
+					<h2 className="mb-2 text-xl font-bold text-app-text-strong">Staff Account</h2>
 					<p className="mx-auto mb-6 max-w-md text-sm leading-6 text-app-text-muted">
 						You're logged in as a staff member (
 						<span className="font-semibold text-app-text-strong">{profile?.full_name || profile?.username}</span>
