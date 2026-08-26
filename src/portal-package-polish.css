@@ -1,0 +1,260 @@
+/* Package details visual hierarchy.
+   This file deliberately targets light mode only; dark mode already has the
+   depth and contrast we want to preserve. */
+
+html[data-theme="light"] .portal-brand.pb-24,
+html[data-theme="light"] .portal-brand.pb-24 > main {
+	background:
+		radial-gradient(circle at 50% -8rem, rgba(0, 129, 197, 0.09), transparent 34rem),
+		linear-gradient(180deg, #f8fbfe 0%, #f3f7fb 38%, #eef3f8 100%) !important;
+}
+
+html[data-theme="light"] .portal-brand.pb-24 > header.portal-brand {
+	border-bottom-color: #d8e2ec !important;
+	background-color: rgba(255, 255, 255, 0.96) !important;
+	box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03), 0 8px 28px -24px rgba(15, 23, 42, 0.3) !important;
+}
+
+/* Verified-record banner: make it read as a trustworthy status surface. */
+html[data-theme="light"]
+	.portal-brand.pb-24
+	> main
+	> div:first-child {
+	position: relative;
+	overflow: hidden;
+	border-color: #b9dff2 !important;
+	background: linear-gradient(100deg, #ffffff 0%, #f3faff 58%, #eaf6fd 100%) !important;
+	box-shadow:
+		0 1px 2px rgba(15, 23, 42, 0.05),
+		0 12px 32px -24px rgba(0, 94, 168, 0.48) !important;
+}
+
+html[data-theme="light"]
+	.portal-brand.pb-24
+	> main
+	> div:first-child::before {
+	content: "";
+	position: absolute;
+	inset-block: 0;
+	left: 0;
+	width: 4px;
+	background: linear-gradient(180deg, #0081c5, #005ea8);
+}
+
+html[data-theme="light"]
+	.portal-brand.pb-24
+	> main
+	> div:first-child
+	> div
+	> span:first-child {
+	border: 1px solid #d1e8f5 !important;
+	background: #ffffff !important;
+	box-shadow: 0 4px 12px -8px rgba(0, 94, 168, 0.45) !important;
+}
+
+html[data-theme="light"]
+	.portal-brand.pb-24
+	> main
+	> div:first-child
+	> span:last-child {
+	border-color: #b9dff2 !important;
+	background: rgba(255, 255, 255, 0.9) !important;
+	box-shadow: 0 3px 10px -8px rgba(0, 94, 168, 0.5) !important;
+}
+
+/* Top-level cards get a stronger edge, ambient shadow and white surface. */
+html[data-theme="light"] .portal-brand.pb-24 > main > section {
+	border-color: #d4dee9 !important;
+	background-color: #ffffff !important;
+	box-shadow:
+		0 1px 2px rgba(15, 23, 42, 0.06),
+		0 18px 44px -30px rgba(15, 23, 42, 0.38) !important;
+}
+
+html[data-theme="light"]
+	.portal-brand.pb-24
+	> main
+	> section:last-of-type {
+	border-color: #cfdbe7 !important;
+	box-shadow:
+		0 2px 4px rgba(15, 23, 42, 0.05),
+		0 24px 56px -34px rgba(15, 23, 42, 0.4) !important;
+}
+
+/* Identity header: very subtle cool tint so it separates from measurements. */
+html[data-theme="light"]
+	.portal-brand.pb-24
+	> main
+	> section:last-of-type
+	> div:first-child {
+	background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%) !important;
+	border-bottom: 1px solid #e0e8f0;
+}
+
+/* Package type / destination band. */
+html[data-theme="light"]
+	.portal-brand.pb-24
+	> main
+	> section:last-of-type
+	> div:nth-child(2) {
+	border-color: #d9e3ed !important;
+	background-color: #d9e3ed !important;
+}
+
+html[data-theme="light"]
+	.portal-brand.pb-24
+	> main
+	> section:last-of-type
+	> div:nth-child(2)
+	> div {
+	background: linear-gradient(180deg, #f9fbfd 0%, #f5f8fb 100%) !important;
+}
+
+html[data-theme="light"]
+	.portal-brand.pb-24
+	> main
+	> section:last-of-type
+	> div:nth-child(2)
+	> div
+	> span:first-child {
+	border: 1px solid #d9e5ef !important;
+	background: #ffffff !important;
+	box-shadow:
+		0 1px 2px rgba(15, 23, 42, 0.04),
+		0 6px 16px -12px rgba(15, 23, 42, 0.28) !important;
+}
+
+/* Measurements section: add breathing room and make the values feel tactile. */
+html[data-theme="light"]
+	.portal-brand.pb-24
+	> main
+	> section:last-of-type
+	> div:last-child {
+	background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%) !important;
+}
+
+html[data-theme="light"]
+	.portal-brand.pb-24
+	> main
+	> section:last-of-type
+	dl {
+	gap: 8px !important;
+	padding: 8px !important;
+	border-color: #d7e1eb !important;
+	background-color: #f2f6fa !important;
+	box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+html[data-theme="light"]
+	.portal-brand.pb-24
+	> main
+	> section:last-of-type
+	dl
+	> div {
+	border: 1px solid #dce5ee !important;
+	border-radius: 10px;
+	background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%) !important;
+	box-shadow:
+		0 1px 2px rgba(15, 23, 42, 0.04),
+		0 7px 18px -14px rgba(15, 23, 42, 0.32) !important;
+}
+
+html[data-theme="light"]
+	.portal-brand.pb-24
+	> main
+	> section:last-of-type
+	dl
+	> div:last-child {
+	border-color: #b9dff2 !important;
+	background: linear-gradient(145deg, #eef9fe 0%, #e2f3fb 100%) !important;
+	box-shadow:
+		0 1px 2px rgba(15, 23, 42, 0.04),
+		0 9px 22px -15px rgba(0, 94, 168, 0.38) !important;
+}
+
+/* Give thumbnails a clean frame against the light page background. */
+html[data-theme="light"]
+	.portal-brand.pb-24
+	> main
+	> section:not(:last-of-type)
+	button {
+	border-color: rgba(255, 255, 255, 0.72);
+}
+
+/* System-light receives the same treatment until the user chooses a manual theme. */
+@media (prefers-color-scheme: light) {
+	html:not([data-theme]) .portal-brand.pb-24,
+	html:not([data-theme]) .portal-brand.pb-24 > main {
+		background:
+			radial-gradient(circle at 50% -8rem, rgba(0, 129, 197, 0.09), transparent 34rem),
+			linear-gradient(180deg, #f8fbfe 0%, #f3f7fb 38%, #eef3f8 100%) !important;
+	}
+
+	html:not([data-theme]) .portal-brand.pb-24 > header.portal-brand {
+		border-bottom-color: #d8e2ec !important;
+		background-color: rgba(255, 255, 255, 0.96) !important;
+		box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03), 0 8px 28px -24px rgba(15, 23, 42, 0.3) !important;
+	}
+
+	html:not([data-theme]) .portal-brand.pb-24 > main > div:first-child {
+		position: relative;
+		overflow: hidden;
+		border-color: #b9dff2 !important;
+		background: linear-gradient(100deg, #ffffff 0%, #f3faff 58%, #eaf6fd 100%) !important;
+		box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 12px 32px -24px rgba(0, 94, 168, 0.48) !important;
+	}
+
+	html:not([data-theme]) .portal-brand.pb-24 > main > div:first-child::before {
+		content: "";
+		position: absolute;
+		inset-block: 0;
+		left: 0;
+		width: 4px;
+		background: linear-gradient(180deg, #0081c5, #005ea8);
+	}
+
+	html:not([data-theme]) .portal-brand.pb-24 > main > section {
+		border-color: #d4dee9 !important;
+		background-color: #ffffff !important;
+		box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 18px 44px -30px rgba(15, 23, 42, 0.38) !important;
+	}
+
+	html:not([data-theme]) .portal-brand.pb-24 > main > section:last-of-type > div:first-child {
+		background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%) !important;
+		border-bottom: 1px solid #e0e8f0;
+	}
+
+	html:not([data-theme]) .portal-brand.pb-24 > main > section:last-of-type > div:nth-child(2) {
+		border-color: #d9e3ed !important;
+		background-color: #d9e3ed !important;
+	}
+
+	html:not([data-theme]) .portal-brand.pb-24 > main > section:last-of-type > div:nth-child(2) > div {
+		background: linear-gradient(180deg, #f9fbfd 0%, #f5f8fb 100%) !important;
+	}
+
+	html:not([data-theme]) .portal-brand.pb-24 > main > section:last-of-type > div:last-child {
+		background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%) !important;
+	}
+
+	html:not([data-theme]) .portal-brand.pb-24 > main > section:last-of-type dl {
+		gap: 8px !important;
+		padding: 8px !important;
+		border-color: #d7e1eb !important;
+		background-color: #f2f6fa !important;
+		box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+	}
+
+	html:not([data-theme]) .portal-brand.pb-24 > main > section:last-of-type dl > div {
+		border: 1px solid #dce5ee !important;
+		border-radius: 10px;
+		background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%) !important;
+		box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 7px 18px -14px rgba(15, 23, 42, 0.32) !important;
+	}
+
+	html:not([data-theme]) .portal-brand.pb-24 > main > section:last-of-type dl > div:last-child {
+		border-color: #b9dff2 !important;
+		background: linear-gradient(145deg, #eef9fe 0%, #e2f3fb 100%) !important;
+		box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 9px 22px -15px rgba(0, 94, 168, 0.38) !important;
+	}
+}
