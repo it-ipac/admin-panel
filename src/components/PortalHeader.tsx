@@ -11,7 +11,12 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { setThemePreference } from "../lib/theme";
+import {
+	applyThemePreference,
+	getThemePreference,
+	setThemePreference,
+} from "../lib/theme";
+import "../portal-package-polish.css";
 import { PortalBrand } from "./PortalBrand";
 import { PortalTooltip } from "./PortalTooltip";
 
@@ -39,6 +44,11 @@ export function PortalHeader({
 	useEffect(() => {
 		const root = document.documentElement;
 		const media = window.matchMedia("(prefers-color-scheme: dark)");
+
+		// Re-apply the saved manual preference after hydration. The root route can
+		// render on the server, where browser storage is unavailable, so without
+		// this step a refresh could temporarily resolve back to the OS theme.
+		applyThemePreference(getThemePreference());
 
 		const syncResolvedTheme = () => {
 			const appliedTheme = root.getAttribute("data-theme");
