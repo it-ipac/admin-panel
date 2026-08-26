@@ -215,12 +215,18 @@ function PortalLogin() {
 						markClassName="!w-[6.5rem] min-[390px]:!w-[7rem] sm:!w-[7.4rem]"
 					/>
 
-					<div className="portal-login-title-block mx-auto max-w-[22rem]">
-						<div className="portal-login-title-rule" aria-hidden="true" />
-						<h1 className="portal-login-title mt-3 text-[clamp(1.8rem,3.4vh,2.15rem)] font-black tracking-[-0.045em]">
-							Client Portal
+					<div className="portal-login-title-block mx-auto max-w-[23rem]">
+						<h1
+							className="portal-login-title text-[clamp(2rem,4vh,2.45rem)] font-black tracking-[-0.055em]"
+							aria-label="Client Portal"
+						>
+							<span className="portal-login-title-client">Client</span>
+							<span className="portal-login-title-portal">Portal</span>
 						</h1>
-						<p className="portal-login-subtitle mx-auto mt-2 max-w-[21rem] text-[clamp(0.84rem,1.75vh,0.96rem)] font-medium leading-6">
+						<div className="portal-login-title-rule" aria-hidden="true">
+							<span className="portal-login-title-rule-core" />
+						</div>
+						<p className="portal-login-subtitle mx-auto mt-2.5 max-w-[21rem] text-[clamp(0.84rem,1.75vh,0.96rem)] font-medium leading-6">
 							Track packages, review records, and open package details in one place.
 						</p>
 					</div>
