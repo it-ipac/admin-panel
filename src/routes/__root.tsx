@@ -164,9 +164,7 @@ function AccountAreaMismatchDialog({
 	onSignOut: () => void;
 }>) {
 	const isClientInAdmin = mismatch === "client-in-admin";
-	const title = isClientInAdmin
-		? "Client Account Detected"
-		: "Staff Account Detected";
+	const title = isClientInAdmin ? "Client Account" : "Staff Account";
 	const destinationLabel = isClientInAdmin
 		? "Go to Package Portal"
 		: "Go to Admin Panel";
