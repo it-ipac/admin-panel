@@ -1,3 +1,11 @@
+import { useEffect } from "react";
+import {
+	applyThemePreference,
+	getThemePreference,
+} from "../lib/theme";
+import "../portal-package-polish.css";
+import "../portal-scan-polish.css";
+
 interface PortalBrandProps {
 	variant?: "header" | "full";
 	className?: string;
@@ -51,11 +59,12 @@ function Tagline() {
 				}}
 			/>
 			<span
-				className="shrink-0 whitespace-nowrap text-[12px] italic leading-none text-neutral-950 dark:text-white min-[390px]:text-[13px] sm:text-[15px]"
+				className="shrink-0 whitespace-nowrap text-[12px] italic leading-none min-[390px]:text-[13px] sm:text-[15px]"
 				style={{
 					fontFamily: "Arial, Helvetica, sans-serif",
 					fontWeight: 400,
 					letterSpacing: "-0.01em",
+					color: "light-dark(#111827, #ffffff)",
 				}}
 			>
 				Powered by Precision
@@ -78,6 +87,12 @@ export function PortalBrand({
 	markClassName = "",
 	showTagline = false,
 }: PortalBrandProps) {
+	useEffect(() => {
+		// Portal routes such as /portal/scan do not render the header, so restore
+		// the saved manual theme here as soon as shared portal branding mounts.
+		applyThemePreference(getThemePreference());
+	}, []);
+
 	if (variant === "header") {
 		return (
 			<span className={`inline-flex min-w-0 shrink items-center gap-1.5 ${className}`}>
