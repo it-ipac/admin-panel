@@ -1,11 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import {
-	ArrowRight,
-	KeyRound,
-	Loader2,
-	ShieldCheck,
-	UserRound,
-} from "lucide-react";
+import { ArrowRight, KeyRound, Loader2, UserRound } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { PortalBrand } from "../../components/PortalBrand";
 import { useToastContext } from "../../components/ui/ToastProvider";
@@ -41,9 +35,6 @@ function PortalLogin() {
 		: "/portal/projects";
 
 	const goToReturnUrl = useCallback(() => {
-		// Keep the normal client-login flow inside TanStack Router. A full
-		// document navigation briefly loses the already-resolved manual theme
-		// before hydration, which caused the light -> dark -> light flash.
 		if (returnUrl === "/portal/projects") {
 			navigate({ to: "/portal/projects", replace: true });
 			return;
@@ -115,14 +106,14 @@ function PortalLogin() {
 						className="mb-5 justify-center"
 						markClassName="!h-10 !w-10"
 					/>
-					<div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 text-primary-700">
+					<div className="portal-login-loader flex h-11 w-11 items-center justify-center rounded-2xl border">
 						<Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
 					</div>
 					<p className="mt-4 text-sm font-semibold text-app-text-strong">
-						Checking your session
+						Opening Client Portal
 					</p>
 					<p className="mt-1.5 text-xs leading-5 text-app-text-muted">
-						Preparing secure client access.
+						Loading your workspace.
 					</p>
 				</div>
 			</div>
@@ -134,39 +125,43 @@ function PortalLogin() {
 			className="portal-brand portal-login-page auth-bg relative flex h-screen items-center justify-center overflow-x-hidden overflow-y-auto px-[clamp(0.75rem,3vw,1.5rem)] py-[clamp(0.75rem,2.5vh,2rem)]"
 			style={{ height: "100dvh" }}
 		>
-			<div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/35 to-transparent" aria-hidden="true" />
+			<div
+				className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/35 to-transparent"
+				aria-hidden="true"
+			/>
 
 			<div className="portal-login-card relative z-10 my-auto w-full max-w-[28rem] overflow-hidden rounded-[1.75rem] border">
-				<div className="portal-login-card-accent pointer-events-none absolute inset-x-10 top-0 z-20 h-px" aria-hidden="true" />
+				<div
+					className="portal-login-card-accent pointer-events-none absolute inset-x-10 top-0 z-20 h-px"
+					aria-hidden="true"
+				/>
 
-				<div className="portal-login-hero relative px-[clamp(1.25rem,3vw,1.8rem)] pb-[clamp(1.2rem,2.5vh,1.6rem)] pt-[clamp(1.3rem,2.8vh,1.85rem)] text-center">
+				<div className="portal-login-hero relative px-[clamp(1.25rem,3vw,1.8rem)] pb-[clamp(1.25rem,2.6vh,1.7rem)] pt-[clamp(1.35rem,3vh,1.95rem)] text-center">
 					<PortalBrand
 						variant="full"
 						showTagline
-						className="mx-auto mb-[clamp(0.9rem,1.8vh,1.2rem)] justify-center"
+						className="mx-auto mb-[clamp(1rem,2vh,1.35rem)] justify-center"
 						markClassName="!w-[6.5rem] min-[390px]:!w-[7rem] sm:!w-[7.4rem]"
 					/>
 
-					<div className="portal-login-kicker mx-auto inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em]">
-						<ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-						<span>Secure client access</span>
+					<div className="portal-login-title-block mx-auto max-w-[22rem]">
+						<div className="portal-login-title-rule" aria-hidden="true" />
+						<h1 className="portal-login-title mt-3 text-[clamp(1.8rem,3.4vh,2.15rem)] font-black tracking-[-0.045em]">
+							Client Portal
+						</h1>
+						<p className="portal-login-subtitle mx-auto mt-2 max-w-[21rem] text-[clamp(0.84rem,1.75vh,0.96rem)] font-medium leading-6">
+							Track packages, review records, and open package details in one place.
+						</p>
 					</div>
-
-					<h1 className="portal-login-title mt-3 text-[clamp(1.6rem,3vh,1.95rem)] font-extrabold tracking-[-0.035em]">
-						Client Portal
-					</h1>
-					<p className="portal-login-subtitle mx-auto mt-1.5 max-w-[22rem] text-[clamp(0.82rem,1.7vh,0.95rem)] font-medium leading-6">
-						Track packages, review records, and open verified package details.
-					</p>
 				</div>
 
-				<div className="portal-login-form-shell relative px-[clamp(1.25rem,3vw,1.8rem)] pb-[clamp(1.15rem,2.4vh,1.6rem)] pt-[clamp(1.15rem,2.4vh,1.55rem)]">
+				<div className="portal-login-form-shell relative px-[clamp(1.25rem,3vw,1.8rem)] pb-[clamp(1.3rem,2.6vh,1.75rem)] pt-[clamp(1.2rem,2.5vh,1.6rem)]">
 					<div className="mb-[clamp(1rem,2vh,1.25rem)]">
-						<p className="portal-login-form-heading text-sm font-bold tracking-[-0.015em]">
-							Sign in to continue
+						<p className="portal-login-form-heading text-[15px] font-bold tracking-[-0.018em]">
+							Welcome back
 						</p>
 						<p className="portal-login-form-copy mt-1 text-xs leading-5">
-							Use your client account email or username.
+							Sign in with your client account email or username.
 						</p>
 					</div>
 
@@ -236,11 +231,6 @@ function PortalLogin() {
 							)}
 						</button>
 					</form>
-
-					<div className="portal-login-trust mt-[clamp(1rem,2vh,1.25rem)] flex items-center justify-center gap-1.5 pt-[clamp(0.9rem,1.8vh,1.1rem)] text-[10px] font-medium">
-						<ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-						<span>Protected client workspace</span>
-					</div>
 				</div>
 			</div>
 		</div>
