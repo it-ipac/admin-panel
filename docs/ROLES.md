@@ -109,17 +109,27 @@ Full access pages:
 /data-import
 ```
 
-Client admin-panel access:
-
-```text
-/dashboard
-/my-orders
-/reports
-```
+Current `src/lib/access.ts` grants `client` no admin-panel pages. Client users use the Package Portal instead.
 
 `packer` and unknown roles currently receive no normal admin-panel pages from `src/lib/access.ts`.
 
 The sidebar, login landing route, and `useRequirePageAccess()` consume this policy.
+
+## Cross-Area Session Handling
+
+The web root uses one shared account-area guard for authenticated users so the Admin Panel and Package Portal behave symmetrically.
+
+When a `client` account opens a non-portal route, the user sees a **Client Account Detected** screen with:
+
+- **Go to Package Portal** — keeps the current session and opens `/portal/projects`.
+- **Sign out** — ends the current session and opens `/login`.
+
+When a full admin-panel role (`admin`, `director`, `executive`, or `sales`) opens `/portal` or `/portal/*`, the same shared screen is used as **Staff Account Detected** with:
+
+- **Go to Admin Panel** — keeps the current session and opens `/dashboard`.
+- **Sign out** — ends the current session and opens `/portal/login`.
+
+This is a frontend routing guard only. It does not broaden role permissions, change client scoping, or replace RLS/database enforcement.
 
 ## Middleware Warning
 
@@ -170,11 +180,9 @@ is_my_client_package()
 is_my_client_instance()
 ```
 
-Client-facing/admin routes include:
+Client-facing routes include:
 
 ```text
-/my-orders
-/reports
 /portal/login
 /portal/projects
 /portal/item/$id

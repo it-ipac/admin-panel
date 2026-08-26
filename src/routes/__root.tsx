@@ -13,8 +13,10 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { AccountAreaMismatch } from "../components/AccountAreaMismatch";
 import { ToastProvider } from "../components/ui/ToastProvider";
 import { AuthContext, useAuthState } from "../hooks/useAuth";
+import { getAccountAreaMismatch } from "../lib/accountAreaAccess";
 import { getThemePreference } from "../lib/theme";
 import appCss from "../styles.css?url";
 
@@ -108,6 +110,7 @@ function RootDocument({
 function RootComponent() {
 	const authState = useAuthState();
 	const [isHydrated, setIsHydrated] = useState(false);
+	const [isSigningOut, setIsSigningOut] = useState(false);
 	const { theme } = Route.useLoaderData();
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -115,39 +118,55 @@ function RootComponent() {
 		import.meta.env.DEV &&
 		import.meta.env.VITE_ENABLE_TANSTACK_DEVTOOLS === "true";
 	const role = authState.profile?.roles?.name ?? null;
-	const isClientUser = role === "client";
-	const isPortalRoute = location.pathname.startsWith("/portal");
-	const forcePortalAccess =
-		!authState.loading &&
-		!!authState.user &&
-		!!authState.profile &&
-		isClientUser &&
-		!isPortalRoute;
+	const accountAreaMismatch =
+		!authState.loading && authState.user && authState.profile
+			? getAccountAreaMismatch(role, location.pathname)
+			: null;
 
 	useEffect(() => {
 		setIsHydrated(true);
 	}, []);
 
-	useEffect(() => {
-		if (!forcePortalAccess) return;
+	const goToCorrectArea = () => {
+		if (accountAreaMismatch === "client-in-admin") {
+			navigate({ to: "/portal/projects" });
+			return;
+		}
 
-		navigate({
-			to: "/portal/login",
-			search: { returnUrl: "/portal/projects" },
-		});
-	}, [forcePortalAccess, navigate]);
+		if (accountAreaMismatch === "staff-in-portal") {
+			navigate({ to: "/dashboard" });
+		}
+	};
 
-	if (forcePortalAccess) {
+	const signOutFromMismatch = async () => {
+		if (!accountAreaMismatch || isSigningOut) return;
+
+		setIsSigningOut(true);
+		try {
+			await authState.signOut();
+			if (accountAreaMismatch === "client-in-admin") {
+				navigate({ to: "/login" });
+				return;
+			}
+
+			navigate({ to: "/portal/login" });
+		} finally {
+			setIsSigningOut(false);
+		}
+	};
+
+	if (accountAreaMismatch) {
 		return (
 			<RootDocument theme={theme}>
-				<div className="min-h-screen flex items-center justify-center bg-neutral-50">
-					<div className="flex flex-col items-center gap-4 text-center">
-						<div className="w-8 h-8 rounded-full border-4 border-primary-200 border-t-primary-600 animate-spin" />
-						<p className="text-neutral-600">
-							Redirecting to the client portal...
-						</p>
-					</div>
-				</div>
+				<AccountAreaMismatch
+					kind={accountAreaMismatch}
+					accountName={
+						authState.profile?.full_name || authState.profile?.username
+					}
+					isSigningOut={isSigningOut}
+					onGoToCorrectArea={goToCorrectArea}
+					onSignOut={signOutFromMismatch}
+				/>
 			</RootDocument>
 		);
 	}
