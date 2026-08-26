@@ -47,6 +47,9 @@ type ItemLookupResult = {
 	boxes: BoxLocation[];
 };
 
+const UUID_PATTERN =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const PORTAL_RECORD_SIGNALS = [
 	{
 		label: "Verified contents",
@@ -272,6 +275,45 @@ function PortalProjects() {
 		return byClientReference.data?.[0] || null;
 	};
 
+	const findDeveloperBox = async (value: string) => {
+		const fields = "id, ipac_reference, client_reference, destination, status";
+		const packageUrlMatch = value.match(/\/portal\/package\/([^/?#\s]+)/i);
+		const directCandidate = packageUrlMatch
+			? decodeURIComponent(packageUrlMatch[1])
+			: value;
+
+		if (UUID_PATTERN.test(directCandidate)) {
+			const byId = await supabase
+				.from("order_pkg_instance")
+				.select(fields)
+				.eq("id", directCandidate)
+				.limit(1);
+			if (byId.error) throw byId.error;
+			if (byId.data?.[0]) return byId.data[0];
+		}
+
+		const token = parseQrToken(value);
+		if (!token) return null;
+		const { data: qrRow, error: qrError } = await supabase
+			.from("qr_codes")
+			.select("entity_id")
+			.eq("entity_type", "package")
+			.eq("token", token)
+			.eq("is_active", true)
+			.limit(1)
+			.maybeSingle();
+		if (qrError) throw qrError;
+		if (!qrRow?.entity_id) return null;
+
+		const byQrEntity = await supabase
+			.from("order_pkg_instance")
+			.select(fields)
+			.eq("id", qrRow.entity_id)
+			.limit(1);
+		if (byQrEntity.error) throw byQrEntity.error;
+		return byQrEntity.data?.[0] || null;
+	};
+
 	const findItems = async (value: string) => {
 		if (!clientId) return [];
 		const fields = "id, item_num, reference, description";
@@ -291,7 +333,22 @@ function PortalProjects() {
 			.ilike("reference", value)
 			.limit(100);
 		if (byReference.error) throw byReference.error;
-		return byReference.data || [];
+		if (byReference.data && byReference.data.length > 0) return byReference.data;
+
+		const itemUrlMatch = value.match(/\/portal\/item\/([^/?#\s]+)/i);
+		const developerItemId = itemUrlMatch
+			? decodeURIComponent(itemUrlMatch[1])
+			: value;
+		if (!UUID_PATTERN.test(developerItemId)) return [];
+
+		const byId = await supabase
+			.from("items_db")
+			.select(fields)
+			.eq("client_id", clientId)
+			.eq("id", developerItemId)
+			.limit(1);
+		if (byId.error) throw byId.error;
+		return byId.data || [];
 	};
 
 	const buildItemResult = async (query: string, itemRows: any[]): Promise<ItemLookupResult> => {
@@ -386,14 +443,20 @@ function PortalProjects() {
 			}
 
 			const itemRows = await findItems(value);
-			if (itemRows.length === 0) {
-				setLookupError(
-					"No matching box number or item reference was found for your account.",
-				);
+			if (itemRows.length > 0) {
+				setLookupResult(await buildItemResult(value, itemRows));
 				return;
 			}
 
-			setLookupResult(await buildItemResult(value, itemRows));
+			const developerBox = await findDeveloperBox(value);
+			if (developerBox?.id) {
+				navigate({ to: "/portal/package/$id", params: { id: developerBox.id } });
+				return;
+			}
+
+			setLookupError(
+				"No matching box number or item reference was found for your account.",
+			);
 		} catch (error: any) {
 			setLookupError(error?.message || "Unable to search right now. Please try again.");
 		} finally {
@@ -462,9 +525,9 @@ function PortalProjects() {
 					<button
 						type="button"
 						onClick={async () => {
-							await auth.signOut();
-							navigate({ to: "/portal/login" });
-						}}
+								await auth.signOut();
+								navigate({ to: "/portal/login" });
+							}}
 						className="rounded-xl border border-app-border bg-app-surface px-5 py-2.5 font-semibold text-app-text-strong transition-colors hover:bg-app-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface"
 					>
 						Sign out & try again
