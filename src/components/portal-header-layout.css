@@ -36,3 +36,5 @@ header.portal-brand > div {
 		width: 100%;
 	}
 }
+
+/* This file is intentionally shared by every PortalHeader instance. */
