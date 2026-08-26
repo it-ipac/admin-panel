@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
 	ArrowRight,
+	KeyRound,
 	Loader2,
-	LockKeyRound,
 	ShieldCheck,
 	UserRound,
 } from "lucide-react";
@@ -204,7 +204,7 @@ function PortalLogin() {
 								Password
 							</label>
 							<div className="portal-login-input-wrap">
-								<LockKeyRound className="portal-login-input-icon" aria-hidden="true" />
+								<KeyRound className="portal-login-input-icon" aria-hidden="true" />
 								<input
 									id="login-password"
 									type="password"
