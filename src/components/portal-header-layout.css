@@ -9,9 +9,9 @@ header.portal-brand > div {
 	width: min(100%, var(--portal-shell-width));
 }
 
-/* The package page previously used max-w-4xl while the home header used
-   max-w-7xl, which made the same header look like a different version and
-   left too much dead space around the content on desktop. */
+/* Package details previously used a narrower shell than the projects page,
+   making the same header look like a different version and leaving excessive
+   dead space around the desktop content. */
 .portal-package-details > main {
 	width: min(100%, 80rem) !important;
 	max-width: 80rem !important;
@@ -25,14 +25,13 @@ header.portal-brand > div {
 	}
 }
 
-/* Keep the shared header search visually centered and predictable instead of
-   growing/shrinking differently depending on the page title. */
+/* Keep the shared lookup predictable instead of changing apparent size
+   between home, package and item detail screens. */
 @media (min-width: 1024px) {
 	header.portal-brand > div > div {
 		column-gap: 1rem;
 	}
 
-	header.portal-brand form[role="search"],
 	header.portal-brand form:has(#portal-header-lookup) {
 		width: 100%;
 	}
