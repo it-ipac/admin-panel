@@ -24,6 +24,10 @@ import { useEffect, useState } from "react";
 import { PortalBrand } from "../components/PortalBrand";
 import { ToastProvider } from "../components/ui/ToastProvider";
 import { AuthContext, useAuthState } from "../hooks/useAuth";
+import {
+	getAccountAreaMismatch,
+	type AccountAreaMismatch,
+} from "../lib/accountAreaAccess";
 import { getThemePreference } from "../lib/theme";
 import portalScrollFixesCss from "../portal-scroll-fixes.css?url";
 import appCss from "../styles.css?url";
@@ -146,64 +150,88 @@ function RootDocument({
 	);
 }
 
-function WorkspaceSwitchDialog({
-	open,
+function AccountAreaMismatchDialog({
+	mismatch,
+	displayName,
 	pending,
-	onCancel,
-	onConfirm,
+	onGoToCorrectArea,
+	onSignOut,
 }: Readonly<{
-	open: boolean;
+	mismatch: AccountAreaMismatch;
+	displayName?: string | null;
 	pending: boolean;
-	onCancel: () => void;
-	onConfirm: () => void;
+	onGoToCorrectArea: () => void;
+	onSignOut: () => void;
 }>) {
+	const isClientInAdmin = mismatch === "client-in-admin";
+	const title = isClientInAdmin
+		? "Client Account Detected"
+		: "Staff Account Detected";
+	const destinationLabel = isClientInAdmin
+		? "Go to Package Portal"
+		: "Go to Admin Panel";
+	const description = isClientInAdmin
+		? "You're signed in with a client account. The Admin Panel is for staff accounts only."
+		: `You're signed in as a staff member${displayName ? ` (${displayName})` : ""}. The Package Portal is for client accounts only.`;
+
 	return (
 		<Dialog.Root
-			open={open}
+			open
 			onOpenChange={(nextOpen) => {
-				if (!nextOpen && !pending) onCancel();
+				if (!nextOpen && !pending) onGoToCorrectArea();
 			}}
 		>
 			<Dialog.Portal>
 				<Dialog.Overlay className="fixed inset-0 z-[10000] bg-steel-950/65 backdrop-blur-sm" />
-				<Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-[calc(100%-2rem)] max-w-[28rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-app-border bg-app-surface shadow-2xl focus:outline-none">
+				<Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-[calc(100%-2rem)] max-w-[30rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-app-border bg-app-surface shadow-2xl focus:outline-none">
 					<div className="px-6 pb-6 pt-7">
 						<div className="mb-6 flex items-center gap-2.5" aria-hidden="true">
 							<span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-600 text-white shadow-sm">
-								<PackageCheck className="h-6 w-6" />
+								{isClientInAdmin ? (
+									<LayoutDashboard className="h-6 w-6" />
+								) : (
+									<PackageCheck className="h-6 w-6" />
+								)}
 							</span>
 							<ArrowRight className="h-5 w-5 text-app-text-muted" />
 							<span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-app-border bg-app-surface-muted text-app-text-strong shadow-sm">
-								<LayoutDashboard className="h-6 w-6" />
+								{isClientInAdmin ? (
+									<PackageCheck className="h-6 w-6" />
+								) : (
+									<LayoutDashboard className="h-6 w-6" />
+								)}
 							</span>
 						</div>
 
 						<Dialog.Title className="text-2xl font-bold tracking-tight text-app-text-strong sm:text-[1.75rem]">
-							Leave Package Portal?
+							{title}
 						</Dialog.Title>
+						<Dialog.Description className="mt-3 text-sm leading-6 text-app-text-muted">
+							{description}
+						</Dialog.Description>
 					</div>
 
-					<div className="flex gap-3 border-t border-app-border bg-app-surface p-4">
+					<div className="flex flex-col-reverse gap-3 border-t border-app-border bg-app-surface p-4 sm:flex-row">
 						<button
 							type="button"
-							onClick={onCancel}
+							onClick={onSignOut}
 							disabled={pending}
-							className="h-12 flex-1 whitespace-nowrap rounded-xl border border-app-border px-4 text-base font-semibold text-app-text-strong transition-colors hover:bg-app-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface disabled:opacity-50"
-						>
-							Stay
-						</button>
-						<button
-							type="button"
-							onClick={onConfirm}
-							disabled={pending}
-							className="inline-flex h-12 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-primary-600 px-4 text-base font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface disabled:cursor-wait disabled:opacity-60"
+							className="inline-flex h-12 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-app-border px-4 text-base font-semibold text-app-text-strong transition-colors hover:bg-app-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface disabled:cursor-wait disabled:opacity-60"
 						>
 							{pending ? (
 								<Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
 							) : (
 								<LogOut className="h-4 w-4" aria-hidden="true" />
 							)}
-							<span className="text-white">{pending ? "Signing out" : "Sign out"}</span>
+							<span>{pending ? "Signing out" : "Sign out"}</span>
+						</button>
+						<button
+							type="button"
+							onClick={onGoToCorrectArea}
+							disabled={pending}
+							className="h-12 flex-1 whitespace-nowrap rounded-xl bg-primary-600 px-4 text-base font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface disabled:opacity-50"
+						>
+							<span className="text-white">{destinationLabel}</span>
 						</button>
 					</div>
 				</Dialog.Content>
@@ -215,50 +243,62 @@ function WorkspaceSwitchDialog({
 function RootComponent() {
 	const authState = useAuthState();
 	const [isHydrated, setIsHydrated] = useState(false);
+	const [isSigningOut, setIsSigningOut] = useState(false);
 	const { theme } = Route.useLoaderData();
 	const location = useLocation();
 	const navigate = useNavigate();
-	const [isSwitchingWorkspace, setIsSwitchingWorkspace] = useState(false);
 	const showTanStackDevtools =
 		import.meta.env.DEV &&
 		import.meta.env.VITE_ENABLE_TANSTACK_DEVTOOLS === "true";
 	const role = authState.profile?.roles?.name ?? null;
-	const isClientUser = role === "client";
-	const isPortalRoute = location.pathname.startsWith("/portal");
-	const shouldPromptForDashboard =
-		!authState.loading &&
-		!!authState.user &&
-		!!authState.profile &&
-		isClientUser &&
-		!isPortalRoute;
+	const accountAreaMismatch =
+		!authState.loading && authState.user && authState.profile
+			? getAccountAreaMismatch(role, location.pathname)
+			: null;
 
 	useEffect(() => {
 		setIsHydrated(true);
 	}, []);
 
 	useEffect(() => {
-		if (shouldPromptForDashboard) return;
-		setIsSwitchingWorkspace(false);
-	}, [shouldPromptForDashboard]);
+		if (accountAreaMismatch) return;
+		setIsSigningOut(false);
+	}, [accountAreaMismatch]);
 
-	const handleDashboardAccessRequest = async () => {
-		setIsSwitchingWorkspace(true);
+	const goToCorrectArea = () => {
+		if (accountAreaMismatch === "client-in-admin") {
+			navigate({ to: "/portal/projects" });
+			return;
+		}
+
+		navigate({ to: "/dashboard" });
+	};
+
+	const handleSignOut = async () => {
+		if (!accountAreaMismatch) return;
+
+		setIsSigningOut(true);
 		try {
+			const signOutDestination =
+				accountAreaMismatch === "client-in-admin" ? "/login" : "/portal/login";
 			await authState.signOut();
-			navigate({ to: "/login" });
+			navigate({ to: signOutDestination });
 		} finally {
-			setIsSwitchingWorkspace(false);
+			setIsSigningOut(false);
 		}
 	};
 
-	if (shouldPromptForDashboard) {
+	if (accountAreaMismatch) {
 		return (
 			<RootDocument theme={theme}>
-				<WorkspaceSwitchDialog
-					open
-					onCancel={() => navigate({ to: "/portal/projects" })}
-					onConfirm={handleDashboardAccessRequest}
-					pending={isSwitchingWorkspace}
+				<AccountAreaMismatchDialog
+					mismatch={accountAreaMismatch}
+					displayName={
+						authState.profile?.full_name || authState.profile?.username
+					}
+					pending={isSigningOut}
+					onGoToCorrectArea={goToCorrectArea}
+					onSignOut={handleSignOut}
 				/>
 			</RootDocument>
 		);
