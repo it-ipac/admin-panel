@@ -3,8 +3,7 @@
 
 /* The admin stylesheet contains legacy global color/border resets that sit
    outside Tailwind's cascade layers. Re-assert the portal's semantic utility
-   colors here so the intentionally dark preview and theme toggle keep the
-   contrast defined by the portal components. */
+   colors here so the portal keeps the contrast defined by its resolved theme. */
 .portal-brand .text-app-text {
 	color: var(--app-text) !important;
 }
@@ -288,6 +287,129 @@ header.portal-brand
 	nav[aria-label="Portal actions"]
 	> :is(button, a):not([aria-label="Scan package QR code"]):hover {
 	background-color: light-dark(rgba(219, 234, 254, 0.7), rgba(30, 64, 175, 0.22)) !important;
+}
+
+/* The package-label illustration must follow the resolved theme instead of
+   staying permanently navy in light mode. */
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	> section
+	> div:last-child
+	> div
+	> div:first-child {
+	background-color: light-dark(#ffffff, #030712) !important;
+	border-color: var(--app-border) !important;
+}
+
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	> section
+	> div:last-child
+	> div
+	> div:first-child
+	> div:nth-child(2) {
+	background-color: light-dark(#f8fafc, #17263b) !important;
+	border-color: light-dark(#dbe4ee, rgb(255 255 255 / 0.1)) !important;
+}
+
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	> section
+	> div:last-child
+	> div
+	> div:first-child
+	> div:first-child
+	> p,
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	> section
+	> div:last-child
+	> div
+	> div:first-child
+	> div:first-child
+	> span
+	> svg {
+	color: light-dark(#013d86, #83d2ee) !important;
+}
+
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	> section
+	> div:last-child
+	> div
+	> div:first-child
+	> div:first-child
+	> span {
+	border-color: light-dark(#dbe4ee, rgb(255 255 255 / 0.1)) !important;
+	background-color: light-dark(#eff9fe, rgb(255 255 255 / 0.05)) !important;
+}
+
+.portal-brand.h-dvh.flex-col
+	> main#package-access
+	> section
+	> div:last-child
+	> div
+	> div:first-child
+	> div:last-child {
+	color: light-dark(#475569, #cbd5e1) !important;
+}
+
+/* Scanner modal: Tailwind's dark: variants follow the OS media query, while
+   the portal toggle uses data-theme/color-scheme. These final semantic rules
+   prevent an OS-dark preference from forcing a navy scanner in manual light. */
+.portal-brand.h-dvh.flex-col > div[role="dialog"] > div {
+	background-color: light-dark(#ffffff, #030712) !important;
+	border-color: light-dark(#dbe4ee, rgb(255 255 255 / 0.1)) !important;
+}
+
+.portal-brand.h-dvh.flex-col > div[role="dialog"] > div > div:first-child {
+	background-color: light-dark(rgb(255 255 255 / 0.96), rgb(3 7 18 / 0.95)) !important;
+	border-color: light-dark(#dbe4ee, rgb(255 255 255 / 0.1)) !important;
+}
+
+.portal-brand.h-dvh.flex-col > div[role="dialog"] [role="heading"] {
+	color: var(--app-text-strong) !important;
+}
+
+.portal-brand.h-dvh.flex-col > div[role="dialog"] [role="heading"] + p,
+.portal-brand.h-dvh.flex-col > div[role="dialog"] > div > p:last-child {
+	color: var(--app-text-muted) !important;
+}
+
+.portal-brand.h-dvh.flex-col
+	> div[role="dialog"]
+	> div
+	> div:first-child
+	> div:first-child
+	> span {
+	background-color: light-dark(#eff9fe, rgb(255 255 255 / 0.1)) !important;
+	border-color: light-dark(#dff3fb, rgb(255 255 255 / 0.1)) !important;
+	color: light-dark(#013d86, #ffffff) !important;
+}
+
+.portal-brand.h-dvh.flex-col button[aria-label="Close QR scanner"] {
+	background-color: light-dark(#f8fafc, rgb(255 255 255 / 0.1)) !important;
+	border-color: light-dark(#dbe4ee, rgb(255 255 255 / 0.1)) !important;
+	color: light-dark(#111827, #ffffff) !important;
+}
+
+.portal-brand.h-dvh.flex-col button[aria-label="Close QR scanner"]:hover {
+	background-color: light-dark(#eff9fe, rgb(255 255 255 / 0.15)) !important;
+	border-color: light-dark(#b9e8f7, rgb(255 255 255 / 0.2)) !important;
+	color: light-dark(#013d86, #ffffff) !important;
+}
+
+.portal-brand.h-dvh.flex-col > div[role="dialog"] .bg-danger-50 {
+	background-color: light-dark(#fef2f2, rgb(69 10 10 / 0.7)) !important;
+	border-color: light-dark(#fecaca, rgb(248 113 113 / 0.4)) !important;
+}
+
+.portal-brand.h-dvh.flex-col > div[role="dialog"] .bg-danger-50 p:first-of-type {
+	color: light-dark(#991b1b, #ffffff) !important;
+}
+
+.portal-brand.h-dvh.flex-col > div[role="dialog"] .bg-danger-50 p:last-of-type {
+	color: light-dark(#b91c1c, rgb(255 255 255 / 0.65)) !important;
 }
 
 /* Restore dark-mode depth where useful without changing structure. */
