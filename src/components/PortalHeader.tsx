@@ -23,7 +23,7 @@ interface PortalHeaderProps {
 }
 
 const utilityButtonClass =
-	"inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-app-border bg-app-surface text-app-text-muted shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-[background-color,border-color,color,box-shadow] duration-150 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:bg-primary-100 max-[380px]:h-9 max-[380px]:w-9 sm:h-11 sm:w-11 dark:hover:border-primary-700 dark:hover:bg-primary-950/35 dark:hover:text-primary-200";
+	"inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-app-border bg-app-surface text-app-text-muted shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-[background-color,border-color,color,box-shadow] duration-150 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:bg-primary-100 max-[380px]:h-9 max-[380px]:w-9 sm:h-11 sm:w-11";
 
 export function PortalHeader({
 	title,
@@ -149,7 +149,7 @@ export function PortalHeader({
 							<button
 								type="button"
 								onClick={onScan}
-								className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-500 bg-primary-600 text-white shadow-[0_3px_10px_rgba(0,94,168,0.22)] transition-[background-color,border-color,box-shadow] duration-150 hover:border-primary-400 hover:bg-primary-700 hover:shadow-[0_4px_14px_rgba(0,94,168,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:bg-primary-800 max-[380px]:h-9 max-[380px]:w-9 sm:h-11 sm:w-auto sm:gap-2 sm:px-3.5 dark:bg-primary-500 dark:hover:bg-primary-400"
+								className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-500 bg-primary-600 text-white shadow-[0_3px_10px_rgba(0,94,168,0.22)] transition-[background-color,border-color,box-shadow] duration-150 hover:border-primary-400 hover:bg-primary-700 hover:shadow-[0_4px_14px_rgba(0,94,168,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:bg-primary-800 max-[380px]:h-9 max-[380px]:w-9 sm:h-11 sm:w-auto sm:gap-2 sm:px-3.5"
 								aria-label="Scan package QR code"
 							>
 								<Camera className="h-[18px] w-[18px] text-white" aria-hidden="true" />
@@ -199,7 +199,7 @@ export function PortalHeader({
 										className="z-50 w-64 origin-top-right rounded-2xl border border-app-border bg-app-surface p-2 shadow-[0_18px_50px_-16px_rgba(15,23,42,0.35)] outline-none"
 									>
 										<div className="flex items-center gap-3 px-3 py-3">
-											<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 text-primary-700 dark:border-primary-800 dark:bg-primary-950/40 dark:text-primary-200">
+											<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 text-primary-700">
 												<UserRound className="h-5 w-5" aria-hidden="true" />
 											</div>
 											<div className="min-w-0">
@@ -211,7 +211,7 @@ export function PortalHeader({
 										<DropdownMenu.Item
 											onSelect={() => void handleSignOut()}
 											disabled={signingOut}
-											className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 text-sm font-semibold text-danger-700 outline-none transition-colors hover:bg-danger-50 focus:bg-danger-50 data-[disabled]:cursor-wait data-[disabled]:opacity-60 dark:text-danger-300 dark:hover:bg-danger-950/30 dark:focus:bg-danger-950/30"
+											className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 text-sm font-semibold text-danger-700 outline-none transition-colors hover:bg-danger-50 focus:bg-danger-50 data-[disabled]:cursor-wait data-[disabled]:opacity-60"
 										>
 											{signingOut ? (
 												<Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

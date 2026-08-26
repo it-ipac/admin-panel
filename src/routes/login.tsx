@@ -236,7 +236,7 @@ function LoginPage() {
 									aria-hidden="true"
 								/>
 								<span className="font-medium text-neutral-700 group-hover:text-primary-700">
-									Package Portal →
+									Client Portal →
 								</span>
 							</Link>
 						</div>

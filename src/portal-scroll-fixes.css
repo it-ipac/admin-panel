@@ -1,6 +1,78 @@
 /* Portal route overflow and viewport layout fixes.
    Keep real content scrollable while clipping decorative overflow. */
 
+/* The admin stylesheet contains legacy global color/border resets that sit
+   outside Tailwind's cascade layers. Re-assert the portal's semantic utility
+   colors here so the intentionally dark preview and theme toggle keep the
+   contrast defined by the portal components. */
+.portal-brand .text-app-text {
+	color: var(--app-text) !important;
+}
+
+.portal-brand .text-app-text-muted {
+	color: var(--app-text-muted) !important;
+}
+
+.portal-brand .text-app-text-subtle {
+	color: var(--app-text-subtle) !important;
+}
+
+.portal-brand .text-app-text-strong {
+	color: var(--app-text-strong) !important;
+}
+
+.portal-brand .text-primary-200 {
+	color: var(--color-primary-200) !important;
+}
+
+.portal-brand .text-primary-300 {
+	color: var(--color-primary-300) !important;
+}
+
+.portal-brand .text-primary-400 {
+	color: var(--color-primary-400) !important;
+}
+
+.portal-brand .text-primary-500 {
+	color: var(--color-primary-500) !important;
+}
+
+.portal-brand .text-primary-600 {
+	color: var(--color-primary-600) !important;
+}
+
+.portal-brand .text-steel-200 {
+	color: var(--color-steel-200) !important;
+}
+
+.portal-brand .text-steel-300 {
+	color: var(--color-steel-300) !important;
+}
+
+.portal-brand .text-success-400 {
+	color: var(--color-success-400) !important;
+}
+
+.portal-brand .text-success-600 {
+	color: var(--color-success-600) !important;
+}
+
+.portal-brand .text-white\/75 {
+	color: rgb(255 255 255 / 0.75) !important;
+}
+
+.portal-brand .text-white\/80 {
+	color: rgb(255 255 255 / 0.8) !important;
+}
+
+.portal-brand .border-white\/10 {
+	border-color: rgb(255 255 255 / 0.1) !important;
+}
+
+.portal-brand .border-white\/20 {
+	border-color: rgb(255 255 255 / 0.2) !important;
+}
+
 .portal-brand.h-dvh.flex-col {
 	height: auto !important;
 	min-height: 100vh;
