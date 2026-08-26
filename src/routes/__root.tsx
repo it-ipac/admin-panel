@@ -29,6 +29,7 @@ import {
 	type AccountAreaMismatch,
 } from "../lib/accountAreaAccess";
 import { getThemePreference } from "../lib/theme";
+import portalPackagePolishCss from "../portal-package-polish.css?url";
 import portalScrollFixesCss from "../portal-scroll-fixes.css?url";
 import appCss from "../styles.css?url";
 
@@ -51,6 +52,7 @@ export const Route = createRootRoute({
 		links: [
 			{ rel: "stylesheet", href: appCss },
 			{ rel: "stylesheet", href: portalScrollFixesCss },
+			{ rel: "stylesheet", href: portalPackagePolishCss },
 			{ rel: "icon", href: "/IPAC_favicon.ico" },
 		],
 	}),
