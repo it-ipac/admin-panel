@@ -18,6 +18,7 @@ import {
 } from "../lib/theme";
 import { PortalBrand } from "./PortalBrand";
 import { PortalLookup } from "./portal/PortalLookup";
+import "./portal-header-layout.css";
 import { PortalTooltip } from "./PortalTooltip";
 
 interface PortalHeaderProps {
@@ -34,7 +35,7 @@ export function PortalHeader({
 	title,
 	onScan,
 	activePage = "home",
-	maxWidth = "max-w-4xl",
+	maxWidth = "max-w-7xl",
 }: PortalHeaderProps) {
 	const navigate = useNavigate();
 	const { profile, user, signOut } = useAuth();
