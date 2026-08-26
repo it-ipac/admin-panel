@@ -7,7 +7,6 @@ import {
 } from "@tanstack/react-router";
 import {
 	AlertCircle,
-	ArrowLeft,
 	Box,
 	ChevronLeft,
 	ChevronRight,
@@ -22,7 +21,9 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRef, useState } from "react";
-import { PortalBrand } from "../../../components/PortalBrand";
+import { QrScanner } from "../../../components/orders/orderId/modals/QrScanner";
+import { PortalHeader } from "../../../components/PortalHeader";
+import { parseQrToken } from "../../../features/orders/hooks/useInstanceQr";
 import { supabase } from "../../../lib/supabase";
 
 const getPublicUrl = (path: string | null) => {
@@ -270,6 +271,7 @@ function PhotoGallery({
 				<div className="flex gap-2 p-3 overflow-x-auto">
 					{photos.map((photo, i) => (
 						<button
+							type="button"
 							key={photo.id}
 							onClick={() => setActive(i)}
 							className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-300 ${i === active ? "scale-105 border-primary-500 shadow-md" : "border-neutral-200 opacity-70 hover:scale-[1.03] hover:opacity-100"}`}
@@ -290,7 +292,6 @@ function PhotoGallery({
 				</p>
 			)}
 
-			{/* Lightbox */}
 			{lightbox !== null && (
 				<motion.div
 					className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
@@ -385,6 +386,14 @@ function PhotoGallery({
 function ItemView() {
 	const { id } = useParams({ from: "/portal/item/$id" });
 	const navigate = useNavigate();
+	const [scannerOpen, setScannerOpen] = useState(false);
+
+	const handleQrSubmit = (raw: string) => {
+		const token = parseQrToken(raw);
+		if (!token) return;
+		setScannerOpen(false);
+		navigate({ to: "/portal/scan/$token", params: { token } });
+	};
 
 	const {
 		data: record,
@@ -393,7 +402,6 @@ function ItemView() {
 	} = useQuery({
 		queryKey: ["portal-item-v2", id],
 		queryFn: async () => {
-			// Try new pkd_item path first
 			const { data: pkdData, error: pkdError } = await supabase
 				.from("pkd_item")
 				.select(`
@@ -447,7 +455,6 @@ function ItemView() {
 				return { source: "pkd_item" as const, data: pkdData };
 			}
 
-			// Legacy fallback: token still points to items_db
 			const { data: legacyData, error: legacyError } = await supabase
 				.from("items_db")
 				.select(`
@@ -477,44 +484,80 @@ function ItemView() {
 
 	if (isLoading) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-neutral-50">
-				<Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+			<div className="portal-brand min-h-screen bg-app-bg">
+				<PortalHeader
+					title="Item Details"
+					onScan={() => setScannerOpen(true)}
+					activePage="package"
+				/>
+				<div className="flex min-h-[60vh] items-center justify-center">
+					<Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+				</div>
+				<QrScanner
+					open={scannerOpen}
+					onClose={() => setScannerOpen(false)}
+					onResult={handleQrSubmit}
+				/>
 			</div>
 		);
 	}
 
 	if (queryError) {
 		return (
-			<div className="p-8 text-center bg-neutral-50 min-h-screen flex flex-col items-center justify-center">
-				<div className="w-16 h-16 bg-danger-100 rounded-full flex items-center justify-center mb-4">
-					<PackageX className="w-8 h-8 text-danger-600" />
+			<div className="portal-brand min-h-screen bg-app-bg">
+				<PortalHeader
+					title="Item Details"
+					onScan={() => setScannerOpen(true)}
+					activePage="package"
+				/>
+				<div className="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
+					<div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-danger-100">
+						<PackageX className="h-8 w-8 text-danger-600" />
+					</div>
+					<h2 className="mb-2 text-xl font-bold text-app-text-strong">
+						Query Failed
+					</h2>
+					<p className="mb-6 max-w-md text-app-text-muted">
+						{(queryError as any)?.message ||
+							"An error occurred while fetching the item details."}
+					</p>
+					<button
+						type="button"
+						onClick={() => window.location.reload()}
+						className="rounded-xl bg-primary-600 px-5 py-2.5 font-semibold text-white transition-colors"
+					>
+						Try Again
+					</button>
 				</div>
-				<h2 className="text-xl font-bold text-neutral-900 mb-2">
-					Query Failed
-				</h2>
-				<p className="text-neutral-500 max-w-md mb-6">
-					{(queryError as any)?.message ||
-						"An error occurred while fetching the item details."}
-				</p>
-				<button
-					onClick={() => window.location.reload()}
-					className="px-5 py-2.5 bg-primary-600 text-white font-semibold rounded-xl transition-colors"
-				>
-					Try Again
-				</button>
+				<QrScanner
+					open={scannerOpen}
+					onClose={() => setScannerOpen(false)}
+					onResult={handleQrSubmit}
+				/>
 			</div>
 		);
 	}
 
 	if (!record) {
 		return (
-			<div className="p-8 text-center bg-neutral-50 min-h-screen">
-				Item not found
+			<div className="portal-brand min-h-screen bg-app-bg">
+				<PortalHeader
+					title="Item Details"
+					onScan={() => setScannerOpen(true)}
+					activePage="package"
+				/>
+				<div className="flex min-h-[60vh] items-center justify-center p-8 text-center text-app-text-muted">
+					Item not found
+				</div>
+				<QrScanner
+					open={scannerOpen}
+					onClose={() => setScannerOpen(false)}
+					onResult={handleQrSubmit}
+				/>
 			</div>
 		);
 	}
 
-	// Normalise between pkd_item and legacy path
 	let item: any;
 	let photos: { id: string; image_url: string; notes: string | null }[] = [];
 	let packageInfo: {
@@ -581,46 +624,16 @@ function ItemView() {
 		record.source === "pkd_item" ? (record.data as any).quantity : null;
 
 	return (
-		<div className="portal-brand min-h-screen bg-neutral-50 pb-24">
-			{/* Header */}
-			<header className="bg-white border-b border-neutral-200 sticky top-0 z-30">
-				<div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-					<div className="flex justify-between items-center h-16">
-						<div className="flex items-center gap-3">
-							<button
-								onClick={() => {
-									if (
-										typeof window !== "undefined" &&
-										window.history.length > 1
-									) {
-										window.history.back();
-										return;
-									}
-									navigate({ to: "/portal/projects" });
-								}}
-								className="p-2 -ml-2 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors"
-							>
-								<ArrowLeft className="w-5 h-5" />
-							</button>
-							<PortalBrand variant="header" />
-							<div className="min-w-0">
-								<p className="truncate text-[10px] font-semibold uppercase tracking-[0.28em] text-primary-700/80">
-									Client portal
-								</p>
-								<h1 className="text-lg font-bold text-neutral-900">
-									Item Details
-								</h1>
-							</div>
-						</div>
-					</div>
-				</div>
-			</header>
+		<div className="portal-brand min-h-screen bg-app-bg pb-24">
+			<PortalHeader
+				title="Item Details"
+				onScan={() => setScannerOpen(true)}
+				activePage="package"
+			/>
 
-			<main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
-				{/* Photo gallery */}
+			<main className="mx-auto max-w-7xl space-y-5 px-3 py-5 sm:px-6 sm:py-7 lg:px-8">
 				{photos.length > 0 && <PhotoGallery photos={photos} />}
 
-				{/* Item Hero Card */}
 				<section className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 sm:p-8">
 					<div className="mb-6">
 						<div className="flex flex-wrap items-center gap-2 mb-3">
@@ -650,7 +663,6 @@ function ItemView() {
 						</div>
 					</div>
 
-					{/* Dimensions */}
 					<div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-5 border-y border-neutral-100">
 						{[
 							{
@@ -705,7 +717,6 @@ function ItemView() {
 						))}
 					</div>
 
-					{/* Portal notes */}
 					{item?.ipac_comments && (
 						<div className="mt-6">
 							<h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wide mb-3">
@@ -718,7 +729,6 @@ function ItemView() {
 					)}
 				</section>
 
-				{/* Package Location */}
 				{packageInfo ? (
 					<section className="bg-primary-50/70 border border-primary-100/80 rounded-2xl p-6 sm:p-8 relative overflow-hidden">
 						<div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
@@ -763,6 +773,12 @@ function ItemView() {
 					</div>
 				)}
 			</main>
+
+			<QrScanner
+				open={scannerOpen}
+				onClose={() => setScannerOpen(false)}
+				onResult={handleQrSubmit}
+			/>
 		</div>
 	);
 }
