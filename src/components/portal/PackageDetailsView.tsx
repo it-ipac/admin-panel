@@ -14,10 +14,10 @@ import {
 	X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { QrScanner } from "../orders/orderId/modals/QrScanner";
-import { PortalHeader } from "../PortalHeader";
 import { parseQrToken } from "../../features/orders/hooks/useInstanceQr";
 import { supabase } from "../../lib/supabase";
+import { QrScanner } from "../orders/orderId/modals/QrScanner";
+import { PortalHeader } from "../PortalHeader";
 
 type Photo = {
 	id: string;
@@ -50,7 +50,10 @@ const getPublicUrl = (path: string | null) => {
 const formatNumber = (value: unknown, decimals = 2) => {
 	const numeric = Number(value);
 	if (!Number.isFinite(numeric)) return null;
-	return numeric.toFixed(decimals).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
+	return numeric
+		.toFixed(decimals)
+		.replace(/\.00$/, "")
+		.replace(/(\.\d)0$/, "$1");
 };
 
 function PhotoLightbox({
@@ -95,7 +98,9 @@ function PhotoLightbox({
 		>
 			<div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 p-3 sm:p-4">
 				<div className="min-w-0 rounded-full border border-white/10 bg-black/45 px-3 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md">
-					<span className="block max-w-[70vw] truncate text-white">{title}</span>
+					<span className="block max-w-[70vw] truncate text-white">
+						{title}
+					</span>
 				</div>
 				<button
 					type="button"
@@ -149,7 +154,7 @@ function BoxPhotoGallery({ photos }: { photos: Photo[] }) {
 
 	const current = photos[active];
 	return (
-		<section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_22px_54px_-38px_rgba(15,23,42,0.5)] dark:border-steel-700 dark:bg-steel-900">
+		<section className="overflow-hidden border border-neutral-200 bg-white dark:border-steel-700 dark:bg-steel-900">
 			<button
 				type="button"
 				onClick={() => setLightboxOpen(true)}
@@ -226,25 +231,31 @@ function PackingList({
 
 	const paginationItems = useMemo(() => {
 		if (totalPages <= 7) {
-			return Array.from({ length: totalPages }, (_, index) => index + 1) as Array<
-				number | string
-			>;
+			return Array.from(
+				{ length: totalPages },
+				(_, index) => index + 1,
+			) as Array<number | string>;
 		}
 
 		const importantPages = Array.from(
-			new Set([1, totalPages, page - 1, page, page + 1].filter((value) => value >= 1 && value <= totalPages)),
+			new Set(
+				[1, totalPages, page - 1, page, page + 1].filter(
+					(value) => value >= 1 && value <= totalPages,
+				),
+			),
 		).sort((a, b) => a - b);
 		const result: Array<number | string> = [];
 		importantPages.forEach((value, index) => {
 			const previous = importantPages[index - 1];
-			if (previous && value - previous > 1) result.push(`ellipsis-${previous}-${value}`);
+			if (previous && value - previous > 1)
+				result.push(`ellipsis-${previous}-${value}`);
 			result.push(value);
 		});
 		return result;
 	}, [page, totalPages]);
 
 	return (
-		<section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_20px_50px_-38px_rgba(15,23,42,0.48)] dark:border-steel-700 dark:bg-steel-900">
+		<section className="overflow-hidden border border-neutral-200 bg-white dark:border-steel-700 dark:bg-steel-900">
 			<div className="flex flex-col gap-4 border-b border-neutral-200 px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-7 dark:border-steel-700">
 				<div>
 					<p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-700 dark:text-primary-300">
@@ -296,19 +307,24 @@ function PackingList({
 						No packed items recorded yet
 					</p>
 					<p className="mt-1 text-xs text-neutral-500 dark:text-steel-400">
-						The packing list will appear here as items are recorded in this package.
+						The packing list will appear here as items are recorded in this
+						package.
 					</p>
 				</div>
 			) : (
 				<>
 					<div className="divide-y divide-neutral-200 dark:divide-steel-700">
 						{visibleItems.map((item, itemIndex) => {
-							const dimensions = [item.length, item.width, item.height].map((value) =>
-								value == null || value === "" ? "—" : String(value),
+							const dimensions = [item.length, item.width, item.height].map(
+								(value) =>
+									value == null || value === "" ? "—" : String(value),
 							);
-							const itemTitle = item.reference || item.itemNumber || `Item ${startIndex + itemIndex + 1}`;
+							const itemTitle =
+								item.reference ||
+								item.itemNumber ||
+								`Item ${startIndex + itemIndex + 1}`;
 							return (
-								<article key={item.id} className="px-5 py-5 sm:px-7 sm:py-6">
+								<article key={item.id} className="px-5 py-6 sm:px-7">
 									<div className="flex items-start justify-between gap-4">
 										<div className="min-w-0">
 											<p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 dark:text-steel-400">
@@ -327,23 +343,24 @@ function PackingList({
 													{itemTitle}
 												</span>
 											)}
-											{item.itemNumber && item.itemNumber !== item.reference && (
-												<p className="mt-0.5 text-[11px] font-medium text-neutral-500 dark:text-steel-400">
-													Item #{item.itemNumber}
-												</p>
-											)}
+											{item.itemNumber &&
+												item.itemNumber !== item.reference && (
+													<p className="mt-0.5 text-[11px] font-medium text-neutral-500 dark:text-steel-400">
+														Item #{item.itemNumber}
+													</p>
+												)}
 										</div>
-										<div className="shrink-0 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-center dark:border-primary-800 dark:bg-primary-950/30">
+										<div className="shrink-0 border-l border-neutral-200 pl-4 text-right dark:border-steel-700">
 											<p className="text-[9px] font-bold uppercase tracking-[0.14em] text-primary-700 dark:text-primary-300">
 												Qty
 											</p>
-											<p className="mt-0.5 text-lg font-black tabular-nums text-primary-950 dark:text-primary-100">
+											<p className="mt-0.5 text-lg font-bold tabular-nums text-neutral-950 dark:text-white">
 												{item.quantity ?? "—"}
 											</p>
 										</div>
 									</div>
 
-									<div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50/80 p-3.5 dark:border-steel-700 dark:bg-steel-800/55">
+									<div className="mt-5 border-l-2 border-primary-200 pl-3 dark:border-primary-800">
 										<p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 dark:text-steel-400">
 											Item designation
 										</p>
@@ -352,33 +369,44 @@ function PackingList({
 										</p>
 									</div>
 
-									<dl className={`mt-3 grid gap-2 ${item.grossWeight != null ? "grid-cols-3" : "grid-cols-2"}`}>
-										<div className="rounded-xl border border-neutral-200 bg-white px-3 py-3 dark:border-steel-700 dark:bg-steel-900">
+									<dl
+										className={`mt-5 grid divide-x divide-neutral-200 border-y border-neutral-200 dark:divide-steel-700 dark:border-steel-700 ${item.grossWeight != null ? "grid-cols-3" : "grid-cols-2"}`}
+									>
+										<div className="px-3 py-3 first:pl-0">
 											<dt className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.13em] text-neutral-500 dark:text-steel-400">
 												<Ruler className="h-3.5 w-3.5" aria-hidden="true" />
 												Dimensions
 											</dt>
 											<dd className="mt-1.5 text-sm font-bold tabular-nums text-neutral-950 dark:text-white">
-												{dimensions.join(" × ")} <span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">cm</span>
+												{dimensions.join(" × ")}{" "}
+												<span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">
+													cm
+												</span>
 											</dd>
 										</div>
-										<div className="rounded-xl border border-neutral-200 bg-white px-3 py-3 dark:border-steel-700 dark:bg-steel-900">
+										<div className="px-3 py-3">
 											<dt className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.13em] text-neutral-500 dark:text-steel-400">
 												<Scale className="h-3.5 w-3.5" aria-hidden="true" />
 												Net weight
 											</dt>
 											<dd className="mt-1.5 text-sm font-bold tabular-nums text-neutral-950 dark:text-white">
-												{item.netWeight ?? "—"} <span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">kg</span>
+												{item.netWeight ?? "—"}{" "}
+												<span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">
+													kg
+												</span>
 											</dd>
 										</div>
 										{item.grossWeight != null && (
-											<div className="rounded-xl border border-neutral-200 bg-white px-3 py-3 dark:border-steel-700 dark:bg-steel-900">
+											<div className="px-3 py-3 last:pr-0">
 												<dt className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.13em] text-neutral-500 dark:text-steel-400">
 													<Scale className="h-3.5 w-3.5" aria-hidden="true" />
 													Gross weight
 												</dt>
 												<dd className="mt-1.5 text-sm font-bold tabular-nums text-neutral-950 dark:text-white">
-													{item.grossWeight} <span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">kg</span>
+													{item.grossWeight}{" "}
+													<span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">
+														kg
+													</span>
 												</dd>
 											</div>
 										)}
@@ -413,17 +441,23 @@ function PackingList({
 													>
 														<img
 															src={getPublicUrl(photo.image_url)}
-															alt={photo.notes || `${itemTitle} photo ${photoIndex + 1}`}
+															alt={
+																photo.notes ||
+																`${itemTitle} photo ${photoIndex + 1}`
+															}
 															className="h-full w-full object-cover transition duration-200 group-hover:scale-105"
 														/>
 														<span className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-md bg-black/60 text-white backdrop-blur-sm">
-															<Maximize className="h-3 w-3 text-white" aria-hidden="true" />
+															<Maximize
+																className="h-3 w-3 text-white"
+																aria-hidden="true"
+															/>
 														</span>
 													</button>
 												))}
 											</div>
 										) : (
-											<p className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-3 py-3 text-xs text-neutral-500 dark:border-steel-700 dark:bg-steel-800/45 dark:text-steel-400">
+											<p className="text-xs text-neutral-500 dark:text-steel-400">
 												No item pictures recorded.
 											</p>
 										)}
@@ -433,11 +467,25 @@ function PackingList({
 						})}
 					</div>
 
-					<div className="flex flex-col gap-3 border-t border-neutral-200 bg-neutral-50/65 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7 dark:border-steel-700 dark:bg-steel-800/35">
+					<div className="flex flex-col gap-3 border-t border-neutral-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7 dark:border-steel-700">
 						<p className="text-xs font-medium text-neutral-500 dark:text-steel-400">
-							Showing <span className="font-bold text-neutral-800 dark:text-steel-200">{startIndex + 1}</span>–<span className="font-bold text-neutral-800 dark:text-steel-200">{endIndex}</span> of <span className="font-bold text-neutral-800 dark:text-steel-200">{items.length}</span>
+							Showing{" "}
+							<span className="font-bold text-neutral-800 dark:text-steel-200">
+								{startIndex + 1}
+							</span>
+							–
+							<span className="font-bold text-neutral-800 dark:text-steel-200">
+								{endIndex}
+							</span>{" "}
+							of{" "}
+							<span className="font-bold text-neutral-800 dark:text-steel-200">
+								{items.length}
+							</span>
 						</p>
-						<nav className="flex items-center gap-1" aria-label="Packing list pages">
+						<nav
+							className="flex items-center gap-1"
+							aria-label="Packing list pages"
+						>
 							<button
 								type="button"
 								onClick={() => setPage((current) => Math.max(1, current - 1))}
@@ -459,14 +507,20 @@ function PackingList({
 										{entry}
 									</button>
 								) : (
-									<span key={entry} className="inline-flex h-9 min-w-6 items-center justify-center text-xs font-bold text-neutral-400 dark:text-steel-500" aria-hidden="true">
+									<span
+										key={entry}
+										className="inline-flex h-9 min-w-6 items-center justify-center text-xs font-bold text-neutral-400 dark:text-steel-500"
+										aria-hidden="true"
+									>
 										…
 									</span>
 								),
 							)}
 							<button
 								type="button"
-								onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+								onClick={() =>
+									setPage((current) => Math.min(totalPages, current + 1))
+								}
 								disabled={page === totalPages}
 								className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-700 shadow-sm transition hover:border-primary-300 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-35 dark:border-steel-700 dark:bg-steel-900 dark:text-steel-200 dark:hover:border-primary-700 dark:hover:text-primary-300"
 								aria-label="Next packing list page"
@@ -546,7 +600,8 @@ export function PackageDetailsView({ id }: { id: string }) {
 				.eq("id", id)
 				.maybeSingle();
 
-			if (instanceError && instanceError.code !== "PGRST116") throw instanceError;
+			if (instanceError && instanceError.code !== "PGRST116")
+				throw instanceError;
 
 			if (instanceData) {
 				const orderPackage =
@@ -569,7 +624,8 @@ export function PackageDetailsView({ id }: { id: string }) {
 				return {
 					id: instanceData.id,
 					source: "instance" as const,
-					orderPackageId: instanceData.order_package_id || orderPackage?.id || null,
+					orderPackageId:
+						instanceData.order_package_id || orderPackage?.id || null,
 					instance_number: instanceData.instance_number ?? null,
 					package_number:
 						overview?.pkg_number ?? orderPackage?.package_number ?? null,
@@ -665,7 +721,12 @@ export function PackageDetailsView({ id }: { id: string }) {
 	});
 
 	const { data: packedItems = [], isLoading: packedItemsLoading } = useQuery({
-		queryKey: ["portal-package-packed-items", pkg?.source, pkg?.id, pkg?.orderPackageId],
+		queryKey: [
+			"portal-package-packed-items",
+			pkg?.source,
+			pkg?.id,
+			pkg?.orderPackageId,
+		],
 		queryFn: async () => {
 			let instanceIds: string[] = [];
 			if (pkg?.source === "instance") {
@@ -700,7 +761,9 @@ export function PackageDetailsView({ id }: { id: string }) {
 
 			if (error) throw error;
 			return (data || []).map((row: any) => {
-				const catalog = Array.isArray(row.items_db) ? row.items_db[0] : row.items_db;
+				const catalog = Array.isArray(row.items_db)
+					? row.items_db[0]
+					: row.items_db;
 				return {
 					id: row.id,
 					itemId: catalog?.id ?? null,
@@ -713,7 +776,9 @@ export function PackageDetailsView({ id }: { id: string }) {
 					height: catalog?.height ?? null,
 					netWeight: catalog?.net_weight ?? null,
 					grossWeight: catalog?.gross_weight ?? null,
-					photos: ((row.media || []) as Photo[]).filter((photo) => !!photo.image_url),
+					photos: ((row.media || []) as Photo[]).filter(
+						(photo) => !!photo.image_url,
+					),
 				} satisfies PackedItem;
 			});
 		},
@@ -728,9 +793,13 @@ export function PackageDetailsView({ id }: { id: string }) {
 		const valid = [length, width, height].every(
 			(value) => Number.isFinite(value) && value > 0,
 		);
-		const volume = valid ? formatNumber((length * width * height) / 1_000_000) : null;
+		const volume = valid
+			? formatNumber((length * width * height) / 1_000_000)
+			: null;
 		const externalArea = valid
-			? formatNumber((2 * (length * width + length * height + width * height)) / 10_000)
+			? formatNumber(
+					(2 * (length * width + length * height + width * height)) / 10_000,
+				)
 			: null;
 		return { volume, externalArea };
 	}, [pkg]);
@@ -772,7 +841,12 @@ export function PackageDetailsView({ id }: { id: string }) {
 	];
 	const summaryRow = [
 		{ label: "Volume", value: metrics?.volume, unit: "m³", icon: Maximize },
-		{ label: "External m²", value: metrics?.externalArea, unit: "m²", icon: Maximize },
+		{
+			label: "External m²",
+			value: metrics?.externalArea,
+			unit: "m²",
+			icon: Maximize,
+		},
 	];
 
 	return (
@@ -784,126 +858,130 @@ export function PackageDetailsView({ id }: { id: string }) {
 			/>
 
 			<main className="mx-auto max-w-4xl space-y-5 px-3 py-5 sm:px-6 sm:py-8 lg:px-8">
-				<div className="flex items-center justify-between gap-3 rounded-2xl border border-primary-200 bg-primary-50/70 px-3 py-2.5 shadow-sm sm:px-4 dark:border-primary-800/70 dark:bg-primary-950/25">
-					<div className="flex min-w-0 items-center gap-2.5">
-						<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-primary-700 shadow-sm ring-1 ring-primary-100 dark:bg-steel-900 dark:text-primary-300 dark:ring-primary-800">
-							<ShieldCheck className="h-4.5 w-4.5" aria-hidden="true" />
-						</span>
-						<div className="min-w-0">
-							<p className="truncate text-xs font-semibold text-primary-950 dark:text-primary-100">
-								Verified package record
-							</p>
-							<p className="truncate text-[11px] text-primary-700 dark:text-primary-300">
-								Authenticated in the client portal
-							</p>
-						</div>
-					</div>
-					<span className="shrink-0 rounded-full border border-primary-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary-800 shadow-sm dark:border-primary-800 dark:bg-steel-900 dark:text-primary-200">
-						{pkg.status || "Packed"}
-					</span>
-				</div>
-
 				{boxPhotos.length > 0 && <BoxPhotoGallery photos={boxPhotos} />}
 
-				<section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_22px_54px_-38px_rgba(15,23,42,0.5)] dark:border-steel-700 dark:bg-steel-900">
-					<div className="p-5 sm:p-7">
-						<p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-700 dark:text-primary-300">
-							Package identity
-						</p>
-						<h2 className="mt-2 break-words text-2xl font-bold leading-tight tracking-[-0.025em] text-neutral-950 sm:text-3xl dark:text-white">
-							{reference}
-						</h2>
-						{packageContext && (
-							<p className="mt-2 text-sm font-medium text-neutral-500 dark:text-steel-400">
-								{packageContext}
+				<section className="overflow-hidden rounded-2xl border border-neutral-200 border-t-[3px] border-t-primary-600 bg-white shadow-[0_2px_6px_rgba(15,23,42,0.08),0_18px_45px_-18px_rgba(15,23,42,0.22)] dark:border-steel-700 dark:border-t-primary-500 dark:bg-steel-900 dark:shadow-[0_2px_8px_rgba(0,0,0,0.42),0_20px_50px_-20px_rgba(0,0,0,0.72)]">
+					<div>
+						<div className="px-5 py-5 sm:px-7 sm:py-6">
+							<div className="flex items-start justify-between gap-4">
+								<div className="min-w-0">
+									<p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-700 dark:text-primary-300">
+										Package identity
+									</p>
+									<h1 className="mt-2 break-words text-2xl font-bold leading-tight tracking-[-0.025em] text-neutral-950 sm:text-3xl dark:text-white">
+										{reference}
+									</h1>
+									{packageContext && (
+										<p className="mt-2 text-sm font-medium text-neutral-500 dark:text-steel-400">
+											{packageContext}
+										</p>
+									)}
+								</div>
+								<span className="shrink-0 border-l-2 border-primary-500 pl-3 text-[10px] font-bold uppercase tracking-[0.14em] text-primary-800 dark:text-primary-200">
+									{pkg.status || "Packed"}
+								</span>
+							</div>
+							<div className="mt-4 flex items-center gap-2 text-xs text-neutral-500 dark:text-steel-400">
+								<ShieldCheck
+									className="h-4 w-4 text-primary-700 dark:text-primary-300"
+									aria-hidden="true"
+								/>
+								<span>Verified client portal record</span>
+							</div>
+						</div>
+
+						<div className="grid divide-y divide-neutral-200 border-y border-neutral-200 bg-neutral-50/70 px-5 sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:px-7 dark:divide-steel-700 dark:border-steel-700 dark:bg-steel-800/55">
+							<div className="flex min-w-0 items-center gap-3 py-4 sm:pr-7">
+								<Box
+									className="h-5 w-5 shrink-0 text-primary-700 dark:text-primary-300"
+									aria-hidden="true"
+								/>
+								<div className="min-w-0">
+									<p className="text-[9px] font-bold uppercase tracking-[0.16em] text-neutral-500 dark:text-steel-400">
+										Package type
+									</p>
+									<p className="mt-1 truncate text-sm font-bold text-neutral-950 dark:text-white">
+										{boxTypeName}
+									</p>
+								</div>
+							</div>
+							<div className="flex min-w-0 items-center gap-3 py-4 sm:pl-7">
+								<MapPin
+									className="h-5 w-5 shrink-0 text-primary-700 dark:text-primary-300"
+									aria-hidden="true"
+								/>
+								<div className="min-w-0">
+									<p className="text-[9px] font-bold uppercase tracking-[0.16em] text-neutral-500 dark:text-steel-400">
+										Destination
+									</p>
+									<p className="mt-1 truncate text-sm font-bold text-neutral-950 dark:text-white">
+										{pkg.destination || "Not specified"}
+									</p>
+								</div>
+							</div>
+						</div>
+
+						<div className="px-5 py-6 sm:px-7 sm:py-7">
+							<div className="mb-4 flex items-end justify-between gap-4">
+								<div>
+									<p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500 dark:text-steel-400">
+										Measurements
+									</p>
+									<h3 className="mt-1 text-lg font-bold tracking-[-0.02em] text-neutral-950 dark:text-white">
+										External dimensions
+									</h3>
+								</div>
+								<span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">
+									centimetres
+								</span>
+							</div>
+
+							<dl className="grid grid-cols-3 divide-x divide-neutral-200 border-y border-neutral-200 dark:divide-steel-700 dark:border-steel-700">
+								{dimensionRow.map(({ label, value, unit, icon: Icon }) => (
+									<div
+										key={label}
+										className="min-w-0 px-2 py-4 first:pl-0 last:pr-0 sm:px-5 sm:py-5"
+									>
+										<dt className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-500 sm:text-[10px] dark:text-steel-400">
+											<Icon
+												className="h-3.5 w-3.5 shrink-0"
+												aria-hidden="true"
+											/>
+											<span className="truncate">{label}</span>
+										</dt>
+										<dd className="mt-2 whitespace-nowrap text-[clamp(1.4rem,4vw,2rem)] font-bold leading-none tabular-nums tracking-[-0.035em] text-neutral-950 dark:text-white">
+											{value ?? "—"}{" "}
+											<span className="text-[10px] font-bold tracking-normal text-neutral-400 dark:text-steel-500">
+												{unit}
+											</span>
+										</dd>
+									</div>
+								))}
+							</dl>
+
+							<dl className="grid grid-cols-2 divide-x divide-white/15 bg-primary-950 dark:bg-steel-800">
+								{summaryRow.map(({ label, value, unit, icon: Icon }) => (
+									<div key={label} className="px-3 py-4 sm:px-5">
+										<dt className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white opacity-65">
+											<Icon
+												className="h-3.5 w-3.5 text-white"
+												aria-hidden="true"
+											/>
+											{label}
+										</dt>
+										<dd className="mt-2 text-[clamp(1.35rem,4vw,1.8rem)] font-bold leading-none tabular-nums tracking-[-0.035em] text-white">
+											{value ?? "—"}{" "}
+											<span className="text-[10px] font-medium tracking-normal text-white opacity-60 sm:text-xs">
+												{unit}
+											</span>
+										</dd>
+									</div>
+								))}
+							</dl>
+							<p className="mt-3 text-right text-[10px] leading-4 text-neutral-500 dark:text-steel-400">
+								Calculated from the recorded external dimensions
 							</p>
-						)}
-					</div>
-
-					<div className="grid gap-px border-y border-neutral-200 bg-neutral-200 sm:grid-cols-2 dark:border-steel-700 dark:bg-steel-700">
-						<div className="flex items-start gap-3 bg-neutral-50 px-5 py-4 sm:px-7 dark:bg-steel-800/65">
-							<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-primary-700 shadow-sm dark:bg-steel-900 dark:text-primary-300">
-								<Box className="h-4 w-4" aria-hidden="true" />
-							</span>
-							<div className="min-w-0">
-								<p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-500 dark:text-steel-400">
-									Package type
-								</p>
-								<p className="mt-1 text-sm font-semibold leading-5 text-neutral-900 dark:text-white">
-									{boxTypeName}
-								</p>
-							</div>
 						</div>
-						<div className="flex items-start gap-3 bg-neutral-50 px-5 py-4 sm:px-7 dark:bg-steel-800/65">
-							<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-primary-700 shadow-sm dark:bg-steel-900 dark:text-primary-300">
-								<MapPin className="h-4 w-4" aria-hidden="true" />
-							</span>
-							<div className="min-w-0">
-								<p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-500 dark:text-steel-400">
-									Destination
-								</p>
-								<p className="mt-1 text-sm font-semibold leading-5 text-neutral-900 dark:text-white">
-									{pkg.destination || "Not specified"}
-								</p>
-							</div>
-						</div>
-					</div>
-
-					<div className="p-5 sm:p-7">
-						<div className="mb-4 flex items-end justify-between gap-3">
-							<div>
-								<p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500 dark:text-steel-400">
-									Measurements
-								</p>
-								<h3 className="mt-1 text-lg font-bold text-neutral-950 dark:text-white">
-									External dimensions
-								</h3>
-							</div>
-							<span className="text-[11px] text-neutral-500 dark:text-steel-400">
-								Recorded in centimetres
-							</span>
-						</div>
-
-						<dl className="grid grid-cols-6 gap-2 sm:gap-3">
-							{dimensionRow.map(({ label, value, unit, icon: Icon }) => (
-								<div
-									key={label}
-									className="col-span-2 min-w-0 rounded-xl border border-neutral-200 bg-white px-2.5 py-4 shadow-[0_8px_22px_-18px_rgba(15,23,42,0.45)] sm:px-4 sm:py-5 dark:border-steel-700 dark:bg-steel-900"
-								>
-									<dt className="flex min-w-0 items-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-500 sm:gap-1.5 sm:text-[10px] sm:tracking-[0.13em] dark:text-steel-400">
-										<Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-										<span className="truncate">{label}</span>
-									</dt>
-									<dd className="mt-2 whitespace-nowrap text-[clamp(1.35rem,5.5vw,2rem)] font-black leading-none tabular-nums tracking-[-0.035em] text-neutral-950 dark:text-white">
-										{value ?? "—"}{" "}
-										<span className="text-[10px] font-semibold tracking-normal text-neutral-500 sm:text-xs dark:text-steel-400">
-											{unit}
-										</span>
-									</dd>
-								</div>
-							))}
-
-							{summaryRow.map(({ label, value, unit, icon: Icon }, index) => (
-								<div
-									key={label}
-									className={`col-span-3 rounded-xl border px-4 py-4 sm:px-5 sm:py-5 ${index === 0 ? "border-primary-200 bg-primary-50/80 dark:border-primary-800 dark:bg-primary-950/25" : "border-neutral-200 bg-neutral-50 dark:border-steel-700 dark:bg-steel-800/55"}`}
-								>
-									<dt className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.13em] ${index === 0 ? "text-primary-700 dark:text-primary-300" : "text-neutral-500 dark:text-steel-400"}`}>
-										<Icon className="h-3.5 w-3.5" aria-hidden="true" />
-										{label}
-									</dt>
-									<dd className="mt-2 text-[clamp(1.55rem,5.5vw,2.15rem)] font-black leading-none tabular-nums tracking-[-0.035em] text-neutral-950 dark:text-white">
-										{value ?? "—"}{" "}
-										<span className="text-xs font-semibold tracking-normal text-neutral-500 dark:text-steel-400">
-											{unit}
-										</span>
-									</dd>
-								</div>
-							))}
-						</dl>
-						<p className="mt-2 text-right text-[10px] text-neutral-500 dark:text-steel-400">
-							Volume and external m² calculated from the recorded external dimensions
-						</p>
 					</div>
 				</section>
 

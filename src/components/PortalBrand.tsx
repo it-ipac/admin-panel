@@ -3,7 +3,6 @@ import {
 	applyThemePreference,
 	getThemePreference,
 } from "../lib/theme";
-import "../portal-package-polish.css";
 import "../portal-scan-polish.css";
 
 interface PortalBrandProps {

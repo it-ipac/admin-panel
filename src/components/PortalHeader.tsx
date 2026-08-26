@@ -16,7 +16,6 @@ import {
 	getThemePreference,
 	setThemePreference,
 } from "../lib/theme";
-import "../portal-package-polish.css";
 import { PortalBrand } from "./PortalBrand";
 import { PortalTooltip } from "./PortalTooltip";
 
