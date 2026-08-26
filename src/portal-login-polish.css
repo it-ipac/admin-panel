@@ -69,6 +69,21 @@
 	filter: drop-shadow(0 6px 15px light-dark(rgba(0, 94, 168, 0.08), rgba(0, 129, 197, 0.14)));
 }
 
+/* Override the older generic auth title treatment with the new login title. */
+.portal-brand.auth-bg .portal-login-title {
+	padding-inline: 0 !important;
+	padding-bottom: 0 !important;
+	background-image: linear-gradient(100deg, light-dark(#123b74, #eaf8ff) 0%, light-dark(#005ea8, #83d2ee) 48%, light-dark(#2476bd, #5aaee0) 100%) !important;
+	background-size: 100% 100% !important;
+	background-position: center !important;
+	animation: none !important;
+}
+
+.portal-brand.auth-bg .portal-login-title::after {
+	display: none !important;
+	content: none !important;
+}
+
 .portal-login-subtitle {
 	color: light-dark(#526277, #9eabbc) !important;
 }
