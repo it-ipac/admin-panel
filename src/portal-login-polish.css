@@ -1,1 +1,193 @@
-/* placeholder */
+/* Dedicated client-login visual treatment.
+   light-dark() follows the resolved portal color scheme, including a manual
+   light/dark choice persisted by src/lib/theme.ts. */
+
+.portal-login-page {
+	background:
+		radial-gradient(circle at 50% -6rem, light-dark(rgba(0, 129, 197, 0.16), rgba(0, 129, 197, 0.12)), transparent 34rem),
+		radial-gradient(circle at 92% 84%, light-dark(rgba(49, 123, 198, 0.1), rgba(49, 123, 198, 0.08)), transparent 28rem),
+		linear-gradient(180deg, light-dark(#f8fbfe, #0b1322) 0%, light-dark(#f1f6fb, #0f172a) 58%, light-dark(#edf3f8, #111827) 100%) !important;
+}
+
+.portal-login-page::before {
+	content: "";
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	background-image:
+		linear-gradient(light-dark(rgba(15, 23, 42, 0.025), rgba(255, 255, 255, 0.018)) 1px, transparent 1px),
+		linear-gradient(90deg, light-dark(rgba(15, 23, 42, 0.02), rgba(255, 255, 255, 0.014)) 1px, transparent 1px);
+	background-size: 42px 42px;
+	mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.28), transparent 70%);
+}
+
+.portal-login-card {
+	position: relative;
+	border-color: light-dark(#cbd9e6, #314055) !important;
+	background: light-dark(rgba(255, 255, 255, 0.97), rgba(17, 24, 39, 0.96)) !important;
+	box-shadow:
+		0 2px 5px light-dark(rgba(15, 23, 42, 0.06), rgba(0, 0, 0, 0.28)),
+		0 30px 80px -38px light-dark(rgba(15, 23, 42, 0.42), rgba(0, 0, 0, 0.9)) !important;
+	backdrop-filter: blur(18px);
+}
+
+.portal-login-card::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	border-radius: inherit;
+	box-shadow: inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.04));
+}
+
+.portal-login-card-accent {
+	background: linear-gradient(90deg, transparent 0%, #65b9e5 24%, #0081c5 50%, #2d7bc7 76%, transparent 100%) !important;
+	box-shadow: 0 0 18px rgba(0, 129, 197, 0.22);
+}
+
+.portal-login-hero {
+	background: linear-gradient(180deg, light-dark(rgba(237, 248, 254, 0.78), rgba(0, 129, 197, 0.08)) 0%, transparent 86%);
+}
+
+.portal-login-kicker {
+	border-color: light-dark(#c9e5f4, rgba(101, 185, 229, 0.24)) !important;
+	background: light-dark(#f1faff, rgba(0, 129, 197, 0.1)) !important;
+	color: light-dark(#075985, #9bdcf4) !important;
+	box-shadow: 0 5px 16px -12px rgba(0, 94, 168, 0.45);
+}
+
+.portal-login-kicker * {
+	color: inherit !important;
+}
+
+.portal-login-title {
+	background-image: linear-gradient(100deg, light-dark(#123b74, #eaf8ff) 0%, light-dark(#005ea8, #83d2ee) 48%, light-dark(#2476bd, #5aaee0) 100%) !important;
+	-webkit-background-clip: text !important;
+	background-clip: text !important;
+	-webkit-text-fill-color: transparent !important;
+	color: transparent !important;
+	filter: drop-shadow(0 6px 15px light-dark(rgba(0, 94, 168, 0.08), rgba(0, 129, 197, 0.14)));
+}
+
+/* Override the older generic auth title treatment with the new login title. */
+.portal-brand.auth-bg .portal-login-title {
+	padding-inline: 0 !important;
+	padding-bottom: 0 !important;
+	background-image: linear-gradient(100deg, light-dark(#123b74, #eaf8ff) 0%, light-dark(#005ea8, #83d2ee) 48%, light-dark(#2476bd, #5aaee0) 100%) !important;
+	background-size: 100% 100% !important;
+	background-position: center !important;
+	animation: none !important;
+}
+
+.portal-brand.auth-bg .portal-login-title::after {
+	display: none !important;
+	content: none !important;
+}
+
+.portal-login-subtitle {
+	color: light-dark(#526277, #9eabbc) !important;
+}
+
+.portal-login-form-shell {
+	border-top: 1px solid light-dark(#dbe5ee, #27364a);
+	background: linear-gradient(180deg, light-dark(#f8fafc, rgba(8, 15, 28, 0.24)) 0%, light-dark(#f4f7fa, rgba(8, 15, 28, 0.36)) 100%);
+}
+
+.portal-login-form-heading {
+	color: light-dark(#152238, #f5f8fc) !important;
+}
+
+.portal-login-form-copy {
+	color: light-dark(#66758a, #95a3b6) !important;
+}
+
+.portal-login-field label {
+	color: light-dark(#26364a, #dce5ef) !important;
+}
+
+.portal-login-input-wrap {
+	position: relative;
+}
+
+.portal-login-input-icon {
+	position: absolute;
+	left: 0.9rem;
+	top: 50%;
+	z-index: 1;
+	width: 1rem;
+	height: 1rem;
+	transform: translateY(-50%);
+	color: light-dark(#718197, #8090a5) !important;
+	pointer-events: none;
+}
+
+.portal-login-input {
+	border-color: light-dark(#cfdbe7, #334155) !important;
+	background: light-dark(#ffffff, #0d1626) !important;
+	color: light-dark(#111827, #f8fafc) !important;
+	box-shadow:
+		inset 0 1px 2px light-dark(rgba(15, 23, 42, 0.035), rgba(0, 0, 0, 0.25)),
+		0 1px 0 light-dark(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.02)) !important;
+}
+
+.portal-login-input::placeholder {
+	color: light-dark(#94a1b2, #66758a) !important;
+}
+
+.portal-login-input:hover {
+	border-color: light-dark(#b7c8d8, #40516a) !important;
+}
+
+.portal-login-input:focus {
+	border-color: light-dark(#4b9dcc, #55a9d8) !important;
+	background: light-dark(#ffffff, #0f1b2e) !important;
+	box-shadow:
+		0 0 0 3px light-dark(rgba(0, 129, 197, 0.11), rgba(0, 129, 197, 0.18)),
+		0 8px 22px -18px rgba(0, 94, 168, 0.5) !important;
+}
+
+.portal-login-input-wrap:focus-within .portal-login-input-icon {
+	color: light-dark(#006ea9, #83d2ee) !important;
+}
+
+.portal-login-submit {
+	background: linear-gradient(105deg, #075a9b 0%, #0077b7 48%, #168fc9 100%) !important;
+	border-color: light-dark(#176fa8, #3189bb) !important;
+	box-shadow:
+		0 2px 3px rgba(0, 69, 116, 0.16),
+		0 16px 30px -18px rgba(0, 94, 168, 0.72) !important;
+}
+
+.portal-login-submit:hover:not(:disabled) {
+	filter: brightness(1.045) saturate(1.04);
+	box-shadow:
+		0 3px 6px rgba(0, 69, 116, 0.18),
+		0 18px 34px -18px rgba(0, 94, 168, 0.84) !important;
+}
+
+.portal-login-trust {
+	border-top: 1px solid light-dark(#dbe5ee, #27364a);
+	color: light-dark(#6b7b90, #8d9bae) !important;
+}
+
+.portal-login-trust * {
+	color: inherit !important;
+}
+
+.portal-login-loading-card {
+	border-color: light-dark(#d2dee9, #314055) !important;
+	background: light-dark(rgba(255, 255, 255, 0.96), rgba(17, 24, 39, 0.96)) !important;
+	box-shadow: 0 22px 60px -34px light-dark(rgba(15, 23, 42, 0.4), rgba(0, 0, 0, 0.8));
+}
+
+@media (max-width: 479px) {
+	.portal-login-card {
+		border-radius: 1.35rem !important;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.portal-login-submit {
+		transition: none !important;
+	}
+}

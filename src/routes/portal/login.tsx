@@ -1,10 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Loader2 } from "lucide-react";
+import {
+	ArrowRight,
+	KeyRound,
+	Loader2,
+	ShieldCheck,
+	UserRound,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { PortalBrand } from "../../components/PortalBrand";
 import { useToastContext } from "../../components/ui/ToastProvider";
 import { useAuth } from "../../hooks/useAuth";
 import { auth, db } from "../../lib/supabase";
+import "../../portal-login-polish.css";
 
 type PortalLoginSearch = {
 	returnUrl?: string;
@@ -34,12 +41,20 @@ function PortalLogin() {
 		: "/portal/projects";
 
 	const goToReturnUrl = useCallback(() => {
+		// Keep the normal client-login flow inside TanStack Router. A full
+		// document navigation briefly loses the already-resolved manual theme
+		// before hydration, which caused the light -> dark -> light flash.
+		if (returnUrl === "/portal/projects") {
+			navigate({ to: "/portal/projects", replace: true });
+			return;
+		}
+
 		if (typeof window !== "undefined") {
 			window.location.assign(returnUrl);
 			return;
 		}
 
-		navigate({ to: "/portal/projects" });
+		navigate({ to: "/portal/projects", replace: true });
 	}, [navigate, returnUrl]);
 
 	useEffect(() => {
@@ -91,117 +106,128 @@ function PortalLogin() {
 	if (loading) {
 		return (
 			<div
-				className="portal-brand flex h-screen items-center justify-center bg-app-bg"
+				className="portal-brand portal-login-page relative flex h-screen items-center justify-center overflow-hidden p-4"
 				style={{ height: "100dvh" }}
 			>
-				<Loader2 className="h-8 w-8 animate-spin text-primary-600 dark:text-primary-300" />
+				<div className="portal-login-loading-card relative z-10 flex w-full max-w-[19rem] flex-col items-center rounded-3xl border p-7 text-center">
+					<PortalBrand
+						variant="header"
+						className="mb-5 justify-center"
+						markClassName="!h-10 !w-10"
+					/>
+					<div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 text-primary-700">
+						<Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+					</div>
+					<p className="mt-4 text-sm font-semibold text-app-text-strong">
+						Checking your session
+					</p>
+					<p className="mt-1.5 text-xs leading-5 text-app-text-muted">
+						Preparing secure client access.
+					</p>
+				</div>
 			</div>
 		);
 	}
 
 	return (
 		<div
-			className="portal-brand auth-bg relative flex h-screen items-center justify-center overflow-x-hidden overflow-y-auto bg-app-bg px-[clamp(0.75rem,3vw,1.5rem)] py-[clamp(0.75rem,2.5vh,2rem)]"
+			className="portal-brand portal-login-page auth-bg relative flex h-screen items-center justify-center overflow-x-hidden overflow-y-auto px-[clamp(0.75rem,3vw,1.5rem)] py-[clamp(0.75rem,2.5vh,2rem)]"
 			style={{ height: "100dvh" }}
 		>
-			{/* Keep the background quiet and architectural rather than decorative. */}
-			<div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-				<div
-					className="absolute inset-0"
-					style={{
-						background:
-							"radial-gradient(circle at 50% 12%, rgba(0,129,197,0.13), transparent 34%), radial-gradient(circle at 88% 82%, rgba(49,123,198,0.08), transparent 28%)",
-					}}
-				/>
-				<div className="absolute left-1/2 top-0 h-px w-[min(82vw,46rem)] -translate-x-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent" />
-			</div>
+			<div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/35 to-transparent" aria-hidden="true" />
 
-			<div className="relative z-10 my-auto w-full max-w-[27rem] overflow-hidden rounded-[1.75rem] border border-app-border bg-app-surface shadow-[0_28px_80px_-42px_rgba(2,8,23,0.9)]">
-				<div
-					className="pointer-events-none absolute inset-x-0 top-0 h-28"
-					style={{
-						background:
-							"linear-gradient(180deg, rgba(0,129,197,0.075), rgba(0,129,197,0))",
-					}}
-					aria-hidden="true"
-				/>
-				<div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/70 to-transparent" aria-hidden="true" />
+			<div className="portal-login-card relative z-10 my-auto w-full max-w-[28rem] overflow-hidden rounded-[1.75rem] border">
+				<div className="portal-login-card-accent pointer-events-none absolute inset-x-10 top-0 z-20 h-px" aria-hidden="true" />
 
-				<div className="relative p-[clamp(1.15rem,2.35vh,1.7rem)]">
-					<div className="text-center">
-						<PortalBrand
-							variant="full"
-							showTagline
-							className="mx-auto mb-[clamp(0.85rem,1.7vh,1.15rem)] justify-center"
-							markClassName="!w-[6.75rem] min-[390px]:!w-[7.25rem] sm:!w-[7.75rem]"
-						/>
+				<div className="portal-login-hero relative px-[clamp(1.25rem,3vw,1.8rem)] pb-[clamp(1.2rem,2.5vh,1.6rem)] pt-[clamp(1.3rem,2.8vh,1.85rem)] text-center">
+					<PortalBrand
+						variant="full"
+						showTagline
+						className="mx-auto mb-[clamp(0.9rem,1.8vh,1.2rem)] justify-center"
+						markClassName="!w-[6.5rem] min-[390px]:!w-[7rem] sm:!w-[7.4rem]"
+					/>
 
-						<div className="mx-auto mb-3 h-px w-12 bg-gradient-to-r from-transparent via-primary-500/70 to-transparent" aria-hidden="true" />
-						<h1
-							className="text-[clamp(1.55rem,3vh,1.9rem)] font-extrabold tracking-[-0.035em]"
-							style={{
-								backgroundImage: "linear-gradient(90deg, #b9e8f7 0%, #65b9e5 48%, #2d7bc7 100%)",
-								WebkitBackgroundClip: "text",
-								backgroundClip: "text",
-								WebkitTextFillColor: "transparent",
-							}}
-						>
-							Client Portal
-						</h1>
-						<p className="mt-1.5 text-[clamp(0.82rem,1.7vh,0.95rem)] font-medium text-app-text-muted">
-							Login to track your packages.
+					<div className="portal-login-kicker mx-auto inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em]">
+						<ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+						<span>Secure client access</span>
+					</div>
+
+					<h1 className="portal-login-title mt-3 text-[clamp(1.6rem,3vh,1.95rem)] font-extrabold tracking-[-0.035em]">
+						Client Portal
+					</h1>
+					<p className="portal-login-subtitle mx-auto mt-1.5 max-w-[22rem] text-[clamp(0.82rem,1.7vh,0.95rem)] font-medium leading-6">
+						Track packages, review records, and open verified package details.
+					</p>
+				</div>
+
+				<div className="portal-login-form-shell relative px-[clamp(1.25rem,3vw,1.8rem)] pb-[clamp(1.15rem,2.4vh,1.6rem)] pt-[clamp(1.15rem,2.4vh,1.55rem)]">
+					<div className="mb-[clamp(1rem,2vh,1.25rem)]">
+						<p className="portal-login-form-heading text-sm font-bold tracking-[-0.015em]">
+							Sign in to continue
+						</p>
+						<p className="portal-login-form-copy mt-1 text-xs leading-5">
+							Use your client account email or username.
 						</p>
 					</div>
 
 					<form
 						onSubmit={handleLogin}
-						className="mt-[clamp(1.15rem,2.4vh,1.65rem)] flex flex-col gap-[clamp(0.9rem,1.8vh,1.15rem)]"
+						className="flex flex-col gap-[clamp(0.9rem,1.8vh,1.15rem)]"
 					>
-						<div>
+						<div className="portal-login-field">
 							<label
 								htmlFor="login-identifier"
-								className="mb-2 block text-[13px] font-semibold tracking-[-0.01em] text-app-text-strong"
+								className="mb-2 block text-[13px] font-semibold tracking-[-0.01em]"
 							>
 								Email Address or Username
 							</label>
-							<input
-								id="login-identifier"
-								type="text"
-								required
-								value={identifier}
-								onChange={(e) => setIdentifier(e.target.value)}
-								className="min-h-12 w-full rounded-xl border border-app-border bg-app-surface-muted px-4 py-3 text-[15px] shadow-inner shadow-black/5 placeholder:text-app-text-muted transition-[border-color,box-shadow,background-color] focus:border-primary-500 focus:bg-app-surface focus:outline-none focus:ring-2 focus:ring-primary-500/30"
-								placeholder="you@company.com or username"
-								autoComplete="username"
-							/>
+							<div className="portal-login-input-wrap">
+								<UserRound className="portal-login-input-icon" aria-hidden="true" />
+								<input
+									id="login-identifier"
+									type="text"
+									required
+									value={identifier}
+									onChange={(e) => setIdentifier(e.target.value)}
+									className="portal-login-input min-h-12 w-full rounded-xl border py-3 pl-11 pr-4 text-[15px] transition-[border-color,box-shadow,background-color] focus:outline-none"
+									placeholder="you@company.com or username"
+									autoComplete="username"
+								/>
+							</div>
 						</div>
 
-						<div>
+						<div className="portal-login-field">
 							<label
 								htmlFor="login-password"
-								className="mb-2 block text-[13px] font-semibold tracking-[-0.01em] text-app-text-strong"
+								className="mb-2 block text-[13px] font-semibold tracking-[-0.01em]"
 							>
 								Password
 							</label>
-							<input
-								id="login-password"
-								type="password"
-								required
-								value={password}
-								onChange={(e) => setPassword(e.target.value)}
-								className="min-h-12 w-full rounded-xl border border-app-border bg-app-surface-muted px-4 py-3 text-[15px] shadow-inner shadow-black/5 placeholder:text-app-text-muted transition-[border-color,box-shadow,background-color] focus:border-primary-500 focus:bg-app-surface focus:outline-none focus:ring-2 focus:ring-primary-500/30"
-								placeholder="••••••••"
-								autoComplete="current-password"
-							/>
+							<div className="portal-login-input-wrap">
+								<KeyRound className="portal-login-input-icon" aria-hidden="true" />
+								<input
+									id="login-password"
+									type="password"
+									required
+									value={password}
+									onChange={(e) => setPassword(e.target.value)}
+									className="portal-login-input min-h-12 w-full rounded-xl border py-3 pl-11 pr-4 text-[15px] transition-[border-color,box-shadow,background-color] focus:outline-none"
+									placeholder="••••••••"
+									autoComplete="current-password"
+								/>
+							</div>
 						</div>
 
 						<button
 							type="submit"
 							disabled={isSubmitting}
-							className="relative mt-1 flex min-h-12 w-full items-center justify-center rounded-xl border border-primary-500/25 bg-gradient-to-r from-primary-700 via-primary-600 to-primary-500 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_30px_-16px_rgba(0,94,168,0.95)] transition-[transform,filter,box-shadow] hover:-translate-y-px hover:brightness-110 hover:shadow-[0_16px_34px_-18px_rgba(0,94,168,1)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-app-surface active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 motion-reduce:transform-none"
+							className="portal-login-submit relative mt-1 flex min-h-12 w-full items-center justify-center rounded-xl border px-4 py-3 text-sm font-bold text-white transition-[transform,filter,box-shadow] hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-app-surface active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 motion-reduce:transform-none"
 						>
 							{isSubmitting ? (
-								<Loader2 className="h-5 w-5 animate-spin text-white" />
+								<>
+									<Loader2 className="mr-2 h-5 w-5 animate-spin text-white" aria-hidden="true" />
+									<span className="text-white">Signing in</span>
+								</>
 							) : (
 								<>
 									<span className="text-white">Sign In</span>
@@ -210,6 +236,11 @@ function PortalLogin() {
 							)}
 						</button>
 					</form>
+
+					<div className="portal-login-trust mt-[clamp(1rem,2vh,1.25rem)] flex items-center justify-center gap-1.5 pt-[clamp(0.9rem,1.8vh,1.1rem)] text-[10px] font-medium">
+						<ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+						<span>Protected client workspace</span>
+					</div>
 				</div>
 			</div>
 		</div>
