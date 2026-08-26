@@ -2,18 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	ArrowRight,
+	Box,
 	Camera,
 	Check,
-	ChevronDown,
 	Images,
 	Keyboard,
 	Loader2,
-	LockKeyhole,
 	MapPin,
 	PackageCheck,
 	PackageX,
 	Ruler,
-	ScanLine,
+	Search,
 	ShieldAlert,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -30,7 +29,23 @@ export const Route = createFileRoute("/portal/projects/")({
 	}),
 });
 
-const QR_DRIVEN_PORTAL = true;
+type BoxLocation = {
+	id: string;
+	reference: string;
+	destination: string | null;
+	status: string | null;
+	quantity: number | null;
+};
+
+type ItemLookupResult = {
+	kind: "item";
+	query: string;
+	itemReference: string | null;
+	itemNumbers: string[];
+	description: string | null;
+	matchedRecords: number;
+	boxes: BoxLocation[];
+};
 
 const PORTAL_RECORD_SIGNALS = [
 	{
@@ -60,11 +75,16 @@ function PortalRecordFlowIllustration() {
 		<div className="overflow-hidden rounded-[1.5rem] border border-app-border bg-app-surface shadow-[0_24px_70px_-42px_rgba(15,23,42,0.55)]">
 			<div className="border-b border-app-border bg-neutral-950 p-5 sm:p-6 dark:bg-steel-950">
 				<div className="mb-5 flex items-center justify-between gap-4">
-					<p className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary-300">
-						Your package label
-					</p>
+					<div>
+						<p className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary-300">
+							Your package label
+						</p>
+						<p className="mt-1 text-xs text-steel-400">
+							Search the printed box number or scan the QR code.
+						</p>
+					</div>
 					<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-						<ScanLine className="h-5 w-5 text-primary-300" aria-hidden="true" />
+						<Search className="h-5 w-5 text-primary-300" aria-hidden="true" />
 					</span>
 				</div>
 
@@ -73,13 +93,13 @@ function PortalRecordFlowIllustration() {
 					<div className="absolute inset-x-4 top-1/2 h-px bg-primary-400/25" aria-hidden="true" />
 					<img
 						src="/image.png"
-						alt="Example client package label with a QR code"
+						alt="Example client package label with a QR code and box number"
 						className="relative z-10 block h-auto w-full max-w-[560px] rounded-sm shadow-[0_14px_28px_-10px_rgba(0,0,0,0.8)]"
 					/>
 				</div>
 				<div className="mt-3 flex items-center gap-2 text-xs text-steel-300">
 					<Check className="h-3.5 w-3.5 text-success-400" aria-hidden="true" />
-					Scan the QR code printed on the yellow label
+					A box number opens the complete box record directly
 				</div>
 			</div>
 
@@ -100,31 +120,9 @@ function PortalRecordFlowIllustration() {
 	);
 }
 
-function MobileRecordSummary() {
-	return (
-		<details className="group overflow-hidden rounded-xl border border-app-border bg-app-surface shadow-sm lg:hidden">
-			<summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-semibold text-app-text-strong transition-colors hover:bg-app-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 [&::-webkit-details-marker]:hidden">
-				<span className="inline-flex items-center gap-2">
-					<PackageCheck className="h-4 w-4 text-primary-600 dark:text-primary-300" aria-hidden="true" />
-					What you can view after scanning
-				</span>
-				<ChevronDown className="h-4 w-4 shrink-0 text-app-text-muted transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
-			</summary>
-			<div className="grid grid-cols-2 gap-px border-t border-app-border bg-app-border">
-				{PORTAL_RECORD_SIGNALS.map(({ label, icon: Icon }) => (
-					<div key={label} className="flex items-center gap-2 bg-app-surface px-3 py-3 text-xs font-medium text-app-text-strong">
-						<Icon className="h-3.5 w-3.5 shrink-0 text-primary-600 dark:text-primary-300" aria-hidden="true" />
-						{label}
-					</div>
-				))}
-			</div>
-		</details>
-	);
-}
-
 function PortalSignature() {
 	return (
-		<div className="portal-signature mt-5 flex w-full items-center justify-center gap-3 lg:mt-6">
+		<div className="mt-5 flex w-full items-center justify-center gap-3 lg:mt-6">
 			<span className="h-px min-w-0 flex-1 bg-gradient-to-r from-transparent to-primary-600/70 dark:to-primary-300/80" aria-hidden="true" />
 			<p className="shrink-0 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.22em] text-primary-700 dark:text-primary-300 sm:text-[11px]">
 				Powered by Precision
@@ -134,9 +132,91 @@ function PortalSignature() {
 	);
 }
 
+function ItemLocationResult({
+	result,
+	onOpenBox,
+}: {
+	result: ItemLookupResult;
+	onOpenBox: (id: string) => void;
+}) {
+	const title = result.itemReference || result.itemNumbers[0] || result.query;
+	return (
+		<div className="mt-4 overflow-hidden rounded-2xl border border-app-border bg-app-surface shadow-[0_18px_48px_-38px_rgba(15,23,42,0.55)]" aria-live="polite">
+			<div className="border-b border-app-border bg-app-surface-muted px-4 py-4 sm:px-5">
+				<div className="flex items-start justify-between gap-4">
+					<div className="min-w-0">
+						<p className="text-[10px] font-bold uppercase tracking-[0.17em] text-primary-700 dark:text-primary-300">
+							Item location
+						</p>
+						<h3 className="mt-1 break-all text-lg font-bold tracking-[-0.02em] text-app-text-strong">
+							{title}
+						</h3>
+						{result.description && (
+							<p className="mt-1 line-clamp-2 text-xs leading-5 text-app-text-muted">
+								{result.description}
+							</p>
+						)}
+					</div>
+					<span className="shrink-0 rounded-full border border-primary-200 bg-primary-50 px-2.5 py-1 text-[10px] font-bold text-primary-800 dark:border-primary-800 dark:bg-primary-950/30 dark:text-primary-200">
+						{result.boxes.length} box{result.boxes.length === 1 ? "" : "es"}
+					</span>
+				</div>
+				{result.matchedRecords > 1 && (
+					<p className="mt-2 text-[10px] text-app-text-muted">
+						Matched {result.matchedRecords} item records
+						{result.itemNumbers.length > 0 ? ` · ${result.itemNumbers.join(", ")}` : ""}
+					</p>
+				)}
+			</div>
+
+			{result.boxes.length === 0 ? (
+				<div className="px-4 py-6 text-center sm:px-5">
+					<div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl border border-app-border bg-app-surface-muted text-app-text-muted">
+						<Box className="h-5 w-5" aria-hidden="true" />
+					</div>
+					<p className="mt-3 text-sm font-semibold text-app-text-strong">No packed box recorded yet</p>
+					<p className="mt-1 text-xs text-app-text-muted">This item exists, but it is not currently linked to a packed box.</p>
+				</div>
+			) : (
+				<div className="divide-y divide-app-border">
+					{result.boxes.map((box) => (
+						<button
+							type="button"
+							key={box.id}
+							onClick={() => onOpenBox(box.id)}
+							className="group flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-app-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 sm:px-5"
+						>
+							<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 text-primary-700 dark:border-primary-800 dark:bg-primary-950/30 dark:text-primary-300">
+								<Box className="h-5 w-5" aria-hidden="true" />
+							</span>
+							<span className="min-w-0 flex-1">
+								<span className="block break-all text-sm font-bold text-app-text-strong">{box.reference}</span>
+								<span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-app-text-muted">
+									{box.destination && <span>Destination {box.destination}</span>}
+									{box.quantity != null && <span>Qty in box {box.quantity}</span>}
+									{box.status && <span className="capitalize">{box.status}</span>}
+								</span>
+							</span>
+							<span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-primary-700 dark:text-primary-300">
+								Open
+								<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+							</span>
+						</button>
+					))}
+				</div>
+			)}
+		</div>
+	);
+}
+
 function PortalProjects() {
 	const navigate = useNavigate();
 	const { user, loading } = useAuth();
+	const [lookupInput, setLookupInput] = useState("");
+	const [lookupResult, setLookupResult] = useState<ItemLookupResult | null>(null);
+	const [lookupError, setLookupError] = useState<string | null>(null);
+	const [lookupLoading, setLookupLoading] = useState(false);
+	const [scannerOpen, setScannerOpen] = useState(false);
 
 	useEffect(() => {
 		if (!loading && !user) {
@@ -165,61 +245,167 @@ function PortalProjects() {
 		roleName === "director" ||
 		roleName === "project_lead" ||
 		roleName === "sales";
-	const [itemSearch, setItemSearch] = useState("");
-	const [qrInput, setQrInput] = useState("");
-	const [scannerOpen, setScannerOpen] = useState(false);
+
 	const handleQrSubmit = (raw: string) => {
 		const token = parseQrToken(raw);
 		if (!token) return;
-		setQrInput("");
 		setScannerOpen(false);
 		navigate({ to: "/portal/scan/$token", params: { token } });
 	};
-	const closeScanner = () => {
-		setScannerOpen(false);
+
+	const findBox = async (value: string) => {
+		const fields = "id, ipac_reference, client_reference, destination, status";
+		const byIpac = await supabase
+			.from("order_pkg_instance")
+			.select(fields)
+			.ilike("ipac_reference", value)
+			.limit(1);
+		if (byIpac.error) throw byIpac.error;
+		if (byIpac.data?.[0]) return byIpac.data[0];
+
+		const byClientReference = await supabase
+			.from("order_pkg_instance")
+			.select(fields)
+			.ilike("client_reference", value)
+			.limit(1);
+		if (byClientReference.error) throw byClientReference.error;
+		return byClientReference.data?.[0] || null;
 	};
-	const scanner = <QrScanner open={scannerOpen} onClose={closeScanner} onResult={handleQrSubmit} />;
 
-	const {
-		data: items,
-		isLoading: itemsLoading,
-		error: itemsError,
-	} = useQuery({
-		queryKey: ["portal-items", clientId],
-		queryFn: async () => {
-			if (!clientId) return [];
-			const { data, error } = await supabase
-				.from("items_db")
-				.select(`
+	const findItems = async (value: string) => {
+		if (!clientId) return [];
+		const fields = "id, item_num, reference, description";
+		const byItemNumber = await supabase
+			.from("items_db")
+			.select(fields)
+			.eq("client_id", clientId)
+			.ilike("item_num", value)
+			.limit(100);
+		if (byItemNumber.error) throw byItemNumber.error;
+		if (byItemNumber.data && byItemNumber.data.length > 0) return byItemNumber.data;
+
+		const byReference = await supabase
+			.from("items_db")
+			.select(fields)
+			.eq("client_id", clientId)
+			.ilike("reference", value)
+			.limit(100);
+		if (byReference.error) throw byReference.error;
+		return byReference.data || [];
+	};
+
+	const buildItemResult = async (query: string, itemRows: any[]): Promise<ItemLookupResult> => {
+		const itemIds = itemRows.map((item) => item.id).filter(Boolean);
+		const itemNumbers = Array.from(
+			new Set(itemRows.map((item) => item.item_num).filter(Boolean)),
+		) as string[];
+		const references = Array.from(
+			new Set(itemRows.map((item) => item.reference).filter(Boolean)),
+		) as string[];
+		const descriptions = Array.from(
+			new Set(itemRows.map((item) => item.description).filter(Boolean)),
+		) as string[];
+
+		if (itemIds.length === 0) {
+			return {
+				kind: "item",
+				query,
+				itemReference: references[0] || null,
+				itemNumbers,
+				description: descriptions.length === 1 ? descriptions[0] : null,
+				matchedRecords: itemRows.length,
+				boxes: [],
+			};
+		}
+
+		const { data: packedRows, error } = await supabase
+			.from("pkd_item")
+			.select(`
+				id,
+				quantity,
+				order_pkg_instance:pkg_instance_id (
 					id,
-					item_num,
-					reference,
-					description,
-					expected_qty,
-					packed_qty,
-					pkg_category (label)
-				`)
-				.eq("client_id", clientId)
-				.order("item_num", { ascending: true })
-				.limit(1000);
-			if (error) throw error;
-			return data || [];
-		},
-		enabled: !QR_DRIVEN_PORTAL && !!clientId,
-	});
+					ipac_reference,
+					client_reference,
+					destination,
+					status
+				)
+			`)
+			.in("maintenance_db_id", itemIds)
+			.not("pkg_instance_id", "is", null);
+		if (error) throw error;
 
-	const searchToken = itemSearch.trim().toLowerCase();
-	const filteredItems = useMemo(() => {
-		const source = items || [];
-		if (!searchToken) return source;
-		return source.filter((item: any) => {
-			const searchable = [item.item_num, item.reference, item.description, item.pkg_category?.label]
-				.filter(Boolean)
-				.join(" ")
-				.toLowerCase();
-			return searchable.includes(searchToken);
-		});
-	}, [items, searchToken]);
+		const boxes = new Map<string, BoxLocation>();
+		for (const row of packedRows || []) {
+			const instance = Array.isArray((row as any).order_pkg_instance)
+				? (row as any).order_pkg_instance[0]
+				: (row as any).order_pkg_instance;
+			if (!instance?.id) continue;
+
+			const numericQuantity = Number((row as any).quantity);
+			const quantity = Number.isFinite(numericQuantity) ? numericQuantity : null;
+			const existing = boxes.get(instance.id);
+			if (existing) {
+				if (quantity != null) existing.quantity = (existing.quantity || 0) + quantity;
+				continue;
+			}
+
+			boxes.set(instance.id, {
+				id: instance.id,
+				reference:
+					instance.ipac_reference || instance.client_reference || `Box ${instance.id.slice(0, 8)}`,
+				destination: instance.destination || null,
+				status: instance.status || null,
+				quantity,
+			});
+		}
+
+		return {
+			kind: "item",
+			query,
+			itemReference: references.length === 1 ? references[0] : references[0] || null,
+			itemNumbers,
+			description: descriptions.length === 1 ? descriptions[0] : null,
+			matchedRecords: itemRows.length,
+			boxes: Array.from(boxes.values()).sort((a, b) => a.reference.localeCompare(b.reference)),
+		};
+	};
+
+	const handleLookup = async () => {
+		const value = lookupInput.trim();
+		if (!value || !clientId) return;
+
+		setLookupLoading(true);
+		setLookupError(null);
+		setLookupResult(null);
+		try {
+			const box = await findBox(value);
+			if (box?.id) {
+				navigate({ to: "/portal/package/$id", params: { id: box.id } });
+				return;
+			}
+
+			const itemRows = await findItems(value);
+			if (itemRows.length === 0) {
+				setLookupError(
+					"No matching box number or item reference was found for your account.",
+				);
+				return;
+			}
+
+			setLookupResult(await buildItemResult(value, itemRows));
+		} catch (error: any) {
+			setLookupError(error?.message || "Unable to search right now. Please try again.");
+		} finally {
+			setLookupLoading(false);
+		}
+	};
+
+	const resultSummary = useMemo(() => {
+		if (!lookupResult) return null;
+		if (lookupResult.boxes.length === 0) return "Item found, but no packed box is linked yet.";
+		return `Item found in ${lookupResult.boxes.length} box${lookupResult.boxes.length === 1 ? "" : "es"}.`;
+	}, [lookupResult]);
 
 	if (loading || profileLoading) {
 		return (
@@ -288,173 +474,126 @@ function PortalProjects() {
 		);
 	}
 
-	if (QR_DRIVEN_PORTAL) {
-		return (
-			<div className="portal-brand flex h-dvh flex-col overflow-hidden bg-app-bg">
-				<a
-					href="#package-access"
-					className="sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:not-sr-only focus:rounded-lg focus:bg-neutral-950 focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-				>
-					Skip to package access
-				</a>
-				<PortalHeader title="Package Portal" onScan={() => setScannerOpen(true)} activePage="home" maxWidth="max-w-7xl" />
-
-				<main id="package-access" tabIndex={-1} className="relative isolate min-h-0 flex-1 overflow-hidden focus:outline-none">
-					<div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-						<div className="absolute -left-40 top-12 h-80 w-80 rounded-full bg-primary-200/30 blur-3xl dark:bg-primary-900/15" />
-						<div className="absolute -right-32 top-1/3 h-72 w-72 rounded-full bg-aqua-200/20 blur-3xl dark:bg-aqua-900/10" />
-					</div>
-
-					<section className="mx-auto grid h-full min-h-0 w-full max-w-7xl items-center gap-8 px-3 py-4 sm:px-6 sm:py-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:px-8 lg:py-8">
-						<div className="mx-auto w-full max-w-xl lg:mx-0">
-							<h2 className="text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-app-text-strong sm:text-5xl">
-								Open any package record in seconds.
-							</h2>
-							<div className="mt-6 rounded-[1.25rem] border border-app-border bg-app-surface p-2 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.55)] sm:mt-8 sm:rounded-[1.5rem] sm:p-3">
-								<button
-									type="button"
-									onClick={() => setScannerOpen(true)}
-									className="group flex min-h-16 w-full items-center justify-between gap-3 rounded-xl bg-primary-600 px-3 py-3 text-left text-white shadow-lg shadow-primary-900/20 transition-[background-color,box-shadow,transform] hover:-translate-y-0.5 hover:bg-primary-700 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:translate-y-0 motion-reduce:transform-none motion-reduce:transition-none sm:min-h-20 sm:gap-4 sm:rounded-2xl sm:px-4 sm:py-4 dark:bg-primary-500 dark:hover:bg-primary-400"
-								>
-									<div className="flex items-center gap-3 sm:gap-4">
-										<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20 sm:h-12 sm:w-12 sm:rounded-xl">
-											<Camera className="h-5 w-5 text-white" aria-hidden="true" />
-										</div>
-										<div>
-											<div className="text-sm font-semibold text-white sm:text-base">Scan package QR code</div>
-											<div className="mt-0.5 text-xs text-white/75">Use your device camera</div>
-										</div>
-									</div>
-									<ArrowRight className="h-5 w-5 text-white/80 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-								</button>
-
-								<div className="my-3 flex items-center gap-3 px-1 text-[9px] font-bold uppercase tracking-[0.16em] text-app-text-muted sm:my-4 sm:text-[10px] sm:tracking-[0.18em]">
-									<span className="h-px flex-1 bg-app-border" />
-									<span>Or enter label details</span>
-									<span className="h-px flex-1 bg-app-border" />
-								</div>
-
-								<form
-									onSubmit={(event) => {
-										event.preventDefault();
-										handleQrSubmit(qrInput);
-									}}
-									className="rounded-xl bg-app-surface p-1 text-left"
-								>
-									<label htmlFor="package-token" className="mb-2 flex items-center gap-2 text-sm font-semibold text-app-text-strong">
-										<Keyboard className="h-4 w-4 text-app-text-muted" aria-hidden="true" />
-										Package token or scan URL
-									</label>
-									<div className="flex gap-2">
-										<input
-											id="package-token"
-											type="text"
-											value={qrInput}
-											onChange={(event) => setQrInput(event.target.value)}
-											placeholder="Token or scan URL"
-											autoComplete="off"
-											spellCheck={false}
-											aria-describedby="package-token-help"
-											className="min-h-12 min-w-0 flex-1 rounded-xl border border-app-border bg-app-surface-muted px-3 py-3 text-sm text-app-text-strong placeholder:text-app-text-muted focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 sm:px-4"
-										/>
-										<button
-											type="submit"
-											disabled={!qrInput.trim()}
-											className="inline-flex min-h-12 w-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-3 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transform-none motion-reduce:transition-none sm:w-auto sm:px-5 dark:bg-steel-950 dark:hover:bg-steel-800"
-											aria-label="Open package record"
-										>
-											<span className="hidden text-white sm:inline">Open record</span>
-											<ArrowRight className="h-4 w-4" aria-hidden="true" />
-										</button>
-									</div>
-									<p id="package-token-help" className="mt-2 px-1 text-[11px] leading-4 text-app-text-muted sm:text-xs sm:leading-5">
-										You can paste the complete scan link or enter its token.
-									</p>
-								</form>
-							</div>
-
-							<div className="mt-3 flex items-center gap-5 text-[11px] text-app-text-muted sm:mt-5 sm:text-xs">
-								<span className="hidden items-center gap-2 sm:inline-flex">
-									<LockKeyhole className="h-3.5 w-3.5 text-success-600 dark:text-success-400" aria-hidden="true" />
-									Protected by your signed-in account
-								</span>
-								<span className="inline-flex items-center gap-2">
-									<Camera className="h-3.5 w-3.5 text-primary-600 dark:text-primary-300" aria-hidden="true" />
-									Camera opens only when requested
-								</span>
-							</div>
-
-							<div className="mt-3 lg:hidden">
-								<MobileRecordSummary />
-							</div>
-							<PortalSignature />
-						</div>
-
-						<div className="mx-auto hidden w-full max-w-xl lg:mx-0 lg:block">
-							<PortalRecordFlowIllustration />
-						</div>
-					</section>
-				</main>
-				{scanner}
-			</div>
-		);
-	}
-
 	return (
-		<div className="min-h-screen bg-neutral-50">
-			<PortalHeader title="Client Overview" onScan={() => setScannerOpen(true)} activePage="home" maxWidth="max-w-7xl" />
-			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-				<div className="mb-8">
-					<h2 className="text-2xl font-bold text-neutral-900">Your Inventory Projects</h2>
-					<p className="text-neutral-500 mt-1">Browse all items and open detailed records for each item.</p>
+		<div className="portal-brand min-h-dvh bg-app-bg">
+			<PortalHeader title="Package Portal" onScan={() => setScannerOpen(true)} activePage="home" maxWidth="max-w-7xl" />
+
+			<main className="relative isolate overflow-hidden">
+				<div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+					<div className="absolute -left-40 top-12 h-80 w-80 rounded-full bg-primary-200/30 blur-3xl dark:bg-primary-900/15" />
+					<div className="absolute -right-32 top-1/3 h-72 w-72 rounded-full bg-aqua-200/20 blur-3xl dark:bg-aqua-900/10" />
 				</div>
-				<div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 sm:p-6">
-					<div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-						<input type="search" value={itemSearch} onChange={(event) => setItemSearch(event.target.value)} placeholder="Search item number, reference, or description" className="w-full sm:max-w-xl px-4 py-2.5 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500" />
-						<button type="button" onClick={() => setScannerOpen(true)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-							<Camera className="h-4 w-4" /> Scan QR
-						</button>
-						<div className="text-sm text-neutral-500">{filteredItems.length} item{filteredItems.length === 1 ? "" : "s"}</div>
+
+				<section className="mx-auto grid w-full max-w-7xl items-start gap-8 px-3 py-6 sm:px-6 sm:py-9 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:px-8 lg:py-12">
+					<div className="mx-auto w-full max-w-xl lg:mx-0">
+						<p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-700 dark:text-primary-300">
+							Box & item lookup
+						</p>
+						<h1 className="mt-2 text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-app-text-strong sm:text-5xl">
+							Find a box or locate an item.
+						</h1>
+						<p className="mt-3 max-w-lg text-sm leading-6 text-app-text-muted sm:text-base">
+							Enter a box number to open its full record. Enter an item number or item reference to see every box containing those parts.
+						</p>
+
+						<div className="mt-6 rounded-[1.35rem] border border-app-border bg-app-surface p-3 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.55)] sm:mt-8 sm:p-4">
+							<form
+								onSubmit={(event) => {
+									event.preventDefault();
+									void handleLookup();
+								}}
+							>
+								<label htmlFor="box-or-item" className="mb-2 flex items-center gap-2 text-sm font-bold text-app-text-strong">
+									<Keyboard className="h-4 w-4 text-primary-700 dark:text-primary-300" aria-hidden="true" />
+									Box number or item number/reference
+								</label>
+								<div className="flex gap-2">
+									<input
+										id="box-or-item"
+										type="text"
+										value={lookupInput}
+										onChange={(event) => {
+											setLookupInput(event.target.value);
+											setLookupError(null);
+										}}
+										placeholder="AUH-P-AC-SB-#02 or 03G12A021"
+										autoComplete="off"
+										spellCheck={false}
+										aria-describedby="lookup-help"
+										className="min-h-12 min-w-0 flex-1 rounded-xl border border-app-border bg-app-surface-muted px-3 py-3 text-sm font-medium text-app-text-strong placeholder:font-normal placeholder:text-app-text-muted focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 sm:px-4"
+									/>
+									<button
+										type="submit"
+										disabled={!lookupInput.trim() || lookupLoading}
+										className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 py-3 text-sm font-bold text-white transition-[background-color,transform] hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transform-none motion-reduce:transition-none dark:bg-primary-500 dark:hover:bg-primary-400 sm:px-5"
+									>
+										{lookupLoading ? (
+											<Loader2 className="h-4 w-4 animate-spin text-white" aria-hidden="true" />
+										) : (
+											<Search className="h-4 w-4 text-white" aria-hidden="true" />
+										)}
+										<span className="hidden text-white sm:inline">Find</span>
+									</button>
+								</div>
+								<p id="lookup-help" className="mt-2 px-1 text-[11px] leading-4 text-app-text-muted sm:text-xs sm:leading-5">
+									Box number → opens the box. Item number/reference → shows every box containing that item.
+								</p>
+							</form>
+
+							{lookupError && (
+								<div className="mt-4 rounded-xl border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-800 dark:border-danger-800/70 dark:bg-danger-950/30 dark:text-danger-200" role="alert">
+									{lookupError}
+								</div>
+							)}
+
+							{lookupResult && (
+								<>
+									<span className="sr-only" aria-live="polite">{resultSummary}</span>
+									<ItemLocationResult
+										result={lookupResult}
+										onOpenBox={(id) => navigate({ to: "/portal/package/$id", params: { id } })}
+									/>
+								</>
+							)}
+
+							<div className="my-4 flex items-center gap-3 px-1 text-[9px] font-bold uppercase tracking-[0.16em] text-app-text-muted sm:my-5 sm:text-[10px] sm:tracking-[0.18em]">
+								<span className="h-px flex-1 bg-app-border" />
+								<span>Or scan a box QR code</span>
+								<span className="h-px flex-1 bg-app-border" />
+							</div>
+
+							<button
+								type="button"
+								onClick={() => setScannerOpen(true)}
+								className="group flex min-h-16 w-full items-center justify-between gap-3 rounded-xl border border-primary-200 bg-primary-50 px-3 py-3 text-left transition-[background-color,border-color,transform] hover:-translate-y-0.5 hover:border-primary-300 hover:bg-primary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 active:translate-y-0 motion-reduce:transform-none motion-reduce:transition-none sm:min-h-20 sm:gap-4 sm:rounded-2xl sm:px-4 sm:py-4 dark:border-primary-800 dark:bg-primary-950/25 dark:hover:border-primary-700 dark:hover:bg-primary-950/40"
+							>
+								<div className="flex items-center gap-3 sm:gap-4">
+									<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white shadow-sm sm:h-12 sm:w-12 sm:rounded-xl dark:bg-primary-500">
+										<Camera className="h-5 w-5 text-white" aria-hidden="true" />
+									</div>
+									<div>
+										<div className="text-sm font-bold text-primary-950 sm:text-base dark:text-primary-100">Scan box QR code</div>
+										<div className="mt-0.5 text-xs text-primary-700 dark:text-primary-300">Use your device camera</div>
+									</div>
+								</div>
+								<ArrowRight className="h-5 w-5 text-primary-700 transition-transform group-hover:translate-x-1 dark:text-primary-300" aria-hidden="true" />
+							</button>
+						</div>
+
+						<PortalSignature />
 					</div>
-					{itemsLoading ? (
-						<div className="py-14 flex items-center justify-center text-neutral-500"><Loader2 className="w-5 h-5 mr-2 animate-spin" />Loading items...</div>
-					) : itemsError ? (
-						<div className="py-10 px-4 rounded-xl border border-danger-200 bg-danger-50 text-danger-700 text-sm">Failed to load items. Please refresh and try again.</div>
-					) : filteredItems.length === 0 ? (
-						<div className="py-10 px-4 rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-600 text-center">No items found for this client.</div>
-					) : (
-						<ul className="divide-y divide-neutral-100 border border-neutral-100 rounded-xl overflow-hidden">
-							{filteredItems.map((item: any) => {
-								const packedQty = Number(item?.packed_qty ?? 0);
-								const expectedQty = Number(item?.expected_qty ?? 0);
-								const fullyPacked = expectedQty > 0 && packedQty >= expectedQty;
-								return (
-									<li key={item.id}>
-										<Link to="/portal/item/$id" params={{ id: item.id }} className="block p-4 sm:p-5 hover:bg-neutral-50 transition-colors">
-											<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-												<div>
-													<div className="flex items-center gap-2 mb-1.5">
-														<span className="text-xs font-bold px-2 py-0.5 rounded bg-neutral-100 text-neutral-700">{item.item_num || item.reference || "NO-REF"}</span>
-														<span className="text-xs text-neutral-500">{item.pkg_category?.label || "General"}</span>
-													</div>
-													<h3 className="text-base font-semibold text-neutral-900">{item.description || item.reference || "Unnamed Item"}</h3>
-												</div>
-												<div className="sm:text-right text-sm">
-													<div className="text-neutral-700">Packed {packedQty} / {expectedQty || "-"}</div>
-													<div className={`inline-flex mt-1 px-2 py-0.5 rounded text-xs font-semibold ${fullyPacked ? "bg-success-100 text-success-700" : "bg-warning-100 text-warning-700"}`}>
-														{fullyPacked ? "Packed" : "Pending"}
-													</div>
-												</div>
-											</div>
-										</Link>
-									</li>
-								);
-							})}
-						</ul>
-					)}
-				</div>
+
+					<div className="mx-auto hidden w-full max-w-xl lg:mx-0 lg:block">
+						<PortalRecordFlowIllustration />
+					</div>
+				</section>
 			</main>
-			{scanner}
+
+			<QrScanner
+				open={scannerOpen}
+				onClose={() => setScannerOpen(false)}
+				onResult={handleQrSubmit}
+			/>
 		</div>
 	);
 }
