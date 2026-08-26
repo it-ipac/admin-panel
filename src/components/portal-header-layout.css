@@ -1,0 +1,39 @@
+/* Shared portal chrome: one header geometry across portal screens.
+   Keep page-specific content free to vary, but never change the shell width. */
+
+header.portal-brand {
+	--portal-shell-width: 80rem;
+}
+
+header.portal-brand > div {
+	width: min(100%, var(--portal-shell-width));
+}
+
+/* The package page previously used max-w-4xl while the home header used
+   max-w-7xl, which made the same header look like a different version and
+   left too much dead space around the content on desktop. */
+.portal-package-details > main {
+	width: min(100%, 80rem) !important;
+	max-width: 80rem !important;
+	padding-top: 1.25rem !important;
+	padding-bottom: 2.5rem !important;
+}
+
+@media (min-width: 640px) {
+	.portal-package-details > main {
+		padding-top: 1.5rem !important;
+	}
+}
+
+/* Keep the shared header search visually centered and predictable instead of
+   growing/shrinking differently depending on the page title. */
+@media (min-width: 1024px) {
+	header.portal-brand > div > div {
+		column-gap: 1rem;
+	}
+
+	header.portal-brand form[role="search"],
+	header.portal-brand form:has(#portal-header-lookup) {
+		width: 100%;
+	}
+}
