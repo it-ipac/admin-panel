@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface PortalTooltipProps {
 	children: ReactNode;
@@ -38,12 +38,12 @@ export function PortalTooltip({
 	const [visible, setVisible] = useState(false);
 	const openTimerRef = useRef<number | null>(null);
 
-	const clearOpenTimer = () => {
+	const clearOpenTimer = useCallback(() => {
 		if (openTimerRef.current !== null) {
 			window.clearTimeout(openTimerRef.current);
 			openTimerRef.current = null;
 		}
-	};
+	}, []);
 
 	const show = () => {
 		clearOpenTimer();
@@ -58,9 +58,10 @@ export function PortalTooltip({
 		setVisible(false);
 	};
 
-	useEffect(() => () => clearOpenTimer(), []);
+	useEffect(() => () => clearOpenTimer(), [clearOpenTimer]);
 
 	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: this wrapper only captures hover/focus events from arbitrary child controls to drive tooltip visibility.
 		<span
 			className="relative inline-flex"
 			onMouseEnter={show}
