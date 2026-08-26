@@ -28,6 +28,7 @@ type Photo = {
 
 type PackedItem = {
 	id: string;
+	itemId: string | null;
 	quantity: number | string | null;
 	reference: string | null;
 	itemNumber: string | null;
@@ -212,10 +213,39 @@ function PackingList({
 		index: number;
 		title: string;
 	} | null>(null);
+	const [pageSize, setPageSize] = useState(5);
+	const [page, setPage] = useState(1);
+	const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+	const startIndex = (page - 1) * pageSize;
+	const endIndex = Math.min(startIndex + pageSize, items.length);
+	const visibleItems = items.slice(startIndex, endIndex);
+
+	useEffect(() => {
+		setPage((current) => Math.min(current, totalPages));
+	}, [totalPages]);
+
+	const paginationItems = useMemo(() => {
+		if (totalPages <= 7) {
+			return Array.from({ length: totalPages }, (_, index) => index + 1) as Array<
+				number | string
+			>;
+		}
+
+		const importantPages = Array.from(
+			new Set([1, totalPages, page - 1, page, page + 1].filter((value) => value >= 1 && value <= totalPages)),
+		).sort((a, b) => a - b);
+		const result: Array<number | string> = [];
+		importantPages.forEach((value, index) => {
+			const previous = importantPages[index - 1];
+			if (previous && value - previous > 1) result.push(`ellipsis-${previous}-${value}`);
+			result.push(value);
+		});
+		return result;
+	}, [page, totalPages]);
 
 	return (
 		<section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_20px_50px_-38px_rgba(15,23,42,0.48)] dark:border-steel-700 dark:bg-steel-900">
-			<div className="flex items-end justify-between gap-4 border-b border-neutral-200 px-5 py-5 sm:px-7 dark:border-steel-700">
+			<div className="flex flex-col gap-4 border-b border-neutral-200 px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-7 dark:border-steel-700">
 				<div>
 					<p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-700 dark:text-primary-300">
 						Packed contents
@@ -225,9 +255,30 @@ function PackingList({
 					</h3>
 				</div>
 				{!isLoading && (
-					<span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-semibold text-neutral-600 dark:border-steel-700 dark:bg-steel-800 dark:text-steel-300">
-						{items.length} line{items.length === 1 ? "" : "s"}
-					</span>
+					<div className="flex items-center justify-between gap-3 sm:justify-end">
+						<span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-semibold text-neutral-600 dark:border-steel-700 dark:bg-steel-800 dark:text-steel-300">
+							{items.length} line{items.length === 1 ? "" : "s"}
+						</span>
+						<label className="inline-flex items-center gap-2 text-xs font-semibold text-neutral-600 dark:text-steel-300">
+							<span>Show</span>
+							<select
+								value={pageSize}
+								onChange={(event) => {
+									setPageSize(Number(event.target.value));
+									setPage(1);
+								}}
+								className="h-9 rounded-lg border border-neutral-200 bg-white px-2.5 text-xs font-bold text-neutral-900 shadow-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-steel-700 dark:bg-steel-800 dark:text-white"
+								aria-label="Packing list entries per page"
+							>
+								{[5, 10, 25, 50].map((size) => (
+									<option key={size} value={size}>
+										{size}
+									</option>
+								))}
+							</select>
+							<span>entries</span>
+						</label>
+					</div>
 				)}
 			</div>
 
@@ -249,131 +300,182 @@ function PackingList({
 					</p>
 				</div>
 			) : (
-				<div className="divide-y divide-neutral-200 dark:divide-steel-700">
-					{items.map((item, itemIndex) => {
-						const dimensions = [item.length, item.width, item.height].map((value) =>
-							value == null || value === "" ? "—" : String(value),
-						);
-						const itemTitle = item.reference || item.itemNumber || `Item ${itemIndex + 1}`;
-						return (
-							<article key={item.id} className="px-5 py-5 sm:px-7 sm:py-6">
-								<div className="flex items-start justify-between gap-4">
-									<div className="min-w-0">
-										<p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 dark:text-steel-400">
-											Item reference
-										</p>
-										<Link
-											to="/portal/item/$id"
-											params={{ id: item.id }}
-											className="mt-1 inline-flex break-all text-base font-bold text-primary-800 underline-offset-4 hover:underline dark:text-primary-200"
-										>
-											{itemTitle}
-										</Link>
-										{item.itemNumber && item.itemNumber !== item.reference && (
-											<p className="mt-0.5 text-[11px] font-medium text-neutral-500 dark:text-steel-400">
-												Item #{item.itemNumber}
+				<>
+					<div className="divide-y divide-neutral-200 dark:divide-steel-700">
+						{visibleItems.map((item, itemIndex) => {
+							const dimensions = [item.length, item.width, item.height].map((value) =>
+								value == null || value === "" ? "—" : String(value),
+							);
+							const itemTitle = item.reference || item.itemNumber || `Item ${startIndex + itemIndex + 1}`;
+							return (
+								<article key={item.id} className="px-5 py-5 sm:px-7 sm:py-6">
+									<div className="flex items-start justify-between gap-4">
+										<div className="min-w-0">
+											<p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 dark:text-steel-400">
+												Item reference
 											</p>
-										)}
+											{item.itemId ? (
+												<Link
+													to="/portal/item/$id"
+													params={{ id: item.itemId }}
+													className="mt-1 inline-flex break-all text-base font-bold text-primary-800 underline-offset-4 hover:underline dark:text-primary-200"
+												>
+													{itemTitle}
+												</Link>
+											) : (
+												<span className="mt-1 inline-flex break-all text-base font-bold text-neutral-950 dark:text-white">
+													{itemTitle}
+												</span>
+											)}
+											{item.itemNumber && item.itemNumber !== item.reference && (
+												<p className="mt-0.5 text-[11px] font-medium text-neutral-500 dark:text-steel-400">
+													Item #{item.itemNumber}
+												</p>
+											)}
+										</div>
+										<div className="shrink-0 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-center dark:border-primary-800 dark:bg-primary-950/30">
+											<p className="text-[9px] font-bold uppercase tracking-[0.14em] text-primary-700 dark:text-primary-300">
+												Qty
+											</p>
+											<p className="mt-0.5 text-lg font-black tabular-nums text-primary-950 dark:text-primary-100">
+												{item.quantity ?? "—"}
+											</p>
+										</div>
 									</div>
-									<div className="shrink-0 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-center dark:border-primary-800 dark:bg-primary-950/30">
-										<p className="text-[9px] font-bold uppercase tracking-[0.14em] text-primary-700 dark:text-primary-300">
-											Qty
-										</p>
-										<p className="mt-0.5 text-lg font-black tabular-nums text-primary-950 dark:text-primary-100">
-											{item.quantity ?? "—"}
-										</p>
-									</div>
-								</div>
 
-								<div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50/80 p-3.5 dark:border-steel-700 dark:bg-steel-800/55">
-									<p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 dark:text-steel-400">
-										Item designation
-									</p>
-									<p className="mt-1.5 text-sm font-semibold leading-5 text-neutral-900 dark:text-steel-100">
-										{item.designation || "Not specified"}
-									</p>
-								</div>
+									<div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50/80 p-3.5 dark:border-steel-700 dark:bg-steel-800/55">
+										<p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 dark:text-steel-400">
+											Item designation
+										</p>
+										<p className="mt-1.5 text-sm font-semibold leading-5 text-neutral-900 dark:text-steel-100">
+											{item.designation || "Not specified"}
+										</p>
+									</div>
 
-								<dl className={`mt-3 grid gap-2 ${item.grossWeight != null ? "grid-cols-3" : "grid-cols-2"}`}>
-									<div className="rounded-xl border border-neutral-200 bg-white px-3 py-3 dark:border-steel-700 dark:bg-steel-900">
-										<dt className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.13em] text-neutral-500 dark:text-steel-400">
-											<Ruler className="h-3.5 w-3.5" aria-hidden="true" />
-											Dimensions
-										</dt>
-										<dd className="mt-1.5 text-sm font-bold tabular-nums text-neutral-950 dark:text-white">
-											{dimensions.join(" × ")} <span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">cm</span>
-										</dd>
-									</div>
-									<div className="rounded-xl border border-neutral-200 bg-white px-3 py-3 dark:border-steel-700 dark:bg-steel-900">
-										<dt className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.13em] text-neutral-500 dark:text-steel-400">
-											<Scale className="h-3.5 w-3.5" aria-hidden="true" />
-											Net weight
-										</dt>
-										<dd className="mt-1.5 text-sm font-bold tabular-nums text-neutral-950 dark:text-white">
-											{item.netWeight ?? "—"} <span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">kg</span>
-										</dd>
-									</div>
-									{item.grossWeight != null && (
+									<dl className={`mt-3 grid gap-2 ${item.grossWeight != null ? "grid-cols-3" : "grid-cols-2"}`}>
+										<div className="rounded-xl border border-neutral-200 bg-white px-3 py-3 dark:border-steel-700 dark:bg-steel-900">
+											<dt className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.13em] text-neutral-500 dark:text-steel-400">
+												<Ruler className="h-3.5 w-3.5" aria-hidden="true" />
+												Dimensions
+											</dt>
+											<dd className="mt-1.5 text-sm font-bold tabular-nums text-neutral-950 dark:text-white">
+												{dimensions.join(" × ")} <span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">cm</span>
+											</dd>
+										</div>
 										<div className="rounded-xl border border-neutral-200 bg-white px-3 py-3 dark:border-steel-700 dark:bg-steel-900">
 											<dt className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.13em] text-neutral-500 dark:text-steel-400">
 												<Scale className="h-3.5 w-3.5" aria-hidden="true" />
-												Gross weight
+												Net weight
 											</dt>
 											<dd className="mt-1.5 text-sm font-bold tabular-nums text-neutral-950 dark:text-white">
-												{item.grossWeight} <span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">kg</span>
+												{item.netWeight ?? "—"} <span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">kg</span>
 											</dd>
 										</div>
-									)}
-								</dl>
+										{item.grossWeight != null && (
+											<div className="rounded-xl border border-neutral-200 bg-white px-3 py-3 dark:border-steel-700 dark:bg-steel-900">
+												<dt className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.13em] text-neutral-500 dark:text-steel-400">
+													<Scale className="h-3.5 w-3.5" aria-hidden="true" />
+													Gross weight
+												</dt>
+												<dd className="mt-1.5 text-sm font-bold tabular-nums text-neutral-950 dark:text-white">
+													{item.grossWeight} <span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">kg</span>
+												</dd>
+											</div>
+										)}
+									</dl>
 
-								<div className="mt-4">
-									<div className="mb-2 flex items-center justify-between gap-3">
-										<p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 dark:text-steel-400">
-											Pictures
-										</p>
-										{item.photos.length > 0 && (
-											<span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">
-												Tap to enlarge
-											</span>
+									<div className="mt-4">
+										<div className="mb-2 flex items-center justify-between gap-3">
+											<p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 dark:text-steel-400">
+												Pictures
+											</p>
+											{item.photos.length > 0 && (
+												<span className="text-[10px] font-medium text-neutral-500 dark:text-steel-400">
+													Tap to enlarge
+												</span>
+											)}
+										</div>
+										{item.photos.length > 0 ? (
+											<div className="flex gap-2 overflow-x-auto pb-1">
+												{item.photos.map((photo, photoIndex) => (
+													<button
+														type="button"
+														key={photo.id}
+														onClick={() =>
+															setViewer({
+																photos: item.photos,
+																index: photoIndex,
+																title: itemTitle,
+															})
+														}
+														className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-steel-700 dark:bg-steel-800"
+														aria-label={`Enlarge ${itemTitle} photo ${photoIndex + 1}`}
+													>
+														<img
+															src={getPublicUrl(photo.image_url)}
+															alt={photo.notes || `${itemTitle} photo ${photoIndex + 1}`}
+															className="h-full w-full object-cover transition duration-200 group-hover:scale-105"
+														/>
+														<span className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-md bg-black/60 text-white backdrop-blur-sm">
+															<Maximize className="h-3 w-3 text-white" aria-hidden="true" />
+														</span>
+													</button>
+												))}
+											</div>
+										) : (
+											<p className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-3 py-3 text-xs text-neutral-500 dark:border-steel-700 dark:bg-steel-800/45 dark:text-steel-400">
+												No item pictures recorded.
+											</p>
 										)}
 									</div>
-									{item.photos.length > 0 ? (
-										<div className="flex gap-2 overflow-x-auto pb-1">
-											{item.photos.map((photo, photoIndex) => (
-												<button
-													type="button"
-													key={photo.id}
-													onClick={() =>
-														setViewer({
-															photos: item.photos,
-															index: photoIndex,
-															title: itemTitle,
-														})
-													}
-													className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-steel-700 dark:bg-steel-800"
-													aria-label={`Enlarge ${itemTitle} photo ${photoIndex + 1}`}
-												>
-													<img
-														src={getPublicUrl(photo.image_url)}
-														alt={photo.notes || `${itemTitle} photo ${photoIndex + 1}`}
-														className="h-full w-full object-cover transition duration-200 group-hover:scale-105"
-													/>
-													<span className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-md bg-black/60 text-white backdrop-blur-sm">
-														<Maximize className="h-3 w-3 text-white" aria-hidden="true" />
-													</span>
-												</button>
-											))}
-										</div>
-									) : (
-										<p className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-3 py-3 text-xs text-neutral-500 dark:border-steel-700 dark:bg-steel-800/45 dark:text-steel-400">
-											No item pictures recorded.
-										</p>
-									)}
-								</div>
-							</article>
-						);
-					})}
-				</div>
+								</article>
+							);
+						})}
+					</div>
+
+					<div className="flex flex-col gap-3 border-t border-neutral-200 bg-neutral-50/65 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7 dark:border-steel-700 dark:bg-steel-800/35">
+						<p className="text-xs font-medium text-neutral-500 dark:text-steel-400">
+							Showing <span className="font-bold text-neutral-800 dark:text-steel-200">{startIndex + 1}</span>–<span className="font-bold text-neutral-800 dark:text-steel-200">{endIndex}</span> of <span className="font-bold text-neutral-800 dark:text-steel-200">{items.length}</span>
+						</p>
+						<nav className="flex items-center gap-1" aria-label="Packing list pages">
+							<button
+								type="button"
+								onClick={() => setPage((current) => Math.max(1, current - 1))}
+								disabled={page === 1}
+								className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-700 shadow-sm transition hover:border-primary-300 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-35 dark:border-steel-700 dark:bg-steel-900 dark:text-steel-200 dark:hover:border-primary-700 dark:hover:text-primary-300"
+								aria-label="Previous packing list page"
+							>
+								<ChevronLeft className="h-4 w-4" aria-hidden="true" />
+							</button>
+							{paginationItems.map((entry) =>
+								typeof entry === "number" ? (
+									<button
+										type="button"
+										key={entry}
+										onClick={() => setPage(entry)}
+										aria-current={entry === page ? "page" : undefined}
+										className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-2 text-xs font-bold tabular-nums shadow-sm transition ${entry === page ? "border-primary-600 bg-primary-600 text-white dark:border-primary-500 dark:bg-primary-500" : "border-neutral-200 bg-white text-neutral-700 hover:border-primary-300 hover:text-primary-700 dark:border-steel-700 dark:bg-steel-900 dark:text-steel-200 dark:hover:border-primary-700 dark:hover:text-primary-300"}`}
+									>
+										{entry}
+									</button>
+								) : (
+									<span key={entry} className="inline-flex h-9 min-w-6 items-center justify-center text-xs font-bold text-neutral-400 dark:text-steel-500" aria-hidden="true">
+										…
+									</span>
+								),
+							)}
+							<button
+								type="button"
+								onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+								disabled={page === totalPages}
+								className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-700 shadow-sm transition hover:border-primary-300 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-35 dark:border-steel-700 dark:bg-steel-900 dark:text-steel-200 dark:hover:border-primary-700 dark:hover:text-primary-300"
+								aria-label="Next packing list page"
+							>
+								<ChevronRight className="h-4 w-4" aria-hidden="true" />
+							</button>
+						</nav>
+					</div>
+				</>
 			)}
 
 			{viewer && (
@@ -601,6 +703,7 @@ export function PackageDetailsView({ id }: { id: string }) {
 				const catalog = Array.isArray(row.items_db) ? row.items_db[0] : row.items_db;
 				return {
 					id: row.id,
+					itemId: catalog?.id ?? null,
 					quantity: row.quantity ?? null,
 					reference: catalog?.reference ?? null,
 					itemNumber: catalog?.item_num ?? null,
