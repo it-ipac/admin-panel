@@ -23,6 +23,12 @@ type ItemLookupResult = {
 
 const UUID_PATTERN =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PRINTED_ITEM_LABEL_PATTERN = /^P-([A-Z0-9._/-]+)-QTY:\s*\d+$/i;
+
+const getItemNumberCandidate = (query: string) => {
+	const labelMatch = query.match(PRINTED_ITEM_LABEL_PATTERN);
+	return labelMatch?.[1] || query;
+};
 
 export function PortalLookup({ clientId }: { clientId: string | null }) {
 	const navigate = useNavigate();
@@ -96,11 +102,12 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 	const findItems = async (query: string) => {
 		if (!clientId) return [];
 		const fields = "id, item_num, reference, description";
+		const itemNumberCandidate = getItemNumberCandidate(query);
 		const byItemNumber = await supabase
 			.from("items_db")
 			.select(fields)
 			.eq("client_id", clientId)
-			.ilike("item_num", query)
+			.ilike("item_num", itemNumberCandidate)
 			.limit(100);
 		if (byItemNumber.error) throw byItemNumber.error;
 		if (byItemNumber.data && byItemNumber.data.length > 0) return byItemNumber.data;
@@ -275,8 +282,6 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 						autoComplete="off"
 						spellCheck={false}
 						disabled={!clientId}
-						aria-expanded={hasFeedback}
-						aria-controls={hasFeedback ? "portal-lookup-feedback" : undefined}
 						className="h-10 w-full rounded-xl border border-app-border bg-app-surface-muted/80 py-2 pl-10 pr-[4.75rem] text-sm font-medium text-app-text-strong shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition-[background-color,border-color,box-shadow] placeholder:font-normal placeholder:text-app-text-muted hover:border-primary-200 focus:border-primary-500 focus:bg-app-surface focus:outline-none focus:ring-2 focus:ring-primary-500/25 disabled:cursor-wait disabled:opacity-60 dark:shadow-none sm:h-11"
 					/>
 					<button
@@ -350,9 +355,13 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 											<span className="mt-0.5 flex flex-wrap gap-x-2 text-[11px] text-app-text-muted">
 												{box.destination && <span>{box.destination}</span>}
 												{box.quantity != null && <span>Qty {box.quantity}</span>}
+												{box.status && <span className="capitalize">{box.status}</span>}
 											</span>
 										</span>
-										<ArrowRight className="h-4 w-4 shrink-0 text-primary-700 transition-transform group-hover:translate-x-0.5 dark:text-primary-300" aria-hidden="true" />
+										<ArrowRight
+											className="h-4 w-4 shrink-0 text-primary-700 transition-transform group-hover:translate-x-0.5 dark:text-primary-300"
+											aria-hidden="true"
+										/>
 									</button>
 								))}
 							</div>
