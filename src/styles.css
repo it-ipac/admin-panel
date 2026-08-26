@@ -797,6 +797,33 @@ button.text-white {
 	--hover-bg-primary-100: light-dark(#dff3fb, rgba(0, 129, 197, 0.22));
 }
 
+/* Package-detail elevation tokens follow the portal's explicit theme switch,
+   including when the device color preference differs from the selected theme. */
+.portal-package-details {
+	--package-page-bg: light-dark(#f2f6fa, #020817);
+	--package-card-bg: light-dark(#ffffff, #111827);
+	--package-canvas-bg: light-dark(#f4f7fb, rgba(2, 6, 23, 0.4));
+	--package-tile-bg: light-dark(#f7f9fc, rgba(30, 41, 59, 0.65));
+	--package-tile-soft-bg: light-dark(#fbfcfe, rgba(30, 41, 59, 0.55));
+	--package-control-bg: light-dark(#f8fafc, #1e293b);
+	--package-chip-bg: light-dark(#edf2f7, #1e293b);
+	--package-summary-bg: light-dark(#eef7fc, rgba(3, 2, 31, 0.25));
+	--package-border: light-dark(#d7e1eb, #334155);
+	--package-border-soft: light-dark(#e1e8f0, #334155);
+	--package-blue-border: light-dark(#c8e4f2, #0c2b7b);
+	--package-quiet-text: light-dark(#94a3b8, #64748b);
+	--package-shadow-key: light-dark(rgba(15, 23, 42, 0.06), rgba(0, 0, 0, 0.4));
+	--package-shadow-primary: light-dark(
+		rgba(30, 64, 100, 0.24),
+		rgba(0, 0, 0, 0.72)
+	);
+	--package-shadow-secondary: light-dark(
+		rgba(30, 64, 100, 0.2),
+		rgba(0, 0, 0, 0.68)
+	);
+	--package-shadow-inner: light-dark(rgba(30, 64, 100, 0.3), rgba(0, 0, 0, 0));
+}
+
 .portal-wordmark {
 	font-family:
 		Montserrat, "Avenir Next", "Century Gothic", Futura, "Arial Black", Arial,

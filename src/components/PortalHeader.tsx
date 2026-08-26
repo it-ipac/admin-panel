@@ -17,6 +17,7 @@ import {
 	setThemePreference,
 } from "../lib/theme";
 import { PortalBrand } from "./PortalBrand";
+import { PortalLookup } from "./portal/PortalLookup";
 import { PortalTooltip } from "./PortalTooltip";
 
 interface PortalHeaderProps {
@@ -106,8 +107,10 @@ export function PortalHeader({
 
 	return (
 		<header className="portal-brand sticky top-0 z-40 border-b border-app-border bg-app-surface/95 backdrop-blur-xl">
-			<div className={`${maxWidth} mx-auto px-3 min-[480px]:px-4 sm:px-6 lg:px-8`}>
-				<div className="flex min-h-[4.25rem] items-center justify-between gap-2 py-2 sm:min-h-[4.75rem] sm:gap-3">
+			<div
+				className={`${maxWidth} mx-auto px-3 min-[480px]:px-4 sm:px-6 lg:px-8`}
+			>
+				<div className="flex min-h-[4.25rem] flex-wrap items-center justify-between gap-2 py-2 sm:min-h-[4.75rem] sm:gap-3">
 					<Link
 						to="/portal/projects"
 						className="flex min-w-0 items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface"
@@ -116,9 +119,7 @@ export function PortalHeader({
 						<PortalBrand
 							variant="header"
 							className={
-								activePage === "package"
-									? "max-[479px]:[&>span]:hidden"
-									: ""
+								activePage === "package" ? "max-[479px]:[&>span]:hidden" : ""
 							}
 						/>
 						<div className="ml-4 hidden min-w-0 border-l border-app-border pl-4 xl:block">
@@ -130,6 +131,8 @@ export function PortalHeader({
 							</p>
 						</div>
 					</Link>
+
+					<PortalLookup clientId={profile?.client_id || null} />
 
 					<nav
 						className="flex shrink-0 items-center gap-0.5 rounded-2xl border border-app-border bg-app-surface-muted/60 p-1 shadow-[0_1px_3px_rgba(15,23,42,0.05)] min-[390px]:gap-1 sm:gap-1.5 sm:p-1.5"
@@ -151,18 +154,20 @@ export function PortalHeader({
 							</PortalTooltip>
 						)}
 
-						<PortalTooltip
-							label="Scan package"
-							detail="Use your device camera"
-						>
+						<PortalTooltip label="Scan package" detail="Use your device camera">
 							<button
 								type="button"
 								onClick={onScan}
 								className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-500 bg-primary-600 text-white shadow-[0_3px_10px_rgba(0,94,168,0.22)] transition-[background-color,border-color,box-shadow] duration-150 hover:border-primary-400 hover:bg-primary-700 hover:shadow-[0_4px_14px_rgba(0,94,168,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:bg-primary-800 max-[380px]:h-9 max-[380px]:w-9 sm:h-11 sm:w-auto sm:gap-2 sm:px-3.5"
 								aria-label="Scan package QR code"
 							>
-								<Camera className="h-[18px] w-[18px] text-white" aria-hidden="true" />
-								<span className="hidden text-sm font-semibold text-white sm:inline">Scan</span>
+								<Camera
+									className="h-[18px] w-[18px] text-white"
+									aria-hidden="true"
+								/>
+								<span className="hidden text-sm font-semibold text-white sm:inline">
+									Scan
+								</span>
 							</button>
 						</PortalTooltip>
 
@@ -197,7 +202,10 @@ export function PortalHeader({
 											className={`${utilityButtonClass} text-app-text-strong`}
 											aria-label="Open account menu"
 										>
-											<UserRound className="h-[19px] w-[19px]" aria-hidden="true" />
+											<UserRound
+												className="h-[19px] w-[19px]"
+												aria-hidden="true"
+											/>
 										</button>
 									</DropdownMenu.Trigger>
 								</PortalTooltip>
@@ -212,8 +220,12 @@ export function PortalHeader({
 												<UserRound className="h-5 w-5" aria-hidden="true" />
 											</div>
 											<div className="min-w-0">
-												<p className="truncate text-sm font-semibold text-app-text-strong">{displayName}</p>
-												<p className="mt-0.5 truncate text-xs text-app-text-muted">{secondaryIdentity}</p>
+												<p className="truncate text-sm font-semibold text-app-text-strong">
+													{displayName}
+												</p>
+												<p className="mt-0.5 truncate text-xs text-app-text-muted">
+													{secondaryIdentity}
+												</p>
 											</div>
 										</div>
 										<DropdownMenu.Separator className="my-1 h-px bg-app-border" />
@@ -223,7 +235,10 @@ export function PortalHeader({
 											className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 text-sm font-semibold text-danger-700 outline-none transition-colors hover:bg-danger-50 focus:bg-danger-50 data-[disabled]:cursor-wait data-[disabled]:opacity-60"
 										>
 											{signingOut ? (
-												<Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+												<Loader2
+													className="h-4 w-4 animate-spin"
+													aria-hidden="true"
+												/>
 											) : (
 												<LogOut className="h-4 w-4" aria-hidden="true" />
 											)}
@@ -233,7 +248,11 @@ export function PortalHeader({
 								</DropdownMenu.Portal>
 							</DropdownMenu.Root>
 						) : (
-							<PortalTooltip label="Sign in" detail="Open client access" align="end">
+							<PortalTooltip
+								label="Sign in"
+								detail="Open client access"
+								align="end"
+							>
 								<Link
 									to="/portal/login"
 									className={utilityButtonClass}
