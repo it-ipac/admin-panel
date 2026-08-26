@@ -314,6 +314,7 @@ function RootComponent() {
 							<TanStackRouterDevtools position="bottom-right" />
 						)}
 					</ToastProvider>
+				</AuthContext.Provider>
 			</QueryClientProvider>
 		</RootDocument>
 	);
