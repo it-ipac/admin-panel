@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	ArrowRight,
-	Box,
 	Camera,
 	Check,
 	Images,
@@ -14,12 +13,12 @@ import {
 	Search,
 	ShieldAlert,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { QrScanner } from "../../../components/orders/orderId/modals/QrScanner";
 import { PortalHeader } from "../../../components/PortalHeader";
 import { parseQrToken } from "../../../features/orders/hooks/useInstanceQr";
 import { useAuth } from "../../../hooks/useAuth";
-import { auth, db, supabase } from "../../../lib/supabase";
+import { auth, db } from "../../../lib/supabase";
 
 export const Route = createFileRoute("/portal/projects/")({
 	component: PortalProjects,
@@ -27,27 +26,6 @@ export const Route = createFileRoute("/portal/projects/")({
 		meta: [{ title: "Package Portal | Client Portal" }],
 	}),
 });
-
-type BoxLocation = {
-	id: string;
-	reference: string;
-	destination: string | null;
-	status: string | null;
-	quantity: number | null;
-};
-
-type ItemLookupResult = {
-	kind: "item";
-	query: string;
-	itemReference: string | null;
-	itemNumbers: string[];
-	description: string | null;
-	matchedRecords: number;
-	boxes: BoxLocation[];
-};
-
-const UUID_PATTERN =
-	/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const PORTAL_RECORD_SIGNALS = [
 	{
@@ -106,8 +84,8 @@ function PortalRecordFlowIllustration() {
 					/>
 				</div>
 				<div className="mt-3 flex items-center gap-2 text-xs text-steel-300">
-					<Check className="h-3.5 w-3.5 text-success-400" aria-hidden="true" />A
-					box number opens the complete box record directly
+					<Check className="h-3.5 w-3.5 text-success-400" aria-hidden="true" />
+					A box number opens the complete box record directly
 				</div>
 			</div>
 
@@ -153,112 +131,9 @@ function PortalSignature() {
 	);
 }
 
-function ItemLocationResult({
-	result,
-	onOpenBox,
-}: {
-	result: ItemLookupResult;
-	onOpenBox: (id: string) => void;
-}) {
-	const title = result.itemReference || result.itemNumbers[0] || result.query;
-	return (
-		<div
-			className="mt-4 overflow-hidden rounded-2xl border border-app-border bg-app-surface shadow-[0_18px_48px_-38px_rgba(15,23,42,0.55)]"
-			aria-live="polite"
-		>
-			<div className="border-b border-app-border bg-app-surface-muted px-4 py-4 sm:px-5">
-				<div className="flex items-start justify-between gap-4">
-					<div className="min-w-0">
-						<p className="text-[10px] font-bold uppercase tracking-[0.17em] text-primary-700 dark:text-primary-300">
-							Item location
-						</p>
-						<h3 className="mt-1 break-all text-lg font-bold tracking-[-0.02em] text-app-text-strong">
-							{title}
-						</h3>
-						{result.description && (
-							<p className="mt-1 line-clamp-2 text-xs leading-5 text-app-text-muted">
-								{result.description}
-							</p>
-						)}
-					</div>
-					<span className="shrink-0 rounded-full border border-primary-200 bg-primary-50 px-2.5 py-1 text-[10px] font-bold text-primary-800 dark:border-primary-800 dark:bg-primary-950/30 dark:text-primary-200">
-						{result.boxes.length} box{result.boxes.length === 1 ? "" : "es"}
-					</span>
-				</div>
-				{result.matchedRecords > 1 && (
-					<p className="mt-2 text-[10px] text-app-text-muted">
-						Matched {result.matchedRecords} item records
-						{result.itemNumbers.length > 0
-							? ` · ${result.itemNumbers.join(", ")}`
-							: ""}
-					</p>
-				)}
-			</div>
-
-			{result.boxes.length === 0 ? (
-				<div className="px-4 py-6 text-center sm:px-5">
-					<div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl border border-app-border bg-app-surface-muted text-app-text-muted">
-						<Box className="h-5 w-5" aria-hidden="true" />
-					</div>
-					<p className="mt-3 text-sm font-semibold text-app-text-strong">
-						No packed box recorded yet
-					</p>
-					<p className="mt-1 text-xs text-app-text-muted">
-						This item exists, but it is not currently linked to a packed box.
-					</p>
-				</div>
-			) : (
-				<div className="divide-y divide-app-border">
-					{result.boxes.map((box) => (
-						<button
-							type="button"
-							key={box.id}
-							onClick={() => onOpenBox(box.id)}
-							className="group flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-app-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 sm:px-5"
-						>
-							<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 text-primary-700 dark:border-primary-800 dark:bg-primary-950/30 dark:text-primary-300">
-								<Box className="h-5 w-5" aria-hidden="true" />
-							</span>
-							<span className="min-w-0 flex-1">
-								<span className="block break-all text-sm font-bold text-app-text-strong">
-									{box.reference}
-								</span>
-								<span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-app-text-muted">
-									{box.destination && (
-										<span>Destination {box.destination}</span>
-									)}
-									{box.quantity != null && (
-										<span>Qty in box {box.quantity}</span>
-									)}
-									{box.status && (
-										<span className="capitalize">{box.status}</span>
-									)}
-								</span>
-							</span>
-							<span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-primary-700 dark:text-primary-300">
-								Open
-								<ArrowRight
-									className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
-									aria-hidden="true"
-								/>
-							</span>
-						</button>
-					))}
-				</div>
-			)}
-		</div>
-	);
-}
-
 function PortalProjects() {
 	const navigate = useNavigate();
 	const { user, loading } = useAuth();
-	const [lookupInput, setLookupInput] = useState("");
-	const [lookupResult, setLookupResult] = useState<ItemLookupResult | null>(
-		null,
-	);
-	const [lookupError, setLookupError] = useState<string | null>(null);
-	const [lookupLoading, setLookupLoading] = useState(false);
 	const [scannerOpen, setScannerOpen] = useState(false);
 
 	useEffect(() => {
@@ -295,238 +170,6 @@ function PortalProjects() {
 		setScannerOpen(false);
 		navigate({ to: "/portal/scan/$token", params: { token } });
 	};
-
-	const findBox = async (value: string) => {
-		const fields = "id, ipac_reference, client_reference, destination, status";
-		const byIpac = await supabase
-			.from("order_pkg_instance")
-			.select(fields)
-			.ilike("ipac_reference", value)
-			.limit(1);
-		if (byIpac.error) throw byIpac.error;
-		if (byIpac.data?.[0]) return byIpac.data[0];
-
-		const byClientReference = await supabase
-			.from("order_pkg_instance")
-			.select(fields)
-			.ilike("client_reference", value)
-			.limit(1);
-		if (byClientReference.error) throw byClientReference.error;
-		return byClientReference.data?.[0] || null;
-	};
-
-	const findDeveloperBox = async (value: string) => {
-		const fields = "id, ipac_reference, client_reference, destination, status";
-		const packageUrlMatch = value.match(/\/portal\/package\/([^/?#\s]+)/i);
-		const directCandidate = packageUrlMatch
-			? decodeURIComponent(packageUrlMatch[1])
-			: value;
-
-		if (UUID_PATTERN.test(directCandidate)) {
-			const byId = await supabase
-				.from("order_pkg_instance")
-				.select(fields)
-				.eq("id", directCandidate)
-				.limit(1);
-			if (byId.error) throw byId.error;
-			if (byId.data?.[0]) return byId.data[0];
-		}
-
-		const token = parseQrToken(value);
-		if (!token) return null;
-		const { data: qrRows, error: qrError } = await supabase
-			.from("qr_codes")
-			.select("entity_id")
-			.eq("entity_type", "package")
-			.eq("token", token)
-			.limit(1);
-		if (qrError) throw qrError;
-		const qrRow = qrRows?.[0];
-		if (!qrRow?.entity_id) return null;
-
-		const byQrEntity = await supabase
-			.from("order_pkg_instance")
-			.select(fields)
-			.eq("id", qrRow.entity_id)
-			.limit(1);
-		if (byQrEntity.error) throw byQrEntity.error;
-		return byQrEntity.data?.[0] || null;
-	};
-
-	const findItems = async (value: string) => {
-		if (!clientId) return [];
-		const fields = "id, item_num, reference, description";
-		const byItemNumber = await supabase
-			.from("items_db")
-			.select(fields)
-			.eq("client_id", clientId)
-			.ilike("item_num", value)
-			.limit(100);
-		if (byItemNumber.error) throw byItemNumber.error;
-		if (byItemNumber.data && byItemNumber.data.length > 0)
-			return byItemNumber.data;
-
-		const byReference = await supabase
-			.from("items_db")
-			.select(fields)
-			.eq("client_id", clientId)
-			.ilike("reference", value)
-			.limit(100);
-		if (byReference.error) throw byReference.error;
-		if (byReference.data && byReference.data.length > 0)
-			return byReference.data;
-
-		const itemUrlMatch = value.match(/\/portal\/item\/([^/?#\s]+)/i);
-		const developerItemId = itemUrlMatch
-			? decodeURIComponent(itemUrlMatch[1])
-			: value;
-		if (!UUID_PATTERN.test(developerItemId)) return [];
-
-		const byId = await supabase
-			.from("items_db")
-			.select(fields)
-			.eq("client_id", clientId)
-			.eq("id", developerItemId)
-			.limit(1);
-		if (byId.error) throw byId.error;
-		return byId.data || [];
-	};
-
-	const buildItemResult = async (
-		query: string,
-		itemRows: any[],
-	): Promise<ItemLookupResult> => {
-		const itemIds = itemRows.map((item) => item.id).filter(Boolean);
-		const itemNumbers = Array.from(
-			new Set(itemRows.map((item) => item.item_num).filter(Boolean)),
-		) as string[];
-		const references = Array.from(
-			new Set(itemRows.map((item) => item.reference).filter(Boolean)),
-		) as string[];
-		const descriptions = Array.from(
-			new Set(itemRows.map((item) => item.description).filter(Boolean)),
-		) as string[];
-
-		if (itemIds.length === 0) {
-			return {
-				kind: "item",
-				query,
-				itemReference: references[0] || null,
-				itemNumbers,
-				description: descriptions.length === 1 ? descriptions[0] : null,
-				matchedRecords: itemRows.length,
-				boxes: [],
-			};
-		}
-
-		const { data: packedRows, error } = await supabase
-			.from("pkd_item")
-			.select(`
-				id,
-				quantity,
-				order_pkg_instance:pkg_instance_id (
-					id,
-					ipac_reference,
-					client_reference,
-					destination,
-					status
-				)
-			`)
-			.in("maintenance_db_id", itemIds)
-			.not("pkg_instance_id", "is", null);
-		if (error) throw error;
-
-		const boxes = new Map<string, BoxLocation>();
-		for (const row of packedRows || []) {
-			const instance = Array.isArray((row as any).order_pkg_instance)
-				? (row as any).order_pkg_instance[0]
-				: (row as any).order_pkg_instance;
-			if (!instance?.id) continue;
-
-			const numericQuantity = Number((row as any).quantity);
-			const quantity = Number.isFinite(numericQuantity)
-				? numericQuantity
-				: null;
-			const existing = boxes.get(instance.id);
-			if (existing) {
-				if (quantity != null)
-					existing.quantity = (existing.quantity || 0) + quantity;
-				continue;
-			}
-
-			boxes.set(instance.id, {
-				id: instance.id,
-				reference:
-					instance.ipac_reference ||
-					instance.client_reference ||
-					`Box ${instance.id.slice(0, 8)}`,
-				destination: instance.destination || null,
-				status: instance.status || null,
-				quantity,
-			});
-		}
-
-		return {
-			kind: "item",
-			query,
-			itemReference:
-				references.length === 1 ? references[0] : references[0] || null,
-			itemNumbers,
-			description: descriptions.length === 1 ? descriptions[0] : null,
-			matchedRecords: itemRows.length,
-			boxes: Array.from(boxes.values()).sort((a, b) =>
-				a.reference.localeCompare(b.reference),
-			),
-		};
-	};
-
-	const handleLookup = async () => {
-		const value = lookupInput.trim();
-		if (!value || !clientId) return;
-
-		setLookupLoading(true);
-		setLookupError(null);
-		setLookupResult(null);
-		try {
-			const box = await findBox(value);
-			if (box?.id) {
-				navigate({ to: "/portal/package/$id", params: { id: box.id } });
-				return;
-			}
-
-			const itemRows = await findItems(value);
-			if (itemRows.length > 0) {
-				setLookupResult(await buildItemResult(value, itemRows));
-				return;
-			}
-
-			const developerBox = await findDeveloperBox(value);
-			if (developerBox?.id) {
-				navigate({
-					to: "/portal/package/$id",
-					params: { id: developerBox.id },
-				});
-				return;
-			}
-
-			setLookupError(
-				"No matching box number or item reference was found for your account.",
-			);
-		} catch (error: any) {
-			setLookupError(
-				error?.message || "Unable to search right now. Please try again.",
-			);
-		} finally {
-			setLookupLoading(false);
-		}
-	};
-
-	const resultSummary = useMemo(() => {
-		if (!lookupResult) return null;
-		if (lookupResult.boxes.length === 0)
-			return "Item found, but no packed box is linked yet.";
-		return `Item found in ${lookupResult.boxes.length} box${lookupResult.boxes.length === 1 ? "" : "es"}.`;
-	}, [lookupResult]);
 
 	if (loading || profileLoading) {
 		return (
@@ -618,15 +261,6 @@ function PortalProjects() {
 				onScan={() => setScannerOpen(true)}
 				activePage="home"
 				maxWidth="max-w-7xl"
-				lookup={{
-					value: lookupInput,
-					onValueChange: (value) => {
-						setLookupInput(value);
-						setLookupError(null);
-					},
-					onSubmit: () => void handleLookup(),
-					loading: lookupLoading,
-				}}
 			/>
 
 			<main className="relative isolate overflow-hidden">
@@ -647,37 +281,10 @@ function PortalProjects() {
 							Find a box or locate an item.
 						</h1>
 						<p className="mt-3 max-w-lg text-sm leading-6 text-app-text-muted sm:text-base">
-							Enter a box number to open its full record. Enter an item number
-							or item reference to see every box containing those parts.
+							Use the search in the header with a box number, item number, item
+							reference, or printed item label. Box matches open directly; item
+							matches show every box containing those parts beside the search.
 						</p>
-
-						<p className="mt-4 text-xs leading-5 text-app-text-muted sm:mt-5">
-							Search the header by box number, item number, or item reference. A
-							box opens directly; an item shows every box containing it.
-						</p>
-
-						{lookupError && (
-							<div
-								className="mt-5 rounded-2xl border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-800 shadow-[0_8px_22px_-18px_rgba(127,29,29,0.4)] dark:border-danger-800/70 dark:bg-danger-950/30 dark:text-danger-200"
-								role="alert"
-							>
-								{lookupError}
-							</div>
-						)}
-
-						{lookupResult && (
-							<>
-								<span className="sr-only" aria-live="polite">
-									{resultSummary}
-								</span>
-								<ItemLocationResult
-									result={lookupResult}
-									onOpenBox={(id) =>
-										navigate({ to: "/portal/package/$id", params: { id } })
-									}
-								/>
-							</>
-						)}
 
 						<div className="mt-7 border-t border-app-border pt-5 sm:mt-8 sm:pt-6">
 							<p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-app-text-muted">
