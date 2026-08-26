@@ -294,15 +294,14 @@ function PortalProjects() {
 
 		const token = parseQrToken(value);
 		if (!token) return null;
-		const { data: qrRow, error: qrError } = await supabase
+		const { data: qrRows, error: qrError } = await supabase
 			.from("qr_codes")
 			.select("entity_id")
 			.eq("entity_type", "package")
 			.eq("token", token)
-			.eq("is_active", true)
-			.limit(1)
-			.maybeSingle();
+			.limit(1);
 		if (qrError) throw qrError;
+		const qrRow = qrRows?.[0];
 		if (!qrRow?.entity_id) return null;
 
 		const byQrEntity = await supabase
