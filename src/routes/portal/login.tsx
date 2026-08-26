@@ -1,11 +1,24 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, KeyRound, Loader2, UserRound } from "lucide-react";
+import {
+	ArrowRight,
+	KeyRound,
+	Loader2,
+	Moon,
+	Sun,
+	UserRound,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { PortalBrand } from "../../components/PortalBrand";
 import { useToastContext } from "../../components/ui/ToastProvider";
 import { useAuth } from "../../hooks/useAuth";
+import {
+	applyThemePreference,
+	getThemePreference,
+	setThemePreference,
+} from "../../lib/theme";
 import { auth, db } from "../../lib/supabase";
 import "../../portal-login-polish.css";
+import "../../portal-login-controls.css";
 
 type PortalLoginSearch = {
 	returnUrl?: string;
@@ -29,6 +42,7 @@ function PortalLogin() {
 	const [identifier, setIdentifier] = useState("");
 	const [password, setPassword] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [isDark, setIsDark] = useState(false);
 
 	const returnUrl = rawReturnUrl?.startsWith("/portal/")
 		? rawReturnUrl
@@ -49,10 +63,44 @@ function PortalLogin() {
 	}, [navigate, returnUrl]);
 
 	useEffect(() => {
+		const root = document.documentElement;
+		const media = window.matchMedia("(prefers-color-scheme: dark)");
+
+		applyThemePreference(getThemePreference());
+
+		const syncTheme = () => {
+			const applied = root.getAttribute("data-theme");
+			setIsDark(
+				applied === "dark" ||
+					(applied !== "light" && media.matches),
+			);
+		};
+
+		syncTheme();
+		media.addEventListener("change", syncTheme);
+		const observer = new MutationObserver(syncTheme);
+		observer.observe(root, {
+			attributes: true,
+			attributeFilter: ["data-theme"],
+		});
+
+		return () => {
+			media.removeEventListener("change", syncTheme);
+			observer.disconnect();
+		};
+	}, []);
+
+	useEffect(() => {
 		if (!loading && user) {
 			goToReturnUrl();
 		}
 	}, [user, loading, goToReturnUrl]);
+
+	const handleThemeToggle = () => {
+		const nextTheme = isDark ? "light" : "dark";
+		setThemePreference(nextTheme);
+		setIsDark(nextTheme === "dark");
+	};
 
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -94,12 +142,34 @@ function PortalLogin() {
 		}
 	};
 
+	const themeToggle = (
+		<button
+			type="button"
+			onClick={handleThemeToggle}
+			className="portal-login-theme-toggle"
+			aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
+			title={`Switch to ${isDark ? "light" : "dark"} theme`}
+		>
+			<span className="portal-login-theme-icon" aria-hidden="true">
+				{isDark ? (
+					<Sun className="h-[17px] w-[17px]" />
+				) : (
+					<Moon className="h-[17px] w-[17px]" />
+				)}
+			</span>
+			<span className="portal-login-theme-label">
+				{isDark ? "Light" : "Dark"}
+			</span>
+		</button>
+	);
+
 	if (loading) {
 		return (
 			<div
 				className="portal-brand portal-login-page relative flex h-screen items-center justify-center overflow-hidden p-4"
 				style={{ height: "100dvh" }}
 			>
+				<div className="portal-login-theme-position">{themeToggle}</div>
 				<div className="portal-login-loading-card relative z-10 flex w-full max-w-[19rem] flex-col items-center rounded-3xl border p-7 text-center">
 					<PortalBrand
 						variant="header"
@@ -125,6 +195,7 @@ function PortalLogin() {
 			className="portal-brand portal-login-page auth-bg relative flex h-screen items-center justify-center overflow-x-hidden overflow-y-auto px-[clamp(0.75rem,3vw,1.5rem)] py-[clamp(0.75rem,2.5vh,2rem)]"
 			style={{ height: "100dvh" }}
 		>
+			<div className="portal-login-theme-position">{themeToggle}</div>
 			<div
 				className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/35 to-transparent"
 				aria-hidden="true"
@@ -216,17 +287,20 @@ function PortalLogin() {
 						<button
 							type="submit"
 							disabled={isSubmitting}
-							className="portal-login-submit relative mt-1 flex min-h-12 w-full items-center justify-center rounded-xl border px-4 py-3 text-sm font-bold text-white transition-[transform,filter,box-shadow] hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-app-surface active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 motion-reduce:transform-none"
+							className="portal-login-submit relative mt-1 flex min-h-12 w-full items-center justify-center rounded-xl border px-4 py-3 text-sm font-bold transition-[transform,filter,box-shadow] hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-app-surface active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 motion-reduce:transform-none"
 						>
 							{isSubmitting ? (
 								<>
-									<Loader2 className="mr-2 h-5 w-5 animate-spin text-white" aria-hidden="true" />
-									<span className="text-white">Signing in</span>
+									<Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
+									<span>Signing in</span>
 								</>
 							) : (
 								<>
-									<span className="text-white">Sign In</span>
-									<ArrowRight className="absolute right-4 h-4 w-4 text-white/80" aria-hidden="true" />
+									<span>Sign In</span>
+									<ArrowRight
+										className="portal-login-submit-arrow absolute right-4 h-4 w-4"
+										aria-hidden="true"
+									/>
 								</>
 							)}
 						</button>
