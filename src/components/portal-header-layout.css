@@ -1,0 +1,158 @@
+/* Shared portal chrome: one header geometry across portal screens.
+   Keep page-specific content free to vary, but never change the shell width. */
+
+header.portal-brand {
+	--portal-shell-width: 80rem;
+}
+
+header.portal-brand > div {
+	width: min(100%, var(--portal-shell-width));
+}
+
+/* The shared header is always one row. The lookup is the flexible region;
+   brand/actions stay fixed and the search absorbs the available width. */
+header.portal-brand > div > div {
+	flex-wrap: nowrap !important;
+}
+
+header.portal-brand div:has(> form #portal-header-lookup) {
+	order: initial !important;
+	width: auto !important;
+	min-width: 0 !important;
+	max-width: 36rem;
+	flex: 1 1 0 !important;
+	flex-basis: 0 !important;
+	margin-inline: clamp(0.125rem, 1vw, 0.75rem) !important;
+}
+
+header.portal-brand form:has(#portal-header-lookup) {
+	width: 100%;
+	min-width: 0;
+}
+
+/* Package details previously used a narrower shell than the projects page,
+   making the same header look like a different version and leaving excessive
+   dead space around the desktop content. */
+.portal-package-details > main {
+	width: min(100%, 80rem) !important;
+	max-width: 80rem !important;
+	padding-top: 1.25rem !important;
+	padding-bottom: 2.5rem !important;
+}
+
+@media (min-width: 640px) {
+	.portal-package-details > main {
+		padding-top: 1.5rem !important;
+	}
+}
+
+/* Tablet/mobile compaction: keep the exact same header structure instead of
+   moving search to a second row. Only reduce non-essential visual footprint. */
+@media (max-width: 767px) {
+	header.portal-brand > div > div {
+		gap: 0.375rem !important;
+		min-height: 3.75rem !important;
+		padding-block: 0.375rem !important;
+	}
+
+	/* Keep the mark, hide only the long METRIX-ASSETS wordmark when horizontal
+	   space matters. Every portal screen follows the same rule. */
+	header.portal-brand
+		a[aria-label="Client portal home"]
+		> span
+		> span {
+		display: none !important;
+	}
+
+	header.portal-brand div:has(> form #portal-header-lookup) {
+		max-width: none;
+		margin-inline: 0 !important;
+	}
+
+	header.portal-brand #portal-header-lookup {
+		height: 2.25rem !important;
+		padding-left: 2rem !important;
+		padding-right: 2.4rem !important;
+		font-size: 0.75rem !important;
+		line-height: 1rem !important;
+	}
+
+	/* On compact screens the submit control becomes icon-only. Enter still
+	   submits normally, so no lookup behavior changes. */
+	header.portal-brand
+		form:has(#portal-header-lookup)
+		button[type="submit"] {
+		width: 2rem !important;
+		min-width: 2rem !important;
+		padding-inline: 0 !important;
+		border-radius: 0.5rem !important;
+	}
+
+	header.portal-brand
+		form:has(#portal-header-lookup)
+		button[type="submit"]
+		> span {
+		display: none !important;
+	}
+
+	header.portal-brand nav[aria-label="Portal actions"] {
+		gap: 0.125rem !important;
+		padding: 0.2rem !important;
+		border-radius: 0.75rem !important;
+	}
+
+	header.portal-brand
+		nav[aria-label="Portal actions"]
+		:is(a, button) {
+		width: 2.25rem !important;
+		height: 2.25rem !important;
+		min-width: 2.25rem !important;
+		padding-inline: 0 !important;
+		border-radius: 0.625rem !important;
+	}
+
+	/* The search field must stay narrow in the row, but its result panel should
+	   still have enough room to read on a phone. Anchor it directly below the
+	   shared header across the viewport rather than making the dropdown tiny. */
+	header.portal-brand #portal-lookup-feedback {
+		position: fixed !important;
+		top: 4.25rem !important;
+		left: 0.5rem !important;
+		right: 0.5rem !important;
+		width: auto !important;
+		max-width: none !important;
+	}
+}
+
+@media (max-width: 359px) {
+	header.portal-brand > div > div {
+		gap: 0.25rem !important;
+	}
+
+	header.portal-brand #portal-header-lookup {
+		padding-left: 1.8rem !important;
+		font-size: 0.7rem !important;
+	}
+
+	header.portal-brand
+		nav[aria-label="Portal actions"]
+		:is(a, button) {
+		width: 2.1rem !important;
+		height: 2.1rem !important;
+		min-width: 2.1rem !important;
+	}
+}
+
+/* Keep the shared lookup predictable instead of changing apparent size
+   between home, package and item detail screens. */
+@media (min-width: 1024px) {
+	header.portal-brand > div > div {
+		column-gap: 1rem;
+	}
+
+	header.portal-brand form:has(#portal-header-lookup) {
+		width: 100%;
+	}
+}
+
+/* This file is intentionally shared by every PortalHeader instance. */
