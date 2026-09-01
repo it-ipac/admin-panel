@@ -14,6 +14,7 @@ type BoxLocation = {
 
 type ItemLookupResult = {
 	query: string;
+	title?: string | null;
 	itemReference: string | null;
 	itemNumbers: string[];
 	description: string | null;
@@ -59,6 +60,58 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 			.limit(1);
 		if (byClientReference.error) throw byClientReference.error;
 		return byClientReference.data?.[0] || null;
+	};
+
+	const findShortcutBoxes = async (shortcut: "auh" | "sb") => {
+		if (!clientId) return [];
+
+		const fields = `
+			id,
+			ipac_reference,
+			client_reference,
+			destination,
+			status,
+			order_pkg_overview!inner (
+				orders!inner (client_id)
+			),
+			order_package:order_packages!inner (maintenance_package_type)
+		`;
+		const pageSize = 1000;
+		const boxes: BoxLocation[] = [];
+
+		for (let from = 0; ; from += pageSize) {
+			let query = supabase
+				.from("order_pkg_instance")
+				.select(fields)
+				.eq("order_pkg_overview.orders.client_id", clientId);
+
+			query =
+				shortcut === "auh"
+					? query.ilike("destination", "%AUH%")
+					: query.eq("order_package.maintenance_package_type", "standard_box");
+
+			const { data, error } = await query
+				.order("ipac_reference", { ascending: true, nullsFirst: false })
+				.range(from, from + pageSize - 1);
+			if (error) throw error;
+
+			for (const row of data || []) {
+				boxes.push({
+					id: row.id,
+					reference:
+						row.ipac_reference ||
+						row.client_reference ||
+						`Box ${row.id.slice(0, 8)}`,
+					destination: row.destination || null,
+					status: row.status || null,
+					quantity: null,
+				});
+			}
+
+			if (!data || data.length < pageSize) break;
+		}
+
+		return boxes;
 	};
 
 	const findDeveloperBox = async (query: string) => {
@@ -217,13 +270,34 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 		};
 	};
 
+	const buildShortcutResult = (
+		query: string,
+		shortcut: "auh" | "sb",
+		boxes: BoxLocation[],
+	): ItemLookupResult => ({
+		query,
+		title: shortcut === "auh" ? "AUH destinations" : "Standard Box packages",
+		itemReference: null,
+		itemNumbers: [],
+		description: null,
+		matchedRecords: boxes.length,
+		boxes,
+	});
+
 	const handleSubmit = async () => {
 		const query = value.trim();
 		if (!query || !clientId) return;
+		const shortcut = query.toLowerCase();
 
 		setLoading(true);
 		closeFeedback();
 		try {
+			if (shortcut === "auh" || shortcut === "sb") {
+				const boxes = await findShortcutBoxes(shortcut);
+				setResult(buildShortcutResult(query, shortcut, boxes));
+				return;
+			}
+
 			const box = await findBox(query);
 			if (box?.id) {
 				navigate({ to: "/portal/package/$id", params: { id: box.id } });
@@ -252,7 +326,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 
 	const hasFeedback = Boolean(error || result);
 	const resultTitle =
-		result?.itemReference || result?.itemNumbers[0] || result?.query || "Item";
+		result?.title || result?.itemReference || result?.itemNumbers[0] || result?.query || "Item";
 
 	return (
 		<div className="relative order-3 w-full basis-full lg:order-none lg:mx-5 lg:min-w-0 lg:flex-1 lg:max-w-xl">
