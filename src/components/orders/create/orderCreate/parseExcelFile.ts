@@ -151,7 +151,15 @@ export const parseExcelFile = async (
 		};
 	}
 
-	const rawPackages = parsePackageRows(targetSheet, columnOffset);
+	const rawPackages = parsePackageRows(targetSheet, columnOffset).map((pkg) => {
+		const normalizedBoxType = String(pkg.boxTypeLabel || "")
+			.toLowerCase()
+			.replace(/[^a-z0-9]/g, "");
+		if (normalizedBoxType === "basedefensor" || normalizedBoxType === "basedfs") {
+			return { ...pkg, boxTypeLabel: "Box DFS" };
+		}
+		return pkg;
+	});
 	return {
 		worksheetNames,
 		rawPackages,
