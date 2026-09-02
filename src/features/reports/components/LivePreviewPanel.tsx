@@ -7,6 +7,7 @@ import {
 	useReportInstancesQuery,
 } from "../hooks/useReportBuilderQueries";
 import { useSignatures } from "../hooks/useSignatures";
+import { clampPageIndex } from "../pageNavigation";
 import { paginateInstances } from "../paginateInstances";
 import type {
 	ReportDisplaySettings,
@@ -16,6 +17,7 @@ import type { FilterParams } from "../types";
 import { getBoxTags } from "../utils";
 import { MediaManagerModal } from "./MediaManagerModal";
 import { PackingListPage } from "./PackingListPage";
+import { PagePicker } from "./PagePicker";
 
 const HorizontalRuler: React.FC<{ widthMm: number }> = ({ widthMm }) => {
 	const ticks = [];
@@ -466,11 +468,10 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 	const totalReports = reportGroups?.length ?? 1;
 	const currentReportGroup = reportGroups?.[currentReportIndex];
 
-	// Cap currentPage if totalPages shrinks
+	// Clamp the current page when filters or settings shrink the document.
 	useEffect(() => {
-		if (totalPages > 0 && currentPage >= totalPages) {
-			setCurrentPage(totalPages - 1);
-		}
+		const clamped = clampPageIndex(currentPage, totalPages);
+		if (totalPages > 0 && clamped !== currentPage) setCurrentPage(clamped);
 	}, [totalPages, currentPage]);
 
 	const activeOrderId =
@@ -738,31 +739,11 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 			<div className="flex flex-wrap items-center justify-between px-4 py-2 bg-neutral-100 border-b shrink-0 gap-3">
 				{/* Left: Navigation & Info */}
 				<div className="flex items-center gap-3">
-					<div className="flex items-center gap-1 bg-white border border-neutral-300 rounded p-0.5 shadow-sm">
-						<button
-							type="button"
-							onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-							disabled={currentPage === 0}
-							className="p-1 rounded hover:bg-neutral-100 disabled:opacity-30 transition-colors"
-						>
-							<ChevronLeft className="w-4 h-4 text-neutral-600" />
-						</button>
-						<span className="text-xs font-semibold text-neutral-700 min-w-[75px] text-center select-none">
-							{totalPages === 0
-								? "0 / 0"
-								: `Page ${currentPage + 1} of ${totalPages}`}
-						</span>
-						<button
-							type="button"
-							onClick={() =>
-								setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
-							}
-							disabled={currentPage >= totalPages - 1}
-							className="p-1 rounded hover:bg-neutral-100 disabled:opacity-30 transition-colors"
-						>
-							<ChevronRight className="w-4 h-4 text-neutral-600" />
-						</button>
-					</div>
+					<PagePicker
+						currentPage={currentPage}
+						totalPages={totalPages}
+						onNavigate={setCurrentPage}
+					/>
 
 					{totalPages > 1 && totalPages <= 10 && (
 						<div className="flex gap-1">

@@ -64,3 +64,41 @@ export const setThemePreference = (preference: ThemePreference) => {
 	document.cookie = `${COOKIE_NAME}=${encodeURIComponent(preference)}; path=/; max-age=31536000; SameSite=Lax`;
 	applyThemePreference(preference);
 };
+
+export type ResolvedTheme = "light" | "dark";
+
+/**
+ * The theme a preference actually renders as. `light`/`dark` are absolute;
+ * `system` defers to the OS. Pure, so the preference x OS matrix is testable.
+ */
+export const resolveTheme = (
+	preference: ThemePreference,
+	osPrefersDark: boolean,
+): ResolvedTheme => {
+	if (preference === "light") return "light";
+	if (preference === "dark") return "dark";
+	return osPrefersDark ? "dark" : "light";
+};
+
+/** True when the OS asks for a dark UI. False outside the browser. */
+export const osPrefersDark = (): boolean => {
+	if (typeof window === "undefined" || !window.matchMedia) return false;
+	return window.matchMedia("(prefers-color-scheme: dark)").matches;
+};
+
+/**
+ * Applies the stored preference and keeps following the OS while the preference
+ * is "system". Returns an unsubscribe function.
+ */
+export const startThemeSync = (): (() => void) => {
+	if (typeof window === "undefined") return () => {};
+	const apply = () => applyThemePreference(getThemePreference());
+	apply();
+	const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
+	if (!mq) return () => {};
+	const onChange = () => {
+		if (getThemePreference() === "system") apply();
+	};
+	mq.addEventListener("change", onChange);
+	return () => mq.removeEventListener("change", onChange);
+};

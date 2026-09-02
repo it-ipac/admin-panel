@@ -57,10 +57,7 @@ header.portal-brand form:has(#portal-header-lookup) {
 
 	/* Keep the mark, hide only the long METRIX-ASSETS wordmark when horizontal
 	   space matters. Every portal screen follows the same rule. */
-	header.portal-brand
-		a[aria-label="Client portal home"]
-		> span
-		> span {
+	header.portal-brand a[aria-label="Client portal home"] > span > span {
 		display: none !important;
 	}
 
@@ -79,9 +76,7 @@ header.portal-brand form:has(#portal-header-lookup) {
 
 	/* On compact screens the submit control becomes icon-only. Enter still
 	   submits normally, so no lookup behavior changes. */
-	header.portal-brand
-		form:has(#portal-header-lookup)
-		button[type="submit"] {
+	header.portal-brand form:has(#portal-header-lookup) button[type="submit"] {
 		width: 2rem !important;
 		min-width: 2rem !important;
 		padding-inline: 0 !important;
@@ -101,9 +96,7 @@ header.portal-brand form:has(#portal-header-lookup) {
 		border-radius: 0.75rem !important;
 	}
 
-	header.portal-brand
-		nav[aria-label="Portal actions"]
-		:is(a, button) {
+	header.portal-brand nav[aria-label="Portal actions"] :is(a, button) {
 		width: 2.25rem !important;
 		height: 2.25rem !important;
 		min-width: 2.25rem !important;
@@ -134,9 +127,7 @@ header.portal-brand form:has(#portal-header-lookup) {
 		font-size: 0.7rem !important;
 	}
 
-	header.portal-brand
-		nav[aria-label="Portal actions"]
-		:is(a, button) {
+	header.portal-brand nav[aria-label="Portal actions"] :is(a, button) {
 		width: 2.1rem !important;
 		height: 2.1rem !important;
 		min-width: 2.1rem !important;

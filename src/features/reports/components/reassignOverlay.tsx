@@ -115,8 +115,9 @@ export const ReassignOverlay: React.FC<{
 						type="button"
 						onClick={onClose}
 						className="text-neutral-400 hover:text-neutral-700 p-1 rounded-lg hover:bg-neutral-100 cursor-pointer"
+						aria-label="Close"
 					>
-						<X className="w-4 h-4" />
+						<X className="w-4 h-4" aria-hidden="true" />
 					</button>
 				</div>
 

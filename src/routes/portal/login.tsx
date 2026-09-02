@@ -11,12 +11,12 @@ import { useCallback, useEffect, useState } from "react";
 import { PortalBrand } from "../../components/PortalBrand";
 import { useToastContext } from "../../components/ui/ToastProvider";
 import { useAuth } from "../../hooks/useAuth";
+import { auth, db } from "../../lib/supabase";
 import {
 	applyThemePreference,
 	getThemePreference,
 	setThemePreference,
 } from "../../lib/theme";
-import { auth, db } from "../../lib/supabase";
 import "../../portal-login-polish.css";
 import "../../portal-login-controls.css";
 
@@ -70,10 +70,7 @@ function PortalLogin() {
 
 		const syncTheme = () => {
 			const applied = root.getAttribute("data-theme");
-			setIsDark(
-				applied === "dark" ||
-					(applied !== "light" && media.matches),
-			);
+			setIsDark(applied === "dark" || (applied !== "light" && media.matches));
 		};
 
 		syncTheme();
@@ -227,7 +224,8 @@ function PortalLogin() {
 							<span className="portal-login-title-rule-core" />
 						</div>
 						<p className="portal-login-subtitle mx-auto mt-2.5 max-w-[21rem] text-[clamp(0.84rem,1.75vh,0.96rem)] font-medium leading-6">
-							Track packages, review records, and open package details in one place.
+							Track packages, review records, and open package details in one
+							place.
 						</p>
 					</div>
 				</div>
@@ -254,7 +252,10 @@ function PortalLogin() {
 								Email Address or Username
 							</label>
 							<div className="portal-login-input-wrap">
-								<UserRound className="portal-login-input-icon" aria-hidden="true" />
+								<UserRound
+									className="portal-login-input-icon"
+									aria-hidden="true"
+								/>
 								<input
 									id="login-identifier"
 									type="text"
@@ -276,7 +277,10 @@ function PortalLogin() {
 								Password
 							</label>
 							<div className="portal-login-input-wrap">
-								<KeyRound className="portal-login-input-icon" aria-hidden="true" />
+								<KeyRound
+									className="portal-login-input-icon"
+									aria-hidden="true"
+								/>
 								<input
 									id="login-password"
 									type="password"
@@ -297,7 +301,10 @@ function PortalLogin() {
 						>
 							{isSubmitting ? (
 								<>
-									<Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
+									<Loader2
+										className="mr-2 h-5 w-5 animate-spin"
+										aria-hidden="true"
+									/>
 									<span>Signing in</span>
 								</>
 							) : (

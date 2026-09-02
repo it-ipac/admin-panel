@@ -64,24 +64,24 @@
 /* QR resolver and error cards. The same treatment also improves other small
    centered portal state cards without affecting the package detail layout. */
 .portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg
-	> .w-full.max-w-sm,
+> .w-full.max-w-sm,
 .portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg
 	> .w-full.max-w-md {
 	position: relative;
 	z-index: 1;
 	overflow: hidden;
 	border-color: light-dark(#ccd9e5, #334155) !important;
-	background:
-		linear-gradient(
-			180deg,
-			light-dark(rgba(255, 255, 255, 0.99), rgba(17, 24, 39, 0.98)) 0%,
-			light-dark(#ffffff, #111827) 72%,
-			light-dark(#fbfdff, #101725) 100%
-		) !important;
+	background: linear-gradient(
+		180deg,
+		light-dark(rgba(255, 255, 255, 0.99), rgba(17, 24, 39, 0.98)) 0%,
+		light-dark(#ffffff, #111827) 72%,
+		light-dark(#fbfdff, #101725) 100%
+	) !important;
 	box-shadow:
 		0 1px 2px light-dark(rgba(15, 23, 42, 0.07), rgba(0, 0, 0, 0.2)),
 		0 22px 54px -28px light-dark(rgba(15, 23, 42, 0.35), rgba(0, 0, 0, 0.82)),
-		0 0 0 1px light-dark(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.015)) inset !important;
+		0 0 0 1px light-dark(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.015))
+		inset !important;
 }
 
 .portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg
@@ -97,8 +97,7 @@
 
 /* Give the full lockup a little air so the verification state reads as a
    deliberate branded handoff rather than a plain loading modal. */
-.portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg
-	> .w-full.max-w-sm
+.portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg > .w-full.max-w-sm
 	> span:first-child,
 .portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg
 	> .w-full.max-w-md
@@ -107,14 +106,14 @@
 }
 
 /* Verification icon / error icon containers. */
-.portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg
-	> .w-full.max-w-sm
+.portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg > .w-full.max-w-sm
 	> div:first-of-type {
 	border-color: light-dark(#c7e4f4, rgba(96, 165, 250, 0.28)) !important;
 	background: light-dark(#eef9fe, rgba(30, 64, 175, 0.2)) !important;
 	box-shadow:
 		0 1px 2px light-dark(rgba(15, 23, 42, 0.04), rgba(0, 0, 0, 0.16)),
-		0 8px 18px -14px light-dark(rgba(0, 94, 168, 0.55), rgba(96, 165, 250, 0.35)) !important;
+		0 8px 18px -14px
+		light-dark(rgba(0, 94, 168, 0.55), rgba(96, 165, 250, 0.35)) !important;
 }
 
 .portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg
@@ -127,7 +126,8 @@
 .portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg
 	> .w-full.max-w-md
 	> div:first-of-type {
-	box-shadow: 0 10px 24px -18px light-dark(rgba(185, 28, 28, 0.38), rgba(248, 113, 113, 0.25));
+	box-shadow: 0 10px 24px -18px
+		light-dark(rgba(185, 28, 28, 0.38), rgba(248, 113, 113, 0.25));
 }
 
 .portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg
@@ -148,15 +148,15 @@
 }
 
 /* Progress rail: quiet in light mode, luminous but restrained in dark mode. */
-.portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg
-	> .w-full.max-w-sm
+.portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg > .w-full.max-w-sm
 	> div:last-child {
 	position: relative;
 	height: 0.45rem !important;
 	width: 9.75rem !important;
 	border: 1px solid light-dark(#dce6ef, #243247);
 	background: light-dark(#edf3f8, #182230) !important;
-	box-shadow: inset 0 1px 2px light-dark(rgba(15, 23, 42, 0.06), rgba(0, 0, 0, 0.35));
+	box-shadow: inset 0 1px 2px
+		light-dark(rgba(15, 23, 42, 0.06), rgba(0, 0, 0, 0.35));
 }
 
 .portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg
@@ -168,14 +168,19 @@
 	left: 0;
 	width: 44% !important;
 	border-radius: 999px;
-	background: linear-gradient(90deg, #1e289c 0%, #317bc6 54%, #61b8f2 100%) !important;
-	box-shadow: 0 0 12px light-dark(rgba(49, 123, 198, 0.18), rgba(97, 184, 242, 0.22));
+	background: linear-gradient(
+		90deg,
+		#1e289c 0%,
+		#317bc6 54%,
+		#61b8f2 100%
+	) !important;
+	box-shadow: 0 0 12px
+		light-dark(rgba(49, 123, 198, 0.18), rgba(97, 184, 242, 0.22));
 	animation: portalScanSweep 1.7s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
 }
 
 /* Error call-to-action keeps brand contrast in both manual themes. */
-.portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg
-	> .w-full.max-w-md
+.portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg > .w-full.max-w-md
 	> button {
 	border-color: light-dark(#317bc6, #60a5fa) !important;
 	background: linear-gradient(180deg, #317bc6 0%, #1766ad 100%) !important;

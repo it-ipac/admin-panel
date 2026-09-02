@@ -4,10 +4,27 @@
 
 .portal-login-page {
 	background:
-		radial-gradient(circle at 50% -6rem, light-dark(rgba(0, 129, 197, 0.17), rgba(0, 129, 197, 0.12)), transparent 34rem),
-		radial-gradient(circle at 10% 82%, light-dark(rgba(30, 40, 156, 0.055), rgba(49, 123, 198, 0.055)), transparent 25rem),
-		radial-gradient(circle at 92% 84%, light-dark(rgba(49, 123, 198, 0.1), rgba(49, 123, 198, 0.08)), transparent 28rem),
-		linear-gradient(180deg, light-dark(#f9fcff, #0b1322) 0%, light-dark(#f1f6fb, #0f172a) 58%, light-dark(#eaf1f7, #111827) 100%) !important;
+		radial-gradient(
+			circle at 50% -6rem,
+			light-dark(rgba(0, 129, 197, 0.17), rgba(0, 129, 197, 0.12)),
+			transparent 34rem
+		),
+		radial-gradient(
+			circle at 10% 82%,
+			light-dark(rgba(30, 40, 156, 0.055), rgba(49, 123, 198, 0.055)),
+			transparent 25rem
+		),
+		radial-gradient(
+			circle at 92% 84%,
+			light-dark(rgba(49, 123, 198, 0.1), rgba(49, 123, 198, 0.08)),
+			transparent 28rem
+		),
+		linear-gradient(
+			180deg,
+			light-dark(#f9fcff, #0b1322) 0%,
+			light-dark(#f1f6fb, #0f172a) 58%,
+			light-dark(#eaf1f7, #111827) 100%
+		) !important;
 }
 
 .portal-login-page::before {
@@ -16,8 +33,15 @@
 	inset: 0;
 	pointer-events: none;
 	background-image:
-		linear-gradient(light-dark(rgba(15, 23, 42, 0.025), rgba(255, 255, 255, 0.018)) 1px, transparent 1px),
-		linear-gradient(90deg, light-dark(rgba(15, 23, 42, 0.02), rgba(255, 255, 255, 0.014)) 1px, transparent 1px);
+		linear-gradient(
+			light-dark(rgba(15, 23, 42, 0.025), rgba(255, 255, 255, 0.018)) 1px,
+			transparent 1px
+		),
+		linear-gradient(
+			90deg,
+			light-dark(rgba(15, 23, 42, 0.02), rgba(255, 255, 255, 0.014)) 1px,
+			transparent 1px
+		);
 	background-size: 42px 42px;
 	mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), transparent 72%);
 }
@@ -25,7 +49,10 @@
 .portal-login-card {
 	position: relative;
 	border-color: light-dark(#c8d7e5, #314055) !important;
-	background: light-dark(rgba(255, 255, 255, 0.975), rgba(17, 24, 39, 0.96)) !important;
+	background: light-dark(
+		rgba(255, 255, 255, 0.975),
+		rgba(17, 24, 39, 0.96)
+	) !important;
 	box-shadow:
 		0 2px 5px light-dark(rgba(15, 23, 42, 0.06), rgba(0, 0, 0, 0.28)),
 		0 34px 88px -42px light-dark(rgba(15, 23, 42, 0.5), rgba(0, 0, 0, 0.9)) !important;
@@ -38,18 +65,35 @@
 	inset: 0;
 	pointer-events: none;
 	border-radius: inherit;
-	box-shadow: inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.04));
+	box-shadow: inset 0 1px 0
+		light-dark(rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.04));
 }
 
 .portal-login-card-accent {
-	background: linear-gradient(90deg, transparent 0%, #65b9e5 22%, #0081c5 50%, #2d7bc7 78%, transparent 100%) !important;
+	background: linear-gradient(
+		90deg,
+		transparent 0%,
+		#65b9e5 22%,
+		#0081c5 50%,
+		#2d7bc7 78%,
+		transparent 100%
+	) !important;
 	box-shadow: 0 0 22px rgba(0, 129, 197, 0.24);
 }
 
 .portal-login-hero {
 	background:
-		radial-gradient(circle at 50% 18%, light-dark(rgba(96, 184, 234, 0.12), rgba(0, 129, 197, 0.09)), transparent 14rem),
-		linear-gradient(180deg, light-dark(rgba(238, 249, 255, 0.9), rgba(0, 129, 197, 0.08)) 0%, light-dark(rgba(251, 253, 255, 0.94), rgba(17, 24, 39, 0.18)) 82%, transparent 100%);
+		radial-gradient(
+			circle at 50% 18%,
+			light-dark(rgba(96, 184, 234, 0.12), rgba(0, 129, 197, 0.09)),
+			transparent 14rem
+		),
+		linear-gradient(
+			180deg,
+			light-dark(rgba(238, 249, 255, 0.9), rgba(0, 129, 197, 0.08)) 0%,
+			light-dark(rgba(251, 253, 255, 0.94), rgba(17, 24, 39, 0.18)) 82%,
+			transparent 100%
+		);
 }
 
 .portal-login-title-block {
@@ -66,7 +110,11 @@
 	height: 4.2rem;
 	transform: translateX(-50%);
 	border-radius: 999px;
-	background: radial-gradient(ellipse at center, light-dark(rgba(67, 159, 215, 0.1), rgba(58, 147, 204, 0.1)) 0%, transparent 70%);
+	background: radial-gradient(
+		ellipse at center,
+		light-dark(rgba(67, 159, 215, 0.1), rgba(58, 147, 204, 0.1)) 0%,
+		transparent 70%
+	);
 	filter: blur(9px);
 	pointer-events: none;
 }
@@ -94,18 +142,26 @@
 	color: light-dark(#15283f, #edf7ff) !important;
 	font-weight: 820;
 	letter-spacing: -0.055em;
-	text-shadow: 0 8px 22px light-dark(rgba(15, 23, 42, 0.08), rgba(0, 0, 0, 0.22));
+	text-shadow: 0 8px 22px
+		light-dark(rgba(15, 23, 42, 0.08), rgba(0, 0, 0, 0.22));
 }
 
 .portal-login-title-portal {
-	background: linear-gradient(105deg, light-dark(#0a6da8, #80d5f0) 0%, light-dark(#0077b7, #5dbce6) 48%, light-dark(#3159b4, #8197f0) 100%);
+	background: linear-gradient(
+		105deg,
+		light-dark(#0a6da8, #80d5f0) 0%,
+		light-dark(#0077b7, #5dbce6) 48%,
+		light-dark(#3159b4, #8197f0) 100%
+	);
 	-webkit-background-clip: text;
 	background-clip: text;
 	-webkit-text-fill-color: transparent;
 	color: transparent !important;
 	font-weight: 950;
 	letter-spacing: -0.06em;
-	filter: drop-shadow(0 7px 16px light-dark(rgba(0, 94, 168, 0.12), rgba(0, 129, 197, 0.16)));
+	filter: drop-shadow(
+		0 7px 16px light-dark(rgba(0, 94, 168, 0.12), rgba(0, 129, 197, 0.16))
+	);
 }
 
 .portal-brand.auth-bg .portal-login-title::after {
@@ -122,7 +178,8 @@
 	border-radius: 999px;
 	background: light-dark(rgba(196, 216, 230, 0.62), rgba(50, 68, 91, 0.72));
 	overflow: hidden;
-	box-shadow: inset 0 1px 2px light-dark(rgba(15, 23, 42, 0.08), rgba(0, 0, 0, 0.34));
+	box-shadow: inset 0 1px 2px
+		light-dark(rgba(15, 23, 42, 0.08), rgba(0, 0, 0, 0.34));
 }
 
 .portal-login-title-rule-core {
@@ -141,11 +198,16 @@
 
 .portal-login-form-shell {
 	border-top: 1px solid light-dark(#d7e2ec, #27364a);
-	background:
-		linear-gradient(180deg, light-dark(rgba(249, 251, 253, 0.97), rgba(8, 15, 28, 0.24)) 0%, light-dark(#f2f6f9, rgba(8, 15, 28, 0.36)) 100%);
+	background: linear-gradient(
+		180deg,
+		light-dark(rgba(249, 251, 253, 0.97), rgba(8, 15, 28, 0.24)) 0%,
+		light-dark(#f2f6f9, rgba(8, 15, 28, 0.36)) 100%
+	);
 	box-shadow:
-		inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.015)),
-		inset 0 10px 24px -26px light-dark(rgba(15, 23, 42, 0.3), rgba(0, 0, 0, 0.72));
+		inset 0 1px 0
+		light-dark(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.015)),
+		inset 0 10px 24px -26px
+		light-dark(rgba(15, 23, 42, 0.3), rgba(0, 0, 0, 0.72));
 }
 
 .portal-login-form-heading {
@@ -207,7 +269,12 @@
 }
 
 .portal-login-submit {
-	background: linear-gradient(105deg, #075a9b 0%, #0077b7 48%, #168fc9 100%) !important;
+	background: linear-gradient(
+		105deg,
+		#075a9b 0%,
+		#0077b7 48%,
+		#168fc9 100%
+	) !important;
 	border-color: light-dark(#176fa8, #3189bb) !important;
 	box-shadow:
 		0 2px 3px rgba(0, 69, 116, 0.16),
@@ -223,7 +290,10 @@
 
 .portal-login-loading-card {
 	border-color: light-dark(#d2dee9, #314055) !important;
-	background: light-dark(rgba(255, 255, 255, 0.97), rgba(17, 24, 39, 0.96)) !important;
+	background: light-dark(
+		rgba(255, 255, 255, 0.97),
+		rgba(17, 24, 39, 0.96)
+	) !important;
 	box-shadow:
 		0 2px 4px light-dark(rgba(15, 23, 42, 0.04), rgba(0, 0, 0, 0.2)),
 		0 24px 64px -36px light-dark(rgba(15, 23, 42, 0.42), rgba(0, 0, 0, 0.8));

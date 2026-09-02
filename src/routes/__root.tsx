@@ -25,10 +25,10 @@ import { PortalBrand } from "../components/PortalBrand";
 import { ToastProvider } from "../components/ui/ToastProvider";
 import { AuthContext, useAuthState } from "../hooks/useAuth";
 import {
-	getAccountAreaMismatch,
 	type AccountAreaMismatch,
+	getAccountAreaMismatch,
 } from "../lib/accountAreaAccess";
-import { getThemePreference } from "../lib/theme";
+import { getThemePreference, startThemeSync } from "../lib/theme";
 import portalScrollFixesCss from "../portal-scroll-fixes.css?url";
 import appCss from "../styles.css?url";
 
@@ -92,7 +92,8 @@ function NotFoundComponent() {
 							Package portal page not found
 						</h1>
 						<p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-app-text-muted">
-							The link may be outdated or incomplete. Return to the package portal and scan the label again.
+							The link may be outdated or incomplete. Return to the package
+							portal and scan the label again.
 						</p>
 						<Link
 							to="/portal/projects"
@@ -257,6 +258,12 @@ function RootComponent() {
 	useEffect(() => {
 		setIsHydrated(true);
 	}, []);
+
+	// The root loader reads the theme preference on the server, where there is
+	// no localStorage, so <html> ships without data-theme and the whole app
+	// silently follows the OS instead of the saved choice. Apply it on the
+	// client and keep tracking the OS while the preference is "system".
+	useEffect(() => startThemeSync(), []);
 
 	useEffect(() => {
 		if (accountAreaMismatch) return;

@@ -84,8 +84,8 @@ function PortalRecordFlowIllustration() {
 					/>
 				</div>
 				<div className="mt-3 flex items-center gap-2 text-xs text-steel-300">
-					<Check className="h-3.5 w-3.5 text-success-400" aria-hidden="true" />
-					A box number opens the complete box record directly
+					<Check className="h-3.5 w-3.5 text-success-400" aria-hidden="true" />A
+					box number opens the complete box record directly
 				</div>
 			</div>
 

@@ -8,6 +8,11 @@ import type {
 	ReportDisplaySettings,
 	ReportPkgDetailsSettings,
 } from "../settings-defaults";
+import {
+	formatInstanceStatus,
+	STATUS_CHIP,
+	STATUS_OPTIONS,
+} from "../statusDisplay";
 import type { ReportInstanceData } from "../types";
 import { getBoxTags } from "../utils";
 import { EditableValue } from "./EditableValue";
@@ -196,19 +201,6 @@ const CameraIndicator: React.FC<{
  * and lets the admin change the box status directly from the report.
  * Excluded from the printed PDF via no-print.
  */
-const STATUS_CHIP: Record<string, { label: string; bg: string; fg: string }> = {
-	design: { label: "design", bg: "#f3f4f6", fg: "#4b5563" },
-	approved: { label: "approved", bg: "#e0e7ff", fg: "#4338ca" },
-	in_production: { label: "in prod", bg: "#ffedd5", fg: "#9a3412" },
-	packed: { label: "packed", bg: "#dcfce7", fg: "#166534" },
-};
-
-const STATUS_OPTIONS = [
-	"design",
-	"approved",
-	"in_production",
-	"packed",
-] as const;
 
 const StatusIndicator: React.FC<{
 	inst: ReportInstanceData;
@@ -1797,6 +1789,18 @@ export const PackingListPage = React.forwardRef<
 											SEI
 										</th>
 									)}
+									{pkg.show_status && (
+										<th
+											style={{
+												padding: "6px 8px",
+												textAlign: "left",
+												fontSize: "0.8em",
+												borderBottom: "1px solid #d8e4f0",
+											}}
+										>
+											Status
+										</th>
+									)}
 									{pkg.show_qr_code && (
 										<th
 											style={{
@@ -2116,6 +2120,17 @@ export const PackingListPage = React.forwardRef<
 													{inst.sei_category || inst.sei_protection
 														? `SEI ${`${inst.sei_category || ""} ${inst.sei_protection || ""}`.trim()}`
 														: "—"}
+												</td>
+											)}
+											{pkg.show_status && (
+												<td
+													style={{
+														padding: "4px 8px",
+														borderBottom: "1px solid #eef",
+														whiteSpace: "nowrap",
+													}}
+												>
+													{formatInstanceStatus(inst.status)}
 												</td>
 											)}
 											{pkg.show_qr_code && (
@@ -2625,6 +2640,12 @@ export const PackingListPage = React.forwardRef<
 												{pkg.show_order_name && inst.order_name && (
 													<span>
 														Order: <strong>{inst.order_name}</strong>
+													</span>
+												)}
+												{pkg.show_status && (
+													<span>
+														Status:{" "}
+														<strong>{formatInstanceStatus(inst.status)}</strong>
 													</span>
 												)}
 												{getBoxTags(inst).length > 0 && (

@@ -78,20 +78,28 @@ export function AccountAreaMismatch({
 						{accountName ? (
 							<>
 								{" "}
-								(<span className="font-semibold text-neutral-800">{accountName}</span>)
+								(
+								<span className="font-semibold text-neutral-800">
+									{accountName}
+								</span>
+								)
 							</>
 						) : null}
-						. The {copy.restrictedArea} is for {kind === "client-in-admin" ? "staff" : "clients"} only.
+						. The {copy.restrictedArea} is for{" "}
+						{kind === "client-in-admin" ? "staff" : "clients"} only.
 					</p>
 					<p className="mt-2 text-sm text-neutral-500">
-						Continue to the correct area without signing out, or sign out to use a different account.
+						Continue to the correct area without signing out, or sign out to use
+						a different account.
 					</p>
 				</div>
 
 				<div className="mb-6 grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm">
 					<span className="font-medium text-neutral-500">{copy.fromLabel}</span>
 					<ArrowRight className="h-4 w-4 text-neutral-400" aria-hidden="true" />
-					<span className="text-right font-semibold text-neutral-800">{copy.toLabel}</span>
+					<span className="text-right font-semibold text-neutral-800">
+						{copy.toLabel}
+					</span>
 				</div>
 
 				<div className="grid gap-3 sm:grid-cols-2">

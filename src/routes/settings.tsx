@@ -13,6 +13,7 @@ import {
 import { useEffect, useState } from "react";
 import { Sidebar } from "../components/Sidebar";
 import { ReleaseInfoPanel } from "../features/settings/components/ReleaseInfoPanel";
+import { ThemeSelector } from "../features/settings/components/ThemeSelector";
 import { useAuth } from "../hooks/useAuth";
 import { useRequirePageAccess } from "../hooks/usePageAccess";
 import {
@@ -40,6 +41,13 @@ function SettingsPage() {
 			navigate({ to: "/login" });
 		}
 	}, [user, authLoading, navigate]);
+
+	// useState's initialiser runs during SSR, where there is no localStorage, so
+	// it always yields "system". Re-read once mounted so the selected card shows
+	// the preference that is actually stored.
+	useEffect(() => {
+		setThemePreferenceState(getThemePreference());
+	}, []);
 
 	const handleSave = () => {
 		setSaved(true);
@@ -370,45 +378,12 @@ function SettingsPage() {
 							)}
 
 							{activeTab === "appearance" && (
-								<div className="space-y-6 max-w-2xl">
-									<div>
-										<h3 className="font-medium text-neutral-900 mb-4">Theme</h3>
-										<div className="grid grid-cols-3 gap-4">
-											<button
-												onClick={() => handleThemeChange("light")}
-												className={`p-4 border-2 rounded-xl text-center transition-colors ${
-													themePreference === "light"
-														? "border-primary-600 ring-2 ring-primary-100"
-														: "border-neutral-200 hover:border-neutral-300"
-												}`}
-											>
-												<div className="w-full h-20 bg-white rounded-lg mb-2 border"></div>
-												<span className="text-sm font-medium">Light</span>
-											</button>
-											<button
-												onClick={() => handleThemeChange("dark")}
-												className={`p-4 border-2 rounded-xl text-center transition-colors ${
-													themePreference === "dark"
-														? "border-primary-600 ring-2 ring-primary-100"
-														: "border-neutral-200 hover:border-neutral-300"
-												}`}
-											>
-												<div className="w-full h-20 bg-neutral-900 rounded-lg mb-2"></div>
-												<span className="text-sm font-medium">Dark</span>
-											</button>
-											<button
-												onClick={() => handleThemeChange("system")}
-												className={`p-4 border-2 rounded-xl text-center transition-colors ${
-													themePreference === "system"
-														? "border-primary-600 ring-2 ring-primary-100"
-														: "border-neutral-200 hover:border-neutral-300"
-												}`}
-											>
-												<div className="w-full h-20 bg-linear-to-b from-white to-neutral-900 rounded-lg mb-2"></div>
-												<span className="text-sm font-medium">System</span>
-											</button>
-										</div>
-									</div>
+								<div className="max-w-2xl space-y-6">
+									<ThemeSelector
+										value={themePreference}
+										onChange={handleThemeChange}
+										hint="Applied straight away and remembered on this device."
+									/>
 								</div>
 							)}
 
@@ -417,7 +392,11 @@ function SettingsPage() {
 
 						{/* Footer */}
 						<div className="px-6 py-4 bg-neutral-50 border-t border-neutral-100 flex justify-end">
-							{activeTab !== "release" ? (
+							{activeTab === "appearance" ? (
+								<span className="text-sm text-neutral-500">
+									Theme changes are saved automatically.
+								</span>
+							) : activeTab !== "release" ? (
 								<button
 									onClick={handleSave}
 									className="flex items-center gap-2 px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"

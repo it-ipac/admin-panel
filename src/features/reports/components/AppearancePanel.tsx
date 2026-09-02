@@ -1,10 +1,12 @@
 import type React from "react";
 import { useState } from "react";
 import { getSignatureUrl, useSignatures } from "../hooks/useSignatures";
+import { applySelectAll, getSelectAllState } from "../lineOptions";
 import type {
 	ReportDisplaySettings,
 	ReportPkgDetailsSettings,
 } from "../settings-defaults";
+import { SelectAllCheckbox } from "./SelectAllCheckbox";
 import { SignaturePickerModal } from "./SignaturePickerModal";
 
 interface AppearancePanelProps {
@@ -107,6 +109,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						<input
 							id="font-size-px-slider"
 							type="range"
+							aria-label="Text Font Size"
 							min="8"
 							max="20"
 							step="1"
@@ -132,6 +135,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						<input
 							id="logo-size-slider"
 							type="range"
+							aria-label="Logo Size (Height)"
 							min="40"
 							max="250"
 							step="5"
@@ -155,6 +159,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						<input
 							id="header-top-margin-slider"
 							type="range"
+							aria-label="Header Top Margin"
 							min="0"
 							max="50"
 							step="1"
@@ -415,6 +420,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						<input
 							id="footer-height-slider"
 							type="range"
+							aria-label="Footer Height"
 							min="20"
 							max="120"
 							step="5"
@@ -440,6 +446,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						<input
 							id="signature-height-slider"
 							type="range"
+							aria-label="Signature Line Height"
 							min="15"
 							max="80"
 							step="5"
@@ -461,6 +468,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						</div>
 						<input
 							type="range"
+							aria-label="Signature Image Width"
 							min="20"
 							max="100"
 							step="5"
@@ -503,6 +511,7 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 						<input
 							id="footer-gap-slider"
 							type="range"
+							aria-label="Space Above Footer"
 							min="0"
 							max="200"
 							step="10"
@@ -559,8 +568,20 @@ export const AppearancePanel: React.FC<AppearancePanelProps> = ({
 					</div>
 
 					<div className="mt-3 border rounded-lg p-2.5 bg-neutral-50/50">
-						<div className="text-xs font-semibold text-neutral-700 mb-2">
+						<div
+							id="box-line1-options-heading"
+							className="text-xs font-semibold text-neutral-700 mb-2"
+						>
 							Line 1 Options (Compact & Detailed)
+						</div>
+						<div className="mb-2 border-b border-neutral-200 pb-2">
+							<SelectAllCheckbox
+								state={getSelectAllState(pkgDetails)}
+								onChange={(checked) =>
+									setPkgDetails((prev) => applySelectAll(prev, checked))
+								}
+								aria-describedby="box-line1-options-heading"
+							/>
 						</div>
 						<div className="grid grid-cols-1 gap-1.5">
 							<Toggle

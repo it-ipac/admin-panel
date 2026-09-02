@@ -163,7 +163,8 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 			.ilike("item_num", itemNumberCandidate)
 			.limit(100);
 		if (byItemNumber.error) throw byItemNumber.error;
-		if (byItemNumber.data && byItemNumber.data.length > 0) return byItemNumber.data;
+		if (byItemNumber.data && byItemNumber.data.length > 0)
+			return byItemNumber.data;
 
 		const byReference = await supabase
 			.from("items_db")
@@ -172,7 +173,8 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 			.ilike("reference", query)
 			.limit(100);
 		if (byReference.error) throw byReference.error;
-		if (byReference.data && byReference.data.length > 0) return byReference.data;
+		if (byReference.data && byReference.data.length > 0)
+			return byReference.data;
 
 		const itemUrlMatch = query.match(/\/portal\/item\/([^/?#\s]+)/i);
 		const developerItemId = itemUrlMatch
@@ -238,10 +240,13 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 			if (!instance?.id) continue;
 
 			const numericQuantity = Number((row as any).quantity);
-			const quantity = Number.isFinite(numericQuantity) ? numericQuantity : null;
+			const quantity = Number.isFinite(numericQuantity)
+				? numericQuantity
+				: null;
 			const existing = boxes.get(instance.id);
 			if (existing) {
-				if (quantity != null) existing.quantity = (existing.quantity || 0) + quantity;
+				if (quantity != null)
+					existing.quantity = (existing.quantity || 0) + quantity;
 				continue;
 			}
 
@@ -312,13 +317,20 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 
 			const developerBox = await findDeveloperBox(query);
 			if (developerBox?.id) {
-				navigate({ to: "/portal/package/$id", params: { id: developerBox.id } });
+				navigate({
+					to: "/portal/package/$id",
+					params: { id: developerBox.id },
+				});
 				return;
 			}
 
-			setError("No matching box number or item reference was found for your account.");
+			setError(
+				"No matching box number or item reference was found for your account.",
+			);
 		} catch (lookupError: any) {
-			setError(lookupError?.message || "Unable to search right now. Please try again.");
+			setError(
+				lookupError?.message || "Unable to search right now. Please try again.",
+			);
 		} finally {
 			setLoading(false);
 		}
@@ -326,7 +338,11 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 
 	const hasFeedback = Boolean(error || result);
 	const resultTitle =
-		result?.title || result?.itemReference || result?.itemNumbers[0] || result?.query || "Item";
+		result?.title ||
+		result?.itemReference ||
+		result?.itemNumbers[0] ||
+		result?.query ||
+		"Item";
 
 	return (
 		<div className="relative order-3 w-full basis-full lg:order-none lg:mx-5 lg:min-w-0 lg:flex-1 lg:max-w-xl">
@@ -352,7 +368,9 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 							setValue(event.target.value);
 							closeFeedback();
 						}}
-						placeholder={clientId ? "Find a box or item" : "Loading package search…"}
+						placeholder={
+							clientId ? "Find a box or item" : "Loading package search…"
+						}
 						autoComplete="off"
 						spellCheck={false}
 						disabled={!clientId}
@@ -364,7 +382,10 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 						className="absolute bottom-1 right-1 top-1 inline-flex min-w-16 items-center justify-center gap-1.5 rounded-lg bg-primary-600 px-2.5 text-xs font-bold text-white shadow-[0_2px_6px_rgba(0,94,168,0.2)] transition-[background-color,box-shadow,transform] hover:bg-primary-700 hover:shadow-[0_3px_9px_rgba(0,94,168,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45 dark:bg-primary-500 dark:hover:bg-primary-400"
 					>
 						{loading ? (
-							<Loader2 className="h-3.5 w-3.5 animate-spin text-white" aria-hidden="true" />
+							<Loader2
+								className="h-3.5 w-3.5 animate-spin text-white"
+								aria-hidden="true"
+							/>
 						) : (
 							<Search className="h-3.5 w-3.5 text-white" aria-hidden="true" />
 						)}
@@ -415,7 +436,10 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 										type="button"
 										key={box.id}
 										onClick={() =>
-											navigate({ to: "/portal/package/$id", params: { id: box.id } })
+											navigate({
+												to: "/portal/package/$id",
+												params: { id: box.id },
+											})
 										}
 										className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-app-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
 									>
@@ -428,8 +452,12 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 											</span>
 											<span className="mt-0.5 flex flex-wrap gap-x-2 text-[11px] text-app-text-muted">
 												{box.destination && <span>{box.destination}</span>}
-												{box.quantity != null && <span>Qty {box.quantity}</span>}
-												{box.status && <span className="capitalize">{box.status}</span>}
+												{box.quantity != null && (
+													<span>Qty {box.quantity}</span>
+												)}
+												{box.status && (
+													<span className="capitalize">{box.status}</span>
+												)}
 											</span>
 										</span>
 										<ArrowRight

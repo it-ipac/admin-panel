@@ -191,16 +191,14 @@
 }
 
 /* Quiet the projects-page ambient artwork in light mode. */
-.portal-brand.h-dvh.flex-col
-	> main#package-access
+.portal-brand.h-dvh.flex-col > main#package-access
 	> div[aria-hidden="true"]
 	> div {
 	opacity: 0.34;
 }
 
 /* Main scan/manual-entry surface. */
-.portal-brand.h-dvh.flex-col
-	> main#package-access
+.portal-brand.h-dvh.flex-col > main#package-access
 	> section
 	> div:first-of-type
 	> h2
@@ -226,13 +224,13 @@ header.portal-brand button[aria-label="Scan package QR code"] *,
 	> div:first-of-type
 	> h2
 	+ div
-	> button:first-child * {
+	> button:first-child
+	* {
 	color: #ffffff !important;
 }
 
 /* Disabled manual submit has a deliberate state instead of faded black. */
-.portal-brand.h-dvh.flex-col
-	> main#package-access
+.portal-brand.h-dvh.flex-col > main#package-access
 	form
 	button[type="submit"]:disabled {
 	border: 1px solid light-dark(#dce4ee, #243247) !important;
@@ -245,7 +243,8 @@ header.portal-brand button[aria-label="Scan package QR code"] *,
 .portal-brand.h-dvh.flex-col
 	> main#package-access
 	form
-	button[type="submit"]:disabled * {
+	button[type="submit"]:disabled
+	* {
 	color: inherit !important;
 }
 
@@ -256,7 +255,8 @@ header.portal-brand button[aria-label="Scan package QR code"] *,
 .portal-brand.h-dvh.flex-col
 	> main#package-access
 	form
-	button[type="submit"]:not(:disabled) * {
+	button[type="submit"]:not(:disabled)
+	* {
 	color: #ffffff !important;
 }
 
@@ -286,13 +286,15 @@ header.portal-brand
 header.portal-brand
 	nav[aria-label="Portal actions"]
 	> :is(button, a):not([aria-label="Scan package QR code"]):hover {
-	background-color: light-dark(rgba(219, 234, 254, 0.7), rgba(30, 64, 175, 0.22)) !important;
+	background-color: light-dark(
+		rgba(219, 234, 254, 0.7),
+		rgba(30, 64, 175, 0.22)
+	) !important;
 }
 
 /* The package-label illustration must follow the resolved theme instead of
    staying permanently navy in light mode. */
-.portal-brand.h-dvh.flex-col
-	> main#package-access
+.portal-brand.h-dvh.flex-col > main#package-access
 	> section
 	> div:last-child
 	> div
@@ -363,7 +365,10 @@ header.portal-brand
 }
 
 .portal-brand.h-dvh.flex-col > div[role="dialog"] > div > div:first-child {
-	background-color: light-dark(rgb(255 255 255 / 0.96), rgb(3 7 18 / 0.95)) !important;
+	background-color: light-dark(
+		rgb(255 255 255 / 0.96),
+		rgb(3 7 18 / 0.95)
+	) !important;
 	border-color: light-dark(#dbe4ee, rgb(255 255 255 / 0.1)) !important;
 }
 
@@ -404,7 +409,10 @@ header.portal-brand
 	border-color: light-dark(#fecaca, rgb(248 113 113 / 0.4)) !important;
 }
 
-.portal-brand.h-dvh.flex-col > div[role="dialog"] .bg-danger-50 p:first-of-type {
+.portal-brand.h-dvh.flex-col
+	> div[role="dialog"]
+	.bg-danger-50
+	p:first-of-type {
 	color: light-dark(#991b1b, #ffffff) !important;
 }
 
@@ -413,8 +421,7 @@ header.portal-brand
 }
 
 /* Restore dark-mode depth where useful without changing structure. */
-html[data-theme="dark"]
-	.portal-brand.h-dvh.flex-col
+html[data-theme="dark"] .portal-brand.h-dvh.flex-col
 	> main#package-access
 	> div[aria-hidden="true"]
 	> div {

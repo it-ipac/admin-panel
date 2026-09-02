@@ -164,6 +164,19 @@
 	--color-aqua-900: oklch(39.8% 0.07 227.392);
 	--color-aqua-950: oklch(30.2% 0.056 229.695);
 
+	/* Theme preview swatches — deliberately NOT theme-aware.
+	   The Settings theme cards must show what each option looks like, so they
+	   can never follow the theme currently applied to the app. Using
+	   bg-app-surface / bg-neutral-900 here made the previews mirror the active
+	   theme, so Light rendered dark. These seven are fixed on purpose. */
+	--color-preview-light-bg: oklch(100% 0 0);
+	--color-preview-light-surface: oklch(96% 0.004 256);
+	--color-preview-light-ink: oklch(20% 0.03 256);
+	--color-preview-dark-bg: oklch(20.8% 0.04 266);
+	--color-preview-dark-surface: oklch(27.8% 0.03 257);
+	--color-preview-dark-ink: oklch(96.8% 0.007 248);
+	--color-preview-edge: oklch(80% 0.012 256);
+
 	/* Single-value status tokens (legacy) */
 	--color-success: #10b981;
 	--color-error: #ef4444;

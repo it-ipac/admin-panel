@@ -72,7 +72,12 @@
 /* Light mode gets a brighter product-blue CTA instead of a dark navy button. */
 .portal-login-submit {
 	border-color: #1584bb !important;
-	background: linear-gradient(105deg, #1493c8 0%, #0785c2 48%, #327dcc 100%) !important;
+	background: linear-gradient(
+		105deg,
+		#1493c8 0%,
+		#0785c2 48%,
+		#327dcc 100%
+	) !important;
 	box-shadow:
 		0 2px 3px rgba(0, 98, 149, 0.14),
 		0 16px 30px -18px rgba(0, 129, 197, 0.58) !important;
@@ -80,7 +85,12 @@
 
 html[data-theme="dark"] .portal-login-submit {
 	border-color: #3189bb !important;
-	background: linear-gradient(105deg, #075a9b 0%, #0077b7 48%, #168fc9 100%) !important;
+	background: linear-gradient(
+		105deg,
+		#075a9b 0%,
+		#0077b7 48%,
+		#168fc9 100%
+	) !important;
 	box-shadow:
 		0 2px 3px rgba(0, 69, 116, 0.2),
 		0 16px 30px -18px rgba(0, 94, 168, 0.72) !important;
@@ -126,7 +136,12 @@ html[data-theme="dark"] .portal-login-submit:hover:not(:disabled) {
 @media (prefers-color-scheme: dark) {
 	html:not([data-theme]) .portal-login-submit {
 		border-color: #3189bb !important;
-		background: linear-gradient(105deg, #075a9b 0%, #0077b7 48%, #168fc9 100%) !important;
+		background: linear-gradient(
+			105deg,
+			#075a9b 0%,
+			#0077b7 48%,
+			#168fc9 100%
+		) !important;
 		box-shadow:
 			0 2px 3px rgba(0, 69, 116, 0.2),
 			0 16px 30px -18px rgba(0, 94, 168, 0.72) !important;

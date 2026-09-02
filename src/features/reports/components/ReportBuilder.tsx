@@ -312,8 +312,9 @@ thead tr, thead th {
 								type="button"
 								onClick={onBack}
 								className="text-neutral-400 hover:text-neutral-700 transition-colors p-1 rounded"
+								aria-label="Back to reports"
 							>
-								<ChevronLeft className="w-4 h-4" />
+								<ChevronLeft className="w-4 h-4" aria-hidden="true" />
 							</button>
 							<span className="text-sm font-semibold text-neutral-800">
 								Report Builder
@@ -323,8 +324,9 @@ thead tr, thead th {
 							type="button"
 							onClick={() => setPanelOpen(false)}
 							className="text-neutral-400 hover:text-neutral-700 p-1 rounded"
+							aria-label="Collapse the builder panel"
 						>
-							<PanelLeftClose className="w-4 h-4" />
+							<PanelLeftClose className="w-4 h-4" aria-hidden="true" />
 						</button>
 					</div>
 

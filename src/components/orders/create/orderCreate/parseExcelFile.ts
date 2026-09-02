@@ -155,7 +155,10 @@ export const parseExcelFile = async (
 		const normalizedBoxType = String(pkg.boxTypeLabel || "")
 			.toLowerCase()
 			.replace(/[^a-z0-9]/g, "");
-		if (normalizedBoxType === "basedefensor" || normalizedBoxType === "basedfs") {
+		if (
+			normalizedBoxType === "basedefensor" ||
+			normalizedBoxType === "basedfs"
+		) {
 			return { ...pkg, boxTypeLabel: "Box DFS" };
 		}
 		return pkg;

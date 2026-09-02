@@ -2,6 +2,7 @@ import type {
 	ReportDisplaySettings,
 	ReportPkgDetailsSettings,
 } from "./settings-defaults";
+import { formatInstanceStatus } from "./statusDisplay";
 import type { ReportInstanceData } from "./types";
 
 // Estimated heights in pixels at 96dpi
@@ -108,6 +109,8 @@ function getBoxBaseHeight(
 		headerTextLen += inst.destination.length + 8;
 	if (pkg.show_order_name && inst?.order_name)
 		headerTextLen += inst.order_name.length + 8;
+	if (pkg.show_status && inst?.status)
+		headerTextLen += formatInstanceStatus(inst.status).length + 8;
 
 	// Calculate charPerLine dynamically
 	const isLandscape = display?.orientation === "landscape";
@@ -304,6 +307,8 @@ function estimateBoxHeight(
 		headerTextLen += inst.destination.length + 8;
 	if (pkg.show_order_name && inst.order_name)
 		headerTextLen += inst.order_name.length + 8;
+	if (pkg.show_status && inst.status)
+		headerTextLen += formatInstanceStatus(inst.status).length + 8;
 
 	// Calculate charPerLine dynamically
 	const isLandscape = display.orientation === "landscape";

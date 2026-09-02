@@ -14,14 +14,16 @@ describe("getAccountAreaMismatch", () => {
 		expect(getAccountAreaMismatch("client", "/portal/projects")).toBeNull();
 	});
 
-	it.each(["admin", "director", "executive", "sales"])(
-		"flags %s accounts inside the package portal",
-		(role) => {
-			expect(getAccountAreaMismatch(role, "/portal/projects")).toBe(
-				"staff-in-portal",
-			);
-		},
-	);
+	it.each([
+		"admin",
+		"director",
+		"executive",
+		"sales",
+	])("flags %s accounts inside the package portal", (role) => {
+		expect(getAccountAreaMismatch(role, "/portal/projects")).toBe(
+			"staff-in-portal",
+		);
+	});
 
 	it("allows staff accounts in the admin panel", () => {
 		expect(getAccountAreaMismatch("admin", "/dashboard")).toBeNull();
