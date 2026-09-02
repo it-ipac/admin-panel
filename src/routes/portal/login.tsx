@@ -91,10 +91,35 @@ function PortalLogin() {
 	}, []);
 
 	useEffect(() => {
-		if (!loading && user) {
-			goToReturnUrl();
-		}
-	}, [user, loading, goToReturnUrl]);
+		if (loading || !user) return;
+
+		let cancelled = false;
+
+		const verifyExistingSession = async () => {
+			const profileData = await db.getProfile(user.id);
+			if (cancelled) return;
+
+			if (profileData?.data?.roles?.name === "client") {
+				goToReturnUrl();
+				return;
+			}
+
+			await auth.signOut();
+			if (cancelled) return;
+
+			toast({
+				title: "Access Denied",
+				description: "This account does not have access to the Client Portal.",
+				variant: "error",
+			});
+		};
+
+		void verifyExistingSession();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [user, loading, goToReturnUrl, toast]);
 
 	const handleThemeToggle = () => {
 		const nextTheme = isDark ? "light" : "dark";
@@ -115,21 +140,24 @@ function PortalLogin() {
 
 			if (data.user) {
 				const profileData = await db.getProfile(data.user.id);
-				if (profileData?.data?.roles?.name === "client") {
+				if (profileData?.error) throw profileData.error;
+
+				if (profileData?.data?.roles?.name !== "client") {
+					await auth.signOut();
 					toast({
-						title: "Access Granted",
-						description: "Welcome to your client portal.",
-						variant: "success",
+						title: "Access Denied",
+						description: "This account does not have access to the Client Portal.",
+						variant: "error",
 					});
-					goToReturnUrl();
-				} else {
-					toast({
-						title: "Logged In",
-						description: "Redirecting...",
-						variant: "success",
-					});
-					goToReturnUrl();
+					return;
 				}
+
+				toast({
+					title: "Access Granted",
+					description: "Welcome to your client portal.",
+					variant: "success",
+				});
+				goToReturnUrl();
 			}
 		} catch (error: any) {
 			toast({
