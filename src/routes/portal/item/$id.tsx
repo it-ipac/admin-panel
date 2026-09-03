@@ -467,6 +467,7 @@ function ItemView() {
 							id,
 							instance_number,
 							status,
+							ipac_reference,
 							order_pkg_overview (id, pkg_number, quantity, description),
 							order_packages (id, package_number, reference, status, orders (order_name))
 						)
@@ -560,12 +561,12 @@ function ItemView() {
 
 	let item: any;
 	let photos: { id: string; image_url: string; notes: string | null }[] = [];
-	let packageInfo: {
+	let packageInfos: Array<{
 		id: string;
 		reference: string | null;
 		instanceNumber: number | null;
 		orderName: string | null;
-	} | null = null;
+	}> = [];
 
 	if (record.source === "pkd_item") {
 		const d = record.data as any;
@@ -583,6 +584,11 @@ function ItemView() {
 				? pkgInstance.order_pkg_overview[0]
 				: pkgInstance.order_pkg_overview
 			: null;
+		const order = orderPackage
+			? Array.isArray(orderPackage.orders)
+				? orderPackage.orders[0]
+				: orderPackage.orders
+			: null;
 
 		item = {
 			...catalog,
@@ -590,34 +596,60 @@ function ItemView() {
 		};
 		photos = (d.media || []).filter((m: any) => !!m.image_url);
 		if (pkgInstance) {
-			packageInfo = {
-				id: pkgInstance.id,
-				reference:
-					pkgInstance.ipac_reference ||
-					orderPackage?.reference ||
-					(overview?.pkg_number ? `Package ${overview.pkg_number}` : null),
-				instanceNumber: pkgInstance.instance_number ?? null,
-				orderName: orderPackage?.orders?.order_name || null,
-			};
+			packageInfos = [
+				{
+					id: String(pkgInstance.id),
+					reference:
+						pkgInstance.ipac_reference ||
+						orderPackage?.reference ||
+						(overview?.pkg_number ? `Package ${overview.pkg_number}` : null),
+					instanceNumber: pkgInstance.instance_number ?? null,
+					orderName: order?.order_name || null,
+				},
+			];
 		}
 	} else {
 		const d = record.data as any;
 		item = d;
-		const firstPkd = (d.pkd_item || [])[0];
-		if (firstPkd) {
-			const pkgInstance = firstPkd.order_pkg_instance;
-			const orderPackage = pkgInstance?.order_packages;
-			packageInfo = {
-				id: pkgInstance?.id || null,
+		const packageInfoById = new Map<string, (typeof packageInfos)[number]>();
+
+		for (const packedItem of d.pkd_item || []) {
+			const pkgInstance = Array.isArray(packedItem.order_pkg_instance)
+				? packedItem.order_pkg_instance[0]
+				: packedItem.order_pkg_instance;
+			if (!pkgInstance?.id) continue;
+
+			const packageId = String(pkgInstance.id);
+			if (packageInfoById.has(packageId)) continue;
+
+			const orderPackage = Array.isArray(pkgInstance.order_packages)
+				? pkgInstance.order_packages[0]
+				: pkgInstance.order_packages;
+			const overview = Array.isArray(pkgInstance.order_pkg_overview)
+				? pkgInstance.order_pkg_overview[0]
+				: pkgInstance.order_pkg_overview;
+			const order = orderPackage
+				? Array.isArray(orderPackage.orders)
+					? orderPackage.orders[0]
+					: orderPackage.orders
+				: null;
+
+			packageInfoById.set(packageId, {
+				id: packageId,
 				reference:
+					pkgInstance.ipac_reference ||
 					orderPackage?.reference ||
-					(pkgInstance?.order_pkg_overview?.pkg_number
-						? `Package ${pkgInstance.order_pkg_overview.pkg_number}`
-						: "Package"),
-				instanceNumber: pkgInstance?.instance_number ?? null,
-				orderName: orderPackage?.orders?.order_name || null,
-			};
+					(overview?.pkg_number
+						? `Package ${overview.pkg_number}`
+						: `Box ${packageId.slice(0, 8)}`),
+				instanceNumber: pkgInstance.instance_number ?? null,
+				orderName: order?.order_name || null,
+			});
 		}
+
+		packageInfos = [...packageInfoById.values()].sort((a, b) =>
+			(a.reference || "").localeCompare(b.reference || ""),
+		);
 	}
 
 	const packedQty =
@@ -725,40 +757,52 @@ function ItemView() {
 							<div className="bg-warning-50 rounded-xl p-4 border border-warning-100 text-warning-900 text-sm leading-relaxed">
 								{item.ipac_comments}
 							</div>
-						</div>
 					)}
 				</section>
 
-				{packageInfo ? (
+				{packageInfos.length > 0 ? (
 					<section className="bg-primary-50/70 border border-primary-100/80 rounded-2xl p-6 sm:p-8 relative overflow-hidden">
-						<div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-							<div>
-								<div className="flex items-center gap-2 mb-2">
-									<MapPin className="w-4 h-4 text-primary-600" />
-									<span className="text-xs font-bold text-primary-600 uppercase tracking-wide">
-										Currently Packed In
-									</span>
-								</div>
-								<h3 className="text-2xl font-black text-neutral-900">
-									{packageInfo.reference}
-								</h3>
-								<p className="text-neutral-600 mt-1 text-sm font-medium">
-									{packageInfo.instanceNumber
-										? `Instance #${packageInfo.instanceNumber}`
-										: ""}
-									{packageInfo.orderName ? ` • ${packageInfo.orderName}` : ""}
-								</p>
+						<div className="relative z-10 flex items-center justify-between gap-4">
+							<div className="flex items-center gap-2">
+								<MapPin className="w-4 h-4 text-primary-600" />
+								<span className="text-xs font-bold text-primary-600 uppercase tracking-wide">
+									Currently Packed In
+								</span>
 							</div>
-							{packageInfo.id && (
-								<Link
-									to="/portal/package/$id"
-									params={{ id: packageInfo.id }}
-									className="inline-flex items-center justify-center gap-2 py-2.5 px-5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold shadow-md transition-all whitespace-nowrap flex-shrink-0"
+							<span className="rounded-full bg-primary-100 px-3 py-1 text-xs font-bold text-primary-700">
+								{packageInfos.length} {packageInfos.length === 1 ? "box" : "boxes"}
+							</span>
+						</div>
+
+						<div className="relative z-10 mt-5 grid gap-3 sm:grid-cols-2">
+							{packageInfos.map((packageInfo) => (
+								<article
+									key={packageInfo.id}
+									className="flex flex-col justify-between gap-4 rounded-xl border border-primary-100 bg-white/80 p-4 shadow-sm"
 								>
-									<Box className="w-4 h-4" />
-									View Box Contents
-								</Link>
-							)}
+									<div>
+										<h3 className="text-lg font-black text-neutral-900">
+											{packageInfo.reference || "Package"}
+										</h3>
+										<p className="mt-1 text-sm font-medium text-neutral-600">
+											{packageInfo.instanceNumber
+												? `Instance #${packageInfo.instanceNumber}`
+												: ""}
+											{packageInfo.orderName
+												? `${packageInfo.instanceNumber ? " • " : ""}${packageInfo.orderName}`
+												: ""}
+										</p>
+									</div>
+									<Link
+										to="/portal/package/$id"
+										params={{ id: packageInfo.id }}
+										className="inline-flex items-center justify-center gap-2 py-2.5 px-5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold shadow-md transition-all whitespace-nowrap"
+									>
+										<Box className="w-4 h-4" />
+										View Box Contents
+									</Link>
+								</article>
+							))}
 						</div>
 					</section>
 				) : (
