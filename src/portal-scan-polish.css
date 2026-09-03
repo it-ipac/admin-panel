@@ -1,8 +1,6 @@
 /* Scan / QR resolver presentation.
    Use light-dark() rather than Tailwind dark: variants so the manual portal
-   theme wins even when the operating system prefers the opposite scheme.
-   Keep this compatibility layer until the resolver states are migrated to
-   semantic Tailwind utilities. */
+   theme wins even when the operating system prefers the opposite scheme. */
 
 @keyframes portalScanSweep {
 	0% {
@@ -195,7 +193,7 @@
 .portal-brand.flex.min-h-screen.items-center.justify-center.bg-app-bg
 	> .w-full.max-w-md
 	> button:hover {
-	background: linear-gradient(180deg, #256fb5 0%, #0f5a9d) !important;
+	background: linear-gradient(180deg, #256fb5 0%, #0f5a9d 100%) !important;
 }
 
 @media (max-width: 520px) {
