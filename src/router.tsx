@@ -1,4 +1,5 @@
 import { createRouter } from "@tanstack/react-router";
+import "./portal-photo-icon-strokes.css";
 
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
