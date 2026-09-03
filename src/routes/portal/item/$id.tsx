@@ -757,6 +757,7 @@ function ItemView() {
 							<div className="bg-warning-50 rounded-xl p-4 border border-warning-100 text-warning-900 text-sm leading-relaxed">
 								{item.ipac_comments}
 							</div>
+						</div>
 					)}
 				</section>
 
