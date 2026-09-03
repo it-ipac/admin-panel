@@ -9,13 +9,9 @@ import {
 	Sun,
 	UserRound,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
-import {
-	applyThemePreference,
-	getThemePreference,
-	setThemePreference,
-} from "../lib/theme";
+import { useThemePreference } from "../hooks/useThemePreference";
 import { PortalBrand } from "./PortalBrand";
 import { PortalLookup } from "./portal/PortalLookup";
 import "./portal-header-layout.css";
@@ -39,61 +35,13 @@ export function PortalHeader({
 }: PortalHeaderProps) {
 	const navigate = useNavigate();
 	const { profile, user, signOut } = useAuth();
-	const [isDark, setIsDark] = useState(false);
+	const { isDark, toggleTheme } = useThemePreference();
 	const [signingOut, setSigningOut] = useState(false);
-
-	useEffect(() => {
-		const root = document.documentElement;
-		const media = window.matchMedia("(prefers-color-scheme: dark)");
-
-		// Re-apply the saved manual preference after hydration. The root route can
-		// render on the server, where browser storage is unavailable, so without
-		// this step a refresh could temporarily resolve back to the OS theme.
-		applyThemePreference(getThemePreference());
-
-		const syncResolvedTheme = () => {
-			const appliedTheme = root.getAttribute("data-theme");
-			if (appliedTheme === "dark") {
-				setIsDark(true);
-				return;
-			}
-			if (appliedTheme === "light") {
-				setIsDark(false);
-				return;
-			}
-			setIsDark(media.matches);
-		};
-
-		syncResolvedTheme();
-		media.addEventListener("change", syncResolvedTheme);
-		const observer = new MutationObserver(syncResolvedTheme);
-		observer.observe(root, {
-			attributes: true,
-			attributeFilter: ["data-theme"],
-		});
-
-		return () => {
-			media.removeEventListener("change", syncResolvedTheme);
-			observer.disconnect();
-		};
-	}, []);
 
 	const nextTheme = isDark ? "light" : "dark";
 	const displayName =
 		profile?.full_name || profile?.username || user?.email || "Portal account";
 	const secondaryIdentity = profile?.username || user?.email || "Client portal";
-
-	const handleThemeToggle = () => {
-		const appliedTheme = document.documentElement.getAttribute("data-theme");
-		const currentlyDark =
-			appliedTheme === "dark" ||
-			(appliedTheme !== "light" &&
-				window.matchMedia("(prefers-color-scheme: dark)").matches);
-		const targetTheme = currentlyDark ? "light" : "dark";
-
-		setThemePreference(targetTheme);
-		setIsDark(targetTheme === "dark");
-	};
 
 	const handleSignOut = async () => {
 		if (signingOut) return;
@@ -178,7 +126,7 @@ export function PortalHeader({
 						>
 							<button
 								type="button"
-								onClick={handleThemeToggle}
+								onClick={toggleTheme}
 								className={utilityButtonClass}
 								aria-label={`Switch to ${nextTheme} theme`}
 							>
