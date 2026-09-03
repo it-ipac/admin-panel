@@ -329,7 +329,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 		result?.title || result?.itemReference || result?.itemNumbers[0] || result?.query || "Item";
 
 	return (
-		<div className="relative order-3 w-full basis-full lg:order-none lg:mx-5 lg:min-w-0 lg:flex-1 lg:max-w-xl">
+		<div className="relative min-w-0 max-w-[36rem] flex-1 basis-0 md:mx-2 lg:mx-3">
 			<form
 				onSubmit={(event) => {
 					event.preventDefault();
@@ -341,7 +341,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 				</label>
 				<div className="relative">
 					<Search
-						className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary-700 dark:text-primary-300"
+						className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary-700 dark:text-primary-300 sm:left-3"
 						aria-hidden="true"
 					/>
 					<input
@@ -356,19 +356,19 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 						autoComplete="off"
 						spellCheck={false}
 						disabled={!clientId}
-						className="h-10 w-full rounded-xl border border-app-border bg-app-surface-muted/80 py-2 pl-10 pr-[4.75rem] text-sm font-medium text-app-text-strong shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition-[background-color,border-color,box-shadow] placeholder:font-normal placeholder:text-app-text-muted hover:border-primary-200 focus:border-primary-500 focus:bg-app-surface focus:outline-none focus:ring-2 focus:ring-primary-500/25 disabled:cursor-wait disabled:opacity-60 dark:shadow-none sm:h-11"
+						className="h-9 w-full rounded-xl border border-app-border bg-app-surface-muted/80 py-2 pl-8 pr-10 text-xs font-medium text-app-text-strong shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition-[background-color,border-color,box-shadow] placeholder:font-normal placeholder:text-app-text-muted hover:border-primary-200 focus:border-primary-500 focus:bg-app-surface focus:outline-none focus:ring-2 focus:ring-primary-500/25 disabled:cursor-wait disabled:opacity-60 dark:shadow-none sm:h-10 sm:pl-10 sm:pr-[4.75rem] sm:text-sm md:h-11"
 					/>
 					<button
 						type="submit"
 						disabled={!value.trim() || loading || !clientId}
-						className="absolute bottom-1 right-1 top-1 inline-flex min-w-16 items-center justify-center gap-1.5 rounded-lg bg-primary-600 px-2.5 text-xs font-bold text-white shadow-[0_2px_6px_rgba(0,94,168,0.2)] transition-[background-color,box-shadow,transform] hover:bg-primary-700 hover:shadow-[0_3px_9px_rgba(0,94,168,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45 dark:bg-primary-500 dark:hover:bg-primary-400"
+						className="absolute bottom-1 right-1 top-1 inline-flex w-8 min-w-8 items-center justify-center gap-1.5 rounded-lg bg-primary-600 px-0 text-xs font-bold text-white shadow-[0_2px_6px_rgba(0,94,168,0.2)] transition-[background-color,box-shadow,transform] hover:bg-primary-700 hover:shadow-[0_3px_9px_rgba(0,94,168,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45 dark:bg-primary-500 dark:hover:bg-primary-400 sm:w-auto sm:min-w-16 sm:px-2.5"
 					>
 						{loading ? (
 							<Loader2 className="h-3.5 w-3.5 animate-spin text-white" aria-hidden="true" />
 						) : (
 							<Search className="h-3.5 w-3.5 text-white" aria-hidden="true" />
 						)}
-						<span className="text-white">Find</span>
+						<span className="hidden text-white sm:inline">Find</span>
 					</button>
 				</div>
 			</form>
@@ -376,7 +376,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 			{hasFeedback && (
 				<div
 					id="portal-lookup-feedback"
-					className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-2xl border border-app-border bg-app-surface shadow-[0_18px_48px_-20px_rgba(15,23,42,0.35)]"
+					className="fixed left-2 right-2 top-[4.25rem] z-50 overflow-hidden rounded-2xl border border-app-border bg-app-surface shadow-[0_18px_48px_-20px_rgba(15,23,42,0.35)] md:absolute md:left-0 md:right-0 md:top-[calc(100%+0.5rem)]"
 					role={error ? "alert" : "status"}
 				>
 					<div className="flex items-start justify-between gap-3 border-b border-app-border bg-app-surface-muted px-4 py-3">

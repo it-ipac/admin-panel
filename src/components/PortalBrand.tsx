@@ -3,7 +3,6 @@ import {
 	applyThemePreference,
 	getThemePreference,
 } from "../lib/theme";
-import "../portal-scan-polish.css";
 
 interface PortalBrandProps {
 	variant?: "header" | "full";
