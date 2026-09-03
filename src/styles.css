@@ -1,0 +1,702 @@
+@import "tailwindcss";
+
+/* DaisyUI is available as a component layer only. Its built-in themes are
+   disabled so data-theme and the IPAC semantic tokens remain the single theme
+   authority for the application. */
+@plugin "daisyui" {
+	themes: false;
+	logs: false;
+}
+
+/* Tailwind dark: utilities follow the same theme source as the app. An
+   explicit data-theme always wins; OS dark mode is used only for the system
+   preference when no explicit theme is present. */
+@custom-variant dark {
+	&:where([data-theme="dark"], [data-theme="dark"] *) {
+		@slot;
+	}
+
+	@media (prefers-color-scheme: dark) {
+		&:where(:root:not([data-theme]) *) {
+			@slot;
+		}
+	}
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Design primitives
+   Components should use these named scales instead of raw Tailwind palettes.
+   ────────────────────────────────────────────────────────────────────────── */
+@theme {
+	--color-red-*: initial;
+	--color-orange-*: initial;
+	--color-amber-*: initial;
+	--color-yellow-*: initial;
+	--color-lime-*: initial;
+	--color-green-*: initial;
+	--color-emerald-*: initial;
+	--color-teal-*: initial;
+	--color-cyan-*: initial;
+	--color-sky-*: initial;
+	--color-blue-*: initial;
+	--color-indigo-*: initial;
+	--color-violet-*: initial;
+	--color-purple-*: initial;
+	--color-fuchsia-*: initial;
+	--color-pink-*: initial;
+	--color-rose-*: initial;
+	--color-slate-*: initial;
+	--color-gray-*: initial;
+	--color-zinc-*: initial;
+	--color-stone-*: initial;
+
+	--color-primary-50: oklch(97% 0.014 254.604);
+	--color-primary-100: oklch(93.2% 0.032 255.585);
+	--color-primary-200: oklch(88.2% 0.059 254.128);
+	--color-primary-300: oklch(80.9% 0.105 251.813);
+	--color-primary-400: oklch(70.7% 0.165 254.624);
+	--color-primary-500: oklch(62.3% 0.214 259.815);
+	--color-primary-600: oklch(54.6% 0.245 262.881);
+	--color-primary-700: oklch(48.8% 0.243 264.376);
+	--color-primary-800: oklch(42.4% 0.199 265.638);
+	--color-primary-900: oklch(37.9% 0.146 265.522);
+	--color-primary-950: oklch(28.2% 0.091 267.935);
+
+	--color-neutral-50: oklch(98.5% 0.002 247.839);
+	--color-neutral-100: oklch(96.7% 0.003 264.542);
+	--color-neutral-200: oklch(92.8% 0.006 264.531);
+	--color-neutral-300: oklch(87.2% 0.01 258.338);
+	--color-neutral-400: oklch(70.7% 0.022 261.325);
+	--color-neutral-500: oklch(55.1% 0.027 264.364);
+	--color-neutral-600: oklch(44.6% 0.03 256.802);
+	--color-neutral-700: oklch(37.3% 0.034 259.733);
+	--color-neutral-800: oklch(27.8% 0.033 256.848);
+	--color-neutral-900: oklch(21% 0.034 264.665);
+	--color-neutral-950: oklch(13% 0.028 261.692);
+
+	--color-steel-50: oklch(98.4% 0.003 247.858);
+	--color-steel-100: oklch(96.8% 0.007 247.896);
+	--color-steel-200: oklch(92.9% 0.013 255.508);
+	--color-steel-300: oklch(86.9% 0.022 252.894);
+	--color-steel-400: oklch(70.4% 0.04 256.788);
+	--color-steel-500: oklch(55.4% 0.046 257.417);
+	--color-steel-600: oklch(44.6% 0.043 257.281);
+	--color-steel-700: oklch(37.2% 0.044 257.287);
+	--color-steel-800: oklch(27.9% 0.041 260.031);
+	--color-steel-900: oklch(20.8% 0.042 265.755);
+	--color-steel-950: oklch(12.9% 0.042 264.695);
+
+	--color-danger-50: oklch(97.1% 0.013 17.38);
+	--color-danger-100: oklch(93.6% 0.032 17.717);
+	--color-danger-200: oklch(88.5% 0.062 18.334);
+	--color-danger-300: oklch(80.8% 0.114 19.571);
+	--color-danger-400: oklch(70.4% 0.191 22.216);
+	--color-danger-500: oklch(63.7% 0.237 25.331);
+	--color-danger-600: oklch(57.7% 0.245 27.325);
+	--color-danger-700: oklch(50.5% 0.213 27.518);
+	--color-danger-800: oklch(44.4% 0.177 26.899);
+	--color-danger-900: oklch(39.6% 0.141 25.723);
+	--color-danger-950: oklch(25.8% 0.092 26.042);
+
+	--color-success-50: oklch(98.2% 0.018 155.826);
+	--color-success-100: oklch(96.2% 0.044 156.743);
+	--color-success-200: oklch(92.5% 0.084 155.995);
+	--color-success-300: oklch(87.1% 0.15 154.449);
+	--color-success-400: oklch(79.2% 0.209 151.711);
+	--color-success-500: oklch(72.3% 0.219 149.579);
+	--color-success-600: oklch(62.7% 0.194 149.214);
+	--color-success-700: oklch(52.7% 0.154 150.069);
+	--color-success-800: oklch(44.8% 0.119 151.328);
+	--color-success-900: oklch(39.3% 0.095 152.535);
+	--color-success-950: oklch(26.6% 0.065 152.934);
+
+	--color-warning-50: oklch(98.7% 0.022 95.277);
+	--color-warning-100: oklch(96.2% 0.059 95.617);
+	--color-warning-200: oklch(92.4% 0.12 95.746);
+	--color-warning-300: oklch(87.9% 0.169 91.605);
+	--color-warning-400: oklch(82.8% 0.189 84.429);
+	--color-warning-500: oklch(76.9% 0.188 70.08);
+	--color-warning-600: oklch(66.6% 0.179 58.318);
+	--color-warning-700: oklch(55.5% 0.163 48.998);
+	--color-warning-800: oklch(47.3% 0.137 46.201);
+	--color-warning-900: oklch(41.4% 0.112 45.904);
+	--color-warning-950: oklch(27.9% 0.077 45.635);
+
+	--color-accent-50: oklch(97.7% 0.014 308.299);
+	--color-accent-100: oklch(94.6% 0.033 307.174);
+	--color-accent-200: oklch(90.2% 0.063 306.703);
+	--color-accent-300: oklch(82.7% 0.119 306.383);
+	--color-accent-400: oklch(71.4% 0.203 305.504);
+	--color-accent-500: oklch(62.7% 0.265 303.9);
+	--color-accent-600: oklch(55.8% 0.288 302.321);
+	--color-accent-700: oklch(49.6% 0.265 301.924);
+	--color-accent-800: oklch(43.8% 0.218 303.724);
+	--color-accent-900: oklch(38.1% 0.176 304.987);
+	--color-accent-950: oklch(29.1% 0.149 302.717);
+
+	--color-ember-50: oklch(98% 0.016 73.684);
+	--color-ember-100: oklch(95.4% 0.038 75.164);
+	--color-ember-200: oklch(90.1% 0.076 70.697);
+	--color-ember-300: oklch(83.7% 0.128 66.29);
+	--color-ember-400: oklch(75% 0.183 55.934);
+	--color-ember-500: oklch(70.5% 0.213 47.604);
+	--color-ember-600: oklch(64.6% 0.222 41.116);
+	--color-ember-700: oklch(55.3% 0.195 38.402);
+	--color-ember-800: oklch(47% 0.157 37.304);
+	--color-ember-900: oklch(40.8% 0.123 38.172);
+	--color-ember-950: oklch(26.6% 0.079 36.259);
+
+	--color-iris-50: oklch(96.2% 0.018 272.314);
+	--color-iris-100: oklch(93% 0.034 272.788);
+	--color-iris-200: oklch(87% 0.065 274.039);
+	--color-iris-300: oklch(78.5% 0.115 274.713);
+	--color-iris-400: oklch(67.3% 0.182 276.935);
+	--color-iris-500: oklch(58.5% 0.233 277.117);
+	--color-iris-600: oklch(51.1% 0.262 276.966);
+	--color-iris-700: oklch(45.7% 0.24 277.023);
+	--color-iris-800: oklch(39.8% 0.195 277.366);
+	--color-iris-900: oklch(35.9% 0.144 278.697);
+	--color-iris-950: oklch(25.7% 0.09 281.288);
+
+	--color-aqua-50: oklch(98.4% 0.019 200.873);
+	--color-aqua-100: oklch(95.6% 0.045 203.388);
+	--color-aqua-200: oklch(91.7% 0.08 205.041);
+	--color-aqua-300: oklch(86.5% 0.127 207.078);
+	--color-aqua-400: oklch(78.9% 0.154 211.53);
+	--color-aqua-500: oklch(71.5% 0.143 215.221);
+	--color-aqua-600: oklch(60.9% 0.126 221.723);
+	--color-aqua-700: oklch(52% 0.105 223.128);
+	--color-aqua-800: oklch(45% 0.085 224.283);
+	--color-aqua-900: oklch(39.8% 0.07 227.392);
+	--color-aqua-950: oklch(30.2% 0.056 229.695);
+
+	--font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+		"Helvetica Neue", Arial, sans-serif;
+	--radius-control: 0.75rem;
+	--radius-panel: 1rem;
+	--radius-card: 1.5rem;
+	--shadow-panel: 0 1px 2px rgb(15 23 42 / 0.05), 0 12px 32px -24px rgb(15 23 42 / 0.28);
+	--shadow-float: 0 18px 48px -20px rgb(15 23 42 / 0.35);
+}
+
+/* Runtime semantic tokens. @theme inline lets Tailwind utilities resolve the
+   value where they are used, so scoped portal tokens inherit correctly. */
+@theme inline {
+	--color-app-bg: var(--app-bg);
+	--color-app-surface: var(--app-surface);
+	--color-app-surface-muted: var(--app-surface-muted);
+	--color-app-border: var(--app-border);
+	--color-app-border-muted: var(--app-border-muted);
+	--color-app-text: var(--app-text);
+	--color-app-text-muted: var(--app-text-muted);
+	--color-app-text-subtle: var(--app-text-subtle);
+	--color-app-text-strong: var(--app-text-strong);
+	--color-app-input: var(--app-input-bg);
+	--color-app-input-disabled: var(--app-input-disabled-bg);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Semantic theme tokens — the only place light/dark values are paired.
+   Components inherit these through Tailwind's app-* utilities.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+	color-scheme: light dark;
+
+	--app-text: light-dark(#111827, #e5e7eb);
+	--app-text-muted: light-dark(#6b7280, #9ca3af);
+	--app-text-subtle: light-dark(#4b5563, #cbd5e1);
+	--app-text-strong: light-dark(#111827, #f9fafb);
+	--app-bg: light-dark(#f9fafb, #0f172a);
+	--app-surface: light-dark(#ffffff, #111827);
+	--app-surface-muted: light-dark(#eef2f7, #182230);
+	--app-border: light-dark(#e5e7eb, #334155);
+	--app-border-muted: light-dark(#f3f4f6, #1f2937);
+	--app-input-bg: light-dark(#ffffff, #0b1220);
+	--app-input-disabled-bg: light-dark(#f9fafb, #0b1220);
+	--app-scrollbar-track: light-dark(#f1f5f9, #0b1220);
+	--app-scrollbar-thumb: light-dark(#cbd5e1, #334155);
+	--app-scrollbar-thumb-hover: light-dark(#94a3b8, #475569);
+
+	/* Transitional semantic status roles. Existing status utilities read these
+	   until their owning components are moved to role-named Tailwind tokens. */
+	--bg-primary-50: light-dark(#dbeafe, rgb(59 130 246 / 0.18));
+	--bg-primary-100: light-dark(#bfdbfe, rgb(59 130 246 / 0.28));
+	--border-primary-100: light-dark(#bfdbfe, rgb(59 130 246 / 0.22));
+	--border-primary-200: light-dark(#93c5fd, rgb(59 130 246 / 0.34));
+	--border-primary-300: light-dark(#60a5fa, rgb(59 130 246 / 0.46));
+	--text-primary-700: light-dark(#1d4ed8, #93c5fd);
+	--text-primary-800: light-dark(#1e40af, #bfdbfe);
+	--text-primary-900: light-dark(#1e3a8a, #dbeafe);
+	--hover-bg-primary-100: light-dark(#bfdbfe, rgb(59 130 246 / 0.24));
+
+	--bg-success-50: light-dark(#f0fdf4, rgb(16 185 129 / 0.12));
+	--bg-success-100: light-dark(#dcfce7, rgb(16 185 129 / 0.25));
+	--border-success-100: light-dark(#dcfce7, rgb(16 185 129 / 0.2));
+	--border-success-200: light-dark(#bbf7d0, rgb(16 185 129 / 0.3));
+	--text-success-700: light-dark(#15803d, #34d399);
+	--text-success-800: light-dark(#166534, #34d399);
+	--text-success-900: light-dark(#064e3b, #34d399);
+	--hover-bg-success-100: light-dark(#dcfce7, rgb(16 185 129 / 0.2));
+
+	--bg-warning-50: light-dark(#fffbeb, rgb(245 158 11 / 0.12));
+	--bg-warning-100: light-dark(#fef3c7, rgb(245 158 11 / 0.25));
+	--border-warning-200: light-dark(#fde68a, rgb(245 158 11 / 0.3));
+	--text-warning-700: light-dark(#b45309, #fbbf24);
+	--text-warning-800: light-dark(#854d0e, #fbbf24);
+	--text-warning-900: light-dark(#78350f, #fbbf24);
+	--hover-bg-warning-100: light-dark(#fef3c7, rgb(245 158 11 / 0.2));
+
+	--bg-ember-100: light-dark(#ffedd5, rgb(249 115 22 / 0.15));
+	--border-ember-200: light-dark(#fed7aa, rgb(249 115 22 / 0.25));
+	--text-ember-800: light-dark(#9a3412, #fb923c);
+	--text-ember-900: light-dark(#7c2d12, #fb923c);
+
+	--bg-accent-50: light-dark(#faf5ff, rgb(168 85 247 / 0.12));
+	--bg-accent-100: light-dark(#f3e8ff, rgb(168 85 247 / 0.15));
+	--border-accent-100: light-dark(#f3e8ff, rgb(168 85 247 / 0.2));
+	--border-accent-200: light-dark(#e9d5ff, rgb(168 85 247 / 0.25));
+	--text-accent-600: light-dark(#9333ea, #c084fc);
+	--text-accent-700: light-dark(#7e22ce, #c084fc);
+	--text-accent-800: light-dark(#6b21a8, #c084fc);
+
+	--bg-iris-100: light-dark(#e0e7ff, rgb(99 102 241 / 0.2));
+	--bg-iris-200: light-dark(#c7d2fe, rgb(99 102 241 / 0.3));
+	--border-iris-200: light-dark(#c7d2fe, rgb(99 102 241 / 0.35));
+	--text-iris-700: light-dark(#4338ca, #818cf8);
+	--text-iris-800: light-dark(#3730a3, #a5b4fc);
+
+	--bg-danger-50: light-dark(#fef2f2, rgb(239 68 68 / 0.12));
+	--border-danger-100: light-dark(#fee2e2, rgb(239 68 68 / 0.2));
+	--border-danger-200: light-dark(#fecaca, rgb(239 68 68 / 0.3));
+	--text-danger-600: light-dark(#dc2626, #f87171);
+	--text-danger-700: light-dark(#b91c1c, #f87171);
+
+	--bg-neutral-200-80: light-dark(rgb(229 231 235 / 0.8), rgb(31 41 55 / 0.8));
+	--bg-neutral-50-50: light-dark(rgb(249 250 251 / 0.5), rgb(31 41 55 / 0.55));
+
+	/* DaisyUI component variables are aliases of the same IPAC tokens. */
+	--color-base-100: var(--app-surface);
+	--color-base-200: var(--app-surface-muted);
+	--color-base-300: var(--app-border);
+	--color-base-content: var(--app-text);
+	--color-primary: var(--color-primary-600);
+	--color-primary-content: #ffffff;
+	--color-secondary: var(--color-steel-700);
+	--color-secondary-content: #ffffff;
+	--color-accent: var(--color-accent-600);
+	--color-accent-content: #ffffff;
+	--color-neutral: var(--color-neutral-700);
+	--color-neutral-content: #ffffff;
+	--color-info: var(--color-primary-500);
+	--color-info-content: #ffffff;
+	--color-success: var(--color-success-600);
+	--color-success-content: #ffffff;
+	--color-warning: var(--color-warning-500);
+	--color-warning-content: #422006;
+	--color-error: var(--color-danger-600);
+	--color-error-content: #ffffff;
+	--radius-selector: 0.75rem;
+	--radius-field: 0.75rem;
+	--radius-box: 1rem;
+	--size-selector: 0.25rem;
+	--size-field: 0.25rem;
+	--border: 1px;
+	--depth: 1;
+	--noise: 0;
+}
+
+html[data-theme="light"] {
+	color-scheme: light;
+}
+
+html[data-theme="dark"] {
+	color-scheme: dark;
+}
+
+/* Base inheritance belongs in the base layer so component Tailwind utilities
+   always have higher cascade priority. No global !important color resets. */
+@layer base {
+	html,
+	body {
+		min-height: 100%;
+		background-color: var(--app-bg);
+		color: var(--app-text);
+	}
+
+	body {
+		font-family: var(--font-sans);
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		color: var(--app-text-strong);
+	}
+
+	input,
+	textarea,
+	select {
+		color: inherit;
+		background-color: var(--app-input-bg);
+	}
+
+	input::placeholder,
+	textarea::placeholder {
+		color: var(--app-text-muted);
+	}
+
+	input:disabled,
+	textarea:disabled,
+	select:disabled {
+		color: var(--app-text-muted);
+		background-color: var(--app-input-disabled-bg);
+	}
+}
+
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--app-scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--app-scrollbar-thumb);
+	border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--app-scrollbar-thumb-hover);
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.animate-fade-in {
+	animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes headlineShimmer {
+	0%,
+	100% {
+		background-position: 0% 50%;
+		filter: drop-shadow(0 0 0 rgb(0 0 0 / 0));
+	}
+	50% {
+		background-position: 100% 50%;
+		filter: drop-shadow(0 10px 22px rgb(59 130 246 / 0.14));
+	}
+}
+
+.portal-hero-headline {
+	background-image: linear-gradient(
+		90deg,
+		var(--app-text-strong),
+		light-dark(#1d4ed8, #bfdbfe),
+		var(--app-text-strong)
+	);
+	background-size: 200% 100%;
+	background-position: 0% 50%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	-webkit-text-fill-color: transparent;
+	animation: headlineShimmer 7s ease-in-out infinite;
+}
+
+.card-hover {
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
+}
+
+.chart-container {
+	min-height: 300px;
+}
+
+/* Structured table component. This remains CSS because the table is generated
+   in several places; ordinary application layout should stay in Tailwind. */
+.excel-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.excel-table th,
+.excel-table td {
+	border: 1px solid var(--app-border);
+	padding: 8px 12px;
+	text-align: left;
+	font-size: 14px;
+	color: var(--app-text);
+}
+
+.excel-table th {
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	background-color: var(--app-surface-muted);
+	font-weight: 600;
+	color: var(--app-text-strong);
+}
+
+.excel-table tr:hover,
+.excel-table tr.variant-row:hover {
+	background-color: var(--app-surface-muted);
+}
+
+.excel-table tr:nth-child(even),
+.excel-table tr.variant-row {
+	background-color: var(--app-surface);
+}
+
+.excel-table tr.expanded {
+	background-color: rgb(59 130 246 / 0.12);
+}
+
+.excel-table input {
+	width: 100%;
+	border: none;
+	background: transparent;
+	padding: 4px;
+	font-size: 14px;
+}
+
+.excel-table input:focus {
+	outline: 2px solid var(--color-primary-500);
+	outline-offset: -2px;
+	background: var(--app-surface);
+}
+
+.excel-table .nested-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.excel-table .nested-table th {
+	background-color: var(--app-surface-muted);
+	font-weight: 500;
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.excel-table .nested-table td {
+	border: none;
+	border-bottom: 1px solid var(--app-border);
+}
+
+.excel-table a {
+	color: var(--color-primary-600);
+}
+
+.login-input,
+.login-input:focus {
+	border-color: var(--app-text-strong);
+}
+
+.auth-bg {
+	background: var(--app-bg);
+}
+
+.auth-bg .bg-primary-100,
+.auth-bg .bg-steel-200 {
+	opacity: light-dark(1, 0.05);
+}
+
+/* Legacy utility compatibility. These are intentionally narrow class-level
+   aliases — never universal element or wildcard selectors. They keep older
+   admin screens themed while those components migrate to app-* utilities. */
+.text-neutral-500 { color: var(--app-text-muted); }
+.text-neutral-600 { color: var(--app-text-subtle); }
+.text-neutral-700 { color: var(--app-text); }
+.text-neutral-800,
+.text-neutral-900 { color: var(--app-text-strong); }
+
+.border-neutral-100,
+.border-neutral-200 { border-color: var(--app-border-muted); }
+.border-neutral-300 { border-color: var(--app-border); }
+
+.bg-white { background-color: var(--app-surface); }
+.bg-neutral-50 { background-color: var(--app-bg); }
+.bg-neutral-100 { background-color: var(--app-surface-muted); }
+.bg-neutral-200 { background-color: light-dark(#e5e7eb, #1f2937); }
+.bg-neutral-200\/80 { background-color: var(--bg-neutral-200-80); }
+.bg-neutral-50\/50 { background-color: var(--bg-neutral-50-50); }
+
+.bg-primary-50 { background-color: var(--bg-primary-50); }
+.bg-primary-100 { background-color: var(--bg-primary-100); }
+.border-primary-100 { border-color: var(--border-primary-100); }
+.border-primary-200 { border-color: var(--border-primary-200); }
+.border-primary-300 { border-color: var(--border-primary-300); }
+.text-primary-700 { color: var(--text-primary-700); }
+.text-primary-800 { color: var(--text-primary-800); }
+.text-primary-900 { color: var(--text-primary-900); }
+.hover\:bg-primary-100:hover { background-color: var(--hover-bg-primary-100); }
+
+.bg-success-50 { background-color: var(--bg-success-50); }
+.bg-success-100 { background-color: var(--bg-success-100); }
+.border-success-100 { border-color: var(--border-success-100); }
+.border-success-200 { border-color: var(--border-success-200); }
+.text-success-700 { color: var(--text-success-700); }
+.text-success-800 { color: var(--text-success-800); }
+.text-success-900 { color: var(--text-success-900); }
+.hover\:bg-success-100:hover { background-color: var(--hover-bg-success-100); }
+
+.bg-warning-50 { background-color: var(--bg-warning-50); }
+.bg-warning-100 { background-color: var(--bg-warning-100); }
+.border-warning-200 { border-color: var(--border-warning-200); }
+.text-warning-700 { color: var(--text-warning-700); }
+.text-warning-800 { color: var(--text-warning-800); }
+.text-warning-900 { color: var(--text-warning-900); }
+.hover\:bg-warning-100:hover { background-color: var(--hover-bg-warning-100); }
+
+.bg-ember-100 { background-color: var(--bg-ember-100); }
+.border-ember-200 { border-color: var(--border-ember-200); }
+.text-ember-800 { color: var(--text-ember-800); }
+.text-ember-900 { color: var(--text-ember-900); }
+
+.bg-accent-50 { background-color: var(--bg-accent-50); }
+.bg-accent-100 { background-color: var(--bg-accent-100); }
+.border-accent-100 { border-color: var(--border-accent-100); }
+.border-accent-200 { border-color: var(--border-accent-200); }
+.text-accent-600 { color: var(--text-accent-600); }
+.text-accent-700 { color: var(--text-accent-700); }
+.text-accent-800 { color: var(--text-accent-800); }
+.hover\:bg-accent-100:hover { background-color: var(--bg-accent-100); }
+
+.bg-iris-100 { background-color: var(--bg-iris-100); }
+.bg-iris-200 { background-color: var(--bg-iris-200); }
+.border-iris-200 { border-color: var(--border-iris-200); }
+.text-iris-700 { color: var(--text-iris-700); }
+.text-iris-800 { color: var(--text-iris-800); }
+
+.bg-danger-50 { background-color: var(--bg-danger-50); }
+.border-danger-100 { border-color: var(--border-danger-100); }
+.border-danger-200 { border-color: var(--border-danger-200); }
+.text-danger-600 { color: var(--text-danger-600); }
+.text-danger-700 { color: var(--text-danger-700); }
+
+.hover\:bg-neutral-50:hover { background-color: var(--app-bg); }
+.hover\:bg-neutral-100:hover { background-color: var(--app-surface-muted); }
+.hover\:bg-neutral-200:hover { background-color: light-dark(#e5e7eb, #1f2937); }
+.hover\:bg-primary-50:hover { background-color: var(--bg-primary-50); }
+
+/* Portal brand tokens are scoped; Tailwind utilities inherit them at use time. */
+.portal-brand {
+	--color-primary-50: #eff9fe;
+	--color-primary-100: #dff3fb;
+	--color-primary-200: #b9e8f7;
+	--color-primary-300: #83d2ee;
+	--color-primary-400: #65b9e5;
+	--color-primary-500: #0081c5;
+	--color-primary-600: #005ea8;
+	--color-primary-700: #013d86;
+	--color-primary-800: #0c2b7b;
+	--color-primary-900: #070630;
+	--color-primary-950: #03021f;
+	--bg-primary-50: light-dark(#eff9fe, rgb(0 129 197 / 0.16));
+	--bg-primary-100: light-dark(#dff3fb, rgb(0 129 197 / 0.24));
+	--border-primary-100: light-dark(#dff3fb, rgb(0 129 197 / 0.2));
+	--border-primary-200: light-dark(#b9e8f7, rgb(0 129 197 / 0.34));
+	--border-primary-300: light-dark(#83d2ee, rgb(101 185 229 / 0.46));
+	--text-primary-700: light-dark(#013d86, #83d2ee);
+	--text-primary-800: light-dark(#0c2b7b, #b9e8f7);
+	--text-primary-900: light-dark(#070630, #dff3fb);
+	--hover-bg-primary-100: light-dark(#dff3fb, rgb(0 129 197 / 0.22));
+	--color-primary: var(--color-primary-600);
+}
+
+.portal-package-details {
+	--package-page-bg: light-dark(#f2f6fa, #020817);
+	--package-card-bg: light-dark(#ffffff, #111827);
+	--package-canvas-bg: light-dark(#f4f7fb, rgb(2 6 23 / 0.4));
+	--package-tile-bg: light-dark(#f7f9fc, rgb(30 41 59 / 0.65));
+	--package-tile-soft-bg: light-dark(#fbfcfe, rgb(30 41 59 / 0.55));
+	--package-control-bg: light-dark(#f8fafc, #1e293b);
+	--package-chip-bg: light-dark(#edf2f7, #1e293b);
+	--package-summary-bg: light-dark(#eef7fc, rgb(3 2 31 / 0.25));
+	--package-border: light-dark(#d7e1eb, #334155);
+	--package-border-soft: light-dark(#e1e8f0, #334155);
+	--package-blue-border: light-dark(#c8e4f2, #0c2b7b);
+	--package-quiet-text: light-dark(#94a3b8, #64748b);
+	--package-shadow-key: light-dark(rgb(15 23 42 / 0.06), rgb(0 0 0 / 0.4));
+	--package-shadow-primary: light-dark(rgb(30 64 100 / 0.24), rgb(0 0 0 / 0.72));
+	--package-shadow-secondary: light-dark(rgb(30 64 100 / 0.2), rgb(0 0 0 / 0.68));
+	--package-shadow-inner: light-dark(rgb(30 64 100 / 0.3), rgb(0 0 0 / 0));
+}
+
+.portal-wordmark {
+	font-family: Montserrat, "Avenir Next", "Century Gothic", Futura, "Arial Black", Arial, sans-serif;
+	font-weight: 900;
+	letter-spacing: -0.035em;
+	line-height: 1;
+}
+
+.portal-wordmark .metrix-wordmark__metrix { color: #243e9f; }
+.portal-wordmark .metrix-wordmark__assets,
+.portal-wordmark .metrix-wordmark__version { color: #2d7bc7; }
+
+/* Reports intentionally render as a light document regardless of app theme. */
+.report-preview-container {
+	color-scheme: light;
+	background-color: #ffffff;
+	color: #1a1a2e;
+	--app-text: #1a1a2e;
+	--app-text-muted: #6b7280;
+	--app-text-subtle: #4b5563;
+	--app-text-strong: #111827;
+	--app-bg: #f9fafb;
+	--app-surface: #ffffff;
+	--app-surface-muted: #f3f4f6;
+	--app-border: #e5e7eb;
+	--app-border-muted: #f3f4f6;
+}
+
+.report-preview-container,
+.report-preview-container * {
+	border-color: #d8e4f0;
+}
+
+.report-preview-container p,
+.report-preview-container span,
+.report-preview-container div,
+.report-preview-container label,
+.report-preview-container strong,
+.report-preview-container b,
+.report-preview-container i,
+.report-preview-container h1,
+.report-preview-container h2,
+.report-preview-container h3,
+.report-preview-container h4,
+.report-preview-container h5,
+.report-preview-container h6 {
+	color: inherit;
+}
+
+.report-preview-container table td,
+.report-preview-container table th {
+	border-color: #d8e4f0;
+}
+
+.report-preview-container th {
+	background-color: inherit;
+	color: inherit;
+}
