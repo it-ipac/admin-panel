@@ -99,7 +99,12 @@ function PortalLogin() {
 			const profileData = await db.getProfile(user.id);
 			if (cancelled) return;
 
-			if (profileData?.data?.roles?.name === "client") {
+			const profile = profileData?.data;
+			const roleName = profile?.roles?.name;
+			const hasPortalAccess =
+				roleName === "client" || (roleName === "admin" && !!profile?.client_id);
+
+			if (hasPortalAccess) {
 				goToReturnUrl();
 				return;
 			}
@@ -142,7 +147,13 @@ function PortalLogin() {
 				const profileData = await db.getProfile(data.user.id);
 				if (profileData?.error) throw profileData.error;
 
-				if (profileData?.data?.roles?.name !== "client") {
+				const profile = profileData?.data;
+				const roleName = profile?.roles?.name;
+				const hasPortalAccess =
+					roleName === "client" ||
+					(roleName === "admin" && !!profile?.client_id);
+
+				if (!hasPortalAccess) {
 					await auth.signOut();
 					toast({
 						title: "Access Denied",
