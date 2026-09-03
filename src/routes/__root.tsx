@@ -251,7 +251,11 @@ function RootComponent() {
 	const role = authState.profile?.roles?.name ?? null;
 	const accountAreaMismatch =
 		!authState.loading && authState.user && authState.profile
-			? getAccountAreaMismatch(role, location.pathname)
+			? getAccountAreaMismatch(
+					role,
+					location.pathname,
+					authState.profile.client_id ?? null,
+				)
 			: null;
 
 	useEffect(() => {
