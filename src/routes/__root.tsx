@@ -29,7 +29,6 @@ import {
 	type AccountAreaMismatch,
 } from "../lib/accountAreaAccess";
 import { getThemePreference } from "../lib/theme";
-import portalScrollFixesCss from "../portal-scroll-fixes.css?url";
 import appCss from "../styles.css?url";
 
 const queryClient = new QueryClient({
@@ -50,7 +49,6 @@ export const Route = createRootRoute({
 		],
 		links: [
 			{ rel: "stylesheet", href: appCss },
-			{ rel: "stylesheet", href: portalScrollFixesCss },
 			{ rel: "icon", href: "/IPAC_favicon.ico" },
 		],
 	}),
