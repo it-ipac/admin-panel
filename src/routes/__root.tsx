@@ -192,7 +192,7 @@ function AccountAreaMismatchDialog({
 								)}
 							</span>
 							<ArrowRight className="h-5 w-5 text-app-text-muted" />
-							<span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-app-border bg-app-surface-muted text-app-text-strong shadow-sm">
+							<span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-app-border bg-app-surface-muted text-app-text-strong shadow-sm">
 								{isClientInAdmin ? (
 									<PackageCheck className="h-6 w-6" />
 								) : (
