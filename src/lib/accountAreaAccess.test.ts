@@ -15,13 +15,25 @@ describe("getAccountAreaMismatch", () => {
 	});
 
 	it.each(["admin", "director", "executive", "sales"])(
-		"flags %s accounts inside the package portal",
+		"flags %s accounts inside the package portal when no client is assigned",
 		(role) => {
-			expect(getAccountAreaMismatch(role, "/portal/projects")).toBe(
+			expect(getAccountAreaMismatch(role, "/portal/projects", null)).toBe(
 				"staff-in-portal",
 			);
 		},
 	);
+
+	it("allows an admin with an assigned client inside the package portal", () => {
+		expect(
+			getAccountAreaMismatch("admin", "/portal/projects", "taqa-client-id"),
+		).toBeNull();
+	});
+
+	it("still blocks other staff roles even if a client id is present", () => {
+		expect(
+			getAccountAreaMismatch("director", "/portal/projects", "client-id"),
+		).toBe("staff-in-portal");
+	});
 
 	it("allows staff accounts in the admin panel", () => {
 		expect(getAccountAreaMismatch("admin", "/dashboard")).toBeNull();
