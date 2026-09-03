@@ -1,5 +1,0 @@
-/* Legacy compatibility entry point.
-   Portal theme, colors, scanner controls, photo controls, header layout, and
-   responsive behavior now belong to semantic tokens and component Tailwind
-   utilities. Keep this empty import temporarily so the root stylesheet link
-   can be removed independently without reintroducing cascade behavior. */
