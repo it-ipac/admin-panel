@@ -1,7 +1,5 @@
 /* Portal photo controls sit on dark overlays. Some legacy theme rules set the
-   SVG stroke independently from currentColor, so force both properties here.
-   Remove this compatibility layer once the global legacy color resets move
-   behind Tailwind utilities. */
+   SVG stroke independently from currentColor, so force both properties here. */
 .portal-brand button[aria-label="Open package inspection photo"] svg,
 .portal-brand button[aria-label="Open full screen photo"] svg,
 .portal-brand button[aria-label="Previous photo"] svg,
