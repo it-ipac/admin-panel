@@ -1,0 +1,14 @@
+/* Portal photo controls sit on dark overlays. Some legacy theme rules set the
+   SVG stroke independently from currentColor, so force both properties here. */
+.portal-brand button[aria-label="Open package inspection photo"] svg,
+.portal-brand button[aria-label="Open full screen photo"] svg,
+.portal-brand button[aria-label="Previous photo"] svg,
+.portal-brand button[aria-label="Next photo"] svg,
+.portal-brand button[aria-label="Close photo"] svg,
+.portal-brand button[aria-label="Show previous photo"] svg,
+.portal-brand button[aria-label="Show next photo"] svg,
+.portal-brand button[aria-label="Close full-screen photo"] svg,
+.portal-brand button[aria-label^="Enlarge "] svg {
+	color: #ffffff !important;
+	stroke: #ffffff !important;
+}
