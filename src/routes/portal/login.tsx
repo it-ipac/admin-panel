@@ -11,11 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PortalBrand } from "../../components/PortalBrand";
 import { useToastContext } from "../../components/ui/ToastProvider";
 import { useAuth } from "../../hooks/useAuth";
-import {
-	applyThemePreference,
-	getThemePreference,
-	setThemePreference,
-} from "../../lib/theme";
+import { useThemePreference } from "../../hooks/useThemePreference";
 import { auth, db } from "../../lib/supabase";
 import "../../portal-login-polish.css";
 
@@ -37,11 +33,11 @@ function PortalLogin() {
 	const { returnUrl: rawReturnUrl } = Route.useSearch();
 	const { user, loading } = useAuth();
 	const { toast } = useToastContext();
+	const { isDark, toggleTheme } = useThemePreference();
 
 	const [identifier, setIdentifier] = useState("");
 	const [password, setPassword] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [isDark, setIsDark] = useState(false);
 
 	const returnUrl = rawReturnUrl?.startsWith("/portal/")
 		? rawReturnUrl
@@ -60,34 +56,6 @@ function PortalLogin() {
 
 		navigate({ to: "/portal/projects", replace: true });
 	}, [navigate, returnUrl]);
-
-	useEffect(() => {
-		const root = document.documentElement;
-		const media = window.matchMedia("(prefers-color-scheme: dark)");
-
-		applyThemePreference(getThemePreference());
-
-		const syncTheme = () => {
-			const applied = root.getAttribute("data-theme");
-			setIsDark(
-				applied === "dark" ||
-					(applied !== "light" && media.matches),
-			);
-		};
-
-		syncTheme();
-		media.addEventListener("change", syncTheme);
-		const observer = new MutationObserver(syncTheme);
-		observer.observe(root, {
-			attributes: true,
-			attributeFilter: ["data-theme"],
-		});
-
-		return () => {
-			media.removeEventListener("change", syncTheme);
-			observer.disconnect();
-		};
-	}, []);
 
 	useEffect(() => {
 		if (loading || !user) return;
@@ -124,12 +92,6 @@ function PortalLogin() {
 			cancelled = true;
 		};
 	}, [user, loading, goToReturnUrl, toast]);
-
-	const handleThemeToggle = () => {
-		const nextTheme = isDark ? "light" : "dark";
-		setThemePreference(nextTheme);
-		setIsDark(nextTheme === "dark");
-	};
 
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -183,7 +145,7 @@ function PortalLogin() {
 	const themeToggle = (
 		<button
 			type="button"
-			onClick={handleThemeToggle}
+			onClick={toggleTheme}
 			className="inline-flex min-h-[2.65rem] items-center gap-2 rounded-xl border border-app-border bg-app-surface/90 py-1 pl-1 pr-3 text-app-text-strong shadow-[0_12px_28px_-20px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-[transform,background-color,border-color,box-shadow] duration-150 hover:-translate-y-px hover:border-primary-300 hover:bg-app-surface hover:shadow-[0_14px_30px_-20px_rgba(0,94,168,0.34)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-bg motion-reduce:transform-none max-[520px]:min-h-[2.4rem] max-[520px]:pr-1.5"
 			aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
 			title={`Switch to ${isDark ? "light" : "dark"} theme`}
