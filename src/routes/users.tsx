@@ -1026,8 +1026,8 @@ function UsersPage() {
 					onOpenChange={() => setAssigningPacker(null)}
 				>
 					<Dialog.Portal>
-						<Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]" />
-						<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 z-[70] border border-neutral-100">
+						<Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[var(--z-modal-overlay)]" />
+						<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 z-[var(--z-modal)] border border-neutral-100">
 							<div className="flex items-center justify-between mb-6">
 								<Dialog.Title className="text-xl font-bold text-neutral-900">
 									Assign Packer
@@ -1114,8 +1114,8 @@ function UsersPage() {
 				}
 			>
 				<Dialog.Portal>
-					<Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80]" />
-					<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 z-[90] border border-neutral-100">
+					<Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[var(--z-modal-elevated-overlay)]" />
+					<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 z-[var(--z-modal-elevated)] border border-neutral-100">
 						<div className="flex items-center gap-3 mb-4">
 							<div className="w-10 h-10 rounded-full bg-danger-50 flex items-center justify-center text-danger-600">
 								<Trash2 className="w-5 h-5" />
@@ -1156,8 +1156,8 @@ function UsersPage() {
 					onOpenChange={() => setAddingToOrder(null)}
 				>
 					<Dialog.Portal>
-						<Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]" />
-						<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 z-[70] border border-neutral-100 flex flex-col max-h-[85vh]">
+						<Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[var(--z-modal-overlay)]" />
+						<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 z-[var(--z-modal)] border border-neutral-100 flex flex-col max-h-[85vh]">
 							<div className="flex items-center justify-between mb-4">
 								<div>
 									<Dialog.Title className="text-xl font-bold text-neutral-900">

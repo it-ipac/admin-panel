@@ -49,8 +49,8 @@ export function ManifestReviewModal({
 	return (
 		<Dialog.Root open={open} onOpenChange={onOpenChange}>
 			<Dialog.Portal>
-				<Dialog.Overlay className="fixed inset-0 z-[60] bg-black/40" />
-				<Dialog.Content className="fixed inset-y-0 right-0 z-[60] flex w-full max-w-md flex-col bg-white shadow-2xl">
+				<Dialog.Overlay className="fixed inset-0 z-[var(--z-modal-overlay)] bg-black/40" />
+				<Dialog.Content className="fixed inset-y-0 right-0 z-[var(--z-modal)] flex w-full max-w-md flex-col bg-white shadow-2xl">
 					<div className="flex items-start justify-between gap-4 border-b border-neutral-200 p-4">
 						<div>
 							<Dialog.Title className="text-base font-semibold text-neutral-900">

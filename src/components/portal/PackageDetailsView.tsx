@@ -88,7 +88,7 @@ function PhotoLightbox({
 
 	return (
 		<div
-			className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 p-3 sm:p-6"
+			className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/90 p-3 sm:p-6"
 			role="dialog"
 			aria-modal="true"
 			aria-label={`${title} photo`}

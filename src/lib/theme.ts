@@ -79,26 +79,3 @@ export const resolveTheme = (
 	if (preference === "dark") return "dark";
 	return osPrefersDark ? "dark" : "light";
 };
-
-/** True when the OS asks for a dark UI. False outside the browser. */
-export const osPrefersDark = (): boolean => {
-	if (typeof window === "undefined" || !window.matchMedia) return false;
-	return window.matchMedia("(prefers-color-scheme: dark)").matches;
-};
-
-/**
- * Applies the stored preference and keeps following the OS while the preference
- * is "system". Returns an unsubscribe function.
- */
-export const startThemeSync = (): (() => void) => {
-	if (typeof window === "undefined") return () => {};
-	const apply = () => applyThemePreference(getThemePreference());
-	apply();
-	const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
-	if (!mq) return () => {};
-	const onChange = () => {
-		if (getThemePreference() === "system") apply();
-	};
-	mq.addEventListener("change", onChange);
-	return () => mq.removeEventListener("change", onChange);
-};

@@ -136,7 +136,7 @@ export function QrScanner({ open, onClose, onResult }: QrScannerProps) {
 
 	return (
 		<div
-			className="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-950/60 p-3 backdrop-blur-md sm:p-6"
+			className="fixed inset-0 z-[var(--z-modal-overlay)] flex items-center justify-center bg-neutral-950/60 p-3 backdrop-blur-md sm:p-6"
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby={titleId}

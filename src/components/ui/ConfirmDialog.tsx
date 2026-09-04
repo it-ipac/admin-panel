@@ -45,9 +45,9 @@ export function ConfirmDialog({
 			}}
 		>
 			<Dialog.Portal>
-				{/* z-[10000] so confirmations sit above full-screen modals (some use zIndex 9999) */}
-				<Dialog.Overlay className="fixed inset-0 bg-black/50 z-[10000]" />
-				<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[10000] w-full max-w-md bg-white rounded-xl shadow-2xl p-6">
+				{/* --z-critical so confirmations sit above every modal, including elevated ones */}
+				<Dialog.Overlay className="fixed inset-0 bg-black/50 z-[var(--z-critical)]" />
+				<Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[var(--z-critical)] w-full max-w-md bg-white rounded-xl shadow-2xl p-6">
 					<Dialog.Title className="text-lg font-semibold text-neutral-900">
 						{title}
 					</Dialog.Title>

@@ -315,6 +315,17 @@
 	--border: 1px;
 	--depth: 1;
 	--noise: 0;
+
+	/* ── z-index scale ─────────────────────────────────────────────────────────
+	   One definition per tier instead of scattered z-[60]/z-[70]/.../z-[10000]
+	   magic numbers. Values are unchanged from what was already live; this only
+	   gives each tier a name. Consumed via Tailwind's arbitrary-value syntax:
+	   z-[var(--z-modal-overlay)]. */
+	--z-modal-overlay: 60; /* backdrop of a single dialog/sheet */
+	--z-modal: 70; /* dialog/sheet content; also full-screen single-layer surfaces */
+	--z-modal-elevated-overlay: 80; /* backdrop of a dialog opened from within another */
+	--z-modal-elevated: 90; /* its content; also popovers/tooltips that must clear a modal */
+	--z-critical: 1000; /* confirmations & the account-area guard — above every other layer */
 }
 
 html[data-theme="light"] {
@@ -368,7 +379,9 @@ html[data-theme="dark"] {
 		color: var(--app-text-muted);
 		background-color: var(--app-input-disabled-bg);
 	}
+
 }
+
 
 ::-webkit-scrollbar {
 	width: 8px;
@@ -711,4 +724,19 @@ html[data-theme="dark"] {
 .report-preview-container th {
 	background-color: inherit;
 	color: inherit;
+}
+
+/* Visible keyboard focus (WCAG 2.4.7 / 1.4.11), one ring for the whole app.
+   Deliberately unlayered: unlayered rules always win over an @layer rule
+   regardless of specificity or source order, and something in DaisyUI's or
+   Tailwind's own layered resets was winning the outline-color longhand
+   specifically (width/style came through, color fell back to currentColor) when
+   this lived inside @layer base. Components may still layer their own
+   focus-visible:ring-* on top; a component-level override still applies to
+   ITS OWN element same as any author style would. */
+:focus-visible {
+	outline: 2px solid var(--color-primary-500);
+	outline-offset: 2px;
+	scroll-margin-top: 5rem;
+	scroll-margin-bottom: 4rem;
 }

@@ -24,11 +24,12 @@ import { useEffect, useState } from "react";
 import { PortalBrand } from "../components/PortalBrand";
 import { ToastProvider } from "../components/ui/ToastProvider";
 import { AuthContext, useAuthState } from "../hooks/useAuth";
+import { useThemePreference } from "../hooks/useThemePreference";
 import {
 	type AccountAreaMismatch,
 	getAccountAreaMismatch,
 } from "../lib/accountAreaAccess";
-import { getThemePreference, startThemeSync } from "../lib/theme";
+import { getThemePreference } from "../lib/theme";
 import appCss from "../styles.css?url";
 
 const queryClient = new QueryClient({
@@ -179,8 +180,8 @@ function AccountAreaMismatchDialog({
 			}}
 		>
 			<Dialog.Portal>
-				<Dialog.Overlay className="fixed inset-0 z-[10000] bg-steel-950/65 backdrop-blur-sm" />
-				<Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-[calc(100%-2rem)] max-w-[30rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-app-border bg-app-surface shadow-2xl focus:outline-none">
+				<Dialog.Overlay className="fixed inset-0 z-[var(--z-critical)] bg-steel-950/65 backdrop-blur-sm" />
+				<Dialog.Content className="fixed left-1/2 top-1/2 z-[var(--z-critical)] w-[calc(100%-2rem)] max-w-[30rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-app-border bg-app-surface shadow-2xl focus:outline-none">
 					<div className="px-6 pb-6 pt-7">
 						<div className="mb-6 flex items-center gap-2.5" aria-hidden="true">
 							<span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-600 text-white shadow-sm">
@@ -263,9 +264,11 @@ function RootComponent() {
 
 	// The root loader reads the theme preference on the server, where there is
 	// no localStorage, so <html> ships without data-theme and the whole app
-	// silently follows the OS instead of the saved choice. Apply it on the
-	// client and keep tracking the OS while the preference is "system".
-	useEffect(() => startThemeSync(), []);
+	// silently follows the OS instead of the saved choice. useThemePreference
+	// applies it on mount and keeps tracking the OS while "system" is selected —
+	// the same hook the portal header's theme toggle uses, so the whole app
+	// shares one apply-on-mount mechanism instead of two.
+	useThemePreference();
 
 	useEffect(() => {
 		if (accountAreaMismatch) return;

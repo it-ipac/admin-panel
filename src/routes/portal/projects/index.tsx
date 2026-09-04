@@ -256,6 +256,13 @@ function PortalProjects() {
 
 	return (
 		<div className="portal-brand min-h-dvh bg-app-bg">
+			<a
+				href="#main-content"
+				className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[var(--z-critical)] focus:rounded-lg focus:bg-app-surface focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-app-text focus:shadow-lg"
+			>
+				Skip to package list
+			</a>
+
 			<PortalHeader
 				title="Package Portal"
 				onScan={() => setScannerOpen(true)}
@@ -263,7 +270,7 @@ function PortalProjects() {
 				maxWidth="max-w-7xl"
 			/>
 
-			<main className="relative isolate overflow-hidden">
+			<main id="main-content" className="relative isolate overflow-hidden">
 				<div
 					className="pointer-events-none absolute inset-0 -z-10"
 					aria-hidden="true"

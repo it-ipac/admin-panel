@@ -4,38 +4,14 @@ import {
 	applyThemePreference,
 	getThemePreference,
 	setThemePreference,
-	startThemeSync,
 	type ThemePreference,
 } from "./theme";
-
-/** Controllable prefers-color-scheme, so System can be driven both ways. */
-function mockMatchMedia(prefersDark: boolean) {
-	const listeners = new Set<() => void>();
-	const mql = {
-		matches: prefersDark,
-		media: "(prefers-color-scheme: dark)",
-		addEventListener: (_: string, cb: () => void) => listeners.add(cb),
-		removeEventListener: (_: string, cb: () => void) => listeners.delete(cb),
-	};
-	vi.stubGlobal(
-		"matchMedia",
-		vi.fn(() => mql),
-	);
-	return {
-		set(next: boolean) {
-			mql.matches = next;
-			for (const cb of listeners) cb();
-		},
-		get listenerCount() {
-			return listeners.size;
-		},
-	};
-}
 
 beforeEach(() => {
 	localStorage.clear();
 	document.documentElement.removeAttribute("data-theme");
 	document.documentElement.style.colorScheme = "";
+	// biome-ignore lint/suspicious/noDocumentCookie: exercising the cookie fallback
 	document.cookie = "ipac-theme-preference=; path=/; max-age=0";
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -101,46 +77,8 @@ describe("persistence", () => {
 	});
 
 	it("reads the cookie when localStorage holds nothing", () => {
+		// biome-ignore lint/suspicious/noDocumentCookie: exercising the cookie fallback
 		document.cookie = "ipac-theme-preference=dark; path=/";
 		expect(getThemePreference()).toBe("dark");
-	});
-});
-
-describe("startThemeSync", () => {
-	it("applies the stored preference on start — the bug was that nothing did", () => {
-		mockMatchMedia(true);
-		localStorage.setItem("ipac-theme-preference", "light");
-		const stop = startThemeSync();
-		expect(document.documentElement.getAttribute("data-theme")).toBe("light");
-		stop();
-	});
-
-	it("in system mode it re-applies when the OS preference changes", () => {
-		const mq = mockMatchMedia(false);
-		localStorage.setItem("ipac-theme-preference", "system");
-		const stop = startThemeSync();
-		expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
-		expect(mq.listenerCount).toBe(1);
-		mq.set(true);
-		// system stays attribute-less; CSS light-dark() follows color-scheme
-		expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
-		stop();
-		expect(mq.listenerCount).toBe(0);
-	});
-
-	it("an OS change does not disturb an explicit preference", () => {
-		const mq = mockMatchMedia(false);
-		localStorage.setItem("ipac-theme-preference", "light");
-		const stop = startThemeSync();
-		mq.set(true);
-		expect(document.documentElement.getAttribute("data-theme")).toBe("light");
-		stop();
-	});
-
-	it("unsubscribes cleanly", () => {
-		const mq = mockMatchMedia(false);
-		const stop = startThemeSync();
-		stop();
-		expect(mq.listenerCount).toBe(0);
 	});
 });

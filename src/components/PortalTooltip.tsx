@@ -70,7 +70,7 @@ export function PortalTooltip({
 			{children}
 			{visible ? (
 				<span
-					className={`pointer-events-none absolute top-full z-[90] mt-2 w-max max-w-[13rem] ${positionClasses[align]}`}
+					className={`pointer-events-none absolute top-full z-[var(--z-modal-elevated)] mt-2 w-max max-w-[13rem] ${positionClasses[align]}`}
 					role="tooltip"
 				>
 					<span className="flex items-start gap-2 rounded-xl border border-app-border bg-app-surface px-3 py-2 text-left shadow-[0_12px_30px_-12px_rgba(15,23,42,0.35)]">
