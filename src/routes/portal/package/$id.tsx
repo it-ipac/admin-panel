@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PackageDetailsView } from "../../../components/portal/PackageDetailsView";
+import "../../../components/portal-header-layout.css";
 
 export const Route = createFileRoute("/portal/package/$id")({
 	component: PackageView,

@@ -1,6 +1,8 @@
 import { useEffect } from "react";
-import { applyThemePreference, getThemePreference } from "../lib/theme";
-import "../portal-scan-polish.css";
+import {
+	applyThemePreference,
+	getThemePreference,
+} from "../lib/theme";
 
 interface PortalBrandProps {
 	variant?: "header" | "full";
@@ -91,9 +93,7 @@ export function PortalBrand({
 
 	if (variant === "header") {
 		return (
-			<span
-				className={`inline-flex min-w-0 shrink items-center gap-1.5 ${className}`}
-			>
+			<span className={`inline-flex min-w-0 shrink items-center gap-1.5 ${className}`}>
 				<img
 					src="/IPAC_logo.svg"
 					alt=""
@@ -108,9 +108,7 @@ export function PortalBrand({
 	}
 
 	return (
-		<span
-			className={`inline-flex w-full max-w-[22rem] flex-col items-center justify-center text-center ${className}`}
-		>
+		<span className={`inline-flex w-full max-w-[22rem] flex-col items-center justify-center text-center ${className}`}>
 			<img
 				src="/IPAC_logo.svg"
 				alt=""
