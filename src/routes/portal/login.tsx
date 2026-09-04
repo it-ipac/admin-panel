@@ -11,14 +11,9 @@ import { useCallback, useEffect, useState } from "react";
 import { PortalBrand } from "../../components/PortalBrand";
 import { useToastContext } from "../../components/ui/ToastProvider";
 import { useAuth } from "../../hooks/useAuth";
+import { useThemePreference } from "../../hooks/useThemePreference";
 import { auth, db } from "../../lib/supabase";
-import {
-	applyThemePreference,
-	getThemePreference,
-	setThemePreference,
-} from "../../lib/theme";
 import "../../portal-login-polish.css";
-import "../../portal-login-controls.css";
 
 type PortalLoginSearch = {
 	returnUrl?: string;
@@ -38,11 +33,11 @@ function PortalLogin() {
 	const { returnUrl: rawReturnUrl } = Route.useSearch();
 	const { user, loading } = useAuth();
 	const { toast } = useToastContext();
+	const { isDark, toggleTheme } = useThemePreference();
 
 	const [identifier, setIdentifier] = useState("");
 	const [password, setPassword] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [isDark, setIsDark] = useState(false);
 
 	const returnUrl = rawReturnUrl?.startsWith("/portal/")
 		? rawReturnUrl
@@ -63,41 +58,40 @@ function PortalLogin() {
 	}, [navigate, returnUrl]);
 
 	useEffect(() => {
-		const root = document.documentElement;
-		const media = window.matchMedia("(prefers-color-scheme: dark)");
+		if (loading || !user) return;
 
-		applyThemePreference(getThemePreference());
+		let cancelled = false;
 
-		const syncTheme = () => {
-			const applied = root.getAttribute("data-theme");
-			setIsDark(applied === "dark" || (applied !== "light" && media.matches));
+		const verifyExistingSession = async () => {
+			const profileData = await db.getProfile(user.id);
+			if (cancelled) return;
+
+			const profile = profileData?.data;
+			const roleName = profile?.roles?.name;
+			const hasPortalAccess =
+				roleName === "client" || (roleName === "admin" && !!profile?.client_id);
+
+			if (hasPortalAccess) {
+				goToReturnUrl();
+				return;
+			}
+
+			await auth.signOut();
+			if (cancelled) return;
+
+			toast({
+				title: "Access Denied",
+				description: "This account does not have access to the Client Portal.",
+				variant: "error",
+			});
 		};
 
-		syncTheme();
-		media.addEventListener("change", syncTheme);
-		const observer = new MutationObserver(syncTheme);
-		observer.observe(root, {
-			attributes: true,
-			attributeFilter: ["data-theme"],
-		});
+		void verifyExistingSession();
 
 		return () => {
-			media.removeEventListener("change", syncTheme);
-			observer.disconnect();
+			cancelled = true;
 		};
-	}, []);
-
-	useEffect(() => {
-		if (!loading && user) {
-			goToReturnUrl();
-		}
-	}, [user, loading, goToReturnUrl]);
-
-	const handleThemeToggle = () => {
-		const nextTheme = isDark ? "light" : "dark";
-		setThemePreference(nextTheme);
-		setIsDark(nextTheme === "dark");
-	};
+	}, [user, loading, goToReturnUrl, toast]);
 
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -112,21 +106,30 @@ function PortalLogin() {
 
 			if (data.user) {
 				const profileData = await db.getProfile(data.user.id);
-				if (profileData?.data?.roles?.name === "client") {
+				if (profileData?.error) throw profileData.error;
+
+				const profile = profileData?.data;
+				const roleName = profile?.roles?.name;
+				const hasPortalAccess =
+					roleName === "client" ||
+					(roleName === "admin" && !!profile?.client_id);
+
+				if (!hasPortalAccess) {
+					await auth.signOut();
 					toast({
-						title: "Access Granted",
-						description: "Welcome to your client portal.",
-						variant: "success",
+						title: "Access Denied",
+						description: "This account does not have access to the Client Portal.",
+						variant: "error",
 					});
-					goToReturnUrl();
-				} else {
-					toast({
-						title: "Logged In",
-						description: "Redirecting...",
-						variant: "success",
-					});
-					goToReturnUrl();
+					return;
 				}
+
+				toast({
+					title: "Access Granted",
+					description: "Welcome to your client portal.",
+					variant: "success",
+				});
+				goToReturnUrl();
 			}
 		} catch (error: any) {
 			toast({
@@ -142,22 +145,31 @@ function PortalLogin() {
 	const themeToggle = (
 		<button
 			type="button"
-			onClick={handleThemeToggle}
-			className="portal-login-theme-toggle"
+			onClick={toggleTheme}
+			className="inline-flex min-h-[2.65rem] items-center gap-2 rounded-xl border border-app-border bg-app-surface/90 py-1 pl-1 pr-3 text-app-text-strong shadow-[0_12px_28px_-20px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-[transform,background-color,border-color,box-shadow] duration-150 hover:-translate-y-px hover:border-primary-300 hover:bg-app-surface hover:shadow-[0_14px_30px_-20px_rgba(0,94,168,0.34)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-bg motion-reduce:transform-none max-[520px]:min-h-[2.4rem] max-[520px]:pr-1.5"
 			aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
 			title={`Switch to ${isDark ? "light" : "dark"} theme`}
 		>
-			<span className="portal-login-theme-icon" aria-hidden="true">
+			<span
+				className="inline-flex h-[1.9rem] w-[1.9rem] shrink-0 items-center justify-center rounded-lg border border-app-border bg-app-surface-muted text-primary-700"
+				aria-hidden="true"
+			>
 				{isDark ? (
 					<Sun className="h-[17px] w-[17px]" />
 				) : (
 					<Moon className="h-[17px] w-[17px]" />
 				)}
 			</span>
-			<span className="portal-login-theme-label">
+			<span className="text-xs font-bold tracking-[-0.01em] text-app-text-strong max-[520px]:hidden">
 				{isDark ? "Light" : "Dark"}
 			</span>
 		</button>
+	);
+
+	const themeTogglePosition = (
+		<div className="fixed right-[clamp(0.65rem,2vw,1.25rem)] top-[clamp(0.65rem,2vw,1.25rem)] z-40">
+			{themeToggle}
+		</div>
 	);
 
 	if (loading) {
@@ -166,7 +178,7 @@ function PortalLogin() {
 				className="portal-brand portal-login-page relative flex h-screen items-center justify-center overflow-hidden p-4"
 				style={{ height: "100dvh" }}
 			>
-				<div className="portal-login-theme-position">{themeToggle}</div>
+				{themeTogglePosition}
 				<div className="portal-login-loading-card relative z-10 flex w-full max-w-[19rem] flex-col items-center rounded-3xl border p-7 text-center">
 					<PortalBrand
 						variant="header"
@@ -192,13 +204,13 @@ function PortalLogin() {
 			className="portal-brand portal-login-page auth-bg relative flex h-screen items-center justify-center overflow-x-hidden overflow-y-auto px-[clamp(0.75rem,3vw,1.5rem)] py-[clamp(0.75rem,2.5vh,2rem)]"
 			style={{ height: "100dvh" }}
 		>
-			<div className="portal-login-theme-position">{themeToggle}</div>
+			{themeTogglePosition}
 			<div
 				className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/35 to-transparent"
 				aria-hidden="true"
 			/>
 
-			<div className="portal-login-card relative z-10 my-auto w-full max-w-[28rem] overflow-hidden rounded-[1.75rem] border">
+			<div className="portal-login-card relative z-10 isolate my-auto w-full max-w-[28rem] overflow-hidden rounded-[1.75rem] border after:pointer-events-none after:absolute after:inset-x-[12%] after:-bottom-28 after:-z-10 after:h-40 after:rounded-full after:bg-primary-500/10 after:blur-[34px]">
 				<div
 					className="portal-login-card-accent pointer-events-none absolute inset-x-10 top-0 z-20 h-px"
 					aria-hidden="true"
@@ -224,8 +236,7 @@ function PortalLogin() {
 							<span className="portal-login-title-rule-core" />
 						</div>
 						<p className="portal-login-subtitle mx-auto mt-2.5 max-w-[21rem] text-[clamp(0.84rem,1.75vh,0.96rem)] font-medium leading-6">
-							Track packages, review records, and open package details in one
-							place.
+							Track packages, review records, and open package details in one place.
 						</p>
 					</div>
 				</div>
@@ -252,10 +263,7 @@ function PortalLogin() {
 								Email Address or Username
 							</label>
 							<div className="portal-login-input-wrap">
-								<UserRound
-									className="portal-login-input-icon"
-									aria-hidden="true"
-								/>
+								<UserRound className="portal-login-input-icon" aria-hidden="true" />
 								<input
 									id="login-identifier"
 									type="text"
@@ -277,10 +285,7 @@ function PortalLogin() {
 								Password
 							</label>
 							<div className="portal-login-input-wrap">
-								<KeyRound
-									className="portal-login-input-icon"
-									aria-hidden="true"
-								/>
+								<KeyRound className="portal-login-input-icon" aria-hidden="true" />
 								<input
 									id="login-password"
 									type="password"
@@ -297,21 +302,18 @@ function PortalLogin() {
 						<button
 							type="submit"
 							disabled={isSubmitting}
-							className="portal-login-submit relative mt-1 flex min-h-12 w-full items-center justify-center rounded-xl border px-4 py-3 text-sm font-bold transition-[transform,filter,box-shadow] hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-app-surface active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 motion-reduce:transform-none"
+							className="relative mt-1 flex min-h-12 w-full items-center justify-center rounded-xl border border-primary-600 bg-primary-600 px-4 py-3 text-sm font-bold text-white shadow-[0_16px_30px_-18px_rgba(0,129,197,0.58)] transition-[transform,background-color,box-shadow] hover:-translate-y-px hover:bg-primary-700 hover:shadow-[0_18px_34px_-18px_rgba(0,129,197,0.7)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-app-surface active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 motion-reduce:transform-none"
 						>
 							{isSubmitting ? (
 								<>
-									<Loader2
-										className="mr-2 h-5 w-5 animate-spin"
-										aria-hidden="true"
-									/>
-									<span>Signing in</span>
+									<Loader2 className="mr-2 h-5 w-5 animate-spin text-white" aria-hidden="true" />
+									<span className="text-white">Signing in</span>
 								</>
 							) : (
 								<>
-									<span>Sign In</span>
+									<span className="text-white">Sign In</span>
 									<ArrowRight
-										className="portal-login-submit-arrow absolute right-4 h-4 w-4"
+										className="absolute right-4 h-4 w-4 text-white"
 										aria-hidden="true"
 									/>
 								</>

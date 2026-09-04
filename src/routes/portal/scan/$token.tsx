@@ -61,6 +61,7 @@ function TokenResolver() {
 
 				let clientId = null;
 				let targetPackageId: string | null = null;
+				let targetItemId: string | null = null;
 
 				if (qrData.entity_type === "package") {
 					const { data: pkgInstance, error: pkgInstanceError } = await supabase
@@ -148,10 +149,16 @@ function TokenResolver() {
 								.filter(Boolean),
 						),
 					];
-					if (packageIds.length !== 1) {
-						throw new Error("This QR code does not identify a single package.");
+
+					if (packageIds.length === 0) {
+						throw new Error("This item is not currently packed in a box.");
 					}
-					targetPackageId = String(packageIds[0]);
+
+					if (packageIds.length === 1) {
+						targetPackageId = String(packageIds[0]);
+					} else {
+						targetItemId = String(qrData.entity_id);
+					}
 				} else if (qrData.entity_type === "pkd_item") {
 					const { data: pkdItem } = await supabase
 						.from("pkd_item")
@@ -191,8 +198,8 @@ function TokenResolver() {
 					throw new Error("Unsupported QR entity type.");
 				}
 
-				if (!clientId || !targetPackageId) {
-					throw new Error("Cannot identify the package for this QR code.");
+				if (!clientId || (!targetPackageId && !targetItemId)) {
+					throw new Error("Cannot identify the package or item for this QR code.");
 				}
 
 				const { data: clientData } = await supabase
@@ -247,9 +254,17 @@ function TokenResolver() {
 				}
 
 				if (isMounted) {
+					if (targetItemId) {
+						navigate({
+							to: "/portal/item/$id",
+							params: { id: targetItemId },
+						});
+						return;
+					}
+
 					navigate({
 						to: "/portal/package/$id",
-						params: { id: targetPackageId },
+						params: { id: targetPackageId as string },
 					});
 				}
 			} catch (e: any) {

@@ -33,9 +33,7 @@ export function QrScanner({ open, onClose, onResult }: QrScannerProps) {
 		previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
 		const previousOverflow = document.body.style.overflow;
 		document.body.style.overflow = "hidden";
-		const focusFrame = requestAnimationFrame(() =>
-			closeButtonRef.current?.focus(),
-		);
+		const focusFrame = requestAnimationFrame(() => closeButtonRef.current?.focus());
 		const handleKeyDown = (event: KeyboardEvent) => {
 			if (event.key === "Escape") onCloseEvent();
 		};
@@ -138,16 +136,16 @@ export function QrScanner({ open, onClose, onResult }: QrScannerProps) {
 
 	return (
 		<div
-			className="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-950/60 p-3 backdrop-blur-md sm:p-6 dark:bg-black/85"
+			className="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-950/60 p-3 backdrop-blur-md sm:p-6"
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby={titleId}
 			aria-describedby={descriptionId}
 		>
-			<div className="relative max-h-[calc(100dvh-1.5rem)] w-full max-w-xl overflow-y-auto rounded-3xl border border-app-border bg-app-surface shadow-[0_28px_80px_-28px_rgba(15,23,42,0.5)] sm:max-h-[calc(100dvh-3rem)] dark:border-white/10 dark:bg-steel-950 dark:shadow-2xl">
-				<div className="sticky top-0 z-20 flex items-start justify-between gap-4 border-b border-app-border bg-app-surface/95 px-5 pb-4 pt-5 backdrop-blur-xl sm:px-6 sm:pt-6 dark:border-white/10 dark:bg-steel-950/95">
+			<div className="relative max-h-[calc(100dvh-1.5rem)] w-full max-w-xl overflow-y-auto rounded-3xl border border-app-border bg-app-surface shadow-[0_28px_80px_-28px_rgba(15,23,42,0.5)] sm:max-h-[calc(100dvh-3rem)]">
+				<div className="sticky top-0 z-20 flex items-start justify-between gap-4 border-b border-app-border bg-app-surface/95 px-5 pb-4 pt-5 backdrop-blur-xl sm:px-6 sm:pt-6">
 					<div className="flex min-w-0 items-center gap-3">
-						<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-100 bg-primary-50 text-primary-700 dark:border-white/10 dark:bg-white/10 dark:text-white">
+						<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-app-border bg-app-surface-muted text-app-text-strong">
 							<Camera className="h-5 w-5" aria-hidden="true" />
 						</span>
 						<div>
@@ -155,11 +153,11 @@ export function QrScanner({ open, onClose, onResult }: QrScannerProps) {
 								id={titleId}
 								role="heading"
 								aria-level={2}
-								className="font-bold text-app-text-strong dark:text-white"
+								className="font-bold text-app-text-strong"
 							>
 								Scan package QR
 							</div>
-							<p className="mt-0.5 text-sm text-app-text-muted dark:text-white/60">
+							<p className="mt-0.5 text-sm text-app-text-muted">
 								Camera starts automatically
 							</p>
 						</div>
@@ -174,7 +172,7 @@ export function QrScanner({ open, onClose, onResult }: QrScannerProps) {
 							ref={closeButtonRef}
 							type="button"
 							onClick={onClose}
-							className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-app-border bg-app-surface-muted text-app-text-strong transition-[background-color,border-color] hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:border-white/20 dark:hover:bg-white/15 dark:hover:text-white dark:focus-visible:ring-white dark:focus-visible:ring-offset-steel-950"
+							className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-app-border bg-app-surface-muted text-app-text-strong transition-[background-color,border-color,color] hover:border-primary-300 hover:bg-app-surface hover:text-app-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface"
 							aria-label="Close QR scanner"
 						>
 							<X className="h-5 w-5" aria-hidden="true" />
@@ -184,32 +182,19 @@ export function QrScanner({ open, onClose, onResult }: QrScannerProps) {
 
 				<div className="px-3 pt-3 sm:px-6 sm:pt-5">
 					{error ? (
-						<div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-danger-200 bg-danger-50 p-6 text-center dark:border-danger-400/40 dark:bg-danger-950/70">
-							<Camera
-								className="mb-4 h-8 w-8 text-danger-600 dark:text-danger-300"
-								aria-hidden="true"
-							/>
-							<p className="max-w-sm font-semibold text-danger-800 dark:text-white">
-								{error}
-							</p>
-							<p className="mt-2 max-w-sm text-sm text-danger-700/80 dark:text-white/60">
+						<div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-app-border bg-app-surface-muted p-6 text-center">
+							<Camera className="mb-4 h-8 w-8 text-danger-600" aria-hidden="true" />
+							<p className="max-w-sm font-semibold text-app-text-strong">{error}</p>
+							<p className="mt-2 max-w-sm text-sm text-app-text-muted">
 								You can close this window and paste the QR token instead.
 							</p>
 						</div>
 					) : (
-						<div className="relative min-h-64 overflow-hidden rounded-2xl bg-black ring-1 ring-neutral-950/10 dark:ring-white/15">
+						<div className="relative min-h-64 overflow-hidden rounded-2xl bg-black ring-1 ring-neutral-950/10">
 							{starting && (
-								<div
-									className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/35 text-white"
-									role="status"
-								>
-									<Loader2
-										className="h-7 w-7 animate-spin text-white"
-										aria-hidden="true"
-									/>
-									<span className="text-sm font-medium text-white/80">
-										Starting camera...
-									</span>
+								<div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/35 text-white" role="status">
+									<Loader2 className="h-7 w-7 animate-spin text-white" aria-hidden="true" />
+									<span className="text-sm font-medium text-white/80">Starting camera...</span>
 								</div>
 							)}
 							<video
@@ -222,10 +207,7 @@ export function QrScanner({ open, onClose, onResult }: QrScannerProps) {
 							</video>
 							<div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_center,transparent_0,transparent_34%,rgba(0,0,0,0.42)_35%)]">
 								<div className="flex aspect-square w-[62%] max-w-64 items-center justify-center rounded-3xl ring-2 ring-white/90 shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_0_40px_rgba(37,99,235,0.3)]">
-									<ScanLine
-										className="h-10 w-10 text-white/80"
-										aria-hidden="true"
-									/>
+									<ScanLine className="h-10 w-10 text-white/80" aria-hidden="true" />
 								</div>
 							</div>
 						</div>
@@ -233,12 +215,8 @@ export function QrScanner({ open, onClose, onResult }: QrScannerProps) {
 				</div>
 
 				<canvas ref={canvasRef} className="hidden" />
-				<p
-					id={descriptionId}
-					className="px-6 py-5 text-center text-sm leading-6 text-app-text-muted dark:text-white/65"
-				>
-					Hold the label inside the frame. The package opens automatically when
-					the code is detected.
+				<p id={descriptionId} className="px-6 py-5 text-center text-sm leading-6 text-app-text-muted">
+					Hold the label inside the frame. The package opens automatically when the code is detected.
 				</p>
 			</div>
 		</div>
