@@ -89,9 +89,10 @@ jobs:
       - name: Compute release metadata
         id: release_meta
         shell: bash
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
-          COMMIT_MESSAGE='${{ github.event.head_commit.message }}'
           BASE_VERSION=$(node -p "require('./package.json').version || '0.0.0'")
 
           RELEASE_TYPE="patch"
