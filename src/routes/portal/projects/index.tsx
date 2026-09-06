@@ -171,6 +171,10 @@ function PortalProjects() {
 		navigate({ to: "/portal/scan/$token", params: { token } });
 	};
 
+	const activateHeaderSearch = () => {
+		window.dispatchEvent(new Event("portal-search-activate"));
+	};
+
 	if (loading || profileLoading) {
 		return (
 			<div className="portal-brand flex min-h-screen items-center justify-center bg-app-bg">
@@ -317,6 +321,29 @@ function PortalProjects() {
 								</div>
 								<ArrowRight
 									className="h-5 w-5 text-primary-700 transition-transform group-hover:translate-x-1 dark:text-primary-300"
+									aria-hidden="true"
+								/>
+							</button>
+
+							<button
+								type="button"
+								onClick={activateHeaderSearch}
+								className="group mt-3 flex min-h-14 w-full items-center gap-3 rounded-2xl border border-app-border bg-app-surface px-3 py-3 text-left shadow-[0_8px_22px_-20px_rgba(15,23,42,0.35)] transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary-300 hover:bg-app-surface-muted hover:shadow-[0_14px_28px_-22px_rgba(0,94,168,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-bg active:translate-y-0 motion-reduce:transform-none motion-reduce:transition-none sm:min-h-16 sm:px-4"
+								aria-label="Search for a box or item using the header search"
+							>
+								<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 text-primary-700 transition-colors group-hover:border-primary-300 group-hover:bg-primary-100 dark:border-primary-800 dark:bg-primary-950/30 dark:text-primary-300">
+									<Search className="h-[18px] w-[18px]" aria-hidden="true" />
+								</span>
+								<span className="min-w-0 flex-1">
+									<span className="block text-sm font-bold text-app-text-strong sm:text-base">
+										Search box or item
+									</span>
+									<span className="mt-0.5 block truncate text-xs text-app-text-muted">
+										Box number, item number, reference or printed label
+									</span>
+								</span>
+								<ArrowRight
+									className="h-5 w-5 shrink-0 text-primary-700 transition-transform group-hover:translate-x-1 dark:text-primary-300"
 									aria-hidden="true"
 								/>
 							</button>
