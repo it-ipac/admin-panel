@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Box, Loader2, Search, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { parseQrToken } from "../../features/orders/hooks/useInstanceQr";
 import { supabase } from "../../lib/supabase";
@@ -50,43 +50,46 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 	const [isSearchActive, setIsSearchActive] = useState(false);
 	const [isSearchExiting, setIsSearchExiting] = useState(false);
 
-	const closeFeedback = () => {
+	const closeFeedback = useCallback(() => {
 		setError(null);
 		setResult(null);
-	};
+	}, []);
 
-	const clearExitTimer = () => {
+	const clearExitTimer = useCallback(() => {
 		if (!exitTimeoutRef.current) return;
 		window.clearTimeout(exitTimeoutRef.current);
 		exitTimeoutRef.current = null;
-	};
+	}, []);
 
-	const activateSearchState = () => {
+	const activateSearchState = useCallback(() => {
 		clearExitTimer();
 		setIsSearchExiting(false);
 		setIsSearchActive(true);
-	};
+	}, [clearExitTimer]);
 
-	const closeSearch = (blurInput = false) => {
-		closeFeedback();
-		setIsActivated(false);
-		setIsSearchActive(false);
+	const closeSearch = useCallback(
+		(blurInput = false) => {
+			closeFeedback();
+			setIsActivated(false);
+			setIsSearchActive(false);
 
-		if (shouldReduceMotion) {
+			if (shouldReduceMotion) {
+				clearExitTimer();
+				setIsSearchExiting(false);
+				if (blurInput) inputRef.current?.blur();
+				return;
+			}
+
+			setIsSearchExiting(true);
 			clearExitTimer();
-			setIsSearchExiting(false);
-			if (blurInput) inputRef.current?.blur();
-			return;
-		}
-
-		setIsSearchExiting(true);
-		clearExitTimer();
-		exitTimeoutRef.current = window.setTimeout(() => {
-			setIsSearchExiting(false);
-			exitTimeoutRef.current = null;
-			if (blurInput) inputRef.current?.blur();
-		}, SEARCH_EXIT_MS);
-	};
+			exitTimeoutRef.current = window.setTimeout(() => {
+				setIsSearchExiting(false);
+				exitTimeoutRef.current = null;
+				if (blurInput) inputRef.current?.blur();
+			}, SEARCH_EXIT_MS);
+		},
+		[clearExitTimer, closeFeedback, shouldReduceMotion],
+	);
 
 	const hasFeedback = Boolean(error || result);
 	const isSpotlightPresent = isSearchActive || isSearchExiting;
@@ -121,7 +124,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 			}
 			clearExitTimer();
 		};
-	}, [shouldReduceMotion]);
+	}, [activateSearchState, clearExitTimer, shouldReduceMotion]);
 
 	useEffect(() => {
 		if (!isSpotlightPresent && !hasFeedback) return;
@@ -141,7 +144,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 			window.removeEventListener("scroll", dismissOnPageScroll);
 			document.removeEventListener("keydown", dismissOnEscape);
 		};
-	}, [isSpotlightPresent, hasFeedback]);
+	}, [closeSearch, hasFeedback, isSpotlightPresent]);
 
 	const boxLookupFields = `
 		id,
@@ -497,6 +500,8 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 			{bodyBackdrop}
 			<div
 				ref={rootRef}
+				role="group"
+				aria-label="Search spotlight"
 				className={`relative min-w-0 max-w-[36rem] flex-1 basis-0 md:mx-2 lg:mx-3 ${isSpotlightPresent ? "z-[60]" : "z-auto"}`}
 				onBlur={(event) => {
 					if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
@@ -508,7 +513,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 					<motion.button
 						type="button"
 						tabIndex={-1}
-						aria-hidden="true"
+						aria-label="Close search spotlight"
 						initial={shouldReduceMotion ? false : { opacity: 0 }}
 						animate={{ opacity: isSearchActive ? 1 : 0 }}
 						transition={{
@@ -533,7 +538,10 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 					animate={
 						isActivated && !shouldReduceMotion ? { scale: 1.004 } : { scale: 1 }
 					}
-					transition={{ duration: shouldReduceMotion ? 0 : 0.14, ease: "easeOut" }}
+					transition={{
+						duration: shouldReduceMotion ? 0 : 0.14,
+						ease: "easeOut",
+					}}
 					className="relative z-50"
 				>
 					<form
@@ -577,7 +585,6 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 								disabled={!clientId}
 								aria-controls={hasFeedback ? "portal-lookup-feedback" : undefined}
 								aria-describedby={hasFeedback ? "portal-lookup-feedback" : undefined}
-								aria-expanded={hasFeedback}
 								className={`h-9 w-full rounded-xl border bg-app-surface py-2 pl-8 pr-10 text-xs font-medium text-app-text-strong transition-[background-color,border-color,box-shadow] duration-150 placeholder:font-normal placeholder:text-app-text-muted focus:outline-none focus:ring-2 disabled:cursor-wait disabled:opacity-60 dark:shadow-none sm:h-10 sm:pl-10 sm:pr-[4.75rem] sm:text-sm md:h-11 ${
 									isSearchActive
 										? "border-primary-400 ring-1 ring-primary-500/20 focus:border-primary-400 focus:ring-primary-500/35"
@@ -653,10 +660,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 												: "Item found, but no packed box is linked yet."}
 									</p>
 								) : (
-									<div
-										className="max-h-[calc(100dvh-11rem)] overflow-y-auto overscroll-contain p-1.5 md:max-h-[28rem]"
-										aria-label={`${result.boxes.length} matching boxes`}
-									>
+									<div className="max-h-[calc(100dvh-11rem)] overflow-y-auto overscroll-contain p-1.5 md:max-h-[28rem]">
 										{result.boxes.map((box) => (
 											<button
 												type="button"
