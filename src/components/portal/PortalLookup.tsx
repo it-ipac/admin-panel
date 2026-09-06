@@ -43,11 +43,24 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 		setResult(null);
 	};
 
+	const boxLookupFields = `
+		id,
+		ipac_reference,
+		client_reference,
+		destination,
+		status,
+		order_pkg_overview!inner (
+			orders!inner (client_id)
+		)
+	`;
+
 	const findBox = async (query: string) => {
-		const fields = "id, ipac_reference, client_reference, destination, status";
+		if (!clientId) return null;
+
 		const byIpac = await supabase
 			.from("order_pkg_instance")
-			.select(fields)
+			.select(boxLookupFields)
+			.eq("order_pkg_overview.orders.client_id", clientId)
 			.ilike("ipac_reference", query)
 			.limit(1);
 		if (byIpac.error) throw byIpac.error;
@@ -55,7 +68,8 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 
 		const byClientReference = await supabase
 			.from("order_pkg_instance")
-			.select(fields)
+			.select(boxLookupFields)
+			.eq("order_pkg_overview.orders.client_id", clientId)
 			.ilike("client_reference", query)
 			.limit(1);
 		if (byClientReference.error) throw byClientReference.error;
@@ -115,7 +129,8 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 	};
 
 	const findDeveloperBox = async (query: string) => {
-		const fields = "id, ipac_reference, client_reference, destination, status";
+		if (!clientId) return null;
+
 		const packageUrlMatch = query.match(/\/portal\/package\/([^/?#\s]+)/i);
 		const directCandidate = packageUrlMatch
 			? decodeURIComponent(packageUrlMatch[1])
@@ -124,7 +139,8 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 		if (UUID_PATTERN.test(directCandidate)) {
 			const byId = await supabase
 				.from("order_pkg_instance")
-				.select(fields)
+				.select(boxLookupFields)
+				.eq("order_pkg_overview.orders.client_id", clientId)
 				.eq("id", directCandidate)
 				.limit(1);
 			if (byId.error) throw byId.error;
@@ -145,7 +161,8 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 
 		const byQrEntity = await supabase
 			.from("order_pkg_instance")
-			.select(fields)
+			.select(boxLookupFields)
+			.eq("order_pkg_overview.orders.client_id", clientId)
 			.eq("id", qrRow.entity_id)
 			.limit(1);
 		if (byQrEntity.error) throw byQrEntity.error;
