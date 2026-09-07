@@ -27,6 +27,7 @@ type ItemLookupResult = {
 const UUID_PATTERN =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PRINTED_ITEM_LABEL_PATTERN = /^P-([A-Z0-9._/-]+)-QTY:\s*\d+$/i;
+const DESTINATION_SHORTCUT_PATTERN = /^[A-Z0-9]{2,8}$/i;
 const SEARCH_EXIT_MS = 180;
 
 const getItemNumberCandidate = (query: string) => {
@@ -179,7 +180,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 		return byClientReference.data?.[0] || null;
 	};
 
-	const findShortcutBoxes = async (shortcut: "auh" | "sb") => {
+	const findShortcutBoxes = async (shortcut: string) => {
 		if (!clientId) return [];
 
 		const fields = `
@@ -194,6 +195,8 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 		`;
 		const pageSize = 1000;
 		const boxes: BoxLocation[] = [];
+		const normalizedShortcut = shortcut.trim().toUpperCase();
+		const isStandardBoxShortcut = normalizedShortcut === "SB";
 
 		for (let from = 0; ; from += pageSize) {
 			let query = supabase
@@ -201,10 +204,9 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 				.select(fields)
 				.eq("order_pkg_overview.orders.client_id", clientId);
 
-			query =
-				shortcut === "auh"
-					? query.ilike("destination", "%AUH%")
-					: query.ilike("ipac_reference", "%-SB-%");
+			query = isStandardBoxShortcut
+				? query.ilike("ipac_reference", "%-SB-%")
+				: query.ilike("destination", normalizedShortcut);
 
 			const { data, error } = await query
 				.order("ipac_reference", { ascending: true, nullsFirst: false })
@@ -396,31 +398,45 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 
 	const buildShortcutResult = (
 		query: string,
-		shortcut: "auh" | "sb",
+		shortcut: string,
 		boxes: BoxLocation[],
-	): ItemLookupResult => ({
-		query,
-		title: shortcut === "auh" ? "AUH boxes" : "Standard boxes",
-		itemReference: null,
-		itemNumbers: [],
-		description: null,
-		matchedRecords: boxes.length,
-		boxes,
-	});
+	): ItemLookupResult => {
+		const normalizedShortcut = shortcut.trim().toUpperCase();
+		return {
+			query,
+			title:
+				normalizedShortcut === "SB"
+					? "Standard boxes"
+					: `${normalizedShortcut} boxes`,
+			itemReference: null,
+			itemNumbers: [],
+			description: null,
+			matchedRecords: boxes.length,
+			boxes,
+		};
+	};
 
 	const handleSubmit = async () => {
 		const query = value.trim();
 		if (!query || !clientId) return;
-		const shortcut = query.toLowerCase();
+		const shortcut = query.toUpperCase();
 
 		activateSearchState();
 		setLoading(true);
 		closeFeedback();
 		try {
-			if (shortcut === "auh" || shortcut === "sb") {
+			if (shortcut === "SB") {
 				const boxes = await findShortcutBoxes(shortcut);
 				setResult(buildShortcutResult(query, shortcut, boxes));
 				return;
+			}
+
+			if (DESTINATION_SHORTCUT_PATTERN.test(shortcut)) {
+				const destinationBoxes = await findShortcutBoxes(shortcut);
+				if (destinationBoxes.length > 0) {
+					setResult(buildShortcutResult(query, shortcut, destinationBoxes));
+					return;
+				}
 			}
 
 			const box = await findBox(query);
@@ -662,9 +678,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 									<p className="px-4 py-4 text-sm text-app-text-muted">
 										{result.title === "Standard boxes"
 											? "No Standard boxes found."
-											: result.title === "AUH boxes"
-												? "No AUH boxes found."
-												: "Item found, but no packed box is linked yet."}
+											: "Item found, but no packed box is linked yet."}
 									</p>
 								) : (
 									<div className="max-h-[calc(100dvh-11rem)] overflow-y-auto overscroll-contain p-1.5 md:max-h-[28rem]">
