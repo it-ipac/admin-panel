@@ -13,7 +13,7 @@ import { db, supabase } from "../../../lib/supabase";
 export const Route = createFileRoute("/portal/scan/$token")({
 	component: TokenResolver,
 	head: () => ({
-		meta: [{ title: "Opening Package | Client Portal" }],
+		meta: [{ title: "Opening Box or Item | Client Portal" }],
 	}),
 });
 
@@ -31,7 +31,7 @@ function TokenResolver() {
 		if (!user) {
 			toast({
 				title: "Authentication Required",
-				description: "Please log in to view this package.",
+				description: "Please log in to view this box or item.",
 				variant: "info",
 			});
 			navigate({
@@ -115,7 +115,7 @@ function TokenResolver() {
 							if (packageInstancesError) throw packageInstancesError;
 							if (packageInstances?.length !== 1) {
 								throw new Error(
-									"This QR code does not identify a single package.",
+									"This QR code does not identify a single box.",
 								);
 							}
 							targetPackageId = String(packageInstances[0].id);
@@ -195,11 +195,13 @@ function TokenResolver() {
 						}
 					}
 				} else {
-					throw new Error("Unsupported QR entity type.");
+					throw new Error(
+						"This QR code is not linked to a supported box or item record.",
+					);
 				}
 
 				if (!clientId || (!targetPackageId && !targetItemId)) {
-					throw new Error("Cannot identify the package or item for this QR code.");
+					throw new Error("Cannot identify the box or item for this QR code.");
 				}
 
 				const { data: clientData } = await supabase
@@ -226,7 +228,7 @@ function TokenResolver() {
 					if (!user) {
 						toast({
 							title: "Authentication Required",
-							description: "Please log in to view this package.",
+							description: "Please log in to view this box or item.",
 							variant: "info",
 						});
 						navigate({
@@ -248,7 +250,7 @@ function TokenResolver() {
 					const isStaff = role ? STAFF_VIEW_ALL_ROLES.includes(role) : false;
 					if (!isStaff && profile.client_id !== clientId) {
 						throw new Error(
-							"You do not have permission to view packages belonging to this client.",
+							"You do not have permission to view box or item records belonging to this client.",
 						);
 					}
 				}
@@ -298,11 +300,11 @@ function TokenResolver() {
 						<ShieldCheck className="h-5 w-5" />
 					</div>
 					<h2 className="mt-4 text-lg font-semibold text-app-text-strong">
-						Verifying your package
+						Verifying QR code
 					</h2>
 					<p className="mt-2 text-sm leading-6 text-app-text-muted">
-						The client portal is securely opening the package record linked to
-						this QR code.
+						The client portal is securely opening the box or item record linked
+						to this QR code.
 					</p>
 					<div className="mx-auto mt-6 h-1.5 w-32 overflow-hidden rounded-full bg-app-surface-muted">
 						<div className="h-full w-1/2 animate-pulse rounded-full bg-primary-600 dark:bg-primary-400" />
@@ -325,12 +327,12 @@ function TokenResolver() {
 					<AlertCircle className="h-8 w-8 text-danger-600 dark:text-danger-300" />
 				</div>
 				<h2 className="mb-2 text-2xl font-semibold text-app-text-strong">
-					Package link unavailable
+					Box or item link unavailable
 				</h2>
 				<p className="mb-8 text-app-text-muted">{error}</p>
 				<button
 					type="button"
-					onClick={() => navigate({ to: "/portal/login" })}
+					onClick={() => navigate({ to: "/portal/projects" })}
 					className="w-full rounded-xl border border-primary-500 bg-primary-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface dark:bg-primary-500 dark:hover:bg-primary-400"
 				>
 					<span className="text-white">Return Home</span>

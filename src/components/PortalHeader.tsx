@@ -85,7 +85,7 @@ export function PortalHeader({
 						{activePage !== "home" && (
 							<PortalTooltip
 								label="Portal home"
-								detail="Back to package access"
+								detail="Back to box & item lookup"
 								align="start"
 							>
 								<Link
@@ -98,12 +98,15 @@ export function PortalHeader({
 							</PortalTooltip>
 						)}
 
-						<PortalTooltip label="Scan package" detail="Use your device camera">
+						<PortalTooltip
+							label="Scan QR code"
+							detail="Box or item"
+						>
 							<button
 								type="button"
 								onClick={onScan}
 								className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary-500 bg-primary-600 text-white shadow-[0_3px_10px_rgba(0,94,168,0.22)] transition-[background-color,border-color,box-shadow] duration-150 hover:border-primary-400 hover:bg-primary-700 hover:shadow-[0_4px_14px_rgba(0,94,168,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface active:bg-primary-800 sm:h-11 sm:w-auto sm:gap-2 sm:rounded-xl sm:px-3.5"
-								aria-label="Scan package QR code"
+								aria-label="Scan box or item QR code"
 							>
 								<Camera className="h-[18px] w-[18px] text-white" aria-hidden="true" />
 								<span className="hidden text-sm font-semibold text-white sm:inline">

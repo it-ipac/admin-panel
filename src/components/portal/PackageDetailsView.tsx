@@ -159,11 +159,11 @@ function BoxPhotoGallery({ photos }: { photos: Photo[] }) {
 				type="button"
 				onClick={() => setLightboxOpen(true)}
 				className="group relative block aspect-video w-full overflow-hidden bg-neutral-950 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset"
-				aria-label="Open package inspection photo"
+				aria-label="Open box inspection photo"
 			>
 				<img
 					src={getPublicUrl(current.image_url)}
-					alt={current.notes || `Package inspection photo ${active + 1}`}
+					alt={current.notes || `Box inspection photo ${active + 1}`}
 					className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.01]"
 				/>
 				<div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md">
@@ -198,7 +198,7 @@ function BoxPhotoGallery({ photos }: { photos: Photo[] }) {
 				<PhotoLightbox
 					photos={photos}
 					initialIndex={active}
-					title="Package inspection"
+					title="Box inspection"
 					onClose={() => setLightboxOpen(false)}
 				/>
 			)}
@@ -306,8 +306,7 @@ function PackingList({
 						No packed items recorded yet
 					</p>
 					<p className="mt-1 text-xs text-app-text-muted">
-						The packing list will appear here as items are recorded in this
-						package.
+						The packing list will appear here as items are recorded in this box.
 					</p>
 				</div>
 			) : (
@@ -843,7 +842,7 @@ export function PackageDetailsView({ id }: { id: string }) {
 	if (!pkg) {
 		return (
 			<div className="min-h-screen bg-neutral-50 p-8 text-center dark:bg-steel-950">
-				Package not found
+				Box not found
 			</div>
 		);
 	}
@@ -852,15 +851,9 @@ export function PackageDetailsView({ id }: { id: string }) {
 		(Array.isArray(pkg.box_type)
 			? pkg.box_type[0]?.name
 			: (pkg.box_type as any)?.name) || "Standard wooden crate";
-	const packageContext = [
-		pkg.package_number ? `Package #${pkg.package_number}` : null,
-		pkg.instance_number ? `Instance #${pkg.instance_number}` : null,
-	]
-		.filter(Boolean)
-		.join(" • ");
 	const reference =
 		pkg.reference_number ||
-		(pkg.package_number ? `Package ${pkg.package_number}` : "Package record");
+		(pkg.package_number ? `Box ${pkg.package_number}` : "Box record");
 
 	const dimensionRow = [
 		{ label: "Length", value: pkg.actual_length, unit: "cm", icon: Ruler },
@@ -880,7 +873,7 @@ export function PackageDetailsView({ id }: { id: string }) {
 	return (
 		<div className="portal-brand portal-package-details min-h-screen bg-[var(--package-page-bg)] pb-24">
 			<PortalHeader
-				title="Package Details"
+				title="Box Details"
 				onScan={() => setScannerOpen(true)}
 				activePage="package"
 			/>
@@ -897,16 +890,11 @@ export function PackageDetailsView({ id }: { id: string }) {
 						<div className="flex items-start justify-between gap-4">
 							<div className="min-w-0">
 								<p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-700">
-									Package identity
+									Box identity
 								</p>
 								<h1 className="mt-2 break-words text-2xl font-bold leading-tight tracking-[-0.025em] text-app-text-strong sm:text-3xl">
 									{reference}
 								</h1>
-								{packageContext && (
-									<p className="mt-2 text-sm font-medium text-app-text-muted">
-										{packageContext}
-									</p>
-								)}
 							</div>
 							<span className="shrink-0 rounded-full border border-primary-200 bg-primary-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-primary-800">
 								{pkg.status || "Packed"}
@@ -928,7 +916,7 @@ export function PackageDetailsView({ id }: { id: string }) {
 							</span>
 							<div className="min-w-0">
 								<p className="text-[9px] font-bold uppercase tracking-[0.16em] text-app-text-muted">
-									Package type
+									Box type
 								</p>
 								<p className="mt-1 truncate text-sm font-bold text-app-text-strong">
 									{boxTypeName}
@@ -1020,6 +1008,7 @@ export function PackageDetailsView({ id }: { id: string }) {
 				open={scannerOpen}
 				onClose={() => setScannerOpen(false)}
 				onResult={handleQrSubmit}
+				context="portal"
 			/>
 		</div>
 	);

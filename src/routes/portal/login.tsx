@@ -236,7 +236,7 @@ function PortalLogin() {
 							<span className="portal-login-title-rule-core" />
 						</div>
 						<p className="portal-login-subtitle mx-auto mt-2.5 max-w-[21rem] text-[clamp(0.84rem,1.75vh,0.96rem)] font-medium leading-6">
-							Track packages, review records, and open package details in one place.
+							Track boxes and items, review records, and open box details in one place.
 						</p>
 					</div>
 				</div>

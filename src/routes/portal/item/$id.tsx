@@ -498,6 +498,7 @@ function ItemView() {
 					open={scannerOpen}
 					onClose={() => setScannerOpen(false)}
 					onResult={handleQrSubmit}
+					context="portal"
 				/>
 			</div>
 		);
@@ -534,6 +535,7 @@ function ItemView() {
 					open={scannerOpen}
 					onClose={() => setScannerOpen(false)}
 					onResult={handleQrSubmit}
+					context="portal"
 				/>
 			</div>
 		);
@@ -554,6 +556,7 @@ function ItemView() {
 					open={scannerOpen}
 					onClose={() => setScannerOpen(false)}
 					onResult={handleQrSubmit}
+					context="portal"
 				/>
 			</div>
 		);
@@ -602,7 +605,7 @@ function ItemView() {
 					reference:
 						pkgInstance.ipac_reference ||
 						orderPackage?.reference ||
-						(overview?.pkg_number ? `Package ${overview.pkg_number}` : null),
+						(overview?.pkg_number ? `Box ${overview.pkg_number}` : null),
 					instanceNumber: pkgInstance.instance_number ?? null,
 					orderName: order?.order_name || null,
 				},
@@ -640,7 +643,7 @@ function ItemView() {
 					pkgInstance.ipac_reference ||
 					orderPackage?.reference ||
 					(overview?.pkg_number
-						? `Package ${overview.pkg_number}`
+						? `Box ${overview.pkg_number}`
 						: `Box ${packageId.slice(0, 8)}`),
 				instanceNumber: pkgInstance.instance_number ?? null,
 				orderName: order?.order_name || null,
@@ -783,16 +786,13 @@ function ItemView() {
 								>
 									<div>
 										<h3 className="text-lg font-black text-neutral-900">
-											{packageInfo.reference || "Package"}
+											{packageInfo.reference || "Box"}
 										</h3>
-										<p className="mt-1 text-sm font-medium text-neutral-600">
-											{packageInfo.instanceNumber
-												? `Instance #${packageInfo.instanceNumber}`
-												: ""}
-											{packageInfo.orderName
-												? `${packageInfo.instanceNumber ? " • " : ""}${packageInfo.orderName}`
-												: ""}
-										</p>
+										{packageInfo.orderName && (
+											<p className="mt-1 text-sm font-medium text-neutral-600">
+												{packageInfo.orderName}
+											</p>
+										)}
 									</div>
 									<Link
 										to="/portal/package/$id"
@@ -812,7 +812,7 @@ function ItemView() {
 						<div>
 							<p className="font-semibold">Not Packed</p>
 							<p className="text-sm">
-								This item has not yet been assigned to any packages.
+								This item has not yet been assigned to any boxes.
 							</p>
 						</div>
 					</div>
@@ -823,6 +823,7 @@ function ItemView() {
 				open={scannerOpen}
 				onClose={() => setScannerOpen(false)}
 				onResult={handleQrSubmit}
+				context="portal"
 			/>
 		</div>
 	);

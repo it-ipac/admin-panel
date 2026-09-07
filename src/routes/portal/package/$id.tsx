@@ -5,7 +5,7 @@ import "../../../components/portal-header-layout.css";
 export const Route = createFileRoute("/portal/package/$id")({
 	component: PackageView,
 	head: () => ({
-		meta: [{ title: "Package Details | Client Portal" }],
+		meta: [{ title: "Box Details | Client Portal" }],
 	}),
 });
 

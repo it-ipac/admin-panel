@@ -400,7 +400,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 		boxes: BoxLocation[],
 	): ItemLookupResult => ({
 		query,
-		title: shortcut === "auh" ? "AUH destinations" : "Standard Box packages",
+		title: shortcut === "auh" ? "AUH boxes" : "Standard boxes",
 		itemReference: null,
 		itemNumbers: [],
 		description: null,
@@ -447,7 +447,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 			}
 
 			setError(
-				"No matching box number or item reference was found for your account.",
+				"No matching box or item reference number was found for your account.",
 			);
 		} catch (lookupError: any) {
 			setError(
@@ -464,6 +464,11 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 		result?.itemNumbers[0] ||
 		result?.query ||
 		"Item";
+	const resultEyebrow = error
+		? "Lookup"
+		: result?.title
+			? "Box results"
+			: "Item locations";
 
 	const bodyBackdrop =
 		typeof document !== "undefined"
@@ -546,14 +551,14 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 				>
 					<form
 						role="search"
-						aria-label="Package and item search"
+						aria-label="Box and item reference search"
 						onSubmit={(event) => {
 							event.preventDefault();
 							void handleSubmit();
 						}}
 					>
 						<label htmlFor="portal-header-lookup" className="sr-only">
-							Find a box or item
+							Search box or item reference number
 						</label>
 						<div
 							className={`relative rounded-xl transition-[box-shadow] duration-150 ${
@@ -578,7 +583,9 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 									closeFeedback();
 								}}
 								placeholder={
-									clientId ? "Find a box or item" : "Loading package search…"
+									clientId
+										? "Search reference number"
+										: "Loading box and item search…"
 								}
 								autoComplete="off"
 								spellCheck={false}
@@ -629,7 +636,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 							<div className="flex items-start justify-between gap-3 border-b border-app-border bg-app-surface-muted px-4 py-3">
 								<div className="min-w-0">
 									<p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary-700 dark:text-primary-300">
-										{error ? "Lookup" : "Item locations"}
+										{resultEyebrow}
 									</p>
 									<p className="mt-0.5 truncate text-sm font-bold text-app-text-strong">
 										{error || resultTitle}
@@ -653,10 +660,10 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 							{result &&
 								(result.boxes.length === 0 ? (
 									<p className="px-4 py-4 text-sm text-app-text-muted">
-										{result.title === "Standard Box packages"
-											? "No Standard Box packages found."
-											: result.title === "AUH destinations"
-												? "No AUH packages found."
+										{result.title === "Standard boxes"
+											? "No Standard boxes found."
+											: result.title === "AUH boxes"
+												? "No AUH boxes found."
 												: "Item found, but no packed box is linked yet."}
 									</p>
 								) : (
