@@ -23,7 +23,7 @@ import { auth, db } from "../../../lib/supabase";
 export const Route = createFileRoute("/portal/projects/")({
 	component: PortalProjects,
 	head: () => ({
-		meta: [{ title: "Package Portal | Client Portal" }],
+		meta: [{ title: "Box & Item Lookup | Client Portal" }],
 	}),
 });
 
@@ -35,12 +35,12 @@ const PORTAL_RECORD_SIGNALS = [
 	},
 	{
 		label: "Dimensions",
-		detail: "Review size and package details",
+		detail: "Review size and box details",
 		icon: Ruler,
 	},
 	{
 		label: "Destination",
-		detail: "Confirm where the package is going",
+		detail: "Confirm where the box is going",
 		icon: MapPin,
 	},
 	{
@@ -57,10 +57,10 @@ function PortalRecordFlowIllustration() {
 				<div className="mb-5 flex items-center justify-between gap-4">
 					<div>
 						<p className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary-300">
-							Your package label
+							Your box or item label
 						</p>
 						<p className="mt-1 text-xs text-steel-400">
-							Search the printed box number or scan the QR code.
+							Scan a box or item QR code, or search by its reference number.
 						</p>
 					</div>
 					<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5">
@@ -79,13 +79,13 @@ function PortalRecordFlowIllustration() {
 					/>
 					<img
 						src="/image.png"
-						alt="Example client package label with a QR code and box number"
+						alt="Example client box label with a QR code and reference number"
 						className="relative z-10 block h-auto w-full max-w-[560px] rounded-sm shadow-[0_14px_28px_-10px_rgba(0,0,0,0.8)]"
 					/>
 				</div>
 				<div className="mt-3 flex items-center gap-2 text-xs text-steel-300">
 					<Check className="h-3.5 w-3.5 text-success-400" aria-hidden="true" />A
-					box number opens the complete box record directly
+					box reference opens the complete box record directly
 				</div>
 			</div>
 
@@ -264,11 +264,11 @@ function PortalProjects() {
 				href="#main-content"
 				className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[var(--z-critical)] focus:rounded-lg focus:bg-app-surface focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-app-text focus:shadow-lg"
 			>
-				Skip to package list
+				Skip to box & item lookup
 			</a>
 
 			<PortalHeader
-				title="Package Portal"
+				title="Box & Item Lookup"
 				onScan={() => setScannerOpen(true)}
 				activePage="home"
 				maxWidth="max-w-7xl"
@@ -289,12 +289,12 @@ function PortalProjects() {
 							Box & item lookup
 						</p>
 						<h1 className="mt-2 text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-app-text-strong sm:text-5xl">
-							Find a box or locate an item.
+							Find a box or item.
 						</h1>
 						<p className="mt-3 max-w-lg text-sm leading-6 text-app-text-muted sm:text-base">
-							Use the search in the header with a box number, item number, item
-							reference, or printed item label. Box matches open directly; item
-							matches show every box containing those parts beside the search.
+							Scan a box or item QR code, or search by its reference number. Box
+							references open the box record directly; item references show where
+							that item is packed.
 						</p>
 
 						<div className="mt-7 border-t border-app-border pt-5 sm:mt-8 sm:pt-6">
@@ -312,7 +312,7 @@ function PortalProjects() {
 									</div>
 									<div>
 										<div className="text-sm font-bold text-primary-950 sm:text-base dark:text-primary-100">
-											Scan box QR code
+											Scan box or item QR code
 										</div>
 										<div className="mt-0.5 text-xs text-primary-700 dark:text-primary-300">
 											Use your device camera
@@ -329,17 +329,17 @@ function PortalProjects() {
 								type="button"
 								onClick={activateHeaderSearch}
 								className="group mt-3 flex min-h-14 w-full items-center gap-3 rounded-2xl border border-app-border bg-app-surface px-3 py-3 text-left shadow-[0_8px_22px_-20px_rgba(15,23,42,0.35)] transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary-300 hover:bg-app-surface-muted hover:shadow-[0_14px_28px_-22px_rgba(0,94,168,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-app-bg active:translate-y-0 motion-reduce:transform-none motion-reduce:transition-none sm:min-h-16 sm:px-4"
-								aria-label="Search for a box or item using the header search"
+								aria-label="Search by box or item reference number"
 							>
 								<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 text-primary-700 transition-colors group-hover:border-primary-300 group-hover:bg-primary-100 dark:border-primary-800 dark:bg-primary-950/30 dark:text-primary-300">
 									<Search className="h-[18px] w-[18px]" aria-hidden="true" />
 								</span>
 								<span className="min-w-0 flex-1">
 									<span className="block text-sm font-bold text-app-text-strong sm:text-base">
-										Search box or item
+										Search by reference number
 									</span>
 									<span className="mt-0.5 block truncate text-xs text-app-text-muted">
-										Box number, item number, reference or printed label
+										Box or item reference number
 									</span>
 								</span>
 								<ArrowRight
@@ -362,6 +362,7 @@ function PortalProjects() {
 				open={scannerOpen}
 				onClose={() => setScannerOpen(false)}
 				onResult={handleQrSubmit}
+				context="portal"
 			/>
 		</div>
 	);

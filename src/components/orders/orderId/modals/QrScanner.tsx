@@ -6,14 +6,19 @@ interface QrScannerProps {
 	open: boolean;
 	onClose: () => void;
 	onResult: (text: string) => void;
+	context?: "package" | "portal";
 }
 
 /**
  * Live camera QR scanner. Grabs frames from the rear camera and decodes with
- * jsQR; the first successful read is handed back via onResult. Used to relink a
- * box to the QR token already printed on its physical label.
+ * jsQR; the first successful read is handed back via onResult.
  */
-export function QrScanner({ open, onClose, onResult }: QrScannerProps) {
+export function QrScanner({
+	open,
+	onClose,
+	onResult,
+	context = "package",
+}: QrScannerProps) {
 	const videoRef = useRef<HTMLVideoElement | null>(null);
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const closeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -26,6 +31,14 @@ export function QrScanner({ open, onClose, onResult }: QrScannerProps) {
 	const descriptionId = useId();
 	const onCloseEvent = useEffectEvent(onClose);
 	const onResultEvent = useEffectEvent(onResult);
+	const isPortalScanner = context === "portal";
+	const title = isPortalScanner ? "Scan box or item QR code" : "Scan package QR";
+	const fallbackCopy = isPortalScanner
+		? "You can close the scanner and search by the box or item reference number instead."
+		: "You can close this window and paste the QR token instead.";
+	const instruction = isPortalScanner
+		? "Hold the box or item QR code inside the frame. The matching record opens automatically."
+		: "Hold the label inside the frame. The package opens automatically when the code is detected.";
 
 	useEffect(() => {
 		if (!open) return;
@@ -155,7 +168,7 @@ export function QrScanner({ open, onClose, onResult }: QrScannerProps) {
 								aria-level={2}
 								className="font-bold text-app-text-strong"
 							>
-								Scan package QR
+								{title}
 							</div>
 							<p className="mt-0.5 text-sm text-app-text-muted">
 								Camera starts automatically
@@ -186,7 +199,7 @@ export function QrScanner({ open, onClose, onResult }: QrScannerProps) {
 							<Camera className="mb-4 h-8 w-8 text-danger-600" aria-hidden="true" />
 							<p className="max-w-sm font-semibold text-app-text-strong">{error}</p>
 							<p className="mt-2 max-w-sm text-sm text-app-text-muted">
-								You can close this window and paste the QR token instead.
+								{fallbackCopy}
 							</p>
 						</div>
 					) : (
@@ -216,7 +229,7 @@ export function QrScanner({ open, onClose, onResult }: QrScannerProps) {
 
 				<canvas ref={canvasRef} className="hidden" />
 				<p id={descriptionId} className="px-6 py-5 text-center text-sm leading-6 text-app-text-muted">
-					Hold the label inside the frame. The package opens automatically when the code is detected.
+					{instruction}
 				</p>
 			</div>
 		</div>
