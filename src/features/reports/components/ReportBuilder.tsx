@@ -187,10 +187,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({ onBack }) => {
 				lastLoadedOrderId.current = firstOrderId;
 				setClientOrderData((prev: any) => ({
 					...(prev || {}),
-					customer_order_ref:
-						fetchedOrderDetails.reference ||
-						fetchedOrderDetails.order_name ||
-						"",
+					customer_order_ref: fetchedOrderDetails.reference || "",
 					order_name: fetchedOrderDetails.order_name || "",
 				}));
 				setHeaderData((prev) => ({
