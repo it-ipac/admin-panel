@@ -24,10 +24,16 @@ type ItemLookupResult = {
 	boxes: BoxLocation[];
 };
 
+type PortalLookupReturnState = {
+	pathname: string;
+	value: string;
+	result: ItemLookupResult;
+};
+
 const UUID_PATTERN =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PRINTED_ITEM_LABEL_PATTERN = /^P-([A-Z0-9._/-]+)-QTY:\s*\d+$/i;
-const DESTINATION_SHORTCUT_PATTERN = /^[A-Z0-9]{2,8}$/i;
+const DESTINATION_SHORTCUT_PATTERN = /^(?=.*[A-Z])[A-Z0-9]{2,8}$/i;
 const SEARCH_EXIT_MS = 180;
 
 const getItemNumberCandidate = (query: string) => {
@@ -94,6 +100,32 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 
 	const hasFeedback = Boolean(error || result);
 	const isSpotlightPresent = isSearchActive || isSearchExiting;
+
+	const restoreSearchFromHistory = useCallback(() => {
+		if (typeof window === "undefined") return;
+		const historyState = (window.history.state || {}) as {
+			portalLookupReturn?: PortalLookupReturnState;
+			[key: string]: unknown;
+		};
+		const saved = historyState.portalLookupReturn;
+		if (!saved || saved.pathname !== window.location.pathname || !saved.result)
+			return;
+
+		setValue(saved.value || saved.result.query || "");
+		setResult(saved.result);
+		setError(null);
+		setLoading(false);
+		activateSearchState();
+
+		const { portalLookupReturn: _restored, ...remainingState } = historyState;
+		window.history.replaceState(remainingState, "");
+	}, [activateSearchState]);
+
+	useEffect(() => {
+		restoreSearchFromHistory();
+		window.addEventListener("popstate", restoreSearchFromHistory);
+		return () => window.removeEventListener("popstate", restoreSearchFromHistory);
+	}, [restoreSearchFromHistory]);
 
 	useEffect(() => {
 		const activateSearch = () => {
@@ -180,6 +212,45 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 		return byClientReference.data?.[0] || null;
 	};
 
+	const findMatchingBoxes = async (query: string) => {
+		if (!clientId) return [];
+		const pattern = `%${query.trim()}%`;
+		const pageSize = 1000;
+		const boxes = new Map<string, BoxLocation>();
+
+		for (const field of ["ipac_reference", "client_reference"] as const) {
+			for (let from = 0; ; from += pageSize) {
+				const { data, error } = await supabase
+					.from("order_pkg_instance")
+					.select(boxLookupFields)
+					.eq("order_pkg_overview.orders.client_id", clientId)
+					.ilike(field, pattern)
+					.order("ipac_reference", { ascending: true, nullsFirst: false })
+					.range(from, from + pageSize - 1);
+				if (error) throw error;
+
+				for (const row of data || []) {
+					boxes.set(row.id, {
+						id: row.id,
+						reference:
+							row.ipac_reference ||
+							row.client_reference ||
+							`Box ${row.id.slice(0, 8)}`,
+						destination: row.destination || null,
+						status: row.status || null,
+						quantity: null,
+					});
+				}
+
+				if (!data || data.length < pageSize) break;
+			}
+		}
+
+		return Array.from(boxes.values()).sort((a, b) =>
+			a.reference.localeCompare(b.reference),
+		);
+	};
+
 	const findShortcutBoxes = async (shortcut: string) => {
 		if (!clientId) return [];
 
@@ -223,7 +294,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 					destination: row.destination || null,
 					status: row.status || null,
 					quantity: null,
-			});
+				});
 			}
 
 			if (!data || data.length < pageSize) break;
@@ -416,6 +487,35 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 		};
 	};
 
+	const buildBoxMatchResult = (
+		query: string,
+		boxes: BoxLocation[],
+	): ItemLookupResult => ({
+		query,
+		title: `Boxes matching ${query}`,
+		itemReference: null,
+		itemNumbers: [],
+		description: null,
+		matchedRecords: boxes.length,
+		boxes,
+	});
+
+	const rememberSearchForBack = () => {
+		if (typeof window === "undefined" || !result) return;
+		const historyState = window.history.state || {};
+		window.history.replaceState(
+			{
+				...historyState,
+				portalLookupReturn: {
+					pathname: window.location.pathname,
+					value,
+					result,
+				} satisfies PortalLookupReturnState,
+			},
+			"",
+		);
+	};
+
 	const handleSubmit = async () => {
 		const query = value.trim();
 		if (!query || !clientId) return;
@@ -443,6 +543,12 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 			if (box?.id) {
 				closeSearch();
 				navigate({ to: "/portal/package/$id", params: { id: box.id } });
+				return;
+			}
+
+			const matchingBoxes = await findMatchingBoxes(query);
+			if (matchingBoxes.length > 0) {
+				setResult(buildBoxMatchResult(query, matchingBoxes));
 				return;
 			}
 
@@ -700,6 +806,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 												type="button"
 												key={box.id}
 												onClick={() => {
+													rememberSearchForBack();
 													closeSearch();
 													navigate({
 														to: "/portal/package/$id",
