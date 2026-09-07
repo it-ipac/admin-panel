@@ -136,6 +136,7 @@ export function QrScanner({
 					);
 					setStarting(false);
 				}
+			}
 		})();
 
 		return () => {
