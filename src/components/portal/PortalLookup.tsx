@@ -223,7 +223,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 					destination: row.destination || null,
 					status: row.status || null,
 					quantity: null,
-				});
+			});
 			}
 
 			if (!data || data.length < pageSize) break;
@@ -662,10 +662,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 											{resultEyebrow}
 										</p>
 										{result && (
-											<span
-												aria-label={`Total search results: ${resultCount}`}
-												className="shrink-0 rounded-full border border-app-border bg-app-surface px-2 py-0.5 text-[10px] font-semibold text-app-text-muted"
-											>
+											<span className="shrink-0 rounded-full border border-app-border bg-app-surface px-2 py-0.5 text-[10px] font-semibold text-app-text-muted">
 												{resultCountLabel}
 											</span>
 										)}
