@@ -117,7 +117,8 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 		setLoading(false);
 		activateSearchState();
 
-		const { portalLookupReturn: _restored, ...remainingState } = historyState;
+		const remainingState = { ...historyState };
+		delete remainingState.portalLookupReturn;
 		window.history.replaceState(remainingState, "");
 	}, [activateSearchState]);
 
