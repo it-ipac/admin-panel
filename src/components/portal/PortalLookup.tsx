@@ -223,7 +223,7 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 					destination: row.destination || null,
 					status: row.status || null,
 					quantity: null,
-				});
+			});
 			}
 
 			if (!data || data.length < pageSize) break;
@@ -485,6 +485,12 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 		: result?.title
 			? "Box results"
 			: "Item locations";
+	const resultCount = result
+		? result.boxes.length > 0
+			? result.boxes.length
+			: result.matchedRecords
+		: 0;
+	const resultCountLabel = `${resultCount.toLocaleString()} ${resultCount === 1 ? "result" : "results"}`;
 
 	const bodyBackdrop =
 		typeof document !== "undefined"
@@ -651,9 +657,16 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 						>
 							<div className="flex items-start justify-between gap-3 border-b border-app-border bg-app-surface-muted px-4 py-3">
 								<div className="min-w-0">
-									<p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary-700 dark:text-primary-300">
-										{resultEyebrow}
-									</p>
+									<div className="flex items-center gap-2">
+										<p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary-700 dark:text-primary-300">
+											{resultEyebrow}
+										</p>
+										{result && (
+											<span className="shrink-0 rounded-full border border-app-border bg-app-surface px-2 py-0.5 text-[10px] font-semibold text-app-text-muted">
+												{resultCountLabel}
+											</span>
+										)}
+									</div>
 									<p className="mt-0.5 truncate text-sm font-bold text-app-text-strong">
 										{error || resultTitle}
 									</p>
