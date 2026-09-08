@@ -1,6 +1,7 @@
 import { type ComponentProps, type FC, useMemo, useState } from "react";
 import { useReportInstancesQuery } from "../hooks/useReportBuilderQueries";
 import { ReportBoxSelectionProvider } from "../reportBoxSelectionContext";
+import { buildSelectionOrderTotals } from "../reportBoxSelectionTotals";
 import type { FilterParams, ReportInstanceData } from "../types";
 import { getBoxTags } from "../utils";
 import {
@@ -84,10 +85,27 @@ export const SelectableLivePreviewPanel: FC<SelectableLivePreviewPanelProps> = (
 		() => selectableInstances.map(toBoxSelectionOption),
 		[selectableInstances],
 	);
+	const orderTotalsByOrder = useMemo(
+		() => buildSelectionOrderTotals(selectableInstances, excludedBoxIds),
+		[selectableInstances, excludedBoxIds],
+	);
 
 	const hasReportScope =
 		Boolean(props.filters.clientId) || props.filters.orderIds.length > 0;
 	const showSelector = hasReportScope && !isLoading && !error;
+
+	const selectedSingleOrderTotals =
+		excludedBoxIds.size > 0 && props.filters.orderIds.length === 1
+			? orderTotalsByOrder.get(props.filters.orderIds[0])
+			: null;
+	const selectionAwareHeaderData = selectedSingleOrderTotals
+		? {
+				...props.headerData,
+				nw: String(selectedSingleOrderTotals.totalNW),
+				gw: String(selectedSingleOrderTotals.totalGW),
+				totalVolume: String(selectedSingleOrderTotals.totalVolume),
+			}
+		: props.headerData;
 
 	return (
 		<div className="flex h-full min-h-0 flex-col">
@@ -99,8 +117,14 @@ export const SelectableLivePreviewPanel: FC<SelectableLivePreviewPanelProps> = (
 				/>
 			)}
 			<div className="min-h-0 flex-1">
-				<ReportBoxSelectionProvider excludedBoxIds={excludedBoxIds}>
-					<LivePreviewPanel {...props} />
+				<ReportBoxSelectionProvider
+					excludedBoxIds={excludedBoxIds}
+					orderTotalsByOrder={orderTotalsByOrder}
+				>
+					<LivePreviewPanel
+						{...props}
+						headerData={selectionAwareHeaderData}
+					/>
 				</ReportBoxSelectionProvider>
 			</div>
 		</div>
