@@ -65,7 +65,8 @@ export const useDestinationsQuery = (
 };
 
 export const useReportInstancesQuery = (filters: FilterParams) => {
-	const excludedBoxIds = useReportBoxSelection();
+	const selection = useReportBoxSelection();
+	const excludedBoxIds = selection?.excludedBoxIds;
 	const query = useQuery({
 		queryKey: ["report_instances", filters],
 		queryFn: () => fetchReportInstances(filters),
@@ -98,9 +99,17 @@ export const useCompanyProfileQuery = () => {
 };
 
 export const useOrderTotalsQuery = (orderId: string | null) => {
-	return useQuery({
+	const selection = useReportBoxSelection();
+	const query = useQuery({
 		queryKey: ["order_totals", orderId],
 		queryFn: () => fetchOrderTotals(orderId!),
 		enabled: !!orderId,
 	});
+
+	if (!orderId || !selection || selection.excludedBoxIds.size === 0) {
+		return query;
+	}
+	const selectedTotals = selection.orderTotalsByOrder.get(orderId);
+	if (!selectedTotals) return query;
+	return { ...query, data: selectedTotals };
 };
