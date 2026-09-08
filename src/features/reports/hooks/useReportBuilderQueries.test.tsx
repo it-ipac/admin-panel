@@ -76,6 +76,7 @@ function SelectionHarness() {
 	return (
 		<ReportBoxSelectionProvider
 			excludedBoxIds={excluded}
+			hasActiveExclusions={excluded.has("box-2")}
 			orderTotalsByOrder={emptyOrderTotals}
 		>
 			<button
@@ -121,6 +122,7 @@ describe("useReportInstancesQuery box selection", () => {
 			<QueryClientProvider client={createQueryClient()}>
 				<ReportBoxSelectionProvider
 					excludedBoxIds={new Set(["box-2"])}
+					hasActiveExclusions={true}
 					orderTotalsByOrder={emptyOrderTotals}
 				>
 					<Probe />
@@ -176,6 +178,7 @@ describe("useOrderTotalsQuery box selection", () => {
 			<QueryClientProvider client={createQueryClient()}>
 				<ReportBoxSelectionProvider
 					excludedBoxIds={new Set(["box-2"])}
+					hasActiveExclusions={true}
 					orderTotalsByOrder={new Map([["order-1", selectedTotals]])}
 				>
 					<TotalsProbe orderId="order-1" />
@@ -187,6 +190,30 @@ describe("useOrderTotalsQuery box selection", () => {
 			expect(screen.getByTestId("totals").textContent).toBe(
 				JSON.stringify(selectedTotals),
 			),
+		);
+	});
+
+	it("keeps database totals when remembered exclusions are outside the current filter", async () => {
+		const filteredTotals = {
+			totalNW: 10,
+			totalGW: 12,
+			totalVolume: 0.2,
+			boxCount: 1,
+		};
+		render(
+			<QueryClientProvider client={createQueryClient()}>
+				<ReportBoxSelectionProvider
+					excludedBoxIds={new Set(["outside-current-filter"])}
+					hasActiveExclusions={false}
+					orderTotalsByOrder={new Map([["order-1", filteredTotals]])}
+				>
+					<TotalsProbe orderId="order-1" />
+				</ReportBoxSelectionProvider>
+			</QueryClientProvider>,
+		);
+
+		await waitFor(() =>
+			expect(screen.getByTestId("totals").textContent).toContain('"totalNW":30'),
 		);
 	});
 });
