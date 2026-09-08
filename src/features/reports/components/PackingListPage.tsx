@@ -639,7 +639,7 @@ export const PackingListPage = React.forwardRef<
 		const tc = display.theme_color;
 		// Keep theme colors for decorative elements, but use a dark ink color for
 		// all report text so light themes remain readable on the white document.
-		const reportInkColor = "#1e3a5f";
+		const reportInkColor = "#005ea8";
 		const ac = display.accent_color;
 		const isLandscape = display.orientation === "landscape";
 
