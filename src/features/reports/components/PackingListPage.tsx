@@ -637,6 +637,9 @@ export const PackingListPage = React.forwardRef<
 			? `${display.font_size_px}px`
 			: FONT_SIZE_MAP[display.font_size];
 		const tc = display.theme_color;
+		// Keep theme colors for decorative elements, but use a dark ink color for
+		// all report text so light themes remain readable on the white document.
+		const reportInkColor = "#1e3a5f";
 		const ac = display.accent_color;
 		const isLandscape = display.orientation === "landscape";
 
@@ -749,7 +752,7 @@ export const PackingListPage = React.forwardRef<
 									style={{
 										fontSize: "14px",
 										fontWeight: "bold",
-										color: tc,
+										color: reportInkColor,
 										marginTop: "5px",
 									}}
 								>
@@ -813,7 +816,7 @@ export const PackingListPage = React.forwardRef<
 											? `${Math.round(display.font_size_px * 2.33)}px`
 											: "28px",
 										fontWeight: 800,
-										color: "#1e3a5f",
+										color: reportInkColor,
 										letterSpacing: "1.5px",
 										lineHeight: 1.25,
 										textTransform: "uppercase",
@@ -870,7 +873,7 @@ export const PackingListPage = React.forwardRef<
 							<div>
 								<span
 									className="report-theme-text"
-									style={{ fontWeight: "700", color: tc }}
+									style={{ fontWeight: "700", color: reportInkColor }}
 								>
 									Date:{" "}
 								</span>
@@ -885,7 +888,7 @@ export const PackingListPage = React.forwardRef<
 							>
 								<div
 									className="report-theme-text"
-									style={{ fontWeight: "700", color: tc, marginBottom: "4px" }}
+									style={{ fontWeight: "700", color: reportInkColor, marginBottom: "4px" }}
 								>
 									Customer:{" "}
 									<span style={{ fontWeight: "400" }}>{clientData.name}</span>
@@ -1053,7 +1056,7 @@ export const PackingListPage = React.forwardRef<
 							>
 								<span
 									className="report-theme-text"
-									style={{ fontWeight: "700", color: tc }}
+									style={{ fontWeight: "700", color: reportInkColor }}
 								>
 									Project Reference:{" "}
 								</span>
@@ -1075,7 +1078,7 @@ export const PackingListPage = React.forwardRef<
 									className="report-theme-text"
 									style={{
 										fontWeight: "700",
-										color: tc,
+										color: reportInkColor,
 										textTransform: "uppercase",
 										letterSpacing: "0.4px",
 										marginBottom: "5px",
@@ -1220,7 +1223,7 @@ export const PackingListPage = React.forwardRef<
 								<div>
 									<span
 										className="report-theme-text"
-										style={{ fontWeight: "700", color: tc }}
+										style={{ fontWeight: "700", color: reportInkColor }}
 									>
 										Total number of Boxes:{" "}
 									</span>
@@ -1230,7 +1233,7 @@ export const PackingListPage = React.forwardRef<
 									<div>
 										<span
 											className="report-theme-text"
-											style={{ fontWeight: "700", color: tc }}
+											style={{ fontWeight: "700", color: reportInkColor }}
 										>
 											Total volume:{" "}
 										</span>
@@ -1473,7 +1476,7 @@ export const PackingListPage = React.forwardRef<
 										style={{
 											fontSize: isLandscape ? 8.5 : 10,
 											fontWeight: 700,
-											color: tc,
+											color: reportInkColor,
 											letterSpacing: 1,
 											textTransform: "uppercase",
 										}}
@@ -1500,7 +1503,7 @@ export const PackingListPage = React.forwardRef<
 												? "16px"
 												: HEADER_FONT_MAP[display.font_size],
 										fontWeight: 800,
-										color: tc,
+										color: reportInkColor,
 										letterSpacing: isLandscape ? 1 : 2,
 										textTransform: "uppercase",
 									}}
@@ -1569,10 +1572,10 @@ export const PackingListPage = React.forwardRef<
 								}}
 							>
 								<div>
-									Boxes: <strong style={{ color: tc }}>{items.length}</strong>
+									Boxes: <strong style={{ color: reportInkColor }}>{items.length}</strong>
 								</div>
 								<div>
-									Items: <strong style={{ color: tc }}>{totalBoxItems}</strong>
+									Items: <strong style={{ color: reportInkColor }}>{totalBoxItems}</strong>
 								</div>
 								{display.show_page_numbers && (
 									<div
@@ -2351,7 +2354,7 @@ export const PackingListPage = React.forwardRef<
 												{pkg.show_line_number && (
 													<span
 														className="report-theme-text"
-														style={{ fontWeight: 700, color: tc }}
+														style={{ fontWeight: 700, color: reportInkColor }}
 													>
 														#{globalLineNumber}
 													</span>
@@ -2359,7 +2362,7 @@ export const PackingListPage = React.forwardRef<
 												{pkg.show_box_number !== false && (
 													<span
 														className="report-theme-text"
-														style={{ fontWeight: 700, fontSize: 11, color: tc }}
+														style={{ fontWeight: 700, fontSize: 11, color: reportInkColor }}
 													>
 														Box {inst.package_number}
 														{inst.instance_number > 1
@@ -2983,7 +2986,7 @@ export const PackingListPage = React.forwardRef<
 																									borderBottom: hasSecondRow
 																										? "1px dashed #e2e8f0"
 																										: "1px solid #cbd5e1",
-																									color: tc,
+																									color: reportInkColor,
 																								}}
 																							>
 																								<EditableValue
