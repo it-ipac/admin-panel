@@ -31,11 +31,17 @@ const options: BoxSelectionOption[] = [
 	},
 ];
 
-function Harness({ initialExcluded = [] }: { initialExcluded?: string[] }) {
+function Harness({
+	initialExcluded = [],
+	currentOptions = options,
+}: {
+	initialExcluded?: string[];
+	currentOptions?: BoxSelectionOption[];
+}) {
 	const [excluded, setExcluded] = useState(() => new Set(initialExcluded));
 	return (
 		<BoxSelectionPanel
-			options={options}
+			options={currentOptions}
 			excludedBoxIds={excluded}
 			onExcludedBoxIdsChange={setExcluded}
 		/>
@@ -84,6 +90,40 @@ describe("BoxSelectionPanel", () => {
 		expect(screen.queryByText("AIN-P-AC-#16")).toBeNull();
 		expect(screen.getByText("DXB-W-AC-#05")).toBeTruthy();
 		expect(screen.getByText("3 / 3 selected")).toBeTruthy();
+	});
+
+	it("master select-all still applies to the full filtered set while search narrows the visible list", () => {
+		render(<Harness />);
+		fireEvent.change(screen.getByRole("searchbox", { name: "Search boxes" }), {
+			target: { value: "DXB" },
+		});
+		expect(screen.getByText("DXB-W-AC-#05")).toBeTruthy();
+		expect(screen.queryByText("AIN-P-AC-#16")).toBeNull();
+
+		fireEvent.click(screen.getByRole("checkbox", { name: "Deselect all" }));
+		expect(screen.getByText("0 / 3 selected")).toBeTruthy();
+		expect(
+			(screen.getByRole("checkbox", { name: /DXB-W-AC-#05/ }) as HTMLInputElement)
+				.checked,
+		).toBe(false);
+	});
+
+	it("keeps a box exclusion when filters temporarily remove that box and later bring it back", () => {
+		const { rerender } = render(<Harness />);
+		fireEvent.click(
+			screen.getByRole("checkbox", { name: /AIN-P-NAC-#01/ }),
+		);
+		expect(screen.getByText("2 / 3 selected")).toBeTruthy();
+
+		rerender(<Harness currentOptions={[options[0], options[2]]} />);
+		expect(screen.getByText("2 / 2 selected")).toBeTruthy();
+
+		rerender(<Harness currentOptions={options} />);
+		expect(screen.getByText("2 / 3 selected")).toBeTruthy();
+		expect(
+			(screen.getByRole("checkbox", { name: /AIN-P-NAC-#01/ }) as HTMLInputElement)
+				.checked,
+		).toBe(false);
 	});
 
 	it("select-all preserves exclusions that are outside the current filtered set", () => {
