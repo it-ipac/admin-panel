@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { type ComponentProps, type FC, useMemo, useState } from "react";
 import { useReportInstancesQuery } from "../hooks/useReportBuilderQueries";
 import { ReportBoxSelectionProvider } from "../reportBoxSelectionContext";
 import type { FilterParams, ReportInstanceData } from "../types";
@@ -9,7 +9,7 @@ import {
 } from "./BoxSelectionPanel";
 import { LivePreviewPanel as LegacyLivePreviewPanel } from "./LivePreviewPanelLegacy";
 
-type LivePreviewPanelProps = React.ComponentProps<typeof LegacyLivePreviewPanel>;
+type LivePreviewPanelProps = ComponentProps<typeof LegacyLivePreviewPanel>;
 
 export function getSelectableReportInstances(
 	instances: ReportInstanceData[] | undefined,
@@ -66,7 +66,7 @@ function toBoxSelectionOption(instance: ReportInstanceData): BoxSelectionOption 
 	return { id: instance.id, label, meta, searchText };
 }
 
-export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = (props) => {
+export const LivePreviewPanel: FC<LivePreviewPanelProps> = (props) => {
 	const [excludedBoxIds, setExcludedBoxIds] = useState<Set<string>>(
 		() => new Set(),
 	);
