@@ -581,10 +581,23 @@ export function PortalLookup({ clientId }: { clientId: string | null }) {
 		}
 	};
 
+	const normalizedItemSearch = getItemNumberCandidate(result?.query || "")
+		.trim()
+		.toLowerCase();
+	const matchedItemNumber = result?.itemNumbers.find(
+		(itemNumber) => itemNumber.trim().toLowerCase() === normalizedItemSearch,
+	);
+	const matchedItemReference =
+		result?.itemReference?.trim().toLowerCase() ===
+		(result?.query || "").trim().toLowerCase()
+			? result?.itemReference
+			: null;
 	const resultTitle =
 		result?.title ||
-		result?.itemReference ||
+		matchedItemNumber ||
+		matchedItemReference ||
 		result?.itemNumbers[0] ||
+		result?.itemReference ||
 		result?.query ||
 		"Item";
 	const resultEyebrow = error
