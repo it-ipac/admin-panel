@@ -106,7 +106,7 @@ export const useOrderTotalsQuery = (orderId: string | null) => {
 		enabled: !!orderId,
 	});
 
-	if (!orderId || !selection || selection.excludedBoxIds.size === 0) {
+	if (!orderId || !selection || !selection.hasActiveExclusions) {
 		return query;
 	}
 	const selectedTotals = selection.orderTotalsByOrder.get(orderId);
