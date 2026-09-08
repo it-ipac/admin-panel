@@ -54,7 +54,9 @@ describe("BoxSelectionPanel", () => {
 
 	it("deselects an individual box and enters the partial master state", () => {
 		render(<Harness />);
-		fireEvent.click(screen.getByRole("checkbox", { name: "AIN-P-NAC-#01" }));
+		fireEvent.click(
+			screen.getByRole("checkbox", { name: /AIN-P-NAC-#01/ }),
+		);
 
 		expect(screen.getByText("2 / 3 selected")).toBeTruthy();
 		const master = screen.getByRole("checkbox", {
