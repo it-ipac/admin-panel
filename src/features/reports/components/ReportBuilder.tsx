@@ -23,8 +23,8 @@ import {
 import type { FilterParams } from "../types";
 import { AppearancePanel } from "./AppearancePanel";
 import { HeaderDataPanel } from "./HeaderDataPanel";
-import { LivePreviewPanel } from "./LivePreviewPanel";
 import { ScopePanel } from "./ScopePanel";
+import { SelectableLivePreviewPanel } from "./SelectableLivePreviewPanel";
 
 interface ReportBuilderProps {
 	onBack: () => void;
@@ -439,7 +439,7 @@ thead tr, thead th {
 
 				{/* Preview */}
 				<div className="flex-1 overflow-hidden">
-					<LivePreviewPanel
+					<SelectableLivePreviewPanel
 						filters={filters}
 						displaySettings={displaySettings}
 						pkgSettings={pkgSettings}
