@@ -85,6 +85,10 @@ export const SelectableLivePreviewPanel: FC<SelectableLivePreviewPanelProps> = (
 		() => selectableInstances.map(toBoxSelectionOption),
 		[selectableInstances],
 	);
+	const hasActiveExclusions = useMemo(
+		() => selectableInstances.some((instance) => excludedBoxIds.has(instance.id)),
+		[selectableInstances, excludedBoxIds],
+	);
 	const orderTotalsByOrder = useMemo(
 		() => buildSelectionOrderTotals(selectableInstances, excludedBoxIds),
 		[selectableInstances, excludedBoxIds],
@@ -95,7 +99,7 @@ export const SelectableLivePreviewPanel: FC<SelectableLivePreviewPanelProps> = (
 	const showSelector = hasReportScope && !isLoading && !error;
 
 	const selectedSingleOrderTotals =
-		excludedBoxIds.size > 0 && props.filters.orderIds.length === 1
+		hasActiveExclusions && props.filters.orderIds.length === 1
 			? orderTotalsByOrder.get(props.filters.orderIds[0])
 			: null;
 	const selectionAwareHeaderData = selectedSingleOrderTotals
@@ -119,6 +123,7 @@ export const SelectableLivePreviewPanel: FC<SelectableLivePreviewPanelProps> = (
 			<div className="min-h-0 flex-1">
 				<ReportBoxSelectionProvider
 					excludedBoxIds={excludedBoxIds}
+					hasActiveExclusions={hasActiveExclusions}
 					orderTotalsByOrder={orderTotalsByOrder}
 				>
 					<LivePreviewPanel
