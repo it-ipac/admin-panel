@@ -812,9 +812,10 @@ export const PackingListPage = React.forwardRef<
 										fontSize: display.font_size_px
 											? `${Math.round(display.font_size_px * 2.33)}px`
 											: "28px",
-										fontWeight: "bold",
-										color: tc,
-										letterSpacing: "2px",
+										fontWeight: 800,
+										color: "#1e3a5f",
+										letterSpacing: "1.5px",
+										lineHeight: 1.25,
 										textTransform: "uppercase",
 									}}
 								>
