@@ -1,4 +1,4 @@
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown, LoaderCircle, Search } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { SelectAllState } from "../lineOptions";
 import { SelectAllCheckbox } from "./SelectAllCheckbox";
@@ -20,6 +20,8 @@ const VIRTUALIZE_AFTER = 80;
 const ROW_HEIGHT = 44;
 const VIEWPORT_HEIGHT = 308;
 const OVERSCAN_ROWS = 4;
+const BULK_APPLY_DELAY_MS = 24;
+const BULK_SPINNER_MIN_MS = 80;
 
 export function getBoxSelectAllState(
 	options: BoxSelectionOption[],
@@ -57,9 +59,12 @@ export const BoxSelectionPanel: React.FC<BoxSelectionPanelProps> = ({
 	const [search, setSearch] = useState("");
 	const [windowStart, setWindowStart] = useState(0);
 	const [isListScrolling, setIsListScrolling] = useState(false);
+	const [bulkActionPending, setBulkActionPending] = useState(false);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
 	const scrollStopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const bulkApplyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const bulkFinishTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const normalizedSearch = search.trim().toLowerCase();
 
 	useEffect(() => {
@@ -85,6 +90,8 @@ export const BoxSelectionPanel: React.FC<BoxSelectionPanelProps> = ({
 	useEffect(
 		() => () => {
 			if (scrollStopTimer.current) clearTimeout(scrollStopTimer.current);
+			if (bulkApplyTimer.current) clearTimeout(bulkApplyTimer.current);
+			if (bulkFinishTimer.current) clearTimeout(bulkFinishTimer.current);
 		},
 		[],
 	);
@@ -122,10 +129,27 @@ export const BoxSelectionPanel: React.FC<BoxSelectionPanelProps> = ({
 		: 0;
 
 	const toggleBox = (id: string) => {
+		if (bulkActionPending) return;
 		const next = new Set(excludedBoxIds);
 		if (next.has(id)) next.delete(id);
 		else next.add(id);
 		onExcludedBoxIdsChange(next);
+	};
+
+	const handleBulkChange = (checked: boolean) => {
+		if (bulkActionPending) return;
+		setBulkActionPending(true);
+
+		bulkApplyTimer.current = setTimeout(() => {
+			onExcludedBoxIdsChange(
+				setAllCurrentBoxesSelected(excludedBoxIds, options, checked),
+			);
+			bulkApplyTimer.current = null;
+			bulkFinishTimer.current = setTimeout(() => {
+				setBulkActionPending(false);
+				bulkFinishTimer.current = null;
+			}, BULK_SPINNER_MIN_MS);
+		}, BULK_APPLY_DELAY_MS);
 	};
 
 	const handleListScroll = (event: React.UIEvent<HTMLDivElement>) => {
@@ -153,6 +177,7 @@ export const BoxSelectionPanel: React.FC<BoxSelectionPanelProps> = ({
 				onClick={() => setOpen((value) => !value)}
 				aria-expanded={open}
 				aria-haspopup="dialog"
+				aria-busy={bulkActionPending}
 				className={`flex items-center gap-1.5 rounded border px-2.5 py-1.5 text-xs font-bold shadow-sm transition-colors cursor-pointer ${
 					open
 						? "border-primary-300 bg-primary-50 text-primary-700"
@@ -160,15 +185,19 @@ export const BoxSelectionPanel: React.FC<BoxSelectionPanelProps> = ({
 				}`}
 			>
 				<span>Boxes</span>
-				<span
-					className={`rounded px-1.5 py-0.5 text-[0.7rem] font-semibold ${
-						selectedCount === options.length
-							? "bg-primary-100 text-primary-700"
-							: "bg-accent-100 text-accent-700"
-					}`}
-				>
-					{selectedCount}/{options.length}
-				</span>
+				{bulkActionPending ? (
+					<LoaderCircle className="size-3.5 animate-spin text-primary-600" aria-hidden="true" />
+				) : (
+					<span
+						className={`rounded px-1.5 py-0.5 text-[0.7rem] font-semibold ${
+							selectedCount === options.length
+								? "bg-primary-100 text-primary-700"
+								: "bg-accent-100 text-accent-700"
+						}`}
+					>
+						{selectedCount}/{options.length}
+					</span>
+				)}
 				<ChevronDown
 					className={`size-3.5 transition-transform ${open ? "rotate-180" : ""}`}
 					aria-hidden="true"
@@ -190,15 +219,22 @@ export const BoxSelectionPanel: React.FC<BoxSelectionPanelProps> = ({
 								{selectedCount} of {options.length} selected
 							</div>
 						</div>
-						<SelectAllCheckbox
-							state={selectAllState}
-							label={selectAllState === "all" ? "Deselect all" : "Select all"}
-							onChange={(checked) =>
-								onExcludedBoxIdsChange(
-									setAllCurrentBoxesSelected(excludedBoxIds, options, checked),
-								)
-							}
-						/>
+						{bulkActionPending ? (
+							<div
+								role="status"
+								aria-label="Updating box selection"
+								className="flex items-center gap-1.5 rounded-md border border-primary-200 bg-primary-50 px-2 py-1 text-xs font-semibold text-primary-700"
+							>
+								<LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+								Updating
+							</div>
+						) : (
+							<SelectAllCheckbox
+								state={selectAllState}
+								label={selectAllState === "all" ? "Deselect all" : "Select all"}
+								onChange={handleBulkChange}
+							/>
+						)}
 					</div>
 
 					<div className="p-2.5">
@@ -211,16 +247,17 @@ export const BoxSelectionPanel: React.FC<BoxSelectionPanelProps> = ({
 								type="search"
 								value={search}
 								onChange={handleSearchChange}
+								disabled={bulkActionPending}
 								placeholder="Search boxes..."
 								aria-label="Search boxes"
-								className="w-full rounded-md border border-neutral-300 bg-white py-1.5 pl-8 pr-3 text-xs text-neutral-800 outline-none transition focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+								className="w-full rounded-md border border-neutral-300 bg-white py-1.5 pl-8 pr-3 text-xs text-neutral-800 outline-none transition focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:cursor-wait disabled:bg-neutral-100 disabled:text-neutral-400"
 							/>
 						</div>
 
 						<div
 							ref={listRef}
 							onScroll={handleListScroll}
-							aria-busy={isListScrolling}
+							aria-busy={isListScrolling || bulkActionPending}
 							data-testid="box-selection-list"
 							className="relative mt-2 max-h-[min(52dvh,22rem)] overflow-y-auto overscroll-contain rounded-md border border-neutral-200 bg-neutral-50"
 							style={{ contain: "layout paint style" }}
@@ -252,17 +289,20 @@ export const BoxSelectionPanel: React.FC<BoxSelectionPanelProps> = ({
 										return (
 											<label
 												key={option.id}
-												className={`flex h-11 min-w-0 cursor-pointer items-center gap-2 rounded px-2 transition-colors ${
-													checked
-														? "hover:bg-primary-50"
-														: "bg-neutral-100 hover:bg-neutral-200"
+												className={`flex h-11 min-w-0 items-center gap-2 rounded px-2 transition-colors ${
+													bulkActionPending
+														? "cursor-wait opacity-60"
+														: checked
+															? "cursor-pointer hover:bg-primary-50"
+															: "cursor-pointer bg-neutral-100 hover:bg-neutral-200"
 												}`}
 											>
 												<input
 													type="checkbox"
 													checked={checked}
+													disabled={bulkActionPending}
 													onChange={() => toggleBox(option.id)}
-													className="size-4 shrink-0 cursor-pointer accent-primary-600"
+													className="size-4 shrink-0 cursor-pointer accent-primary-600 disabled:cursor-wait"
 												/>
 												<span className="min-w-0 flex-1">
 													<span className="block truncate text-xs font-semibold text-neutral-800">
@@ -283,11 +323,6 @@ export const BoxSelectionPanel: React.FC<BoxSelectionPanelProps> = ({
 								</div>
 							)}
 						</div>
-						{isVirtualized && (
-							<div className="mt-1.5 text-right text-[0.65rem] text-neutral-400">
-								Smooth list · {visibleOptions.length} boxes
-							</div>
-						)}
 					</div>
 				</div>
 			)}
