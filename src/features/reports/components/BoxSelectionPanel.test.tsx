@@ -48,10 +48,26 @@ function Harness({
 	);
 }
 
+function openPanel() {
+	fireEvent.click(screen.getByRole("button", { name: /Boxes/ }));
+}
+
 describe("BoxSelectionPanel", () => {
-	it("starts with every filtered box selected and shows the count", () => {
+	it("stays collapsed until the compact Boxes trigger is clicked", () => {
 		render(<Harness />);
-		expect(screen.getByText("3 / 3 selected")).toBeTruthy();
+		const trigger = screen.getByRole("button", { name: /Boxes/ });
+		expect(trigger.getAttribute("aria-expanded")).toBe("false");
+		expect(screen.queryByRole("dialog", { name: "Boxes to include" })).toBeNull();
+
+		openPanel();
+		expect(trigger.getAttribute("aria-expanded")).toBe("true");
+		expect(screen.getByRole("dialog", { name: "Boxes to include" })).toBeTruthy();
+		expect(screen.getByText("3 of 3 selected")).toBeTruthy();
+	});
+
+	it("starts with every filtered box selected", () => {
+		render(<Harness />);
+		openPanel();
 		expect(
 			(screen.getByRole("checkbox", { name: "Deselect all" }) as HTMLInputElement)
 				.checked,
@@ -60,11 +76,12 @@ describe("BoxSelectionPanel", () => {
 
 	it("deselects an individual box and enters the partial master state", () => {
 		render(<Harness />);
+		openPanel();
 		fireEvent.click(
 			screen.getByRole("checkbox", { name: /AIN-P-NAC-#01/ }),
 		);
 
-		expect(screen.getByText("2 / 3 selected")).toBeTruthy();
+		expect(screen.getByText("2 of 3 selected")).toBeTruthy();
 		const master = screen.getByRole("checkbox", {
 			name: "Select all",
 		}) as HTMLInputElement;
@@ -74,26 +91,29 @@ describe("BoxSelectionPanel", () => {
 
 	it("master toggle deselects and reselects all boxes in the current filter", () => {
 		render(<Harness />);
+		openPanel();
 		fireEvent.click(screen.getByRole("checkbox", { name: "Deselect all" }));
-		expect(screen.getByText("0 / 3 selected")).toBeTruthy();
+		expect(screen.getByText("0 of 3 selected")).toBeTruthy();
 
 		fireEvent.click(screen.getByRole("checkbox", { name: "Select all" }));
-		expect(screen.getByText("3 / 3 selected")).toBeTruthy();
+		expect(screen.getByText("3 of 3 selected")).toBeTruthy();
 	});
 
 	it("searches by reference and metadata without changing selection count", () => {
 		render(<Harness />);
+		openPanel();
 		fireEvent.change(screen.getByRole("searchbox", { name: "Search boxes" }), {
 			target: { value: "DXB" },
 		});
 
 		expect(screen.queryByText("AIN-P-AC-#16")).toBeNull();
 		expect(screen.getByText("DXB-W-AC-#05")).toBeTruthy();
-		expect(screen.getByText("3 / 3 selected")).toBeTruthy();
+		expect(screen.getByText("3 of 3 selected")).toBeTruthy();
 	});
 
 	it("master select-all still applies to the full filtered set while search narrows the visible list", () => {
 		render(<Harness />);
+		openPanel();
 		fireEvent.change(screen.getByRole("searchbox", { name: "Search boxes" }), {
 			target: { value: "DXB" },
 		});
@@ -101,7 +121,7 @@ describe("BoxSelectionPanel", () => {
 		expect(screen.queryByText("AIN-P-AC-#16")).toBeNull();
 
 		fireEvent.click(screen.getByRole("checkbox", { name: "Deselect all" }));
-		expect(screen.getByText("0 / 3 selected")).toBeTruthy();
+		expect(screen.getByText("0 of 3 selected")).toBeTruthy();
 		expect(
 			(screen.getByRole("checkbox", { name: /DXB-W-AC-#05/ }) as HTMLInputElement)
 				.checked,
@@ -110,16 +130,17 @@ describe("BoxSelectionPanel", () => {
 
 	it("keeps a box exclusion when filters temporarily remove that box and later bring it back", () => {
 		const { rerender } = render(<Harness />);
+		openPanel();
 		fireEvent.click(
 			screen.getByRole("checkbox", { name: /AIN-P-NAC-#01/ }),
 		);
-		expect(screen.getByText("2 / 3 selected")).toBeTruthy();
+		expect(screen.getByText("2 of 3 selected")).toBeTruthy();
 
 		rerender(<Harness currentOptions={[options[0], options[2]]} />);
-		expect(screen.getByText("2 / 2 selected")).toBeTruthy();
+		expect(screen.getByText("2 of 2 selected")).toBeTruthy();
 
 		rerender(<Harness currentOptions={options} />);
-		expect(screen.getByText("2 / 3 selected")).toBeTruthy();
+		expect(screen.getByText("2 of 3 selected")).toBeTruthy();
 		expect(
 			(screen.getByRole("checkbox", { name: /AIN-P-NAC-#01/ }) as HTMLInputElement)
 				.checked,
