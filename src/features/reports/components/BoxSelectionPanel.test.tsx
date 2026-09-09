@@ -156,4 +156,23 @@ describe("BoxSelectionPanel", () => {
 		expect(next.has("box-1")).toBe(false);
 		expect(next.has("outside-filter")).toBe(true);
 	});
+
+	it("virtualizes large box lists and advances the render window while scrolling", () => {
+		const manyOptions: BoxSelectionOption[] = Array.from({ length: 240 }, (_, i) => ({
+			id: `bulk-${i}`,
+			label: `BOX-${String(i + 1).padStart(3, "0")}`,
+			meta: "Large report",
+		}));
+		render(<Harness currentOptions={manyOptions} />);
+		openPanel();
+
+		expect(screen.getByText("BOX-001")).toBeTruthy();
+		expect(screen.queryByText("BOX-200")).toBeNull();
+		const list = screen.getByTestId("box-selection-list");
+		fireEvent.scroll(list, { target: { scrollTop: 44 * 190 } });
+
+		expect(screen.getByText("BOX-191")).toBeTruthy();
+		expect(screen.queryByText("BOX-001")).toBeNull();
+		expect(list.getAttribute("aria-busy")).toBe("true");
+	});
 });
