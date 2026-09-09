@@ -112,15 +112,17 @@ export const SelectableLivePreviewPanel: FC<SelectableLivePreviewPanelProps> = (
 		: props.headerData;
 
 	return (
-		<div className="flex h-full min-h-0 flex-col">
+		<div className="relative h-full min-h-0">
 			{showSelector && (
-				<BoxSelectionPanel
-					options={options}
-					excludedBoxIds={excludedBoxIds}
-					onExcludedBoxIdsChange={setExcludedBoxIds}
-				/>
+				<div className="absolute right-3 top-3 z-40">
+					<BoxSelectionPanel
+						options={options}
+						excludedBoxIds={excludedBoxIds}
+						onExcludedBoxIdsChange={setExcludedBoxIds}
+					/>
+				</div>
 			)}
-			<div className="min-h-0 flex-1">
+			<div className="h-full min-h-0">
 				<ReportBoxSelectionProvider
 					excludedBoxIds={excludedBoxIds}
 					hasActiveExclusions={hasActiveExclusions}
