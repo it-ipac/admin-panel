@@ -63,12 +63,53 @@ describe("BoxSelectionPanel", () => {
 		render(<Harness />);
 		const trigger = screen.getByRole("button", { name: /Boxes/ });
 		expect(trigger.getAttribute("aria-expanded")).toBe("false");
-		expect(screen.queryByRole("dialog", { name: "Boxes to include" })).toBeNull();
+		expect(trigger.getAttribute("aria-controls")).toBe(
+			"report-box-selection-dialog",
+		);
+		expect(
+			screen.queryByRole("dialog", { name: /Boxes to include/i }),
+		).toBeNull();
 
 		openPanel();
 		expect(trigger.getAttribute("aria-expanded")).toBe("true");
-		expect(screen.getByRole("dialog", { name: "Boxes to include" })).toBeTruthy();
+		expect(
+			screen.getByRole("dialog", { name: /Boxes to include/i }),
+		).toBeTruthy();
 		expect(screen.getByText("3 of 3 selected")).toBeTruthy();
+	});
+
+	it("focuses search on open, closes on Escape, and returns focus to the trigger", async () => {
+		render(<Harness />);
+		const trigger = screen.getByRole("button", { name: /Boxes/ });
+		openPanel();
+		const searchbox = screen.getByRole("searchbox", { name: "Search boxes" });
+
+		await waitFor(() => expect(document.activeElement).toBe(searchbox));
+		fireEvent.keyDown(document, { key: "Escape" });
+		expect(trigger.getAttribute("aria-expanded")).toBe("false");
+		await waitFor(() => expect(document.activeElement).toBe(trigger));
+		await waitFor(() =>
+			expect(
+				screen.queryByRole("dialog", { name: /Boxes to include/i }),
+			).toBeNull(),
+		);
+	});
+
+	it("closes through the animated lifecycle when clicking outside", async () => {
+		render(<Harness />);
+		const trigger = screen.getByRole("button", { name: /Boxes/ });
+		openPanel();
+		expect(
+			screen.getByRole("dialog", { name: /Boxes to include/i }),
+		).toBeTruthy();
+
+		fireEvent.mouseDown(document.body);
+		expect(trigger.getAttribute("aria-expanded")).toBe("false");
+		await waitFor(() =>
+			expect(
+				screen.queryByRole("dialog", { name: /Boxes to include/i }),
+			).toBeNull(),
+		);
 	});
 
 	it("starts with every filtered box selected", () => {
