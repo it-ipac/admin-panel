@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import {
 	fetchClientDetails,
 	fetchClients,
@@ -11,6 +12,7 @@ import {
 	fetchReportInstances,
 	fetchTemplates,
 } from "../api";
+import { useReportBoxSelection } from "../reportBoxSelectionContext";
 import type { FilterParams } from "../types";
 
 export const useClientsQuery = () => {
@@ -63,11 +65,23 @@ export const useDestinationsQuery = (
 };
 
 export const useReportInstancesQuery = (filters: FilterParams) => {
-	return useQuery({
+	const selection = useReportBoxSelection();
+	const excludedBoxIds = selection?.excludedBoxIds;
+	const query = useQuery({
 		queryKey: ["report_instances", filters],
 		queryFn: () => fetchReportInstances(filters),
 		enabled: !!filters.clientId || filters.orderIds.length > 0,
 	});
+
+	const selectedData = useMemo(() => {
+		if (!query.data || !excludedBoxIds || excludedBoxIds.size === 0) {
+			return query.data;
+		}
+		return query.data.filter((instance) => !excludedBoxIds.has(instance.id));
+	}, [query.data, excludedBoxIds]);
+
+	if (selectedData === query.data) return query;
+	return { ...query, data: selectedData };
 };
 
 export const useTemplatesQuery = () => {
@@ -85,9 +99,17 @@ export const useCompanyProfileQuery = () => {
 };
 
 export const useOrderTotalsQuery = (orderId: string | null) => {
-	return useQuery({
+	const selection = useReportBoxSelection();
+	const query = useQuery({
 		queryKey: ["order_totals", orderId],
 		queryFn: () => fetchOrderTotals(orderId!),
 		enabled: !!orderId,
 	});
+
+	if (!orderId || !selection || !selection.hasActiveExclusions) {
+		return query;
+	}
+	const selectedTotals = selection.orderTotalsByOrder.get(orderId);
+	if (!selectedTotals) return query;
+	return { ...query, data: selectedTotals };
 };
