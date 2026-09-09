@@ -1,4 +1,12 @@
-import { type ComponentProps, type FC, useMemo, useState } from "react";
+import {
+	type ComponentProps,
+	type FC,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { useReportInstancesQuery } from "../hooks/useReportBuilderQueries";
 import { ReportBoxSelectionProvider } from "../reportBoxSelectionContext";
 import { buildSelectionOrderTotals } from "../reportBoxSelectionTotals";
@@ -73,6 +81,8 @@ export const SelectableLivePreviewPanel: FC<SelectableLivePreviewPanelProps> = (
 	const [excludedBoxIds, setExcludedBoxIds] = useState<Set<string>>(
 		() => new Set(),
 	);
+	const [toolbarTarget, setToolbarTarget] = useState<HTMLElement | null>(null);
+	const previewRootRef = useRef<HTMLDivElement>(null);
 	const { data: instances, isLoading, error } = useReportInstancesQuery(
 		props.filters,
 	);
@@ -98,6 +108,30 @@ export const SelectableLivePreviewPanel: FC<SelectableLivePreviewPanelProps> = (
 		Boolean(props.filters.clientId) || props.filters.orderIds.length > 0;
 	const showSelector = hasReportScope && !isLoading && !error;
 
+	useEffect(() => {
+		if (!showSelector || !previewRootRef.current) {
+			setToolbarTarget(null);
+			return;
+		}
+
+		const root = previewRootRef.current;
+		const locateToolbarTarget = () => {
+			const managePhotosButton = Array.from(
+				root.querySelectorAll<HTMLButtonElement>("button"),
+			).find((button) => button.textContent?.trim() === "Manage Photos");
+			const target = managePhotosButton?.parentElement ?? null;
+			setToolbarTarget((current) => (current === target ? current : target));
+		};
+
+		locateToolbarTarget();
+		const observer = new MutationObserver(locateToolbarTarget);
+		observer.observe(root, { childList: true, subtree: true });
+		return () => {
+			observer.disconnect();
+			setToolbarTarget(null);
+		};
+	}, [showSelector]);
+
 	const selectedSingleOrderTotals =
 		hasActiveExclusions && props.filters.orderIds.length === 1
 			? orderTotalsByOrder.get(props.filters.orderIds[0])
@@ -111,29 +145,27 @@ export const SelectableLivePreviewPanel: FC<SelectableLivePreviewPanelProps> = (
 			}
 		: props.headerData;
 
+	const boxSelector = showSelector ? (
+		<BoxSelectionPanel
+			options={options}
+			excludedBoxIds={excludedBoxIds}
+			onExcludedBoxIdsChange={setExcludedBoxIds}
+		/>
+	) : null;
+
 	return (
-		<div className="relative h-full min-h-0">
-			{showSelector && (
-				<div className="absolute right-3 top-3 z-40">
-					<BoxSelectionPanel
-						options={options}
-						excludedBoxIds={excludedBoxIds}
-						onExcludedBoxIdsChange={setExcludedBoxIds}
-					/>
-				</div>
-			)}
-			<div className="h-full min-h-0">
-				<ReportBoxSelectionProvider
-					excludedBoxIds={excludedBoxIds}
-					hasActiveExclusions={hasActiveExclusions}
-					orderTotalsByOrder={orderTotalsByOrder}
-				>
-					<LivePreviewPanel
-						{...props}
-						headerData={selectionAwareHeaderData}
-					/>
-				</ReportBoxSelectionProvider>
-			</div>
+		<div ref={previewRootRef} className="h-full min-h-0">
+			{toolbarTarget && boxSelector && createPortal(boxSelector, toolbarTarget)}
+			<ReportBoxSelectionProvider
+				excludedBoxIds={excludedBoxIds}
+				hasActiveExclusions={hasActiveExclusions}
+				orderTotalsByOrder={orderTotalsByOrder}
+			>
+				<LivePreviewPanel
+					{...props}
+					headerData={selectionAwareHeaderData}
+				/>
+			</ReportBoxSelectionProvider>
 		</div>
 	);
 };
