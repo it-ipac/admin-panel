@@ -1,11 +1,5 @@
 import { ChevronDown, Search } from "lucide-react";
-import React, {
-	useDeferredValue,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { SelectAllState } from "../lineOptions";
 import { SelectAllCheckbox } from "./SelectAllCheckbox";
 
@@ -61,13 +55,12 @@ export const BoxSelectionPanel: React.FC<BoxSelectionPanelProps> = ({
 }) => {
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
-	const deferredSearch = useDeferredValue(search);
 	const [windowStart, setWindowStart] = useState(0);
 	const [isListScrolling, setIsListScrolling] = useState(false);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
 	const scrollStopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const normalizedSearch = deferredSearch.trim().toLowerCase();
+	const normalizedSearch = search.trim().toLowerCase();
 
 	useEffect(() => {
 		if (!open) return;
@@ -105,11 +98,6 @@ export const BoxSelectionPanel: React.FC<BoxSelectionPanelProps> = ({
 				.toLowerCase()
 				.includes(normalizedSearch),
 		);
-	}, [normalizedSearch, options]);
-
-	useEffect(() => {
-		setWindowStart(0);
-		if (listRef.current) listRef.current.scrollTop = 0;
 	}, [normalizedSearch, options]);
 
 	const selectedCount = options.reduce(
@@ -150,6 +138,12 @@ export const BoxSelectionPanel: React.FC<BoxSelectionPanelProps> = ({
 		setIsListScrolling(true);
 		if (scrollStopTimer.current) clearTimeout(scrollStopTimer.current);
 		scrollStopTimer.current = setTimeout(() => setIsListScrolling(false), 140);
+	};
+
+	const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		setSearch(event.target.value);
+		setWindowStart(0);
+		if (listRef.current) listRef.current.scrollTop = 0;
 	};
 
 	return (
@@ -216,7 +210,7 @@ export const BoxSelectionPanel: React.FC<BoxSelectionPanelProps> = ({
 							<input
 								type="search"
 								value={search}
-								onChange={(event) => setSearch(event.target.value)}
+								onChange={handleSearchChange}
 								placeholder="Search boxes..."
 								aria-label="Search boxes"
 								className="w-full rounded-md border border-neutral-300 bg-white py-1.5 pl-8 pr-3 text-xs text-neutral-800 outline-none transition focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
