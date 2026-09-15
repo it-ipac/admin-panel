@@ -1,6 +1,7 @@
 # IPAC Admin Panel
 
 
+
 A fast, modern admin panel built with TanStack Start for the IPAC operations system.
 
 ## Why TanStack Start?
@@ -14,7 +15,7 @@ The original admin panel was built with Expo Web (React Native Web), which had s
 This new admin panel offers:
 - **Sub-second LCP** with SSR and streaming
 - **~100-200KB initial bundle** vs ~2-5MB
-- Built-in caching with TanStack Query
+
 - Type-safe routing with TanStack Router
 
 ## Setup
