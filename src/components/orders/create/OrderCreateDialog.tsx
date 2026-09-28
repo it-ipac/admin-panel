@@ -25,7 +25,7 @@ import {
 	matchPackageDesignations,
 } from "./orderCreate/itemNumberMatching";
 import { OrderCreateFormDialog } from "./orderCreate/OrderCreateFormDialog.tsx";
-import { parseExcelFile } from "./orderCreate/parseExcelFile";
+import { parseExcelFileResponsive } from "./orderCreate/parseExcelFileResponsive";
 import { resolvePackages } from "./orderCreate/resolvePackages";
 import { submitOrderCreate } from "./orderCreate/submitOrderCreate";
 import {
@@ -1066,7 +1066,7 @@ export function OrderCreateDialog({
 		setFileError(null);
 		setItemMatchStatusByPackage({});
 		try {
-			const parsed = await parseExcelFile(file, {
+			const parsed = await parseExcelFileResponsive(file, {
 				versionMode: mode,
 				orderNameForDetection: candidateOrderName,
 			});

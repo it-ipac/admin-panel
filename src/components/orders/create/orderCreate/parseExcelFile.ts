@@ -8,7 +8,7 @@ import {
 	stripExtension,
 } from "./utils";
 
-interface ParseResult {
+export interface ParseResult {
 	worksheetNames: string[];
 	rawPackages: ReturnType<typeof parsePackageRows>;
 	packageCount: number;
@@ -18,7 +18,7 @@ interface ParseResult {
 	columnOffset: number;
 }
 
-interface ParseExcelFileOptions {
+export interface ParseExcelFileOptions {
 	versionMode: ExcelTemplateMode;
 	orderNameForDetection?: string;
 }
