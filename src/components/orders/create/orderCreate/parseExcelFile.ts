@@ -161,6 +161,16 @@ export const parseExcelFile = async (
 		) {
 			return { ...pkg, boxTypeLabel: "Box DFS" };
 		}
+
+		// TEMPORARY WORKAROUND:
+		// The current Excel template puts "Vacuum Packing" in the box-type column,
+		// even though vacuum packing is a protection type. Treat the construction as
+		// "Base Only" and keep the separately parsed SEI protection (e.g. code "c").
+		// Remove this alias once the spreadsheet provides construction and protection
+		// as separate, correct values.
+		if (normalizedBoxType === "basevacuumpacking") {
+			return { ...pkg, boxTypeLabel: "Base Only" };
+		}
 		return pkg;
 	});
 	return {
