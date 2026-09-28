@@ -1,187 +1,68 @@
-import ExcelJS from "exceljs";
-import * as XLSX from "xlsx";
-import { parsePackageRows } from "./parsePackageRows";
-import type { AppliedExcelTemplateMode, ExcelTemplateMode } from "./types";
 import {
-	detectExcelTemplateVersion,
-	resolveExcelTemplateMode,
-	stripExtension,
-} from "./utils";
+	parseExcelFileCore,
+	type ParseExcelFileOptions,
+	type ParseResult,
+} from "./parseExcelFileCore";
 
-interface ParseResult {
-	worksheetNames: string[];
-	rawPackages: ReturnType<typeof parsePackageRows>;
-	packageCount: number;
-	fileError: string | null;
-	detectedVersion: number | null;
-	appliedTemplateMode: AppliedExcelTemplateMode;
-	columnOffset: number;
-}
+export type { ParseExcelFileOptions, ParseResult } from "./parseExcelFileCore";
 
-interface ParseExcelFileOptions {
-	versionMode: ExcelTemplateMode;
-	orderNameForDetection?: string;
-}
+type WorkerResponse =
+	| { ok: true; result: ParseResult }
+	| { ok: false; error: string };
 
-const CALCULATION_SHEET_NAME = "Calculation";
+const parseExcelFileInWorker = (
+	file: File,
+	options: ParseExcelFileOptions,
+): Promise<ParseResult> =>
+	new Promise((resolve, reject) => {
+		const worker = new Worker(
+			new URL("./excelParser.worker.ts", import.meta.url),
+			{ type: "module" },
+		);
 
-const findCalculationSheetName = (sheetNames: string[]) =>
-	sheetNames.find((sheetName) => sheetName === CALCULATION_SHEET_NAME);
+		const cleanup = () => {
+			worker.onmessage = null;
+			worker.onerror = null;
+			worker.terminate();
+		};
 
-const toExcelJsWorksheet = (
-	workbook: XLSX.WorkBook,
-	sheetName: string,
-): ExcelJS.Worksheet => {
-	const sourceSheet = workbook.Sheets[sheetName];
-	const convertedWorkbook = new ExcelJS.Workbook();
-	const convertedSheet = convertedWorkbook.addWorksheet(sheetName);
-
-	if (!sourceSheet) return convertedSheet;
-
-	const rows = XLSX.utils.sheet_to_json(sourceSheet, {
-		header: 1,
-		raw: false,
-		defval: null,
-	}) as unknown[][];
-
-	rows.forEach((row, rowIndex) => {
-		row.forEach((cellValue, colIndex) => {
-			if (cellValue === null || cellValue === undefined || cellValue === "")
+		worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+			cleanup();
+			if (event.data.ok) {
+				resolve(event.data.result);
 				return;
-			convertedSheet.getCell(rowIndex + 1, colIndex + 1).value =
-				cellValue as any;
-		});
+			}
+			reject(new Error(event.data.error));
+		};
+
+		worker.onerror = (event) => {
+			cleanup();
+			reject(
+				new Error(
+					event.message || "Excel parsing worker failed unexpectedly.",
+				),
+			);
+		};
+
+		worker.postMessage({ file, options });
 	});
-
-	return convertedSheet;
-};
-
-const parseWorkbookWithExcelJs = async (arrayBuffer: ArrayBuffer) => {
-	const workbook = new ExcelJS.Workbook();
-	await workbook.xlsx.load(arrayBuffer);
-	const worksheetNames = workbook.worksheets.map((sheet) => sheet.name);
-
-	if (!worksheetNames.length) {
-		throw new Error("ExcelJS loaded workbook with no worksheets");
-	}
-
-	const calculationSheetName = findCalculationSheetName(worksheetNames);
-	const targetSheet = calculationSheetName
-		? workbook.worksheets.find(
-				(sheet) => sheet.name === calculationSheetName,
-			) || null
-		: workbook.worksheets[0] || null;
-
-	return {
-		worksheetNames,
-		targetSheet,
-		usedCalculationSheet: Boolean(calculationSheetName),
-	};
-};
-
-const parseWorkbookWithSheetJs = (arrayBuffer: ArrayBuffer) => {
-	const workbook = XLSX.read(arrayBuffer, {
-		type: "array",
-		cellDates: true,
-		cellFormula: true,
-	});
-
-	const worksheetNames = workbook.SheetNames || [];
-	const calculationSheetName = findCalculationSheetName(worksheetNames);
-	const targetSheetName = calculationSheetName ?? worksheetNames[0] ?? null;
-	const targetSheet = targetSheetName
-		? toExcelJsWorksheet(workbook, targetSheetName)
-		: null;
-
-	return {
-		worksheetNames,
-		targetSheet,
-		usedCalculationSheet: Boolean(calculationSheetName),
-	};
-};
 
 export const parseExcelFile = async (
 	file: File,
 	options: ParseExcelFileOptions,
 ): Promise<ParseResult> => {
-	const arrayBuffer = await file.arrayBuffer();
-	const normalizedFileName = String(file.name || "").toLowerCase();
-	const shouldPreferSheetJs = normalizedFileName.endsWith(".xlsb");
-	let worksheetNames: string[] = [];
-	let targetSheet: ExcelJS.Worksheet | null = null;
-	let usedCalculationSheet = false;
-
-	if (shouldPreferSheetJs) {
-		const parsedWithSheetJs = parseWorkbookWithSheetJs(arrayBuffer);
-		worksheetNames = parsedWithSheetJs.worksheetNames;
-		targetSheet = parsedWithSheetJs.targetSheet;
-		usedCalculationSheet = parsedWithSheetJs.usedCalculationSheet;
-	} else {
-		try {
-			const parsedWithExcelJs = await parseWorkbookWithExcelJs(arrayBuffer);
-			worksheetNames = parsedWithExcelJs.worksheetNames;
-			targetSheet = parsedWithExcelJs.targetSheet;
-			usedCalculationSheet = parsedWithExcelJs.usedCalculationSheet;
-		} catch {
-			const parsedWithSheetJs = parseWorkbookWithSheetJs(arrayBuffer);
-			worksheetNames = parsedWithSheetJs.worksheetNames;
-			targetSheet = parsedWithSheetJs.targetSheet;
-			usedCalculationSheet = parsedWithSheetJs.usedCalculationSheet;
-		}
+	// Keep the old direct parser as a compatibility fallback for SSR/tests or
+	// older environments without Worker support. In normal browser usage the
+	// expensive workbook parsing runs off the main UI thread.
+	if (typeof Worker === "undefined") {
+		return parseExcelFileCore(file, options);
 	}
 
-	const candidateOrderName =
-		options.orderNameForDetection?.trim() || stripExtension(file.name);
-	const detectedVersion = detectExcelTemplateVersion(candidateOrderName);
-	const appliedTemplateMode = resolveExcelTemplateMode(
-		options.versionMode,
-		detectedVersion,
-	);
-	const columnOffset = appliedTemplateMode === "v54plus" ? 2 : 0;
-
-	if (!targetSheet) {
-		return {
-			worksheetNames,
-			rawPackages: [],
-			packageCount: 0,
-			fileError: "No worksheets were found in this Excel file.",
-			detectedVersion,
-			appliedTemplateMode,
-			columnOffset,
-		};
+	try {
+		return await parseExcelFileInWorker(file, options);
+	} catch (error) {
+		// Do not silently fall back to main-thread parsing here: a worker failure
+		// should surface as an import error rather than freezing the UI again.
+		throw error;
 	}
-
-	const rawPackages = parsePackageRows(targetSheet, columnOffset).map((pkg) => {
-		const normalizedBoxType = String(pkg.boxTypeLabel || "")
-			.toLowerCase()
-			.replace(/[^a-z0-9]/g, "");
-		if (
-			normalizedBoxType === "basedefensor" ||
-			normalizedBoxType === "basedfs"
-		) {
-			return { ...pkg, boxTypeLabel: "Box DFS" };
-		}
-
-		// TEMPORARY WORKAROUND:
-		// The current Excel template puts "Vacuum Packing" in the box-type column,
-		// even though vacuum packing is a protection type. Treat the construction as
-		// "Base Only" and keep the separately parsed SEI protection (e.g. code "c").
-		// Remove this alias once the spreadsheet provides construction and protection
-		// as separate, correct values.
-		if (normalizedBoxType === "basevacuumpacking") {
-			return { ...pkg, boxTypeLabel: "Base Only" };
-		}
-		return pkg;
-	});
-	return {
-		worksheetNames,
-		rawPackages,
-		packageCount: rawPackages.length,
-		fileError: usedCalculationSheet
-			? null
-			: '"Calculation" sheet not found. Using the first worksheet instead.',
-		detectedVersion,
-		appliedTemplateMode,
-		columnOffset,
-	};
 };
