@@ -298,6 +298,26 @@ function RootComponent() {
 		}
 	};
 
+	if (!authState.loading && authState.user && authState.profileError) {
+		return (
+			<RootDocument theme={theme}>
+				<div className="flex min-h-screen items-center justify-center bg-app-bg p-6">
+					<div role="alert" className="max-w-md rounded-xl border border-app-border bg-app-surface p-6 text-app-text-strong">
+						<h1 className="text-xl font-semibold">Account temporarily unavailable</h1>
+						<p className="mt-3 text-sm">{authState.profileError}</p>
+						<button
+							type="button"
+							className="mt-4 rounded-lg bg-primary-600 px-4 py-2 text-white"
+							onClick={() => void authState.refreshProfile()}
+						>
+							Retry
+						</button>
+					</div>
+				</div>
+			</RootDocument>
+		);
+	}
+
 	if (accountAreaMismatch) {
 		return (
 			<RootDocument theme={theme}>

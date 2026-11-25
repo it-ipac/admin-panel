@@ -9,23 +9,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const AUTH_STORAGE_KEY = "ipac-admin-auth";
 
-// Check if stored session might be corrupted on module load
-if (typeof window !== "undefined") {
-	try {
-		const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-		if (stored) {
-			const parsed = JSON.parse(stored);
-			if (!parsed?.access_token && !parsed?.refresh_token) {
-				console.warn("Clearing invalid auth session from storage");
-				localStorage.removeItem(AUTH_STORAGE_KEY);
-			}
-		}
-	} catch (_e) {
-		console.warn("Clearing corrupted auth session from storage");
-		localStorage.removeItem(AUTH_STORAGE_KEY);
-	}
-}
-
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 	auth: {
 		persistSession: true,
@@ -39,15 +22,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 			"X-Client-Info": "ipac-admin-panel",
 		},
 	},
-});
-
-// Handle auth errors globally
-supabase.auth.onAuthStateChange((event, _session) => {
-	if (event === "TOKEN_REFRESHED") {
-		console.log("Token refreshed successfully");
-	} else if (event === "SIGNED_OUT") {
-		localStorage.removeItem(AUTH_STORAGE_KEY);
-	}
 });
 
 export const auth = {
@@ -88,7 +62,6 @@ export const auth = {
 	},
 
 	signOut: async () => {
-		localStorage.removeItem(AUTH_STORAGE_KEY);
 		return supabase.auth.signOut();
 	},
 
@@ -97,8 +70,10 @@ export const auth = {
 			return await supabase.auth.getSession();
 		} catch (error) {
 			console.error("Failed to get session:", error);
-			localStorage.removeItem(AUTH_STORAGE_KEY);
-			return { data: { session: null }, error: null };
+			return {
+				data: { session: null },
+				error: error instanceof AuthError ? error : new AuthError("Failed to read session"),
+			};
 		}
 	},
 
