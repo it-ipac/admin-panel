@@ -90,6 +90,19 @@ describe("auth session lifecycle", () => {
 		expect(result.current.isAdmin).toBe(true);
 	});
 
+	it("reloads the profile when the same account signs out and in in one render", async () => {
+		const { result } = renderHook(() => useAuthState());
+		emit("INITIAL_SESSION", session("a"));
+		await waitFor(() => expect(result.current.loading).toBe(false));
+		act(() => {
+			mocks.listener?.("SIGNED_OUT", null);
+			mocks.listener?.("SIGNED_IN", session("a"));
+		});
+		await waitFor(() => expect(result.current.loading).toBe(false));
+		expect(result.current.profile?.id).toBe("a");
+		expect(mocks.getProfile).toHaveBeenCalledTimes(2);
+	});
+
 	it("does not allow an old account profile to overwrite the new one", async () => {
 		let resolve!: (value: { data: ReturnType<typeof profile>; error: null }) => void;
 		mocks.getProfile.mockReturnValueOnce(new Promise((r) => { resolve = r; }));
