@@ -27,7 +27,7 @@ interface AuthContextValue {
 	profile: Profile | null;
 	session: Session | null;
 	loading: boolean;
-	profileError: string | null;
+	profileError?: string | null;
 	signIn: (username: string, password: string) => Promise<{ error: any }>;
 	signOut: () => Promise<void>;
 	isAdmin: boolean;
@@ -47,6 +47,7 @@ export function useAuth() {
 export function useAuthState() {
 	const [session, setSession] = useState<Session | null>(null);
 	const [initialized, setInitialized] = useState(false);
+	const [identityVersion, setIdentityVersion] = useState(0);
 	const [signingIn, setSigningIn] = useState(false);
 	const [profileResult, setProfileResult] = useState<{
 		userId: string;
@@ -98,6 +99,7 @@ export function useAuthState() {
 					currentUserId.current = nextUserId;
 					profileRequest.current++;
 					setProfileResult(null);
+					setIdentityVersion((version) => version + 1);
 				}
 				console.log("Auth state changed:", event);
 				setSession(nextSession);
@@ -117,7 +119,7 @@ export function useAuthState() {
 		if (!userId) return;
 		void loadProfile(userId);
 		return () => { profileRequest.current++; };
-	}, [userId, loadProfile]);
+	}, [userId, identityVersion, loadProfile]);
 
 	const signIn = useCallback(async (username: string, password: string) => {
 		setSigningIn(true);
