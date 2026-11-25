@@ -115,6 +115,7 @@ export function useAuthState() {
 
 	// Load the profile outside the Supabase auth callback (which can hold an
 	// internal auth lock). Token refreshes for the same user do not reset it.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: identityVersion invalidates the profile even when sign-out and sign-in for the same user are batched in a single render.
 	useEffect(() => {
 		if (!userId) return;
 		void loadProfile(userId);
